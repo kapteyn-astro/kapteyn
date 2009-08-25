@@ -95,6 +95,25 @@ Defined constants
 
    Velocity of light
 
+*Sky systems*
+
+.. data:: equatorial
+
+   sky system symbolic constant
+
+.. data:: ecliptic
+
+   sky system symbolic constant
+
+.. data:: galactic
+
+   sky system symbolic constant
+
+.. data:: supergalactic
+
+   sky system symbolic constant
+
+.. data:: fk4
 
 Error handling
 --------------
