@@ -5,6 +5,7 @@ DISTRIBUTION/doc/kapteyn.pdf
 SPHINX/HTML
 SPHINX/LATEX
 SPHINX/build/*
+SPHINX/EXAMPLES/*.png
 PACKAGE
 *.pyc
 *.new
