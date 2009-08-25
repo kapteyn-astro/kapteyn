@@ -88,32 +88,34 @@ For detailed information, refer to celestial's docstrings.
 
    Convert an angle in degrees to hours, minutes, seconds format.
 
-Defined constants
------------------
-
-.. data:: c
-
-   Velocity of light
+Constants
+---------
 
 *Sky systems*
 
 .. data:: equatorial
 
-   sky system symbolic constant
-
 .. data:: ecliptic
-
-   sky system symbolic constant
 
 .. data:: galactic
 
-   sky system symbolic constant
-
 .. data:: supergalactic
 
-   sky system symbolic constant
+*Reference systems*
 
 .. data:: fk4
+
+.. data:: fk4_no_e
+
+.. data:: fk5
+
+.. data:: icrs
+
+*Physical*
+
+.. data:: c
+
+   Velocity of light
 
 Error handling
 --------------
