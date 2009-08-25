@@ -1,0 +1,34 @@
+Developer's notes. (Dutch)
+--------------------------
+
+De source distributie van het package is een file met een naam als
+'kapteyn-1.8.1.tar.gz'. (Voorheen was dat iets als 'kapteyn-1.008.tar.gz',
+maar dat is geen gangbaar versieschema.)
+
+Aanpassingen worden als volgt uitgevoerd:
+
+ . Pak de tar.gz file uit en cd naar de uitpak-directory.
+
+ . Python modules worden geplaatst onder 'kapteyn'.
+
+ . Nieuw toe te voegen modules worden opgenomen in de file '__init__.py'.
+
+ . Voor nieuwe binaire modules moet een geschikte entry worden toegevoegd
+   aan het ext_modules argument voor de setup() aanroep in setup.py.
+
+ . Broncode voor binaire modules wordt geplaatst onder 'src'.
+   Dat is ook de plaats voor hulp-scripts e.d.
+
+ . Documentatie (PDF) wordt geplaatst onder 'doc'. Deze documentatie wordt
+   m.b.v. Sphinx aangemaakt.
+
+ . Alle nieuw toegevoegde files moeten worden opgenomen in de file
+   'MANIFEST'.
+
+ . Het versienummer moet worden opgehoogd in de file '__init__.py'
+   worden aangepast.
+
+ . De volgende opdracht maakt een nieuwe distributie: 'python setup.py sdist'.
+   Onder de directory 'dist' staat dan de nieuwe distributie file.
+
+                                                              25-08-2009, JPT

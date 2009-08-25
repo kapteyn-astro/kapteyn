@@ -1,0 +1,25 @@
+Scripts in deze directory mogen alleen vanuit de "hoofd-" directory
+hierboven worden gedraaid, dus als "UTI/make.."
+
+
+- makedist.csh
+
+  maakt een distributie tar.gz file van het package.
+
+
+- makepack.csh  
+
+  bouwt het package onder de directory PACKAGE t.b.v. testwerk en het
+  het bouwen van de documentatie. Hiervoor moet de environment variable
+  PYTHONPATH naar de directory PACKAGE wijzen.
+
+
+- makehtml.csh
+
+  bouwt de html documentatie onder de directory SPHINX/HTML
+
+
+- makepdf.csh
+
+  bouwt de pdf documentatie onder de directory SPHINX/PDF
+

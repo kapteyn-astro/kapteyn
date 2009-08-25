@@ -1,0 +1,11 @@
+syntax: glob
+DISTRIBUTION/build
+DISTRIBUTION/dist
+DISTRIBUTION/doc/kapteyn.pdf
+SPHINX/HTML
+SPHINX/LATEX
+SPHINX/build/*
+PACKAGE
+*.pyc
+*.new
+*.sav

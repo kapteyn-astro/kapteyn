@@ -1,0 +1,31 @@
+Installation Instructions
+=========================
+
+Requirements for installing this package are a suitable
+C compiler, wcslib and numpy.
+
+There are three installation options:
+
+1. To install the package, run the setup.py script in this
+   directory as follows:
+
+      python setup.py install
+
+   This will install the package into your Python system.
+
+2. If you prefer not to modify your Python installation,
+   create a directory under which to install the package
+   e.g., mydir. Then install as follows:
+
+      python setup.py install --install-lib mydir
+
+   To use the package you then need to include mydir in
+   your PYTHONPATH.
+
+3. If you want to use this package only for GIPSY, you can
+   install it as follows:
+
+      python setup.py install --install-lib $gip_exe
+
+
+                                            31-10-2008, JPT
