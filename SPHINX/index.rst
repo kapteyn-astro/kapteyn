@@ -6,6 +6,10 @@
 Kapteyn Package
 ===============
 
+.. only:: html
+
+   (Read this document in `PDF <../LATEX/kapteyn.pdf>`_)
+
 .. centered:: DRAFT DOCUMENT
 
 .. toctree::
