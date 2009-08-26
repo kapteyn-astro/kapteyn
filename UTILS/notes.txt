@@ -5,7 +5,8 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTI/make.."
 
 - makedist.csh
 
-  maakt een distributie tar.gz file van het package.
+  maakt een distributie tar.gz file van het package onder de directory
+  DISTRIBUTION/dist/.
 
 
 - makepack.csh  
@@ -17,10 +18,10 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTI/make.."
 
 - makehtml.csh
 
-  bouwt de html documentatie onder de directory SPHINX/HTML
+  bouwt de html documentatie onder de directory SPHINX/HTML/.
 
 
 - makepdf.csh
 
-  bouwt de pdf documentatie onder de directory SPHINX/PDF
+  bouwt de pdf documentatie onder de directory SPHINX/LATEX/.
 
