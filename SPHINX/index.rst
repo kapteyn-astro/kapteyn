@@ -25,6 +25,7 @@ Kapteyn Package
    Module mplutil: event handling utility for matplotlib <mplutil>
    wcstutorial
    wcsgrattutorial
+   tabarraytutorial
 
 .. unused documents:
    (conf.py parameter 'unused_docs')
