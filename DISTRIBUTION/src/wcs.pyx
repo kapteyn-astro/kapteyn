@@ -1135,7 +1135,7 @@ Example::
          else:
             specindex = self.specaxnum-1
          stypes = ['FREQ', 'ENER', 'WAVN', 'VOPT', 'VRAD', 'VELO', 'WAVE',
-                   'ZOPT', 'AWAVE', 'BETA']
+                   'ZOPT', 'AWAV', 'BETA']
          altspec = []
          for s in stypes:
             ctype = s+'-???'
