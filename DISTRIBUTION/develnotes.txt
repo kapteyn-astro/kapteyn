@@ -25,10 +25,10 @@ Aanpassingen worden als volgt uitgevoerd:
  . Alle nieuw toegevoegde files moeten worden opgenomen in de file
    'MANIFEST'.
 
- . Het versienummer moet worden opgehoogd in de file '__init__.py'
+ . Het versienummer moet worden opgehoogd en in de file '__init__.py'
    worden aangepast.
 
  . De volgende opdracht maakt een nieuwe distributie: 'python setup.py sdist'.
    Onder de directory 'dist' staat dan de nieuwe distributie file.
 
-                                                              25-08-2009, JPT
+                                                              31-08-2009, JPT
