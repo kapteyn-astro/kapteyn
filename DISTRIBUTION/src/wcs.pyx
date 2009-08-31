@@ -1282,6 +1282,7 @@ Example::
          wcsfree(newpar)
          free(newpar)
          raise WCSerror, (status, wcs_errmsg[status])
+      newpar.cunit[newpar.spec][0] = '\0' # work-around for strange WCSLIB bug
       status = wcsset(newpar)
       if status:
          wcsfree(newpar)
