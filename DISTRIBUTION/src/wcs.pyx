@@ -91,7 +91,7 @@ For detailed information, refer to celestial's docstrings.
 Constants
 ---------
 
-*Sky systems*
+**Sky systems**
 
 .. data:: equatorial
 
@@ -101,7 +101,7 @@ Constants
 
 .. data:: supergalactic
 
-*Reference systems*
+**Reference systems**
 
 .. data:: fk4
 
@@ -111,7 +111,7 @@ Constants
 
 .. data:: icrs
 
-*Physical*
+**Physical**
 
 .. data:: c
 
