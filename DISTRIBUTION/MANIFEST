@@ -1,6 +1,5 @@
 MANIFEST
 setup.py
-develnotes.txt
 src/wcs.pyx
 src/c_numpy.pxd
 src/c_wcs.pxd
