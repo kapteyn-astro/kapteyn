@@ -6,5 +6,6 @@ else
    set flag = ''
 endif
 setenv PYTHONPATH ../PACKAGE/
+mkdir HTML
 sphinx-build ${flag} -b html  . HTML
 cd ..

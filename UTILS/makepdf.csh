@@ -6,6 +6,7 @@ else
    set flag = ''
 endif
 setenv PYTHONPATH ../PACKAGE
+mkdir LATEX
 sphinx-build ${flag} -b latex . LATEX
 cd LATEX
 make
