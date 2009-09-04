@@ -873,7 +873,6 @@ Example::
          # ------------------------------------------
          #   CRVAL, CTYPE, CDELT, CRPIX, CROTA, NAXIS
          # ------------------------------------------
-         self.crota = ()
          for i in range(naxis):
             iax = i+1
             try:
@@ -897,7 +896,6 @@ Example::
                param.altlin = param.altlin | 4
             except:
                param.crota[i] = 0.0
-            self.crota += (param.crota[i],)
             try:
                strncpy(param.cunit[i], header['CUNIT%d'%iax + alter], 9)
                wcsutrn(7, param.cunit[i])        # fix non-standard units
@@ -1627,6 +1625,7 @@ Example::
       self.crpix = ()
       self.crval = ()
       self.cdelt = ()
+      self.crota = ()
       naxis = param.naxis
       types = []
       for i in range(naxis):
@@ -1635,6 +1634,7 @@ Example::
          self.crpix += (param.crpix[i],)
          self.crval += (param.crval[i],)
          self.cdelt += (param.cdelt[i],)
+         self.crota += (param.crota[i],)
          types.append(None)
       if param.lng<0:
          self.lonaxnum = None
