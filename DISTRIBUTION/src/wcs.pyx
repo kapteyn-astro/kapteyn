@@ -868,8 +868,7 @@ Example::
             param.restwav = header['RESTWAV' + alter]
          except:
             param.restwav = 0.0
-      
-      
+
          # ------------------------------------------
          #   CRVAL, CTYPE, CDELT, CRPIX, CROTA, NAXIS
          # ------------------------------------------
@@ -1620,6 +1619,8 @@ Example::
    def __setaxtypes(self):
       cdef wcsprm *param
       param = <wcsprm*>void_ptr(self.wcsprm)
+      wcsset(param)
+
       self.units = ()
       self.ctype = ()
       self.crpix = ()
@@ -1636,6 +1637,40 @@ Example::
          self.cdelt += (param.cdelt[i],)
          self.crota += (param.crota[i],)
          types.append(None)
+
+      if (param.altlin & 4) == 0:                       # CROTA not found?
+         self.crota = None
+
+      if param.altlin & 2:                              # CDi_j found?
+         dim = len(self.naxis)
+         ar = numpy.zeros(shape=(dim*dim,), dtype='d')
+         for i in range(dim*dim):
+            ar[i] = param.pc[i]
+         ar.shape = (dim, dim)
+         self.cd = numpy.matrix(ar)
+      else:
+         self.cd = None
+
+      if param.altlin & 1:                              # PCi_j found?
+         dim = len(self.naxis)
+         ar = numpy.zeros(shape=(dim*dim,), dtype='d')
+         for i in range(dim*dim):
+            ar[i] = param.pc[i]
+         ar.shape = (dim, dim)
+         self.pc = numpy.matrix(ar)
+      else:
+         self.pc = None
+
+      pvlist = []                                       # PVi_m
+      for ipv in range(param.npv):
+         pvlist.append((param.pv[ipv].i, param.pv[ipv].m, param.pv[ipv].value))
+      self.pv = pvlist
+
+      pslist = []                                       # PSi_m
+      for ips in range(param.nps):
+         pslist.append((param.ps[ips].i, param.ps[ips].m, param.ps[ips].value))
+      self.ps = pslist
+
       if param.lng<0:
          self.lonaxnum = None
       else:
@@ -1653,7 +1688,8 @@ Example::
          types[param.spec] = spectype
       self.types = tuple(types)
       self.cunit = self.units
-      wcsset(param)
+      self.restfrq = param.restfrq
+      self.restwav = param.restwav
 
 # ==========================================================================
 #                             Class Transformation
