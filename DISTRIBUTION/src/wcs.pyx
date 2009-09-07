@@ -651,7 +651,83 @@ class Projection(object):
 .. automethod:: sub([axes=None, nsub=None])
 .. automethod:: spectra(ctype[, axindex=None])
 
-**Attributes:**
+**WCSLIB-related attributes:**
+
+The following attributes contain values which are parameters to
+WCSLIB, *after* interpretation. So they can differ from the values
+in the source object. These attributes should not be modified.
+
+.. attribute:: ctype
+
+   A tuple with the axes' types in the axis order of the object.
+
+.. attribute:: cunit
+
+   A tuple with the axes' physical units in the axis order of the object.
+
+.. attribute:: crval
+
+   A tuple with the axes' reference values in the axis order of the object.
+
+.. attribute:: cdelt
+
+   A tuple with the axes' coordinate increments in the axis order of the
+   object. 
+
+.. attribute:: crpix
+
+   A tuple with the axes' reference points in the axis order of the
+   object. 
+
+.. attribute:: crota
+
+   A tuple with the axes' coordinate rotations, or None if no rotations
+   have been specified.
+
+.. attribute:: pc
+
+   A NumPy matrix for the linear transformation between pixel axes
+   and intermediate coordinate axes, or None if not specified.
+
+.. attribute:: cd
+
+   A NumPy matrix for the linear transformation (with scale) between pixel axes
+   and intermediate coordinate axes, or None if not specified.
+   
+.. attribute:: pv
+
+   A list with numeric coordinate parameters. Each list element is a tuple
+   consisting of the world coordinate axis number
+   `i`, the parameter number `m` and the parameter value.
+
+.. attribute:: ps
+
+   A list with character-valued coordinate parameters.
+   Each list element is a tuple
+   consisting of the world coordinate axis number
+   `i`, the parameter number `m` and the parameter value.
+
+.. attribute:: lonpole
+
+   The native longitude of the celestial pole.
+
+.. attribute:: latpole
+
+   The native latitude of the celestial pole.
+
+.. attribute:: equinox
+
+   The equinox (formerly 'epoch') of the projection.
+
+.. attribute:: restfrq
+
+   Rest frequency in Hz.
+
+.. attribute:: restwav
+
+   Vacuum rest wavelength in m.
+
+**Other Attributes:**
 
 The attributes
 *skyout*,
@@ -662,24 +738,33 @@ The attributes
 can be modified at any time.
 The others are read-only.
 
+
+
+.. attribute:: skysys
+
+   The projection's 'native' sky system.  E.g., ``(equatorial, fk5,
+   'J2000.0')``. 
+
 .. attribute:: skyout
 
-   Alternative output sky system.  Can be specified e.g.  as
-   "(equatorial, fk4, 'B1950.0')" or "galactic".  For pixel-to-world
+   Alternative output sky system.  Can be specified according to
+   the rules of the module :mod:`celestial`. E.g. as
+   ``(equatorial, fk4, 'B1950.0')`` or ``galactic``.  For pixel-to-world
    transformations, the result in the projection's 'native' system is
    transformed to the specified one and for world-to-pixel transformations,
    the given coordinates are first transformed to the native system, then
    to pixels. 
 
+.. attribute:: radesys
 
-.. attribute:: skysys
-
-   The projection's 'native' sky system.  E.g., "(equatorial, fk5,
-   'J2000.0')". 
+   Reference frame of equatorial or ecliptic coordinates: one of the
+   (symbolic) values as defined in module :mod:`celestial`. E.g.
+   ``icrs``, ``fk5`` or ``fk4``.
 
 .. attribute:: epoch
 
-    The projection's epoch. E.g., "B1950.0" or "J2000.0".
+   The projection's epoch string as derived from the attributes
+   :attr:`equinox` and :attr:`radesys`. E.g., "B1950.0" or "J2000.0".
 
 .. attribute:: dateobs
 
@@ -702,7 +787,8 @@ The others are read-only.
 
 .. attribute:: allow_invalid
 
-   If set to True, no exception will be raised for invalid coordinates.      
+   If set to True, no exception will be raised for invalid coordinates.
+   Invalid coordinates will be indicated by NaN ('not a number') values.
 
 .. attribute:: invalid
 
@@ -720,28 +806,6 @@ The others are read-only.
    Indicates whether the date of observation is to be used for the
    appropriate celestial transformations.  True or False. 
 
-.. attribute:: crpix
-
-   A tuple with the axes' reference points in the axis order of the
-   object. 
-
-.. attribute:: crval
-
-   A tuple with the axes' reference values in the axis order of the object.
-
-.. attribute:: cdelt
-
-   A tuple with the axes' coordinate increments in the axis order of the
-   object. 
-
-.. attribute:: ctype
-
-   A tuple with the axes' types in the axis order of the object.
-
-.. attribute:: cunit, units
-
-   A tuple with the axes' physical units in the axis order of the object.
-
 .. attribute:: types
 
    A tuple with the axes' coordinate types ('longitude', 'latitude',
@@ -752,18 +816,17 @@ The others are read-only.
    A tuple with the axes' lengths in the axis order of the object. 
    (Convenience attribute not directly related to WCS.)
 
-.. attribute:: lonaxnum, lataxnum, specaxnum
+.. attribute:: lonaxnum
 
-   Axis numbers (1-relative) of the longitude, latitude and spectral
-   axes, respectively.  None if not defined. 
+   Longitude axis number (1-relative). None if not defined.
 
-.. attribute:: lonpole, latpole
+.. attribute:: lataxnum
 
-   The native longitude and latitude of the celestial pole.
+   Latitude axis number (1-relative). None if not defined.
 
-.. attribute:: equinox
+.. attribute:: specaxnum
 
-   The equinox (formerly 'epoch') of the projection.
+   Spectral axis number (1-relative). None if not defined.
 
 .. attribute:: source
 
@@ -1642,7 +1705,7 @@ Example::
          self.crota = None
 
       if param.altlin & 2:                              # CDi_j found?
-         dim = len(self.naxis)
+         dim = param.naxis
          ar = numpy.zeros(shape=(dim*dim,), dtype='d')
          for i in range(dim*dim):
             ar[i] = param.pc[i]
@@ -1652,7 +1715,7 @@ Example::
          self.cd = None
 
       if param.altlin & 1:                              # PCi_j found?
-         dim = len(self.naxis)
+         dim = param.naxis
          ar = numpy.zeros(shape=(dim*dim,), dtype='d')
          for i in range(dim*dim):
             ar[i] = param.pc[i]
