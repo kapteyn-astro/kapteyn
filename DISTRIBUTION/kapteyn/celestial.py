@@ -16,9 +16,9 @@
 # Groningen, The Netherlands
 # E: gipsy@astro.rug.nl
 #----------------------------------------------------------------------
-"""
-`CELESTIAL` --- A module for transformations between celestial systems
-======================================================================
+u"""
+Module Celestial
+================
 
 This document describes functions from the Python module *celestial*
 (celestial.py) which provides a programmer with a basic set of
@@ -35,7 +35,7 @@ contexts:
    * Explicit, in module *wcs*, using the *Transformation* class as in::
 
        world_eq = (192.25, 27.4)   # FK4 coordinates of galactic pole
-       tran = wcs.Transformation((wcs.equatorial, wcs.fk4_no_e, 'B1950.0'), wcs.galactic)
+       tran = wcs.Transformation("equatorial fk4_no_e B1950.0", "galactic")
        print tran(world_eq)
 
    * As stand alone utility in scripts or in an interactive Python
@@ -55,38 +55,261 @@ contexts:
    
 .. seealso:: Tutorial material:
    
-     * Tutorial `Celestial Transformations <http://www.astro.rug.nl/software/kapteyn/celestial.php>`_
+     * Background `Celestial Transformations <http://www.astro.rug.nl/software/kapteyn/celestial.php>`_
        which contains many examples with source code.
+
+
+.. _myref-skydefinitions:
+   
+Sky definitions
+---------------
+
+A sky definition can consist of a *sky system*,
+a *reference system*, an *equinox* and an *epoch of
+observation*. It is either a string or it is a tuple with one or more elements.
+It can also be a single element.
+The elements in a tuple representing a sky- or reference system are symbols
+from the table below. For a string, the parts of the string representing a
+sky- or reference system are minimal matched against the strings in the table below.
+The match is case insensitive.
+
+
+.. _myref-skysystems:
+
+Sky systems
+...........
+
+======================= ============= =============================================
+Symbol                  String        Description
+======================= ============= =============================================
+*eq*, *equatorial*      EQUATORIAL    Equatorial coordinates (\u03B1, \u03B4),
+                                      See also next table with reference systems
+*ecl*, *ecliptic*       ECLIPTIC      Ecliptic coordinates (\u03BB, \u03B2)
+                                      referred to the ecliptic and mean equinox
+*gal*, *galactic*       GALACTIC      Galactic coordinates (lII, bII)
+*sgal*, *supergalactic* SUPERGALACTIC De Vaucouleurs Supergalactic
+                                      coordinates (sgl, sgb)
+======================= ============= =============================================
+
+
+.. _myref-refsystems:
+   
+Reference systems
+.................
+
+======================= ============= =============================================
+Symbol                  String        Description
+======================= ============= =============================================
+*fk4*                   FK4           Mean place pre-IAU 1976 system. FK4 is the
+                                      old barycentric (i.e. w.r.t. the common
+                                      center of mass) equatorial coordinate
+                                      system, which should be qualified by an
+                                      Equinox value.
+                                      For accurate work FK4
+                                      coordinate systems should also be qualified
+                                      by an Epoch value. This is the *epoch of
+                                      observation*.
+*fk4_no_e*              FK4_NO_E ,    The old FK4 (barycentric) equatorial system
+                        FK4-NO-E      but without the *E-terms of aberration*.
+                                      This coordinate system should also be
+                                      qualified by both an Equinox and an Epoch
+                                      value.
+*fk5*                   FK5           Mean place post IAU 1976 system.
+                                      Also a barycentric equatorial coordinate
+                                      system.
+                                      This should be qualified by an
+                                      Equinox value (only).
+*icrs*                  ICRS          The International Celestial Reference
+                                      System, for optical data realized through
+                                      the Hipparcos catalog.
+                                      By definition, ICRS
+                                      is not an equatorial system, but it is
+                                      very close to the FK5 (J2000) system.
+                                      No Equinox value is required.
+*j2000*, *dynj2000*     DYNJ2000      This is an equatorial coordinate system
+                                      based on the mean dynamical equator and
+                                      equinox at epoch J2000.
+                                      The dynamical equator and equinox differ
+                                      slightly compared to the equator and equinox
+                                      of FK5 at J2000 and the ICRS system.
+                                      This system need not be qualified by an
+                                      Equinox value
+======================= ============= =============================================
+
+
+.. note::
+   Reference systems are stored in FITS headers under keyword *RADESYS=*.
+
+.. note::
+   Standard in FITS: RADESYS defaults to IRCS unless EQUINOX is given alone,
+   in which case it defaults to FK4 prior to 1984 and FK5 after 1984.
+
+   EQUINOX defaults to 2000 unless RADESYS is FK4, in which case it defaults
+   to 1950.
+
+
+.. _myref-epochs:
+   
+Epochs for the equinox and epoch of observation
+...............................................
+
+An epoch can be set in various ways. The options are distinguished
+by a prefix. Only the 'B' and 'J' epochs can be negative.
+
+====== ===============================================================
+Prefix Epoch
+====== ===============================================================
+B      Besselian epoch.
+       Example: ``'B 1950'``, ``'b1950'``, ``'B1983.5'``, ``'-B1100'``
+J      Julian epoch.
+       Example: ``'j2000.7'``, ``'J 2000'``, ``'-j100.0'``
+JD     Julian date. This number of days (with decimals)
+       that have elapsed since the initial epoch defined
+       as noon Universal Time (UT) Monday, January 1, 4713 BC
+       in the proleptic Julian calendar
+       Example: ``'JD2450123.7'``
+MJD    The Modified Julian Day (MJD) is the number of days
+       that have elapsed since midnight at the beginning of
+       Wednesday November 17, 1858. In terms of the Julian day:
+       MJD = JD - 2400000.5
+       Example: ``'mJD 24034'``, ``'MJD50123.2'``
+RJD    The Reduced Julian Day (RJD): Julian date counted from
+       nearly the same day as the MJD,
+       but lacks the additional offset of 12 hours that MJD has.
+       It therefore starts from the previous noon UT or TT,
+       on Tuesday November 16, 1858. It is defined as:
+       RJD = JD - 2400000
+       Example:  ``'rJD50123.2'``, ``'Rjd 23433'``
+F      Various FITS formats:
+
+       o DD/MM/YY  Old FITS format.
+       Example: ``'F29/11/57'``
+
+       o YYYY-MM-DD  FITS format.
+       Example: ``'F2000-01-01'``
+
+       o YYYY-MM-DDTHH:MM:SS FITS format with date and time.
+       Example: ``'F2002-04-04T09:42:42.1'``
+
+====== ===============================================================
+
+.. note::
+   If a sky definition is entered as a string, there cannot be a space
+   between the prefix and the epoch, because a space is a separator
+   for the parser in :func:`celestial.skyparser`. 
+
+.. note::
+   An *epoch of observation* is either the second epoch in your input or
+   or the epoch string has a suffix '_' which may be follwed by arbitrary
+   characters (e.g. "B1963.5_OBS").
+
+Input Examples
+..............
+
+========================= ========================== =====================================
+Input string              Description                Remarks
+========================= ========================== =====================================
+"eq"                      Equatorial, ICRS           ICRS because no reference system
+                                                     and no equinox is given. 
+"Eclip"                   Ecliptic, ICRS             Ecliptic coordinates
+"ecl fk5"                 Ecliptic, FK5              Ecliptic coordinates with a non
+                                                     default reference system
+"GALACtic"                Galactic II                Minimal match is case insensitive
+"s"                       Supergalactic              Shortest string to identify system.
+"fk4"                     Equatorial, FK4            Only a reference system is entered.
+                                                     Sky system is assumed to be
+                                                     equatorial
+"B1960"                   Equatorial, FK4            Only an equinox is given. This is
+                                                     a date before 1984 so FK4 is
+                                                     assumed. Therefore the sky system
+                                                     is equatorial
+"EQ, fk4_no_e, B1960"     Equatorial, FK4 no e-terms Sky system, reference system,
+                                                     and an equinox
+"EQ, fk4_no_e, B1960"     Equatorial, FK4 no e-terms Same as above but underscores
+                                                     replaced by hyphens.
+"fk4,J1983.5_OBS"         Equatorial, FK4 + epobs    FK4 with an epoch of observation.
+                                                     Note that only the underscore
+                                                     is important.
+"J1983.5_OBS"             Equatorial, FK4 + epobs    Only a date of observation. Then
+                                                     reference system FK4 is assumed.
+"EQ,fk4,B1960,B1983.5_O"  Equatorial, FK4 + epobs    A complete description of an
+                                                     equatorial system.
+"B1983.5_O fk4 B1960,eq"  Equatorial, FK4 + epobs    The same as above, showing that
+                                                     the order of the elements are
+                                                     unimportant.
+========================= ========================== =====================================
+
+Code examples
+.............
+
+To show that one can use both the tuple and the string representation of a system,
+we use both for the same system and compare a transformed position.
+The result should be 0 for both coordinates.
+
+>>> world_eq = numpy.array([192.25, 27.4])     # FK4 coordinates of galactic pole
+>>> tran1 = wcs.Transformation("equatorial fk4_no_e B1950.0", "galactic")
+>>> tran2 = wcs.Transformation((wcs.equatorial, wcs.fk4_no_e, 'B1950.0'), wcs.galactic)
+>>> print tran1(world_eq)-tran2(world_eq)
+[ 0.  0.]
 
 
 Module level data
 -----------------
 
-Internally the functions in this module use integers to identify sky- and reference systems.
-One can also use these aliases:
-   
-:data:`eq, equatorial`
-   Equatorial. Is equivalent with 0
-:data:`ecl, ecliptic` 
-   Ecliptic. Is equivalent with 1
-:data:`gal, galactic`
-   Galactic. Is equivalent with 2
-:data:`sgal, supergalactic`
-   Supergalactic. Is equivalent with 3
-:data:`fk4`
-   Reference system FK4. Is equivalent with 4
-:data:`fk4_no_e`
-   Reference system FK4_NO_E. Is equivalent with 5
-:data:`fk5`
-   Reference system FK5. Is equivalent with 6
-:data:`icrs`
-   Reference system ICRS. Is equivalent with 7
-:data:`j2000`
-   Reference system J2000. Is equivalent with 8
+The id's of a system are stored in Python variables. They are listed in the
+tables with sky- and reference systems.
+Besides these there is also:
+
+:data:`skyrefsystems`
+   An object from class :class:`skyrefset` which is a container
+   with a list with systems and two dictionaries with systems.
+
+   >>> for s in skyrefsystems.skyrefs_list:
+   >>>    print s.fullname, s.description, s.idnum
+
+External modules can set their own variables.
+Here are some examples how one can do this.
+
+Example with copy of celestial's variables:
+  
+  * ``eq = celestial.eq``
+  * ``ec = celestial.ecl``
+  * ``ga = celestial.gal``  etc.
+
+Example with minimal match:
+      
+ * ``eq = celestial.skyrefsystems.minmatch2skyref('EQUA')[0].idnum``
+ * ``ec = celestial.skyrefsystems.minmatch2skyref('ecli')[0].idnum``
+
+Read this as: get the object for which a minimal match
+is found. Item [0] is the object (the other is the number of times
+a match is found). The 'idnum' is the integer for which we can
+identify a system.
+
+Or use the equivalent with method :meth:`skyrefset.minmatch2id`:
+      
+ * ``eq = celestial.skyrefsystems.minmatch2id('EQUA')``
+ * ``ec = celestial.skyrefsystems.minmatch2id('ecli')``
+
+Example with full name (case sensitive!):
+      
+ * ``eq = celestial.skyrefsystems.fullname2id('EQUATORIAL')``
+ * ``ec = celestial.skyrefsystems.fullname2id('ECLIPTIC')``
+
+
+
+Classes
+-------
+
+.. autoclass:: skyrefsys
+.. autoclass:: skyrefset
+
 
 Core Functions
 --------------
 
+.. index:: Input syntax for sky definitions
+.. autofunction:: skyparser
 .. autofunction:: skymatrix
 .. autofunction:: sky2sky
 .. index:: Epoch conversions
@@ -144,17 +367,333 @@ Functions related to E-terms
 """
 import numpy as n
 import types
+from re import split as re_split
 from string import upper
-import re
 
-# Some globals:
-eq, ecl, gal, sgal, fk4, fk4_no_e, fk5, icrs, j2000 = range(9)
-# aliases
-equatorial = eq; ecliptic = ecl; galactic = gal; supergalactic = sgal 
+
+class skyrefsys(object):
+#----------------------------------------------------------------------
+   """
+Class creates an object that describes a sky- or reference system.
+This module initializes a set of systems. They are accessible
+through methods in class :class:`celestial.skyrefset`
+
+:param fullname:
+   Complete name to identify the system, e.g. *"EQUATORIAL"*
+:type fullname:
+   String
+:param idnum:
+   A unique integer to identify the system
+:type idnum:
+   Integer
+:param description:
+   A short description of the system
+:type description:
+   String
+:param refsystem:
+   Is this system a reference system?
+:type refsystem:
+   Boolean
+
+
+**Attributes:**
+   
+.. attribute:: fullname
+
+      A string to identify a system, e.g. "EQUATORIAL".
+      
+.. attribute:: idnum
+
+      A unique integer to identify the system.
+
+.. attribute:: description
+
+      A string to describe the system.
+      
+.. attribute:: refsystem
+
+      If *True* then this system is a reference system.
+      Else it is a sky system.
+   
+   """
+#----------------------------------------------------------------------
+   def __init__(self, fullname, idnum, description, refsystem):
+      self.fullname = fullname
+      self.idnum = idnum
+      self.description = description
+      self.refsystem = refsystem           # Boolean
+
+
+
+class skyrefset(object):
+#----------------------------------------------------------------------
+   """
+A container with sky- and reference system objects from class
+:class:`celestial.skyrefsys`. It is used to initialize variables
+that can be used as identifiers for sky- or reference systems.
+Applications can use its methods to retrieve information given
+an integer identifier or (part of) a string.
+
+For example when we want a list with all the supported systems
+then type: 
+
+>>> for s in skyrefsystems.skyrefs_list:
+>>>    print s.fullname, s.description, s.idnum
+
+.. automethod:: append
+.. automethod:: minmatch2skyref
+.. automethod:: minmatch2id
+.. automethod:: fullname2id
+.. automethod:: id2skyref
+.. automethod:: id2fullname
+.. automethod:: id2description
+
+**Attributes:**
+
+   .. attribute:: skyrefs_list
+   
+         The list with systems
+   
+   .. attribute:: skyrefs_id
+         
+         A dictionary with the systems and with id's as keys
+   
+   .. attribute:: skyrefs_fullname
+   
+         A dictionary with the systems and with full names as keys
+
+:Examples: Next short script shows how to get a list with
+   sky systems and how to use methods of this class to get data for
+   a system if an (integer) id is found:: 
+
+      from kapteyn.celestial import skyrefsystems
+      
+      for s in skyrefsystems.skyrefs_list:
+         print s.fullname, s.description, s.idnum
+         i = s.idnum
+         print "Full name using id2fullname:", skyrefsystems.id2fullname(i)
+         print "Description using id2description:", skyrefsystems.id2description(i)
+         print "id of %s with minimal match: %d" % \\
+               (s.fullname[:3], skyrefsystems.minmatch2skyref(s.fullname[:3])[0].idnum)
+         print "id of %s with minimal match, alternative: %d" % \\
+               (s.fullname[:3], skyrefsystems.minmatch2id(s.fullname[:3]))
+         print "id of %s with full name: %d" % \\
+               (s.fullname[:3], skyrefsystems.fullname2id(s.fullname))
+
+   """
+#----------------------------------------------------------------------
+   def __init__(self):
+      self.skyrefs_list = []                     # The list with systems
+      self.skyrefs_id = {}                       # A dict. version with id's as keys
+      self.skyrefs_fullname = {}                 # A dict. version with names as keys
+      
+   def append(self, skyrefsys):
+      """
+      :param skyrefsys:
+         Append this system to the list with supported systems
+      :type skyrefsys:
+         Instance of class :class:`skyrefsys`
+
+      :Returns:
+         A unique integer id which can be used to identify a system.
+      """
+      self.skyrefs_list.append(skyrefsys)
+      self.skyrefs_id[skyrefsys.idnum] = skyrefsys
+      self.skyrefs_fullname[skyrefsys.fullname] = skyrefsys.idnum
+      return skyrefsys.idnum
+   
+   def minmatch2skyref(self, s):
+      """
+      Return the relevant skyrefsys object with the number of times
+      it is matched or return None if nothing was found.
+
+      :param s:
+         Part of the string name of a system
+      :type s:
+         String
+
+      :Returns:
+         Instance of class :class:`skyrefsys` and the number of times
+         that the input string gives a match.
+      """
+      s = s.upper()
+      if s.startswith("FK4"):       # Allow also FK4-NO-E. Replace hyphen by underscore
+         s = s.replace('-','_')
+      found = 0
+      found_sk = None
+      for sk in self.skyrefs_list:
+         foundone = False
+         if s == sk.fullname:
+            found += 1
+            found_sk = sk
+            return found_sk, found         # Exact match !
+         else:
+            i = sk.fullname.find(s, 0, len(s))
+         if i == 0:
+            found += 1
+            found_sk = sk
+      return found_sk, found
+         
+   def minmatch2id(self, s):
+      """
+      From the found skyrefsys object corresponding to string *s*,
+      return the idnum attribute. Case insensitive minimal match
+      is used to find the sky- or reference system.
+      Return None if there was no match or more than one match.
+
+      :param s:
+         Part of the string name of a system
+      :type s:
+         String
+
+      :Returns:
+         Instance of class :class:`skyrefsys` or None if there was not
+         a match or more than one match.
+      """
+      s = s.upper()
+      found = 0
+      found_sk = None
+      for sk in self.skyrefs_list:
+         foundone = False
+         if s == sk.fullname:
+            found += 1
+            found_sk = sk
+            return found_sk.idnum         # Exact match !
+         else:
+            i = sk.fullname.find(s, 0, len(s))
+         if i == 0:
+            found += 1
+            found_sk = sk
+      if found == 1:
+         return found_sk.idnum
+      return None
+         
+   def fullname2id(self, fullname):
+      """
+      This is the fastest method to get an integer id from a
+      string which represents a sky system or a reference system.
+      Note that the routine is case sensitive because it uses
+      the full names as keys in a dictionary.
+      The parameter *fullname* therefore must be in in capitals!
+
+      :param fullname:
+         The full descriptive name of a system e.g. "EQUATORIAL"
+      :type fullname:
+         String
+
+      :Returns:
+          Integer id of the found system or *None* if nothing was found.
+      """
+      try:
+         idnum = self.skyrefs_fullname[fullname]
+      except:
+         idnum = None
+      return idnum
+      
+   def id2skyref(self, idnum):
+      """
+      Given an integer id of a system, return the corresponding system
+      as an instance of class :class:`skyrefsys`.
+      Usually the calling environment will deal with the attributes of
+      this object, for instance to write a short description of the system.
+
+      :param idnum:
+         Integer id of a system
+      :type idnum:
+         Integer
+
+      :Returns:
+         Instance of class :class:`skyrefsys` or None if there was not
+         a corresponding system.
+      """
+      try:
+         sys = self.skyrefs_id[idnum]
+      except:
+         sys = None
+      return sys
+      
+   def id2fullname(self, idnum):
+      """
+      Given an integer id of a system, return the full name
+      of the corresponding system.
+
+      :param idnum:
+         Integer id of a system
+      :type idnum:
+         Integer
+
+      :Returns:
+         Full name (e.g. "EQUATORIAL") of the 
+         corresponding system or an empty string if nothing was found.
+      """
+      try:
+         fullname = self.skyrefs_id[idnum].fullname
+      except:
+         fullname = ''
+      return fullname
+      
+   def id2description(self, idnum):
+      """
+      Given an integer id of a system, return the description
+      of the corresponding system.
+
+      :param idnum:
+         Integer id of a system
+      :type idnum:
+         Integer
+
+      :Returns:
+         A short description of the 
+         corresponding system or an empty string if nothing was found.
+      """
+      try:
+         descr = self.skyrefs_id[idnum].description
+      except:
+         descr = ''
+      return descr
+
+
+# Create a collection of sky systems and reference systems.
+# The integer is an identifier and the last parameter tells you
+# whether the system is a reference system or not.
+# Also a set of global integer variable is created to facilitate
+# parsers in this module.
+skyrefsystems = skyrefset()
+eq       = skyrefsystems.append(skyrefsys('EQUATORIAL', 0, "Equatorial", False))
+ecl      = skyrefsystems.append(skyrefsys('ECLIPTIC', 1, "Ecliptic", False))
+gal      = skyrefsystems.append(skyrefsys('GALACTIC', 2, "Galactic II", False))
+sgal     = skyrefsystems.append(skyrefsys('SUPERGALACTIC', 3, "Supergalactic", False))
+fk4      = skyrefsystems.append(skyrefsys('FK4', 4, "Fourth Fundamental Catalogue", True))
+fk4_no_e = skyrefsystems.append(skyrefsys('FK4_NO_E', 5, "FK4 without E-terms", True))
+fk5      = skyrefsystems.append(skyrefsys('FK5', 6, "Fifth Fundamental Catalogue ", True))
+icrs     = skyrefsystems.append(skyrefsys('ICRS', 7, "International Celestial Reference System", True))
+j2000    = skyrefsystems.append(skyrefsys('DYNJ2000', 8, "Dynamic J2000", True))
+
+# Some aliases
+equatorial = eq; ecliptic = ecl; galactic = gal; supergalactic = sgal; dynj2000 = j2000 
+
+
+#for s in skyrefsystems.skyrefs_list:
+#   print s.fullname, s.description, s.idnum
+# Tests:
+# print "EQ, EC:", eq, ecl, gal, sgal, fk4, fk4_no_e, fk5, icrs, j2000
+#
+#for i in range(10):
+#   s = skyrefsystems.id2skyref(i)
+#   if s != None:
+#      print s.fullname, s.description, s.idnum
+#      print "Full name using id2fullname:", skyrefsystems.id2fullname(i)
+#      print "Description using id2description:", skyrefsystems.id2description(i)
+#      print "id of %s with minimal match: %d" % (s.fullname[:3], skyrefsystems.minmatch2skyref(s.fullname[:3])[0].idnum)
+#      print "id of %s with full name: %d" % (s.fullname[:3], skyrefsystems.fullname2id(s.fullname))
+#      print "id of %s with minimal match 2: %d" % (s.fullname[:3], skyrefsystems.minmatch2id(s.fullname[:3]))
+
+
 
 # Conversion factors deg <-> rad
 convd2r = n.pi/180.0
 convr2d = 180.0/n.pi
+
 
 #----------------------------------------------------------------------
 # Some utility routines
@@ -249,12 +788,12 @@ def longlat2xyz(longlat):
    """
 -----------------------------------------------------------------------
 Purpose:   Given two angles in longitude and latitude return 
-           corresponding cartesian coordinates x,y,z
+           corresponding Cartesian coordinates x,y,z
 Input:     Sequence of positions e.g. ((a1,d1),(a2,d2), ...)
 Returns:   Corresponding values of x,y,z in same order as input
 Reference: -
 Notes:     The three coordinate axes x, y and z, the set of 
-           right-handed cartesian axes that correspond to the 
+           right-handed Cartesian axes that correspond to the
            usual celestial spherical coordinate system. 
            The xy-plane is the equator, the z-axis 
            points toward the north celestial pole, and the 
@@ -276,7 +815,7 @@ def xyz2longlat(xyz):
 Purpose:   Given Cartesian x,y,z return corresponding longitude and 
            latitude in degrees.
 Input:     Sequence of tuples with values for x,y,z
-Returns:   The same number of positions (longitude, lattitude) and in the 
+Returns:   The same number of positions (longitude, latitude and in the
            same order as the input.
 Reference: -
 Notes:     Note that one can expect strange behavior for the values 
@@ -320,7 +859,7 @@ Convert an angle in degrees to **hours, minutes, seconds** format.
    for example an integer number of degrees or minutes.
    Then you want labels showing only degrees or degrees and minutes.
    This function tries to find out whether this is the case (given a value
-   for *delta*) or not. If so, a minumum length label is returned.
+   for *delta*) or not. If so, a minimum length label is returned.
 :type delta:
    *None* or a floating point number
 :param tex:
@@ -333,7 +872,7 @@ Convert an angle in degrees to **hours, minutes, seconds** format.
    Formatted string representing the input angle.
    
 :Notes:
-   Longitudes are forced into the raange 0, 360 deg. and then 
+   Longitudes are forced into the range, 360 deg. and then
    converted to hours, minutes and seconds.
 
 :Examples:
@@ -414,7 +953,7 @@ the range -90 to 90 degrees
    for example an integer number of degrees or minutes.
    Then you want labels showing only degrees or degrees and minutes.
    This function tries to find out whether this is the case (given a value
-   for *delta*) or not. If so, a minumum length label is returned.
+   for *delta*) or not. If so, a minimum length label is returned.
 :type delta:
    *None* or a floating point number
 :param tex:
@@ -510,7 +1049,7 @@ system.
    for example an integer number of degrees or minutes.
    Then you want labels showing only degrees or degrees and minutes.
    This function tries to find out whether this is the case (given a value
-   for *delta*) or not. If so, a minumum length label is returned.
+   for *delta*) or not. If so, a minimum length label is returned.
 :type delta:
    *None* or a floating point number
 :param tex:
@@ -1099,6 +1638,11 @@ that could convert a string which represents a date in various formats,
 to values for a Julian epoch, Besselian epochs and a Julian date.
 This function returns these value for any valid input date.
 
+For the epoch syntax read the documentation at :ref:`myref-epochs`.
+Note that an epoch of observation is either a second epoch in the string
+(the first is always the equinox) or the epoch string has
+a suffix '_' which may be follwed by arbitrary characters.
+
 :param spec:
    An epoch specification (see below)
 :type spec:
@@ -1112,41 +1656,6 @@ This function returns these value for any valid input date.
     Various sources listing Julian dates.
     
 :Notes:
-   An epoch can be set in various ways. The options are distinguished
-   by a prefix. Only the 'B' and 'J' epochs can be negative.
-
-   ====== ===============================================================
-   Prefix               Epoch
-   ====== ===============================================================
-   B      Besselian epoch.
-          Example: ``'B 1950'``, ``'b1950'``, ``'B1983.5'``, ``'-B1100'``
-   J      Julian epoch.
-          Example: ``'j2000.7'``, ``'J 2000'``, ``'-j100.0'``
-   JD     Julian date. This number of days (with decimals)
-          that have elapsed since the initial epoch defined
-          as noon Universal Time (UT) Monday, January 1, 4713 BC
-          in the proleptic Julian calendar
-          Example: ``'JD2450123.7'``
-   MJD    The Modified Julian Day (MJD) is the number of days
-          that have elapsed since midnight at the beginning of
-          Wednesday November 17, 1858. In terms of the Julian day:
-          MJD = JD - 2400000.5
-          Example: ``'mJD 24034'``, ``'MJD50123.2'``
-   RJD    The Reduced Julian Day (RJD): Julian date counted from
-          nearly the same day as the MJD,
-          but lacks the additional offset of 12 hours that MJD has.
-          It therefore starts from the previous noon UT or TT,
-          on Tuesday November 16, 1858. It is defined as:
-          RJD = JD - 2400000
-          Example:  ``'rJD50123.2'``, ``'Rjd 23433'``
-   F      Various FITS formats:
-          DD/MM/YY  Old FITS format.
-          Example: ``'F29/11/57'``
-          YYYY-MM-DD  FITS format.
-          Example: ``'F2000-01-01'``
-          YYYY-MM-DDTHH:MM:SS FITS format with date and time.
-          Example: ``'F2002-04-04T09:42:42.1'``
-   ====== ===============================================================
 
 :Examples: Some checks:
 
@@ -1167,8 +1676,12 @@ This function returns these value for any valid input date.
       raise Exception, mes
 
    b = j = jd = None
-   
-   parts = re.split(r'(\d.*)', spec, 1)
+
+   i = spec.find('_')
+   if i != -1:
+      spec = spec[:i]
+
+   parts = re_split(r'(\d.*)', spec, 1)
 
    try:
       prefix = (parts[0].strip().upper())
@@ -1226,7 +1739,7 @@ Purpose:   (Experimental) Return the rotation matrix for a transformation
 Input:     -
 Returns:   Matrix M as in: XYZgal = M * XYZj2000
 Reference:-Murray, C.A. The Transformation of coordinates between the 
-           systems B1950.0 and J2000.0, and the principal galactix axis 
+           systems B1950.0 and J2000.0, and the principal galactic axes
 	   referred to J2000.0, 
            Astronomy and Astrophysics (ISSN 0004-6361), vol. 218, no. 1-2, 
 	   July 1989, p. 325-329.
@@ -1474,7 +1987,7 @@ coordinates to ecliptical coordinates
       so-called e-terms which amount to max. 343 milliarcsec. 
       FITS paper: *'Strictly speaking, therefore, a map obtained from, 
       say, a radio synthesis telescope, should be regarded
-      as FK4-NO-E unless it has been appropriately resampled
+      as FK4-NO-E unless it has been appropriately resare-sampled
       or a distortion correction provided.
       In common usage, however, CRVALia for such maps is usually 
       given in FK4 coordinates. In doing so, the e-terms are effectively
@@ -1626,7 +2139,7 @@ result must be a catalogue fk4 position.
    
    The conditions are:
    ``r' = L.r + A  with ||r|| = ||r'|| = 1``
-   where L = lamda, a number
+   where L = lambda, a number
    Then:
    ``L.(x^2+y^2+z^2) + 2.L.(a0.x+a1.y+a2.z) + a0^2+a1^2+a2^2 = 1``
    and note that ``x^2+y^2+z^2 = 1``
@@ -1891,7 +2404,7 @@ following to Murray's (1989) procedure.
    FK4 is not an inertial coordinate frame (because of the error
    in precession and the motion of the equinox. This has 
    consequences for the proper motions. e.g. a source with zero
-   proper motion in FK5 has a fictious proper motion in FK4. 
+   proper motion in FK5 has a fictitious proper motion in FK4.
    This affects the actual positions in a way that the correction
    is bigger if the epoch of observation is further away from 1950.0
    The focus of this library is on data of which we do not have
@@ -2030,7 +2543,7 @@ So epoch1 is Besselian and epoch2 is Julian
 
 Note that we do not use the adopted values for the precession angles, 
 but use the Woolward and Clemence expressions to calculate the angles.
-These are one digit more accurae than the adopted values.
+These are one digit more accurate than the adopted values.
 ----------------------------------------------------------------------
    """
    # Epoch transformation from B1950 to 1984, 1,1 in FK4
@@ -2059,7 +2572,7 @@ def addpropermotion(xyz):
    """
 ----------------------------------------------------------------------
 Experimental.
-Input is a cartesian position xyz.
+Input is a Cartesian position xyz.
 Return a new position where the input position is corrected for 
 assumed proper motion in the FK4 system.
 For convenience we assume the epoch of observation is 1950
@@ -2156,7 +2669,7 @@ def ICRS2J2000Matrix():
    """
 Return a rotation matrix for conversion of a position in the 
 ICRS to the dynamical reference system based on the dynamical
-mean equuator and equinox of J2000.0 (called the dynamical
+mean equator and equinox of J2000.0 (called the dynamical
 J2000 system) 
 
 :Parameters:
@@ -2211,7 +2724,7 @@ includes also conversions between reference systems.
 :type S1:
    Integer
 :param S2:
-   Output refernce system
+   Output rreferencesystem
 :type S2:
    Integer
 :param epobs:
@@ -2434,196 +2947,285 @@ Reference:  -
 
 
 def skyparser(skyin):
+#----------------------------------------------------------------------
    """
-----------------------------------------------------------------------
-Purpose:  Get the parameters for this sky system
-Input:    The input or output sky system from function skymatrix()
-Returns:  skysystem, reference system, equinox, epoch of observation
-Notes:    See skymatrix()
-          Input is either a single value (the sky system) or a tuple
-          for an equatorial system with parameters.
-          The skysystem is a number or one can use one of the constants
-          eq, ecl, gal or sgal. The reference systems are fk4,
-          fk4_no_e, fk5, icrs, j2000.
-          In the tuple the order is important i.e. you first need to
-          specify the sky system before a reference system and an equinox
-          before an epoch of observation.
-Examples: See skymatrix()
-----------------------------------------------------------------------
+Parse a string, tuple or single integer that represents a sky definition.
+A sky definition can consist of a *sky system*,
+a *reference system*, an *equinox* and an *epoch of
+observation*.
+See also the description at :ref:`myref-skydefinitions`.
+The elements in the string are separated by
+a comma or a space. The order of the elements is not important.
+The string is converted to a tuple by :func:`celestial.parseskydefs`.
+
+The parser is used in function :func:`celestial.skymatrix`
+and :func:`celestial.sky2sky`. External applications can use this function
+to check whether user input is valid.
+
+Definitions in strings are usually used to define output sky definitions
+in prompts or on command lines. Applications can use integer id's
+for the sky- and reference systems. These integer id's are global constants
+See also :ref:`myref-skysystems` and :ref:`myref-refsystems`.
+          
+The sky system and reference system strings are minimal matched
+(case INsensitive) with the strings in the table
+in the documentation at :ref:`myref-skysystems` and :ref:`myref-refsystems`.
+
+For the epoch syntax read the documentation at :ref:`myref-epochs`.
+Note that an epoch of observation is either a second epoch in the string
+(the first is always the equinox) or the epoch string has
+a suffix '_' which may be follwed by arbitrary characters.
+
+:param skyin:
+   Represents a sky definition. See examples.
+:type skyin:
+   String, tuple or integer
+      
+:Returns:
+   A tuple with the 'coded' system where strings for sky- and reference systems
+   are replaced by integer id's. Missing values are filled in with defaults.
+
+   If an error occurred then an exception will be raised. 
+
+:raises:
+   :exc:`ValueError`
+      From :func:`celestial.parseskydefs`:
+   
+      *  *Empty string!*
+      *  *Too many items for sky definition!*
+      *  *... is ambiguous sky or reference system!*
+      *  *... is not a valid epoch or sky/ref system!*
+
+      From this function:
+
+      * *Sky definition is not a string nor a tuple!*
+      * *Too many elements in sky definition (max. 4)!*
+      * *Two sky systems given!*
+      * *Two reference systems given!*
+      * *Invalid number for sky- or reference system!*
+      * *Cannot determine the sky system!*
+      * *Input contains an element that is not an integer or a string!*
+
+:Examples: From an equatorial sky system with fk4 as reference system
+    to supergalactic coordinates. Note the use of spaces and comma as
+    separator, the arbitrary order of the elements and the suffix
+    for the epoch of observation.:
+
+    >>> celestial.skymatrix("B1983.5_O fk4 B1960,eq", "su")
+        (matrix([[ 0.38140211,  0.33797523,  0.86040989],
+        [-0.89746728, -0.08769387,  0.43227568],
+        [ 0.22155114, -0.93706058,  0.26987508]]),
+        (-1.6240915232269579e-06, -3.2358268275995942e-07, -1.4032511953410516e-07),
+        None)
+
+    Note that the matrix is followed by a vector with e-terms.
+      
+:Notes:
+   This is the parser for a sky definition.
+   In this definition one can specify the sky system,
+   the reference system, an equinox and an epoch of
+   observation if the reference system is fk4.
+   The order of these elements is not important.
+
+   The rules for the defaults are:
+
+   *   What if the sky system is not defined? If there is a reference
+       system then we assume it is equatorial (could have been ecliptic).
+   *   If there no sky system and no reference system but there is
+       an equinox, assume sky system is equatorial (could have been ecliptic).
+   *   If there no sky system and no reference system and no
+       equinox but there is an epoch of observation,
+       assume sky system is equatorial.
+   *   Assume we have a sky system. What if there is no reference system?
+       Standard in FITS: RADESYS (i.e our reference system) defaults to
+       IRCS unless EQUINOX is given alone,
+       in which case it defaults to FK4 prior to 1984 and FK5 after 1984.
+   *   Assume we have a sky system and a reference system and the sky system was
+       ecliptic or equatorial. What if we don't have an equinox?
+       Standard in FITS: EQUINOX defaults to 2000 unless RADESYS is FK4,
+       in which case it defaults to 1950.
+   *   We have one item to address and that is the epoch of observation.
+       This epoch of observation only applies to the reference systems FK4
+       and FK4_NO_E.
+       In 'Representations of celestial coordinates in FITS' (Calabretta & Greisen)
+       we read that all reference systems are allowed for both equatorial- and
+       ecliptic coordinates, except FK4-NO-E, which is only allowed for equatorial
+       coordinates. If FK4-NO-E is given in combination with an ecliptic
+       sky system then silently FK4 is assumed.
    """
+#----------------------------------------------------------------------
+   if type(skyin) not in [types.TupleType, types.StringType]:
+      try:
+         skyin = tuple([skyin])
+      except:
+         raise ValueError, "Sky definition is not a string nor a tuple or a scalar!"
+   if type(skyin) == types.StringType:
+      skyin = parseskydef(skyin)
+   
    epochin    = None
    epochinset = None
-   refin   = None
-   epobs   = None 
-   first   = True
-   if type(skyin) == types.TupleType:
-      try:                                # Try to parse this tuple
-         sysin = skyin[0]
-         for element in skyin[1:]:
-            if type(element)==types.StringType:     # If it is a string it must be an epoch
-               if first:
-                  epochinset = epochs(element)
-                  first = False
+   refin = None
+   epobs = None
+   sysin = None
+   first = True
+   if skyin == None:
+      return sysin, refin, epochin, epobs
+   if type(skyin) != types.TupleType:
+      # Promote to tuple then:
+      skyin = tuple([skyin])
+   if len(skyin) > 4:
+      raise ValueError, "Too many elements in sky definition (max. 4)!"
+
+
+   # Parse the tuple into a sky system, a reference system, equinox and obs epoch
+   for element in skyin:
+      if type(element) == types.IntType:
+         s = skyrefsystems.id2skyref(element)
+         if s != None:
+            if s.refsystem:
+               if refin == None:
+                  refin = element
                else:
-                  epobs = epochs(element)[0]   # Corresponding Besselian data
+                  raise ValueError, "Two sky systems given!"
             else:
-               refin = element
-      except:                             # Scalar
-         sysin = skyin
-   else:
-       sysin = skyin
-   # If input was a reference system only (not part of a tuple).
-   if skyin == fk4:
-      sysin = eq; epochin = 1950.0; refin = fk4
-   if skyin == fk4_no_e:
-      sysin = eq; epochin = 1950.0; refin = fk4_no_e
-   if skyin == fk5:
-      sysin = eq; epochin = 2000.0; refin = fk5
-   if skyin == icrs:
-      sysin = eq; epochin = 0.0;    refin = icrs
-   if skyin == j2000:
-      sysin = eq; epochin = 2000.0; refin = j2000
+               if sysin == None:
+                  sysin = element
+               else:
+                  raise ValueError, "Two reference systems given!"
+         else:
+            raise ValueError, "Invalid number for sky- or reference system!"
+      elif type(element) == types.StringType:
+         if first and element.find('_') == -1:   # i.e. it is not an obs epoch
+            epochinset = epochs(element)
+            first = False
+         else:
+            # Could be obs. epoch if underscore in string or it is the second epoch
+            epobs = epochs(element)[0]           # Always in Besselian data
+      else:
+         raise ValueError, "Input contains an element that is not an integer or a string!"
+   #------------------------------------------------------------
+   # At this stage we have
+   # sysin (sky system): integer or None
+   # refin (ref. system): integer or None
+   # epochinset (equinox): (B, J, JD) or None
+   # epobs (epoch of observation): Besselian epoch or None
+   #------------------------------------------------------------
 
 
-   #-------------------------------------------------------------------------
+   # Here we start to fill in the missing parts.
+   # Most defaults are defined in the FITS standard. Others are the
+   # most sensible. If essential parts are missing then an exception
+   # will be raised.
+
+   # What if the sky system is not defined? If there is a reference
+   # system then we assume it is equatorial.
+   if sysin == None:
+      if refin != None:
+         sysin = eq  # But this could also be ecliptic (except for fk4_no_e)
+      else:
+         if epochinset != None:  # No ref sys but an equinox: assume equatorial
+            sysin = eq
+         elif epobs != None:
+            sysin = eq
+         else:
+            raise ValueError, "Cannot determine the sky system!"
+
+   # Now we have a sky system. What if there is no reference system?
    # Standard in FITS: RADESYS defaults to IRCS unless EQUINOX is given alone, 
    # in which case it defaults to FK4 prior to 1984 and FK5 after 1984.
-   #
-   # EQUINOX defaults to 2000 unless RADESYS is FK4, in which case it defaults
-   # to 1950.
-   #--------------------------------------------------------------------------
-
-   if sysin == eq or sysin == ecl:
-      if epochinset == None:
-         epochin = 2000.0
-         if refin is None:                      # No celestial system, no epoch -> ICRS,2000
-            refin = icrs
-         if refin == fk4 or refin == fk4_no_e:  # The ref. system belongs to the fk4 family, 
-            epochin = 1950.0                    # therefore the default equinox is 1950
-      else:                                     # There was an epoch for the equinox
-         if refin == None:                      # ... but no reference system
-            if epochinset != None:
-               jd = epochinset[2]
-               if jd < epochJulian2JD(1984.0):
-                  epochin = JD2epochBessel(jd)  # Always Besselian even if epoch was specified as Julian
-               else:
-                  epochin = JD2epochJulian(jd)
+   if sysin in [eq, ecl]:
+      if refin == None:
+         refin = icrs
+         if epochinset != None:
+            jd = epochinset[2]
+            if jd < epochJulian2JD(1984.0):
+               epochin = JD2epochBessel(jd)  # Always Besselian even if epoch was specified as Julian
+            else:
+               epochin = JD2epochJulian(jd)
             if epochin < 1984.0:
                refin = fk4  # Dangerous default. Could also be fk4_no_e for radio data
             else:
                refin = fk5
-         elif epochinset != None:
-            if refin == fk4 or refin == fk4_no_e:
-               epochin = epochinset[0]          # Besselian epoch
-            else:
-               epochin = epochinset[1]          # Julian epoch
+         elif sysin == eq and epobs != None:
+            # If there is no reference system and there is no equinox
+            # but there is an epoch of observation, then the reference is
+            # fk4
+            refin = fk4
+   else:
+      # Other sky systems do not have a reference system
+      refin = None
 
-   if not (sysin == eq and (refin == fk4 or refin == fk4_no_e)):
+   # We have a sky system and a reference system if the sky system was
+   # ecliptic or equatorial. What if we don't have an equinox?
+   # FITS: EQUINOX defaults to 2000 unless RADESYS is FK4, in which case
+   # it defaults to 1950.
+   if sysin in [eq, ecl]:
+      if epochinset == None:
+         if refin == fk4 or refin == fk4_no_e:  # The ref. system belongs to the fk4 family, 
+            epochin = 1950.0
+         else:
+            epochin = 2000.0
+      else:
+         if refin == fk4 or refin == fk4_no_e:
+            epochin = epochinset[0]          # Besselian epoch
+         else:
+            epochin = epochinset[1]          # Julian epoch
+
+   # We have one item to address and that is the epoch of observation.
+   # In 'Representations of celestial coordinates in FITS' (Calabretta & Greisen)
+   # we read that all reference systems are allowed for both equatorial- and
+   # ecliptic coordinates. Except FK4-NO-E which is only allowed for equatorial
+   # coordinates!
+   # This seems to contradict the fact that we must convert from fk4 to ecliptic
+   # via fk4-no-e and therefore the actual reference system is fk4-no-e
+   if not ((sysin == eq or sysin == ecl) and (refin == fk4 or refin == fk4_no_e)):
        epobs = None
 
    return sysin, refin, epochin, epobs
 
 
 
+def parseskydef(skydef):
+#----------------------------------------------------------------------
+   """
+Parse a string that represents a sky definition.
+See documentation at function skyparser()
+   """
+#----------------------------------------------------------------------
+   if skydef == '':
+      raise Exception,  'Empty string!'
+
+   tokens = re_split('[,\s]+', skydef)             # Split on whitespace and comma
+   if len(tokens) > 4:                             # sky, ref, equinox, dateobs
+      raise ValueError,  "Too many items for sky definition!"
+
+   sky = []
+   for t in tokens:
+      errmes = ''
+      s, found = skyrefsystems.minmatch2skyref(t)        # 'skyrefs' is global list
+      if s != None:
+         if found > 1:
+            errmes = "%s is ambiguous sky or reference system!" % t
+            raise ValueError,  errmes
+         else:
+            sky.append(s.idnum)
+      else:
+         try:
+            B, J, JD = epochs(t)
+            sky.append(t)
+         except:
+            errmes = "%s is not a valid epoch or sky/ref system!" % t
+            raise ValueError,  errmes
+   return tuple(sky)
+
+
+
 def skymatrix(skyin, skyout):
 #----------------------------------------------------------------------
-   u"""
+   """
 Create a transformation matrix to be used to transform a position from
 one sky system to another (including epoch transformations).
-
-Sky systems are identified by an integer number:
-
-====== ============= ===========================================
-Number Name          Remarks
-====== ============= ===========================================
-0      Equatorial    Equatorial coordinates (\u03B1, \u03B4),
-                     See also next table with reference systems
-1      Ecliptic      Ecliptic coordinates (\u03BB, \u03B2)
-                     referred to the ecliptic and mean equinox
-2      Galactic      Galactic coordinates (lII, bII)
-3      Supergalactic De Vaucouleurs Supergalactic
-                     coordinates (sgl, sgb)
-====== ============= ===========================================
-
-For equatorial and ecliptic systems one needs to specify a reference system.
-The reference systems are also identified by an integer number.
-
-
-====== ============  ============================================
-Number Name          Remarks
-====== ============  ============================================
-4      FK4           Mean place pre-IAU 1976 system. FK4 is the
-                     old barycentric (i.e. w.r.t. the common
-                     center of mass) equatorial coordinate
-                     system, which should be qualified by an
-                     Equinox value.
-                     For accurate work FK4
-                     coordinate systems should also be qualified
-                     by an Epoch value. This is the epoch of
-                     observation.
-5      FK4-NO-E      The old FK4 (barycentric) equatorial system
-                     but without the *E-terms of aberration*.
-                     This coordinate system should also be
-                     qualified by both an Equinox and an Epoch
-                     value.
-6      FK5           Mean place post IAU 1976 system.
-                     Also a barycentric equatorial coordinate
-                     system.
-                     This should be qualified by an
-                     Equinox value (only).
-7      ICRS          The International Celestial Reference
-                     System, for optical data realized through
-                     the Hipparcos catalog.
-                     By definition, ICRS
-                     is not an equatorial system, but it is
-                     very close to FK5 (J2000) system.
-                     No Equinox value is required.
-8      J2000         This is an equatorial coordinate system
-                     based on the mean dynamical equator and
-                     equinox at epoch J2000.
-                     The dynamical
-                     equator and equinox differ slightly
-                     compared to the equator and equinox of
-                     FK5 at J2000 and the ICRS system.
-                     This system need not be qualified by an
-                     Equinox value
-====== ============  ============================================
-
-A specification of a sky system is either a number 0, 1, 2 or 3 or
-it is a tuple with optional extra elements (a reference system,
-an equinox and an epoch of observation).
-
-.. note::
-   Reference systems are stored in FITS headers under keyword *RADESYS=*.
-
-The syntax is of the tuple version of a sky system is::
-
-   sky-tuple = (sky-system, [equinox], [reference-system], [epoch-of-observation])
-
-An epoch of observation can only be entered if a value for the
-equinox is given.
-Otherwise this function cannot distinguish the epoch
-of observation from the equinox.  An epoch of observation applies only
-to transformations between FK4 and FK5.
-
-Here are some examples::
-
-   skyin = 3
-   skyin = (0, 4)
-   skyin = (0, 'B1960', 5)
-   skyin = (0, 'B1950', 4, 'B1960')
-
-This function applies the rules from the FITS standard to find default
-values for the equinox if this is not given as a parameter.
-
-.. note::
-   Standard in FITS: RADESYS defaults to IRCS unless EQUINOX is given alone,
-   in which case it defaults to FK4 prior to 1984 and FK5 after 1984.
-
-   EQUINOX defaults to 2000 unless RADESYS is FK4, in which case it defaults
-   to 1950.
-
-
+For a description of the sky definitions see :ref:`myref-skydefinitions`.
 
 :param skyin:
    One of the supported sky systems or a tuple for equatorial systems
@@ -2657,7 +3259,7 @@ values for the equinox if this is not given as a parameter.
    e-terms. This flag is either *None* or the e-term vector
    which depends on the epoch.
    
-   The stucture of the output then is as follows:
+   The structure of the output then is as follows:
    ``M, (A1,A2,A3), (A4,A5,A6)``
    where:
    
@@ -2676,18 +3278,20 @@ values for the equinox if this is not given as a parameter.
    session.
       
 :Examples:
-   Some examples of transformations between sky systems
-   e.g.: ``M, E1, E2 = skymatrix(gal,(eq,2000,fk5))``
+   Some examples of transformations between sky systems using either
+   strings or tuples.
+   e.g.: ``M, E1, E2 = skymatrix(celestial.gal,(celestial.eq,"j2000",celestial.fk5))``
+   
 
-      >>> from kapteyn.celestial import *
-      >>> print celestial.skymatrix(gal,(eq,2000,fk5))
+      >>> from kapteyn import celestial
+      >>> print skymatrix(celestial.gal,(celestial.eq,"j2000",celestial.fk5))
       (matrix([[-0.05487554,  0.49410945, -0.86766614],
                [-0.8734371 , -0.44482959, -0.19807639],
                [-0.48383499,  0.74698225,  0.45598379]]),
             None,
             None)
       
-      >>> print skymatrix(fk4, fk5)
+      >>> print skymatrix(celestial.fk4, celestial.fk5)
       (matrix([[  9.99925679e-01,  -1.11814832e-02,  -4.85900382e-03],
                [  1.11814832e-02,   9.99937485e-01,  -2.71625947e-05],
                [  4.85900377e-03,  -2.71702937e-05,   9.99988195e-01]]),
@@ -2695,7 +3299,7 @@ values for the equinox if this is not given as a parameter.
                -3.1918587795578522e-07,
                -1.3842701121066153e-07), None)
       
-      >>> print skymatrix((eq,1975.0,fk4_no_e),(eq,1950.0,fk4))
+      >>> print skymatrix("eq,B1950.0,fk4_no_e","eq,B1950.0,fk4")
       (matrix([[ 1.,  0.,  0.],
                [ 0.,  1.,  0.],
                [ 0.,  0.,  1.]]),
@@ -2704,7 +3308,7 @@ values for the equinox if this is not given as a parameter.
                -3.1918587795578522e-07,
                -1.3842701121066153e-07))
       
-      >>> print skymatrix((eq,'b1950',fk4, 'j1983.5'), (eq,'J2000',fk5))
+      >>> print skymatrix("eq b1950 fk4 j1983.5", "eq J2000 fk5")
       (matrix([[  9.99925679e-01,  -1.11818698e-02,  -4.85829658e-03],
                [  1.11818699e-02,   9.99937481e-01,  -2.71546879e-05],
                [  4.85829648e-03,  -2.71721706e-05,   9.99988198e-01]]),
@@ -2713,7 +3317,7 @@ values for the equinox if this is not given as a parameter.
                -1.3842701121066153e-07),
             None)
       
-      >>> print skymatrix((eq,'J2000',fk4, 'F1984-1-1T0:30'), (eq,'J2000',fk5))
+      >>> print skymatrix("eq J2000 fk4 F1984-1-1T0:30", "eq J2000 fk5")
       (matrix([[  1.00000000e+00,  -5.45185721e-06,  -3.39404820e-07],
                [  5.45185723e-06,   1.00000000e+00,   2.24950276e-08],
                [  3.39404701e-07,  -2.24971595e-08,   1.00000000e+00]]),
@@ -2724,8 +3328,7 @@ values for the equinox if this is not given as a parameter.
 
 
 
-   See function *epochs()* for the possible epoch
-   formats.
+   See :ref:`myref-epochs` for the possible epoch formats.
    """
 #---------------------------------------------------------------------
    sysin, refin, epochin, epobsin = skyparser(skyin)
@@ -2752,6 +3355,7 @@ values for the equinox if this is not given as a parameter.
       if refout == fk4_no_e:
          refout = fk4
    # No e-terms for ecliptic coordinates in fk4
+   # Nakijken. Ik vertrouw dit nog niet, VOG
    if sysin == ecl:
       if refin == fk4_no_e:
          refin = fk4
@@ -2776,8 +3380,8 @@ def dotrans(skytuple, xyz):
 Purpose:  Utility function that performs the rotation and adding or
           removing e-terms
 Input:   -The tuple as produced by skymatrix
-         -one or more positions on cartesian coordinates (xyz)
-Returns:  The transformed (cartesian) coordinates
+         -one or more positions on Cartesian coordinates (xyz)
+Returns:  The transformed (Cartesian) coordinates
 Notes:    Function skymatrix returns a tuple with the rotation matrix
           and e-terms if necessary. Tuple element 0 is the rotation
           matrix. Function dotrans() does the rotation for a vector 
@@ -2847,7 +3451,7 @@ Utility function to facilitate command line use of skymatrix.
 
 :Notes:
    This function illustrates the core use of module *celestial*.
-   First it converts the input of world coordiantes into a matrix.
+   First it converts the input of world coordinates into a matrix.
    This matrix is converted to spatial positions (X,Y,Z) with
    function *longlat2xyz()*. The function *dotrans()* transforms
    these positions (X,Y,Z) to positions (X2,Y2,Z2) in the output sky
@@ -2868,3 +3472,5 @@ Utility function to facilitate command line use of skymatrix.
    xyz2 = dotrans(skymatrix(skyin, skyout), xyz)
    newlonlats = xyz2longlat(xyz2)
    return newlonlats
+
+

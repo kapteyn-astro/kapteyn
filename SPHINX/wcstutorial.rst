@@ -1,15 +1,12 @@
-
 Tutorial wcs module
 ===================
 
 .. highlight:: python
    :linenothreshold: 15
 
-
-Date: Aug 12, 2009
-
 Introduction
 ------------
+
 This tutorial aims at starters. Experienced users find relevant but compact documentation
 in the module API documentation. In this tutorial we address different practical
 situations where we need to convert between pixel- and world coordinates. 
@@ -315,7 +312,7 @@ as output tuple::
 
 Comments about the composed header:
 the header is composed from scratch.
-but it clould very well have been copied from an existing FITS header.
+but it could very well have been copied from an existing FITS header.
 In either case you should verify items **CUNITn** and **CTYPEn** because they are are important.
 In section 2.1.1 of [Ref1]_ we read that in WCSLIB:
    
@@ -326,7 +323,7 @@ The CTYPE consists of a coordinate type (max 4 characters) followed by '-'
 followed by a three character code that represents the algorithm to calculate
 the world coordinates ('ABCD-XYZ'). Shorter coordinate types are padded
 with the '-' character, shorter algorithm codes are padded on the right
-with blanks ('RA---NCP', 'RA---UV\_ '). So if were sloppy and
+with blanks ('RA---NCP', 'RA---UV\_ '). So if we were sloppy and
 wrote RA--NCP and DEC-NCP then WCSLIB assigns a linear conversion algorithm.
 It does not complain, but you get unexpected results. If your CTYPE's are correct
 but the units are not standard and are not recognized by WCSLIB, then you get
@@ -452,8 +449,8 @@ then you need method :meth:`wcs.Projection.mixed`::
 
 First we have a pixel position of which the x coordinate is set to *unknown*. We use
 a special value for this: `numpy.nan` which is the representation of NumPy's Not A Number.
-The y coordinate is set to 10. For the :meth:`wcs.Projection.mixed`:: we need to specify
-the *unknown* values in the pixel position wit a world coordinate. In the example
+The y coordinate is set to 10. For the :meth:`wcs.Projection.mixed`, we need to specify
+the *unknown* values in the pixel position with a world coordinate. In the example
 we entered 45.0 (deg). The mixed() method returns two tuples. One for the pixel position
 and one for the position in world coordinates. The *unknown* values are calculated in an
 iterative process.
@@ -461,7 +458,7 @@ The second part of the example is a loop over a number of world coordinates in R
 and a constant pixel coordinate in the y-direction (i.e. 10). The output (as listed as comment
 in the code) shows two things that need to be addressed.
 First we notice that the output pixel is not exactly 10. This is related to finite
-precision of numbers when a solution is calulated in an iterative way.
+precision of numbers when a solution is calculated in an iterative way.
 The second observation is more important: the
 Declination varies while the y coordinate in pixels is constant. But this is exactly
 what we expect for spatial data when a projection is involved.
@@ -704,7 +701,7 @@ Using NumPy arrays to convert an entire map
 ...........................................
 
 For applications that transform all the positions in a data set (or in a subset of the data)
-in one run (e.g. for reprojections of images), it is possible to store all the positions
+in one run (e.g. for re-projections of images), it is possible to store all the positions
 in a NumPy array with shape (NAXIS2, NAXIS1, 2) (note the order).
 The array can be handled by the :meth:`wcs.Projection.toworld` and :meth:`wcs.Projection.topixel` in one step.
 You could say that we have a two-dimensional array of which the elements are coordinate pairs.
@@ -1122,43 +1119,69 @@ Celestial transformations with wcs
 Celestial systems
 .................
 
-In this section we want to demonstrate how to use module :mod:`wcs` for the conversion of
-world coordinates between sky systems. Celestial transformations are handled by
-objects of class :class:`wcs.Transformation`.
-They also have a relation to Projection objects but first we want to discuss the
-Transformation class.
-Two parameters instantiate an object from class Transformation. The first is a definition
-of the input celestial system and the second is a definition for the celestial output system.
-Method :meth:`wcs.Transformation.transform` transforms coordinates associated with
-the celestial input system to coordinates connected to the celestial output system.
+Methods :meth:`wcs.Projection.toworld` and :meth:`wcs.Projection.topixel`
+convert between pixel coordinates and world coordinates. If these
+world coordinates are spatial, they are calculated for the sky- and reference system
+as defined in the header (FITS header, GIPSY header, header dictionary).
+To compare positions one must therefore ensure that these positions
+are all defined in the same sky- and reference system.
+If such a position is given in another system (e.g. galactic instead of equatorial),
+then you have to transform the position to the other sky- and/or reference system.
+Sometimes you might find a so called *alternate* header in the header information
+of a FITS file. In an alternate header the WCS related keywords end on a character
+(e.g. CRVAL1A).
+
+Usually these alternate headers describe a world coordinate system for another
+sky system. But because there could also be different epochs involved, it is
+worthwhile to have a system that can transform world coordinates between
+sky- and reference systems and that can do epoch transformations as well.
+
+For the Kapteyn Package we wrote module :mod:`celestial`. This module can be used
+as stand alone module if one is interested in celestial transformations of world
+coordinates only.
+But the module is well integrated in module :mod:`wcs` so one can use it
+in the context of :mod:`wcs`, i.e. it defines a class :class:`wcs.Transformation`.
+for conversions of world coordinates between sky-/reference systems
+and also, if pixel coordinates are involved, methods
+:meth:`wcs.Projection.toworld` and :meth:`wcs.Projection.topixel`
+can interpret an alternative sky-/reference system as the system for which
+a coordinate has to be calculated.
+The alternative sky-/reference system is stored in attribute
+:attr:`wcs.projection.skyout`.
+
+.. note::
+   If you need transformations of world coordinates between any of the supported
+   input sky-/reference system then you should use objects and methods
+   from class :class:`wcs.Transformation`.
+
+   If you need to convert pixel coordinates in a system defined by (FITS)
+   header information, then set the **skyout** attribute of a Projection
+   object and use methods
+   :meth:`wcs.Projection.toworld` and :meth:`wcs.Projection.topixel`
 
 The celestial definitions are described in detail in the background information of
 module :mod:`celestial`. We list the most important features of a
 celestial definition:
+   
+Supported Sky systems (detailed information in :ref:`myref-skysystems`):
 
-Supported Sky systems:
-       
    1. Equatorial: Equatorial coordinates (α, δ), see next list with reference systems
    2. Ecliptic: Ecliptic coordinates (λ, β) referred to the ecliptic and mean equinox
    3. Galactic: Galactic coordinates (lII, bII)
    4. Supergalactic: De Vaucouleurs Supergalactic coordinates (sgl, sgb)
 
-Supported Reference systems:
+Supported Reference systems (detailed information in :ref:`myref-refsystems`):
 
-   1. FK4: Mean place pre-IAU 1976 system. For
-      accurate work FK4 coordinate systems should also be qualified by an Epoch value.
-      This is the so called epoch of observation.
-   2. FK4_NO_E: The old FK4 (barycentric) equatorial system but without the "E-terms of aberration"
-      This coordinate system should also be qualifie by both an Equinox and an Epoch value.
+   1. FK4: Mean place pre-IAU 1976 system.
+   2. FK4_NO_E: The old FK4 (barycentric) equatorial system but without the
+      "E-terms of aberration"
    3. FK5: Mean place post IAU 1976 system.
-      This should be qualified by an Equinox value (only).
-   4. ICRS: The International Celestial Reference System. For ICRS no Equinox value is required.
+   4. ICRS: The International Celestial Reference System.
    5. J2000: This is an equatorial coordinate system based on the mean dynamical equator
-      and equinox at epoch J2000. This system need not be qualified by an Equinox value.
+      and equinox at epoch J2000.
 
+Epochs (detailed information in :ref:`myref-epochs`):
 
-Epochs:
-      
 The equinox and epoch of observations are instants of time and are of type string.
 These strings are parsed by a function of module :mod:`celestial` called :func:`celestial.epochs`.
 The parser rules are described in the API documentation for that function.
@@ -1169,28 +1192,10 @@ Each string starts with a prefix. Supported prefixes are:
    #. JD:  Julian date
    #. MJD: Modified Julian Day
    #. RJD: Reduced Julian Day
-   #. F:   Old and new FITS format (old: DD/MM/YY  new: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)
-
-Given an arbitrary celestial position and a sky system specification you can transform
-to any of the other sky system specifications.
-Module wcs recognizes the following built-in sky specifications:
-::
-      
-   wcs.equatorial - wcs.ecliptic - wcs.galactic - wcs.supergalactic
-
-Reference systems are:
-::
-      
-   wcs.fk4 - wcs.fk4_no_e - wcs.fk5 - wcs.icrs - wcs.j2000
+   #. F:   Old and new FITS format (old: `DD/MM/YY`  new: `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SS`)
 
 
-The syntax for an equatorial sky specification is:
-::
-      
-   (wcs.equatorial, [[equinox], [referencesystem, [epoch of observation]]])
-
-
-
+**Example:**
 Next example is a simple test program for epoch specifications.
 The function :func:`celestial.epochs` returns a tuple with three elements:
 
@@ -1210,7 +1215,7 @@ The function :func:`celestial.epochs` returns a tuple with three elements:
    for epoch in ep:
       B, J, JD = wcs.epochs(epoch)
       print "%24s = B%f, J%f, JD %f" % (epoch, B, J, JD)
-   ...
+
 
 The output is::
 
@@ -1230,7 +1235,34 @@ The output is::
 The strings that start with prefix 'F' are strings read from FITS keywords
 that represent the date of observation.
 
+The sky definition
+..................
 
+Given an arbitrary celestial position and a sky system specification you can transform
+to any of the other sky system specifications.
+Module wcs recognizes the following built-in sky specifications:
+::
+      
+   wcs.equatorial - wcs.ecliptic - wcs.galactic - wcs.supergalactic
+
+Reference systems are:
+::
+      
+   wcs.fk4 - wcs.fk4_no_e - wcs.fk5 - wcs.icrs - wcs.j2000
+
+
+The syntax for an equatorial sky specification is either a tuple
+(order of the elements is arbitrary):
+::
+      
+   (sky system, equinox, reference system, epoch of observation)
+   e.g.: obj.skyout = (wcs.equatorial, "J1983.5", wcs.fk4, "B1960_OBS")
+
+or a string with minimal match::
+
+   (equatorial, equinox, referencesystem, epoch of observation"
+   e.g.: obj.skyout = "equa J1983.5 FK4 B1960_OBS"
+   
 Celestial transformations
 .........................
 
@@ -1238,14 +1270,20 @@ In this section we check some basic celestial coordinate transformations.
 Background information can be found in [Ref2]_ or in the background information for
 module celestial.
 
-The galactic pole has FK4 coordinates (192.25,27.4). If we want to verify this, we need to convert
+Two parameters instantiate an object from class Transformation. The first is a definition
+of the input celestial system and the second is a definition for the celestial output system.
+Method :meth:`wcs.Transformation.transform` transforms coordinates associated with
+the celestial input system to coordinates connected to the celestial output system.
+
+The galactic pole has FK4 coordinates (192.25,27.4) in degrees.
+If we want to verify this, we need to convert
 this FK4 coordinate to the corresponding galactic coordinate, which should be (0,90)
 within the limits of precision of the used numbers. The following script shows that this could be true::
 
    from kapteyn import wcs
    
    world_eq = (192.25, 27.4)   # FK4 coordinates of galactic pole
-   tran = wcs.Transformation((wcs.equatorial, wcs.fk4, 'B1950.0'), wcs.galactic)
+   tran = wcs.Transformation("EQ,fk4,B1950.0", "GAL")
    world_gal = tran.transform(world_eq)
    print world_gal
    
@@ -1273,7 +1311,7 @@ the appropriate input celestial definition, we get::
    from kapteyn import wcs
 
    world_eq = (192.25, 27.4)   # FK4 coordinates of galactic pole
-   tran = wcs.Transformation((wcs.equatorial, wcs.fk4_no_e, 'B1950.0'), wcs.galactic)
+   tran = wcs.Transformation("EQUATORIAL, fk4_no_e, B1950.0", "galactic")
    world_gal = tran.transform(world_eq)
    print world_gal
    
@@ -1286,7 +1324,6 @@ the appropriate input celestial definition, we get::
    # Output:
    # (192.25, 27.400000000000002)
 
-   ...
 
 which gives the result as expected.
 Note that we used a special feature of the Transformation class.
@@ -1314,7 +1351,6 @@ The conversion program becomes then::
    # Output:
    # (47.369999999999997, 6.3200000000000003)
 
-   ...
 
 which agrees with the theory.
 
@@ -1322,8 +1358,10 @@ The sky system specifications allow for defaults.
 So if one wants coordinates in the equatorial system with reference system
 FK5 and equinox J2000 then the specification `wcs.fk5` will suffice.
 Below we demonstrate how to transform a coordinate from the FK4 system to FK5.
-In fact we want to demonstrate that FK4 is slowly rotating with respect to the inertial FK5 system.
-We do that by varying the assumed time of observation and convert the position (R.A.,Dec) = (0,0).
+In fact we want to demonstrate that FK4 is slowly rotating with respect
+to the inertial FK5 system.
+We do that by varying the assumed time of observation and convert the
+position (R.A.,Dec) = (0,0).
 This behaviour is explained in the background documentation of module :mod:`celestial`::
 
    #!/usr/bin/env python
@@ -1333,7 +1371,7 @@ This behaviour is explained in the background documentation of module :mod:`cele
    s_out = wcs.fk5
    epochs = range(1950,2010,10)
    for ep in epochs:
-      s_in = (wcs.equatorial, 'B1950', wcs.fk4, 'B'+str(ep))
+      s_in = "EQUATORIAL B1950 fk4 " + 'B'+str(ep)
       tran = wcs.Transformation(s_in, s_out)
       world_eq2 = tran.transform(world_eq1)
       print 'B'+str(ep), world_eq2
@@ -1352,8 +1390,9 @@ so this program shows an exceptional case.
 
 .. note::
      We are not restricted
-     to the transformation of one position. The input of positions follow the rules of
-     coordinate representations as described in the tutorial about coordinate representations and the wcs documentation.
+     to the transformation of one coordinate. The input of positions follow the rules of
+     coordinate representations as described for
+     methods :meth:`wcs.Projection.toworld` and :meth:`wcs.Projection.topixel`.
 
 
 Combining projections and celestial transformations
@@ -1365,7 +1404,7 @@ We added the option to change the celestial definition. If your data is a
 spatial map and its sky system is FK5, then we can convert pixel positions to
 world coordinates in for example galactic coordinates by specifying 
 a value for attribute :attr:`wcs.Projection.skyout`. In our case this would be for
-a projection object calles *proj*:
+a projection object called *proj*:
        
 >>> proj.skyout = wcs.galactic
      
@@ -1390,7 +1429,6 @@ pixel coordinates are if the output sky system is supergalactic.
 The galactic pole is (90, 6.32) deg. in supergalactic coordinates.
 Within the limits of the precision of the used numbers we find the expected output with this script::
 
-   #!/usr/bin/env python
    from kapteyn import wcs
    header = { 'NAXIS'  : 2,
               'NAXIS1' : 5,
@@ -1416,12 +1454,12 @@ Within the limits of the precision of the used numbers we find the expected outp
    print world
    # [(192.26126360281495, 27.399999547653639), (192.25, 27.399999999999999), ...   
 
-   proj.skyout = (wcs.equatorial, wcs.fk4_no_e, 'B1950')
+   proj.skyout = "Equatorial FK4-NO-E B1950"
    world = proj.toworld(pixel)
    print world
    # [(192.26126360281495, 27.399999547653639), (192.24999999999997, 27.400000000000002),...
 
-   proj.skyout = wcs.galactic
+   proj.skyout = "galactic"
    world = proj.toworld(pixel)
    print world
    # [(33.00000000001878,  89.990000000101531), (0.0, 90.0), ...
@@ -1432,7 +1470,8 @@ Within the limits of the precision of the used numbers we find the expected outp
    # [(90.002497049104363, 6.3296871263660073), (90.000000000000014, 6.319999999999995), ...
 
 
-Note that the second tuple on each line of the output represents the world coordinates at CRPIX.
+Note that the second tuple on each line of the output represents the world
+coordinates at CRPIX.
 Also important is the observation that the longitude for galactic coordinates
 shows erratic behaviour. The reason is that close to a pole, the longitudes
 are less well defined (and undefined on the pole) and the errors in longitudes
@@ -1484,7 +1523,7 @@ example could be derived from attribute :attr:`wcs.Projection.skysys`::
 
 Below a table with a short explanation of the attributes.
 More information about epochs and equinoxes can be found
-in the background information of :mod:`celestial`.
+in the documentation of :mod:`celestial`.
  
 ========== ===============================================================
 Attribute    Explanation
@@ -1518,9 +1557,11 @@ and :func:`celestial.lat2hms` to format
 degrees into hours, minutes, seconds or degrees, minutes and seconds. 
 Finally the function :func:`celestial.skymatrix` is also available to :mod:`wcs`; it calculates the rotation 
 matrix to convert a coordinate from one sky system to another and it calculates
-the E-terms (see backgound documentation  for celestial) if appropriate. Usually you will only use this
+the E-terms (see background documentation  for celestial) if appropriate. Usually you will only use this
 function to compare rotation matrices with matrices from the literature or to 
 do some debugging. Some examples on the Python command line:
+
+**Formatting spatial coordinates:**
 
 >>> wcs.lon2hms(45.0)
 '03h 00m  0.0s'
@@ -1531,6 +1572,8 @@ Out[10]: ' 245d  0m  0.0000s'
 >>> wcs.lat2dms(45.0)
 '+45d 00m  0.0s'
 >>> help(wcs.lon2hms)
+
+**Calculate a rotation matrix:**
 
 >>> wcs.skymatrix(wcs.galactic, wcs.supergalactic)
 (matrix([[ -7.35742575e-01,   6.77261296e-01,  -6.08581960e-17],
@@ -1550,7 +1593,7 @@ In the next sections we show how :mod:`wcs`/WCSLIB can deal with spectral conver
 with the focus on conversions between
 frequencies and velocities. We discuss conversion examples shown in the paper
 in detail and try to illustrate how :mod:`wcs` deals with FITS data from 
-(leagcy) AIPS and GIPSY sources. In many of those files the reference frequencies
+(legacy) AIPS and GIPSY sources. In many of those files the reference frequencies
 and reference velocities are not given in the same reference system
 (e.g. topocentric v.s. barycentric). It is estimated that there are many of
 these FITS files and that their headers generate wrong results when they enter
@@ -1655,7 +1698,7 @@ Velocities is what we need for the analysis of the kinematics and dynamics
 of the observed objects. But there are several definitions for velocities
 (*radio*, *optical*, *apparent radial*). 
 
-For the radio inteferometer, like the WSRT, an observer requesting for an observation, needs to specify:
+For the radio interferometer, like the WSRT, an observer requesting for an observation, needs to specify:
    
    * A rest frequency
    * A velocity or Doppler shift
@@ -1666,7 +1709,7 @@ For the radio inteferometer, like the WSRT, an observer requesting for an observ
      for the receivers
  
 
-*The observer requests that an observation must correspond to a velocity or doppler shift
+*The observer requests that an observation must correspond to a velocity or Doppler shift
 (see list below) and a reference system. Only then topocentric frequencies for the
 receivers can be calculated.*
  
@@ -1849,7 +1892,7 @@ are not recorded in the FITS file of the data set.
 In the background information about spectral coordinates we give a recipe how one can
 change the value of the reference frequency in CRVAL1 to a barycentric value.
 The result is CRVAL1=1.37847121643e+9
-If you subsitute this value for CRVAL1 in the previous script, the output is::
+If you substitute this value for CRVAL1 in the previous script, the output is::
 
     Pixel coordinate and velocity (m/s) with wcs module:
     30 9163.77531673
@@ -1876,7 +1919,7 @@ There are many (old) FITS headers which describe a system where the reference fr
 topocentric and the required reference velocity is given for another reference system.
 These velocities are given with keywords like VELR= or DRVALn= and the reference system
 for the velocities is given as an extension in CTYPEn (e.g.: CTYPE3='FREQ-OHEL').
-Image processing systeems like AIPS and GIPSY
+Image processing systems like AIPS and GIPSY
 have their own tools to deal with this. If :mod:`wcs` recognizes a legacy header, it tries
 to convert the reference frequency to the system of the required velocity::
    
@@ -2042,7 +2085,7 @@ The reference frequency is at pixel coordinate 32 and its value (1378471216.43) 
 barycentric reference frequency that we used before. What happens if we left out the algorithm code
 in the header? The output differs (except for the reference frequency at pixel 32). That is because
 it is assumed that the increments in wavelength are constant and not those in frequency.
-This is confirmed by the returned algoritm code which is *FREQ-W2F* if CTYPE1='VOPT'
+This is confirmed by the returned algorithm code which is *FREQ-W2F* if CTYPE1='VOPT'
 
 
 Processing real FITS data
@@ -2074,9 +2117,10 @@ the neighbourhood of CRPIX to world coordinates for all allowed spectral transla
             print "%d %.10g (%s)" % (px, world, alt[1])
 
 The projection object reads its header data from the first hdu of the FITS file
-(hdulist[0].hdr) and is set to only convert the spectral axis of the data set: `proj.(.sub((ax,)))`.
+(`hdulist[0].hdr`) and is set to only convert the spectral axis of the data set:
+`proj.(.sub((ax,)))`.
 Remember that the argument is a Python tuple but we have only one axis so the tuple has an extra comma.
-Header items can be read from the header directly (e.g. header['CRPIX3']). That's how we find
+Header items can be read from the header directly (e.g. `header['CRPIX3']`). That's how we find
 the value of CRPIX for the spectral axis. The allowed spectral translations are
 read from attribute :attr:`wcs.Projection.altspec`. 
 
@@ -2117,5 +2161,5 @@ References
           `<http://www.atnf.csiro.au/people/mcalabre/WCS/scs.pdf>`_  E. W. Greisen, M. R. Calabretta, F. G. Valdes, and S. L. Allen
 
 .. [FITS] `Definition of the Flexible Image Transport System (FITS), FITS Standard Version 3.0`
-          `<http://fits.gsfc.nasa.gov/fits_standard.html>`_ FITS Working Group , Commission 5: Documentation and Astronomical Data, International Astronomical Union
+          `<http://fits.gsfc.nasa.gov/fits_standard.html>`_  FITS Working Group , Commission 5: Documentation and Astronomical Data, International Astronomical Union
            
