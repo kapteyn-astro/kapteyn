@@ -3,7 +3,13 @@
 {% block body %}
 
 <h2>Introduction</h2>
-<p>Welcome to the Kapteyn package!</p>
+<div style="background: #FFEEEE; width: 30%; float: right; margin: 2em;
+padding: 1em">
+<div style="text-align: center"><b>NOTICE</b></div>
+As a work in progress, this unreleased documentation and software are
+subject to change. Version: {{ version }}.</div>
+<p><b>Welcome to the Kapteyn package!</b></p>
+
 <p>The Kapteyn Package is a collection of Python modules and applications 
 made by the computer group of the Kapteyn Astronomical Institute, University
 of Groningen, The Netherlands. The purpose of the package is to provide tools
@@ -52,5 +58,6 @@ manipulating simple table-like structures in text files.</li>
   <p>
     The Kapteyn Package is available as a distutils-installable package
     and can be downloaded 
-    <a href="http://www.astro.rug.nl/software/kapteyn/">here</a>.
+    <a href="kapteyn-{{ version }}.tar.gz">here</a>.
+  </p>
 {% endblock %}

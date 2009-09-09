@@ -21,6 +21,7 @@ Kapteyn Package
    wcstutorial
    wcsgrattutorial
    tabarraytutorial
+   celestialbackground
 
 .. unused documents:
    (conf.py parameter 'unused_docs')
