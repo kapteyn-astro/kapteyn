@@ -8,13 +8,13 @@ Tutorial wcsgrat module
 Introduction
 ------------
 
-Module :mod:`wcsgrat` creates a graticule for a given header with WCS information.
+Module :mod:`wcsgrat` creates a :term:`graticule` for a given header with WCS information.
 That implies that it finds positions on a curve in 2-dimensional data
 for which one of the world coordinates is a constant value.
 These positions are stored in an object derived from class
 :class:`wcsgrat.Graticule`. The positions at which these lines cross one of the sides
 of the rectangle (made up by the limits in pixels in both x- and y-direction),
-are stored in an object from class :class:`wcsgrat.Graticule.WCStick`, together with a
+are stored in an object from class :class:`wcsgrat.WCStick`, together with a
 text label showing the world coordinate of the crossing. In principle this is
 all what this module does. To make it more useful we added a class
 with a method that plots the graticule. Currently we support *Matplotlib*
@@ -25,9 +25,9 @@ should be possible to add (e.g. ppgplot).
 Simple example
 --------------
 
-Example: ex_axnumdemo.py - Simple plot using defaults
+Example: ex1_axnumdemo.py - Simple plot using defaults
 
-.. plot:: EXAMPLES/ex_axnumdemo.py
+.. plot:: EXAMPLES/ex1_axnumdemo.py
    :include-source:
    :align: center
 
@@ -40,7 +40,7 @@ calculate graticule data. A plot is made with Matplotlib.
 The recipe:
 
    * Given a FITS file on disk (example1test.fits) we want to plot
-     a :term:`graticule` for the spatial axes in the FITS file.
+     a graticule for the spatial axes in the FITS file.
    * The necessary information is retrieved from the FITS header
      with PyFITS.
    * A graticule representation is calculated with object *grat*
@@ -104,9 +104,9 @@ in this 'artificial' FITS file::
 You can download the file `manyaxes.fits <http://www.astro.rug.nl/software/kapteyn/EXAMPLES/manyaxes.fits>`_
 for testing. The world coordinate system is arbitrary.
 
-Example: ex_manyaxes.py - Selecting WCS axes from a FITS file
+Example: ex2_manyaxes.py - Selecting WCS axes from a FITS file
 
-.. plot:: EXAMPLES/ex_manyaxes.py
+.. plot:: EXAMPLES/ex2_manyaxes.py
    :include-source:
    :align: center
 
@@ -140,9 +140,9 @@ For the next example we used a FITS file with the following header information::
    Axis 2: DEC--NCP  from pixel 1 to   100  {crpix=51 crval=60.1539 cdelt=0.007166 (DEGREE)}
    Axis 3: VELO-HEL  from pixel 1 to   101  {crpix=-20 crval=-243 cdelt=4.2 (km/s)}
 
-Example: ex_axnumdemo.py - Show different axes combinations for the same FITS file
+Example: ex2_axnumdemo.py - Show different axes combinations for the same FITS file
 
-.. plot:: EXAMPLES/ex_axnumdemo.py
+.. plot:: EXAMPLES/ex2_axnumdemo.py
    :include-source:
    :align: center
 
@@ -182,9 +182,9 @@ figure size and size for the actual plot window in normalized device coordinates
 (i.e. in interval [0,1]). You can use these values in a script to set
 the relevant values for Matplotlib as we show in the next example.
 
-Example: ex_figuredemo.py - Plot figure in correct aspect ratio and fix the aspect ratio.
+Example: ex2_figuredemo.py - Plot figure in correct aspect ratio and fix the aspect ratio.
 
-.. plot:: EXAMPLES/ex_figuredemo.py
+.. plot:: EXAMPLES/ex2_figuredemo.py
    :include-source:
    :align: center
 
@@ -214,9 +214,9 @@ and the contents is plotted with method :meth:`wcsgrat.Plotversion.plot`.
 The next example shows a combination of two graticules for two different sky systems.
 It demonstrates also the use of attributes to changes plot properties.
 
-Example: ex_skyout.py - Combine two graticules in one frame
+Example: ex7_skyout.py - Combine two graticules in one frame
 
-.. plot:: EXAMPLES/ex_skyout.py
+.. plot:: EXAMPLES/ex7_skyout.py
    :include-source:
    :align: center
 
@@ -271,13 +271,13 @@ found in its header::
 
 Its spectral axis number is 3. The type is frequency. The extension tells us that an
 optical velocity in the heliocentric system is associated with the frequencies. In the
-header we found that the optical velocity given by DRVAL3 or VELR is 1050 Km/s.
+header we found that the optical velocity is 1050 Km/s.
 The header is a legacy GIPSY header and module :mod:`wcs` can parse it.
 We require the frequencies to be expressed as wavelengths.
 
-Example: ex_wave.py - Plot a graticule in a position wavelength diagram.
+Example: ex5_wave.py - Plot a graticule in a position wavelength diagram.
 
-.. plot:: EXAMPLES/ex_wave.py
+.. plot:: EXAMPLES/ex5_wave.py
    :include-source:
    :align: center
 
@@ -305,13 +305,10 @@ Example: ex_wave.py - Plot a graticule in a position wavelength diagram.
    corresponding to the missing spatial axis.
    
 
-For the next example we use the same FITS file (mclean.fits) and demonstrate how
-to retrieve allowed spectral translations for this data and how to create plots
-with graticules for maps with one spatial axis and one spectral axis.
+For the next example we use the same FITS file (mclean.fits) and demonstrate 
+Example: ex5_spectraltypes.py - Plot grid lines for different spectral translations
 
-Example: ex_spectraltypes.py - Plot grid lines for different spectral translations
-
-.. plot:: EXAMPLES/ex_spectraltypes.py
+.. plot:: EXAMPLES/ex5_spectraltypes.py
    :include-source:
    :align: center
 
@@ -321,138 +318,10 @@ Example: ex_spectraltypes.py - Plot grid lines for different spectral translatio
   * With PyFITS we open the fits file on disk and read its header
   * We created a :class:`wcs.Projection` object for this header to get a 
     list with allowed spectral translations (attribute *altspec*). We need
-    this list before we create any graticules 
-  * A Matplotlib Figure- and Axes instance are made. For each plot we create 
-    a new Axes instance with Matplotlib's method *add_subplot()*.
-  * The first plot (top) represents the native spectral coordinate. This is a topocentric
-    frequency (CTYPE3='FREQ-OHEL'). The second plot has also frequency as its spectral axis but
-    this is a converted helocentric frequency (Using the fact that an optical velocity of 1050 Km/s
-    is given for the heliocentric system).
-    The conversion is set with parameter *spectrans*.
-    
-We centered the plot in pixel coordinates around CRPIX3. So we expect that the
-corresponding value in optical velocity (1050 Km/s) appears in the center
-of the plot for VOPT. The figure above confirms this.
+    this list before we create the graticules 
+  * A Matplotlib Figure- and Axes instance are made
   
   
-Plotting wcs Rulers
--------------------
-
-In publications one often encounters images of astronomical objects with
-a small ruler added to mark offsets in spatial distance. Usually these 
-objects are small enough to allow a linear ruler. However for bigger objects 
-and some projections, these ruler are not accurate enough. We implemented rulers
-that are accurate for all sizes and all projections.
-
-A ruler object from module :mod:`wcsgrat` is created with method
-:meth:`wcsgrat.Graticule.ruler`. It needs a starting point and an end point
-in either pixel coordinates or world coordinates.
-You need also to enter the position at which we want the offset to be 0
-(with parameter *lamda0*).
-The ruler applies to a spatial system (or to a XV map) and therefore
-the units of the offsets are degrees. One can alter this by 
-entering a function with parameter *fun* and a format in *fmt*.
-
-Ruler fine tuning
-.................
-
-Plotting rulers is a bit more difficult than plotting other
-objects because its defaults must cover many different situations 
-and is therefore less useful. In the next example we show how to
-'fine tune' a ruler.
-
-Example: ex_ruleroffset.py - Put a ruler with distance offsets in arcmin.
- 
-.. plot:: EXAMPLES/ex_ruleroffset.py
-   :include-source:
-   :align: center
-
-
-**Explanation:**
-Most of the lines are discussed in other examples. We can focus on the call to
-method :meth:`wcsgrat.Graticule.ruler` as in:
-
-`ruler3 = grat.ruler(23*15,30,22*15,15, 0.5, 2, world=True, fmt=r"$%6.0f^\prime$", fun=lambda x: x*60.0, mscale=4.5)`
-
-Let's discuss each parameter:
-   
-   1. `23*15` : Start value of ruler in world coordinates. Value is 23 hours * 15 degrees.
-   2. `30` : Start point in world coordinates for the declination in degrees.
-   3. `22*15` : End point in Right Ascension.
-   4. `15` End point in declination.
-   5. `0.5` : Offset 0 is exactly in the center of the ruler 
-   6. `2` : Step size for offset labels is 2 degrees
-   7. `world=True` : The start- and end points are in world coordinates
-   8. `fmt=r"$%6.0f^\prime$"` : We want to format the offset labels. The field width
-      seems to be unimportant when we format the string in TeX. The TeX string
-      must be a Python raw string and starts character 'r'. The prime symbol
-      is used to indicate that the offset is in minutes of arc.
-   9. `fun=lambda x: x*60.0` : The default units are degrees. To print offsets
-      in minutes of arc, multiply the values with 60.
-   10. `mscale=4.5` : A scale factor to move the label to or from the ruler
-       to create a better layout for the offset labels. 
-
-
-Ruler for headers with alternative units
-........................................
-
-The input parameters for start- and end point and the step size
-in the constructor of a ruler are always in the same units (i.e. degrees).
-even when the units in the header are not degrees. The next example 
-shows this fact. 
-
-Example: ex_rulerarcmins.py - Ruler with non standard header units
- 
-.. plot:: EXAMPLES/ex_rulerarcmins.py
-   :include-source:
-   :align: center
-
-The example shows that it is possible to change the properties of the tick labels
-to facilitate interpretation of the plot. For instance we distinguish Right Ascensions
-and declinations by color and we prevent two labels to intersect by rotating one of them.
-The method we used is :meth:`wcsgrat.Graticule.setp_tick`. It applies changes on world
-coordinate axes, but this can be refined by setting a 'plotaxis' as in:
-   
-`grat.setp_tick(wcsaxis=1, plotaxis=(wcsgrat.bottom), rotation=30, ha='right')`
-
-The keyword arguments *rotation* and *ha* are Matplotlib parameters.
-
-Ruler in an Position-Velocity map
-.................................
-
-Example: ex_rulerxvmap.py - A ruler in a map with only one spatial axis
- 
-.. plot:: EXAMPLES/ex_rulerxvmap.py
-   :include-source:
-   :align: center
-
-
-**Explanation:**
-
-This is an example of a ruler in a Position-Velocity diagram. The header data belongs
-to a FITS file with axes Right Ascension, declination and frequency (RA,DEC,FREQ).
-We did not specify at which Right Ascension we made a slice, so the value of
-CRPIX1 is assumed. For that pixel coordinate we plot the declinations along
-the left y axis and offsets along the right y axis. Note that the default 
-in the Graticule constructor plots offsets along the y axis because this plot
-has only one spatial axis. But the map is not rotated so we can plot the declination
-axis as usual without confusing the reader. Note also the use of the methods
-that change the properties of some objects. We used:
-    
-    * :meth:`wcsgrat.Graticule.ruler.setp_line`
-    * :meth:`wcsgrat.Graticule.ruler.setp_labels`
-    * :meth:`wcsgrat.Graticule.setp_plotaxis`
-    * :meth:`wcsgrat.Graticule.setp_tick`
-    * :meth:`wcsgrat.Graticule.setp_gratline`
-
-.. note::
-   
-   Methods *setp_tick()* and *setp_gratline()* change properties of one of the two
-   world coordinate axes (usually in a not rectangular system) while
-   *setp_plotaxis()* changes properties of one of the four plot axes (rectangular system).
-   
-   
-
 Glossary
 --------
 

@@ -1163,14 +1163,14 @@ The celestial definitions are described in detail in the background information 
 module :mod:`celestial`. We list the most important features of a
 celestial definition:
    
-Supported Sky systems (detailed information in :ref:`myref-skysystems`):
+Supported Sky systems (detailed information in :ref:`celestial-skysystems`):
 
    1. Equatorial: Equatorial coordinates (α, δ), see next list with reference systems
    2. Ecliptic: Ecliptic coordinates (λ, β) referred to the ecliptic and mean equinox
    3. Galactic: Galactic coordinates (lII, bII)
    4. Supergalactic: De Vaucouleurs Supergalactic coordinates (sgl, sgb)
 
-Supported Reference systems (detailed information in :ref:`myref-refsystems`):
+Supported Reference systems (detailed information in :ref:`celestial-refsystems`):
 
    1. FK4: Mean place pre-IAU 1976 system.
    2. FK4_NO_E: The old FK4 (barycentric) equatorial system but without the
@@ -1180,7 +1180,7 @@ Supported Reference systems (detailed information in :ref:`myref-refsystems`):
    5. J2000: This is an equatorial coordinate system based on the mean dynamical equator
       and equinox at epoch J2000.
 
-Epochs (detailed information in :ref:`myref-epochs`):
+Epochs (detailed information in :ref:`celestial-epochs`):
 
 The equinox and epoch of observations are instants of time and are of type string.
 These strings are parsed by a function of module :mod:`celestial` called :func:`celestial.epochs`.

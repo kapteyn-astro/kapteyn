@@ -644,7 +644,7 @@ class Projection(object):
       system specified by the projection. This can be given as a string e.g.,
       ``"equatorial fk4_no_e B1950.0"`` or as a tuple:
       ``(equatorial fk4_no_e 'B1950.0')``.
-      For a complete description see: :ref:`myref-skydefinitions`.
+      For a complete description see: :ref:`celestial-skydefinitions`.
 :param usedate:
       indicates whether the date of observation is to be used for the
       appropriate celestial transformations. True or False.
@@ -760,7 +760,7 @@ The others are read-only.
 
    Alternative output sky system.  Can be specified according to
    the rules of the module :mod:`celestial`.
-   See: :ref:`myref-skydefinitions`.
+   See: :ref:`celestial-skydefinitions`.
    For pixel-to-world
    transformations, the result in the projection's 'native' system is
    transformed to the specified one and for world-to-pixel transformations,

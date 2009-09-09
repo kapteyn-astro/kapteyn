@@ -59,7 +59,7 @@ contexts:
        which contains many examples with source code.
 
 
-.. _myref-skydefinitions:
+.. _celestial-skydefinitions:
    
 Sky definitions
 ---------------
@@ -74,7 +74,7 @@ sky- or reference system are minimal matched against the strings in the table be
 The match is case insensitive.
 
 
-.. _myref-skysystems:
+.. _celestial-skysystems:
 
 Sky systems
 ...........
@@ -92,7 +92,7 @@ Symbol                  String        Description
 ======================= ============= =============================================
 
 
-.. _myref-refsystems:
+.. _celestial-refsystems:
    
 Reference systems
 .................
@@ -148,7 +148,7 @@ Symbol                  String        Description
    to 1950.
 
 
-.. _myref-epochs:
+.. _celestial-epochs:
    
 Epochs for the equinox and epoch of observation
 ...............................................
@@ -182,16 +182,33 @@ RJD    The Reduced Julian Day (RJD): Julian date counted from
        Example:  ``'rJD50123.2'``, ``'Rjd 23433'``
 F      Various FITS formats:
 
-       o DD/MM/YY  Old FITS format.
+       \\* DD/MM/YY  Old FITS format.
        Example: ``'F29/11/57'``
 
-       o YYYY-MM-DD  FITS format.
+       \\* YYYY-MM-DD  FITS format.
        Example: ``'F2000-01-01'``
 
-       o YYYY-MM-DDTHH:MM:SS FITS format with date and time.
+       \\* YYYY-MM-DDTHH:MM:SS FITS format with date and time.
        Example: ``'F2002-04-04T09:42:42.1'``
 
 ====== ===============================================================
+
+**Epoch of observation**.
+
+Reference system FK4 is not an inertial system. It is slowly rotating
+and positions are further away from the true mean places if the date of observation
+is greater than B1950. FK5 is an inertial system. If we convert coordinates
+from FK4 to FK5 the accuracy of the FK5 position can be improved
+if we know the date of the observation. So in all transformations where
+a conversion between FK4 and  FK5 is involved, an epoch of observation can
+be part of the sky definition. Note that this also involves a conversion between
+galactic coordinates and equatorial, FK5 coordinates because that conversion
+is done in steps and one step involves FK4.
+
+To be able to distinguish an equinox from an epoch of observation, an epoch of
+observation is followed by an underscore character and some arbitray characters
+to indicate that it is a special epoch (e.q. "B1960_OBS"). Only the underscore is
+obligatory.
 
 .. note::
    If a sky definition is entered as a string, there cannot be a space
@@ -1638,7 +1655,7 @@ that could convert a string which represents a date in various formats,
 to values for a Julian epoch, Besselian epochs and a Julian date.
 This function returns these value for any valid input date.
 
-For the epoch syntax read the documentation at :ref:`myref-epochs`.
+For the epoch syntax read the documentation at :ref:`celestial-epochs`.
 Note that an epoch of observation is either a second epoch in the string
 (the first is always the equinox) or the epoch string has
 a suffix '_' which may be follwed by arbitrary characters.
@@ -1768,7 +1785,8 @@ Notes:     The position of the galactic pole is defined in the fk4, B1950
            HOWEVER:
            Murray (1989) however objects against the transformation of 
            these principal directions because in the J2000 system the 
-           axes are not orthogonal, which is unacceptable. Therefore the
+           axes are not orthogonal, which is unacceptable for a transformation.
+           Therefore the
            transformation from fk5 to galactic is calculated in two steps. 
            First a position is transformed to fk4 (no e-terms) and then 
            to a galactic coordinate (lII, bII) 
@@ -2953,7 +2971,7 @@ Parse a string, tuple or single integer that represents a sky definition.
 A sky definition can consist of a *sky system*,
 a *reference system*, an *equinox* and an *epoch of
 observation*.
-See also the description at :ref:`myref-skydefinitions`.
+See also the description at :ref:`celestial-skydefinitions`.
 The elements in the string are separated by
 a comma or a space. The order of the elements is not important.
 The string is converted to a tuple by :func:`celestial.parseskydefs`.
@@ -2965,13 +2983,13 @@ to check whether user input is valid.
 Definitions in strings are usually used to define output sky definitions
 in prompts or on command lines. Applications can use integer id's
 for the sky- and reference systems. These integer id's are global constants
-See also :ref:`myref-skysystems` and :ref:`myref-refsystems`.
+See also :ref:`celestial-skysystems` and :ref:`celestial-refsystems`.
           
 The sky system and reference system strings are minimal matched
 (case INsensitive) with the strings in the table
-in the documentation at :ref:`myref-skysystems` and :ref:`myref-refsystems`.
+in the documentation at :ref:`celestial-skysystems` and :ref:`celestial-refsystems`.
 
-For the epoch syntax read the documentation at :ref:`myref-epochs`.
+For the epoch syntax read the documentation at :ref:`celestial-epochs`.
 Note that an epoch of observation is either a second epoch in the string
 (the first is always the equinox) or the epoch string has
 a suffix '_' which may be follwed by arbitrary characters.
@@ -3225,7 +3243,7 @@ def skymatrix(skyin, skyout):
    """
 Create a transformation matrix to be used to transform a position from
 one sky system to another (including epoch transformations).
-For a description of the sky definitions see :ref:`myref-skydefinitions`.
+For a description of the sky definitions see :ref:`celestial-skydefinitions`.
 
 :param skyin:
    One of the supported sky systems or a tuple for equatorial systems
@@ -3328,7 +3346,7 @@ For a description of the sky definitions see :ref:`myref-skydefinitions`.
 
 
 
-   See :ref:`myref-epochs` for the possible epoch formats.
+   See :ref:`celestial-epochs` for the possible epoch formats.
    """
 #---------------------------------------------------------------------
    sysin, refin, epochin, epobsin = skyparser(skyin)
