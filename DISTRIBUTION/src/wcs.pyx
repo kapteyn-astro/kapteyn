@@ -26,7 +26,7 @@ supergalactic coordinates.
 
 .. index:: coordinate representation
 
-.. _coordinates:
+.. _wcs-coordinates:
 
 Coordinates
 -----------
@@ -91,17 +91,25 @@ For detailed information, refer to celestial's docstrings.
 Constants
 ---------
 
-**Sky systems**
+**Sky systems** (imported from :mod:`celestial`)
 
 .. data:: equatorial
 
+.. data:: eq
+
 .. data:: ecliptic
+
+.. data:: ecl
 
 .. data:: galactic
 
+.. data:: gal
+
 .. data:: supergalactic
 
-**Reference systems**
+.. data:: sgal
+
+**Reference systems** (imported from :mod:`celestial`)
 
 .. data:: fk4
 
@@ -110,6 +118,10 @@ Constants
 .. data:: fk5
 
 .. data:: icrs
+
+.. data:: dynj2000
+
+.. data:: j2000
 
 **Physical**
 
@@ -136,8 +148,9 @@ from c_numpy cimport import_array, npy_intp, NPY_DOUBLE, PyArray_DATA, \
 import numpy, math, operator, types
 
 from celestial import skymatrix, \
-                      equatorial, ecliptic, galactic, supergalactic, \
-                      fk4, fk4_no_e, fk5, icrs, epochs, j2000, \
+                      eq, equatorial, ecl, ecliptic, gal, galactic, \
+                      sgal, supergalactic, \
+                      fk4, fk4_no_e, fk5, icrs, epochs, dynj2000, j2000, \
                       lon2hms, lon2dms, lat2dms
 
 cdef extern from "xyz.h":
@@ -628,12 +641,10 @@ class Projection(object):
       True or False.
 :param skyout:
       can be used to specify an output sky system different from the sky
-      system specified by the projection.  One of the variables *equatorial*,
-      *ecliptic*, *galactic* or *supergalactic*, or a sequence object (e.g., a
-      tuple) of which the first element is one of these variables and the
-      other elements optionally specify the reference system, its equinox and
-      the observation epoch. See :func:`celestial.skymatrix` for
-      a complete description.
+      system specified by the projection. This can be given as a string e.g.,
+      ``"equatorial fk4_no_e B1950.0"`` or as a tuple:
+      ``(equatorial fk4_no_e 'B1950.0')``.
+      For a complete description see: :ref:`myref-skydefinitions`.
 :param usedate:
       indicates whether the date of observation is to be used for the
       appropriate celestial transformations. True or False.
@@ -748,8 +759,9 @@ The others are read-only.
 .. attribute:: skyout
 
    Alternative output sky system.  Can be specified according to
-   the rules of the module :mod:`celestial`. E.g. as
-   ``(equatorial, fk4, 'B1950.0')`` or ``galactic``.  For pixel-to-world
+   the rules of the module :mod:`celestial`.
+   See: :ref:`myref-skydefinitions`.
+   For pixel-to-world
    transformations, the result in the projection's 'native' system is
    transformed to the specified one and for world-to-pixel transformations,
    the given coordinates are first transformed to the native system, then
@@ -1368,7 +1380,7 @@ Example::
       Note that FITS images are indexed from (1,1), not from (0,0) like Python
       arrays.
       Coordinates can be specified in a number of different ways.
-      See section :ref:`Coordinates`.
+      See section :ref:`wcs-coordinates`.
       When an exception due to invalid coordinates has occurred, this method
       can be called without arguments to retrieve the result in which the
       invalid positions are flagged."""
@@ -1813,7 +1825,7 @@ Example::
    transformed and out will receive a similar object with the
    transformed coordinates.
    Coordinates can be specified in a number of different
-   ways. See section :ref:`coordinates`.
+   ways. See section :ref:`wcs-coordinates`.
 :param reverse:
    if True, the inverse transformation will be performed.
 

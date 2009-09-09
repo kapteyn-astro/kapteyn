@@ -6,15 +6,10 @@
 Kapteyn Package
 ===============
 
-.. only:: html
-
-   (Read this document in `PDF <../LATEX/kapteyn.pdf>`_)
-
 .. centered:: DRAFT DOCUMENT
 
 .. toctree::
    :maxdepth: 2
-   :numbered:
 
    intro
    Module wcs: WCS projections and celestial transformations <wcs>

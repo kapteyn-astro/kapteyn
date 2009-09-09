@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% set title = 'Overview' %}
+{% block body %}
+
+<h2>Introduction</h2>
+<p>Welcome to the Kapteyn package!</p>
+<p>The Kapteyn Package is a collection of Python modules and applications 
+made by the computer group of the Kapteyn Astronomical Institute, University
+of Groningen, The Netherlands. The purpose of the package is to provide tools
+for the development of astronomical applications with Python.</p>
+
+
+<p>The the following modules are included:</p>
+<ul class="simple">
+<li><a class="biglink" href="{{ pathto("wcs") }}">wcs</a>,
+a binary module
+which handles spatial and spectral coordinates and provides
+WCS projections and transformations between different sky systems.
+Spectral translations (e.g., between frequencies and velocities) are
+supported and also mixed coordinates.</li>
+<li><a class="biglink" href="{{ pathto("celestial") }}">celestial</a>,
+containing NumPy-based functions for creating
+matrices for transformation between different celestial systems.
+Also a number of other utility functions are included.</li>
+<li><a class="biglink" href="{{ pathto("wcsgrat") }}">wcsgrat</a>,
+for calculating parameters for WCS graticules.
+It does not require a plot package.</li>
+<li><a class="biglink" href="{{ pathto("tabarray") }}">tabarray</a>,
+providing a class for the efficient reading, writing and
+manipulating simple table-like structures in text files.</li>
+</ul>
+
+<h2>Documentation</h2>
+  <table class="contentstable" align="center" style="margin-left: 30px"><tr>
+    <td width="50%">
+      <p class="biglink"><a class="biglink" href="{{ pathto("contents") }}">Contents</a><br/>
+         <span class="linkdescr">for a complete overview</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
+         <span class="linkdescr">search the documentation</span></p>
+    </td><td width="50%">
+      <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}">General Index</a><br/>
+         <span class="linkdescr">all functions, classes, terms</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("modindex") }}">Module Index</a><br/>
+         <span class="linkdescr">quick access to all documented modules</span></p></tr>
+    <tr></td><td width="50%">
+      <p class="biglink"><a class="biglink" href="../LATEX/kapteyn.pdf">PDF documentation</a><br/>
+         <span class="linkdescr">this documentation in PDF format</span></p>
+    </td></tr>
+  </table>
+
+<h2>Get the Kapteyn Package</h2>
+  <p>
+    The Kapteyn Package is available as a distutils-installable package
+    and can be downloaded 
+    <a href="http://www.astro.rug.nl/software/kapteyn/">here</a>.
+{% endblock %}

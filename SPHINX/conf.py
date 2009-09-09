@@ -21,7 +21,7 @@ sys.path.append(os.path.abspath('../PACKAGE/kapteyn'))
 sys.path.append(os.path.abspath('.'))
 
 from kapteyn import __version__ as kapteynversion
-print kapteynversion
+print 'Kapteyn Package version', kapteynversion
 
 # -- General configuration -----------------------------------------------------
 
@@ -40,7 +40,7 @@ source_suffix = '.rst'
 #source_encoding = 'utf-8'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = 'contents'
 
 # General information about the project.
 project = u'Kapteyn Package'
@@ -98,16 +98,18 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = 'default'
+#html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-   'stickysidebar': True,
-   'rightsidebar': True,
-   'relbarbgcolor': 'brown',
-   'sidebarbgcolor': 'darkgreen'
+   'stickysidebar':   True,
+   'rightsidebar':    True,
+   'relbarbgcolor':  'brown',
+   'sidebarbgcolor': 'darkgreen',
+   'headtextcolor':  'white',
+   'headbgcolor':    'darkgreen'
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -148,6 +150,7 @@ html_static_path = ['_static']
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 #html_additional_pages = {}
+html_additional_pages = {'index': 'index.html'}
 
 # If false, no module index is generated.
 #html_use_modindex = True
@@ -184,7 +187,7 @@ latex_font_size = '10pt'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'kapteyn.tex', u'Kapteyn Package Documentation',
+  ('contents', 'kapteyn.tex', u'Kapteyn Package Documentation',
    u'Hans Terlouw, Martin Vogelaar', 'manual'),
 ]
 
