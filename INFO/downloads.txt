@@ -1,0 +1,61 @@
+Naval Research Laboratory (Paul S. Ray)
+---
+Observatoire Midi Pyrenees @ 195.83.21.123
+National Aeronautics and Space Administration @ 128.158.1.165
+Columbia University @ 128.59.171.104
+Raman Research Institute @ 61.14.43.10
+IN2P3/CNRS @ 193.48.98.136
+IAAT Tuebingen @ 134.2.205.65
+Commissariat a l'Energie Atomique @ 132.166.13.167
+Harvard University (Faculty of Arts and Sciences) @ 140.247.232.235
+University of Cambridge @ 131.111.70.59
+University College Dublin @ 137.43.99.33
+Universite de Geneve @ 129.194.8.8
+Astron @ 192.87.1.200
+Lick Observatory @ 128.114.23.182
+Academia Sinica @ 140.109.176.116
+National Optical Astronomy Observatory @ 139.229.6.208
+University of Sussex @ 139.184.30.131
+California Institute of Technology @ 131.215.194.44
+Instituto de Astrofisica de Canarias (IAC) @ 161.72.202.11
+Space Telescope Science Institute @ 130.167.102.17
+University of Colorado at Boulder @ 128.138.116.231
+University of Cape Town @ 137.158.152.208
+Radboud Universiteit (sociale wetenschappen!) @ 131.174.203.90
+The Royal Observatory, Edinburgh @ 195.194.120.48
+Pontificia Universidad Catolica de Chile @ 146.155.21.228
+Stanford University (XOC) @ 171.64.109.188
+University of Oxford @ 129.67.116.121
+Royal Military College of Canada @ 137.94.166.97
+Johns Hopkins University @ 128.220.147.57
+Indian Institute of Astrophysics @ 124.30.128.132
+Rochester Institute of Technology (Center for Imaging Science) @ 129.21.58.253
+Universita' degli Studi di Trieste @ 140.105.221.60
+Universitaet Siegen (Experimentelle Teilchenphysik) @ 141.99.204.202 (ZIMT) 141.99.254.253
+Durham University @ 129.234.4.1
+Universidad Autonoma de Madrid @ 150.244.122.66
+[CHINA SCIENCE AND TECHNOLOGY NETWORK] @ 159.226.169.103
+Penn State @ 128.118.147.226
+Instituto de Astrofisica de Andalucia @ 161.111.164.161
+National Laboratory for High Energy Physics (KEK), Japan @ 202.13.220.120
+Universite de Montreal @ 132.204.60.92
+ESO @ 134.171.39.78
+North Carolina State University (Physics) @ 152.1.53.216
+Universitat de Valencia @ 147.156.163.129
+Harvard-Smithsonian Center for Astrophysics @ 131.142.156.61
+UCLA @ 128.97.69.252
+University of Kwazulu-Natal @ 146.230.178.92
+Ruhr-Universitaet Bochum @ 134.147.158.2
+Danmarks Tekniske Universitet (Cent. for Biol. Sequence Anal.) @ 130.225.75.212
+University of Victoria (Physics and Astronomy) @ 142.104.60.90
+Universidade Tecnica de Lisboa (Instituto Superior Tecnico) @ 193.136.161.166
+Lowell Observatory @ 63.224.131.42
+UC Santa Barbara, Kavli Institute for Theoretical Physics @ 128.111.9.188
+Cornell Universtity, Department of Astronomy @ 132.236.7.180
+NIKHEF @ 192.16.199.66
+Australia Telescope National Facility (ATNF) @ 130.155.176.233
+University of Illinois at Urbana-Champaign (HEP) @ 128.174.118.238
+New Mexico Tech @ 129.138.42.25
+The University of Sydney @ 129.78.64.103
+Universidad Nacional Autonoma de Mexico @ 132.248.1.159
+Universite Laval @ 132.203.76.185
