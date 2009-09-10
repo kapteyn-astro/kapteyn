@@ -108,8 +108,7 @@ html_theme_options = {
    'rightsidebar':    True,
    'relbarbgcolor':  'brown',
    'sidebarbgcolor': 'darkgreen',
-   'headtextcolor':  'white',
-   'headbgcolor':    'darkgreen'
+   'headtextcolor':  'black'
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
