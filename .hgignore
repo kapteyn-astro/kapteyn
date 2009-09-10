@@ -2,7 +2,6 @@ syntax: glob
 DISTRIBUTION/build
 DISTRIBUTION/dist
 DISTRIBUTION/doc/kapteyn.pdf
-EXAMPLES/fig*.png
 SPHINX/HTML
 SPHINX/LATEX
 SPHINX/build/*
