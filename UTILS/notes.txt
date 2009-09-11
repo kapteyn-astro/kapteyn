@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------
 Scripts in deze directory mogen alleen vanuit de "hoofd-" directory
-hierboven (KAPTEYN) worden gedraaid, dus als "UTI/make.."
+hierboven (KAPTEYN) worden gedraaid, dus als "UTILS/make..."
 ---------------------------------------------------------------------------
 
 - makedist.csh
