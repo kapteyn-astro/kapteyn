@@ -16,8 +16,8 @@
 #----------------------------------------------------------------------
 
 """
-`wcsgrat` --- A module for plotting WCS graticules and labels
-=============================================================
+Module wcsgrat
+==============
 A graticule is a system of crossing lines on a map representing.
 positions of which one coordinate is constant.
 For a spatial map it consists of parallels of latitude and
@@ -35,7 +35,7 @@ The transformations between pixel coordinates and world coordinates
 are based module *wcs* which is also part of the Kapteyn Package.
 Module *wcs* is a Python binding for Mark R. Calabretta's library
 `WCSLIB <http://www.atnf.csiro.au/people/mcalabre/WCS>`_.
-From *WCSLIB* we use only the core transformation routines.
+>From *WCSLIB* we use only the core transformation routines.
 Header parsing is done with module *wcs*.
 
 Axes types that are not recognized by this software is treated as being linear.
@@ -102,6 +102,8 @@ Class Graticule
 
 """
 
+# TODO sequencetype uitbreiden met numpy
+# Controle op input ruler coordinaten
 
 from kapteyn import wcs        # The Kapteyn Python binding to WCSlib, including celestial transformations
 import types
@@ -199,7 +201,7 @@ could be added in the future.
       else:
          raise NotImplementedError, "Cannot initialize. Currently only Maplotlib is supported!"
 
-
+      self.plotrectangle = True
       if interface == 'matplotlib':
          self.fig = fig
          self.frame = frame
@@ -207,6 +209,7 @@ could be added in the future.
          self.graticules = []
          self.gridframes = []
          self.rulers = []
+         self.images = []
          from string import join, letters
          from random import choice
          self.baselabel = join([choice(letters) for i in range(8)], "")
@@ -215,7 +218,7 @@ could be added in the future.
          self.frames.append(frame)
 
 
-   def add(self, obj):
+   def add2(self, obj):
       """
       Add object to plot container. These objects can be related to different
       world coordinate systems as long as the dimensions in pixels correspond.
@@ -229,14 +232,48 @@ could be added in the future.
          :meth:`Graticule.pixellabels`.
 
       """
+      
       if isinstance(obj, Graticule):
          self.graticules.append(obj)
+         
       elif isinstance(obj, Ruler):
          self.rulers.append(obj)
       elif isinstance(obj, Gridframe):
          self.gridframes.append(obj)
 
 
+   def add(self, objlist):
+      """
+      Add object to plot container. These objects can be related to different
+      world coordinate systems as long as the dimensions in pixels correspond.
+      See the graticules tutorial for an example).
+
+      :parameter obj:
+         Object of class :class:`Graticule`, Ruler or Gridframe.
+         Objects from class Ruler are created with Graticule's method
+         :meth:`Graticule.ruler`. Objects from class Gridframe
+         are created with Graticule's method
+         :meth:`Graticule.pixellabels`.
+
+      """
+      if type(objlist) not in sequencelist:
+         objlist = [objlist]
+      for obj in objlist:
+         if isinstance(obj, Graticule):
+            self.graticules.append(obj)
+            self.__plot1graticule(obj)
+         elif isinstance(obj, Ruler):
+            self.rulers.append(obj)
+            self.__plotruler(obj)
+         elif isinstance(obj, Gridframe):
+            self.gridframes.append(obj)
+            self.__plot1grid(obj)
+         else:
+            try:
+               self.images.append(obj)
+               obj.imshow()
+            except:
+                pass
 
    def __plot1graticule(self, graticule):
       """
@@ -1804,6 +1841,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          pylim  = fitsimage.pylim
          mixpix = fitsimage.mixpix
          spectrans = fitsimage.spectrans
+         skyout = fitsimage.skyout
          
       # Try to get two axis numbers if none are given
       if axnum == None:
@@ -1879,7 +1917,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          gmap = proj.sub([self.xaxnum, self.yaxnum])
          self.mixpix = None
 
-      # Create the wcs projection object
+      # Set the spectral translation and make Projection object an attribute
       if spectrans != None:
          self.gmap = gmap.spectra(spectrans)
       else:
@@ -2954,7 +2992,7 @@ intersections with the enclosing axes rectangle.
          return self.insidelabels[wcsaxis]
 
 
-   def ruler(self, x1, y1, x2, y2, lambda0, step=None,
+   def ruler(self, x1=None, y1=None, x2=None, y2=None, lambda0=0.5, step=None,
              world=False, angle=None, addangle=0.0, 
              fmt=None, fun=None, fliplabelside=False, mscale=None, **kwargs):
       """
@@ -2974,16 +3012,20 @@ At least one of the axes in the plot needs to be
 a spatial axis.
 
 :param x1:            X-location of start of ruler either in pixels or world coordinates
-:type x1:             Floating point number
+                      Default is lowest pixel coordinate in x.
+:type x1:             None or Floating point number
 
 :param y1:            Y-location of start of ruler either in pixels or world coordinates
-:type y1:             Floating point number
+                      Default is lowest pixel coordinate in y.
+:type y1:             None or Floating point number
 
 :param x2:            X-location of end of ruler either in pixels or world coordinates
-:type x2:             Floating point number
+                      Default is highest pixel coordinate in x.
+:type x2:             None or Floating point number
 
 :param y2:            Y-location of end of ruler either in pixels or world coordinates
-:type y2:             Floating point number
+                      Default is highest pixel coordinate in y.
+:type y2:             None or Floating point number
 
 :param lambda0:       Set the position of label which represents offset 0.0.
                       Default is lambda=0.5 which represents the middle of the ruler.
@@ -3019,8 +3061,13 @@ a spatial axis.
 :param fliplabelside: Choose other side of ruler to draw labels.
 :type fliplabelside:  Boolean
 
+:param mscale:        A scaling factor to create more or less distance between 
+                      the ruler and its labels. If *None* then this method calculates 
+                      defaults. The values are usually less than 5.0.
+:type mscale:         Floating point number
+   
 :param `**kwargs`:    Set keyword arguments for the labels.
-                      The attributes for the ruler line are set with these keyword arguments.
+                      The attributes for the ruler labels are set with these keyword arguments.
 :type `**kwargs`:     Matplotlib keyword argument(s)
 
 :Raises:
@@ -3039,7 +3086,14 @@ a spatial axis.
       *End point of ruler not in pixel limits!*
 
 :Returns:      A ruler object of class ruler which is added to the plot container
-               with Plotversion's method :meth:`Plotversion.add`
+               with Plotversion's method :meth:`Plotversion.add`.
+               This ruler object has two methods to change the properties 
+               of the line and the labels:
+   
+               * `setp_line(**kwargs)` -- Matplotlib keyword arguments for changing
+                 the line properties.
+               * `setp_labels(**kwargs)` -- Matplotlib keyword arguments for changing
+                 the label properties.
 
 :Notes:        A bisection is used to find a new marker position so that
                the distance to a previous position is *step*..
@@ -3065,6 +3119,7 @@ a spatial axis.
                                        fun=lambda x: x*60.0, fmt=r"$%4.0f^\prime$",
                                        fliplabelside=True, color='r')
                   ruler.setp_line(lw='2', color='g')
+                  ruler.setp_labels(color='y')
                   gratplot.add(ruler)
 
       """
@@ -3236,6 +3291,12 @@ a spatial axis.
             step = (D3*10.0**f)/k
          return step/fact
 
+      # Set defaults for missing pixel coordinates
+      if x1 == None: x1 = self.pxlim[0]
+      if x2 == None: x2 = self.pxlim[1]
+      if y1 == None: y1 = self.pylim[0]
+      if y2 == None: y2 = self.pylim[1]
+
       spatial = self.gmap.types[0] in ['longitude', 'latitude'] or self.gmap.types[1] in ['longitude', 'latitude']
       if not spatial:
          raise Exception, "Rulers only suitable for maps with at least one spatial axis!"
@@ -3288,8 +3349,8 @@ a spatial axis.
       # Ticks perpendicular to ruler line.
       defangle = 180.0 * numpy.arctan2(y2-y1, x2-x1) / numpy.pi - 90.0
 
-      l1 = self.pxlim[1] - self.pxlim[0] + 1.0; l1 /= 100.0
-      l2 = self.pylim[1] - self.pylim[0] + 1.0; l2 /= 100.0
+      l1 = self.pxlim[1] - self.pxlim[0] + 1.0; l1 /= 50.0
+      l2 = self.pylim[1] - self.pylim[0] + 1.0; l2 /= 50.0
       ll = max(l1,l2)
       dx = ll*numpy.cos(defangle*numpy.pi/180.0)
       dy = ll*numpy.sin(defangle*numpy.pi/180.0)

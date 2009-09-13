@@ -1791,7 +1791,7 @@ Notes:     The position of the galactic pole is defined in the fk4, B1950
            First a position is transformed to fk4 (no e-terms) and then 
            to a galactic coordinate (lII, bII) 
            The result matrix in celestial.py is calculated with: 
-           skymatrix((eq,2000.0,fk5),gal)
+           skymatrix((eq,"J2000.0",fk5),gal)
            and produces the numbers:
            [[-0.054875539396 -0.873437104728 -0.48383499177 ]
             [ 0.494109453628 -0.444829594298  0.7469822487  ]
@@ -1801,7 +1801,7 @@ Notes:     The position of the galactic pole is defined in the fk4, B1950
            If, on the other hand we calculate the rotation matrix for the J2000
            coordinates:
            >>> R = rotZ(180-122.93191857)*rotY(90-27.12825118)*rotZ(192.85948121)
-           >>> print skymatrix((eq,2000.0,fk5),gal)[0] - R
+           >>> print skymatrix((eq,"J2000.0",fk5),gal)[0] - R
                [[ -4.26766400e-11  -1.39604994e-11   3.00424130e-11]
                 [ -9.72683045e-12   4.29156710e-12   8.98969787e-12]
                 [ -2.84006152e-12   5.19224108e-11   1.71504477e-11]]

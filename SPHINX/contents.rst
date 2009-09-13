@@ -18,6 +18,7 @@ Contents
    Module mplutil: event handling utility for matplotlib <mplutil>
    wcstutorial
    wcsgrattutorial
+   allsky
    tabarraytutorial
    celestialbackground
 

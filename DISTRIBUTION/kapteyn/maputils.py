@@ -28,6 +28,7 @@
 Module maputils 
 ===============
 
+
 Introduction
 ------------
 
@@ -96,11 +97,15 @@ Prompt functions
 ----------------
 
 .. index:: Open a FITS file
-.. autofunction:: getfitsfile
+.. autofunction:: prompt_fitsfile
 .. index:: Set axis numbers of FITS image
-.. autofunction:: getimageaxes
+.. autofunction:: prompt_imageaxes
 .. index:: Set pixel limits in FITS image
-.. autofunction:: getbox
+.. autofunction:: prompt_box
+.. index:: Set spectral translation from list
+.. autofunction:: prompt_spectrans
+.. index:: Set sky system for output
+.. autofunction:: prompt_skyout
 
 Class FITSimage
 ---------------
@@ -113,6 +118,7 @@ Class MPLimage
 --------------
 
 .. index:: Plot image with Matplotlib
+
 .. autoclass:: MPLimage
 
 Class FITSaxis
@@ -124,6 +130,7 @@ Class ImageContainer
 --------------------
 
 .. autoclass:: ImageContainer
+
 """
 # In case we want to use the plot directive, we have an exampe here
 # .. plot:: /Users/users/vogelaar/MAPMAKER/maputils.intro.1.py
@@ -139,12 +146,15 @@ import pyfits
 import numpy
 from kapteyn import wcs
 from kapteyn import wcsgrat
+from kapteyn.celestial import skyrefsystems, epochs, skyparser
 #from kapteyn import mplutil
 from mplutil import AxesCallback
 import readline
 from types import TupleType as types_TupleType
-from types import  ListType as types_ListType
+from types import ListType as types_ListType
+from types import StringType as types_StringType 
 from string import upper as string_upper
+from string import letters
 from re import split as re_split
 
 sequencelist = (types_TupleType, types_ListType)
@@ -153,7 +163,7 @@ __version__ = '1.0'
 
 
 
-def getbox(pxlim, pylim, axnameX, axnameY):
+def prompt_box(pxlim, pylim, axnameX, axnameY):
 #-----------------------------------------------------------
    """
 External helper function which returns the
@@ -167,12 +177,12 @@ All these numbers are converted to integers.
 
 :param pxlim:
    Sequence of two numbers representing limits
-   in pixels along the x axis.
+   in pixels along the x axis as defined in the FITS file.
 :type pxlim:
    tuple with two integers
 :param pylim:
    Sequence of two numbers representing limits
-   in pixels along the y axis.
+   in pixels along the y axis as defined in the FITS file.
 :type pylim:
    tuple with two integers
 :param axnameX:
@@ -209,7 +219,7 @@ All these numbers are converted to integers.
    
       fitsobject = maputils.FITSimage('rense.fits')
       fitsobject.set_imageaxes(1,2, slicepos=30) # Define image in cube
-      fitsobject.set_limits(promptfie=maputils.getbox)
+      fitsobject.set_limits(promptfie=maputils.prompt_box)
    
    This prompt accepts e.g.::
    
@@ -251,7 +261,7 @@ All these numbers are converted to integers.
 
 
 
-def getfitsfile(defaultfile=None, hnr=None, memmap=None):
+def prompt_fitsfile(defaultfile=None, hnr=None, alter=None, memmap=None):
 #-----------------------------------------------------------------
    """
 An external helper function for the FITSimage class to
@@ -273,10 +283,16 @@ and the header unit number of the wanted header from that list.
    hnr is not given, you will be prompted.
 :type hnr:
    Integer
+:param alter:
+   Selects an alternate header. Default is the standard header.
+   Keywords in alternate headers end on a character A..Z
+:type alter:
+   Empty or a single character. Input is case insensitive.
 :param memmap:
    Set PyFITS memory mapping on/off. Let PyFITS set the default.
 :type memmap:
    Boolean
+
 
 :Prompts:
    1. *Enter name of fits file ...... [a default]:*
@@ -288,9 +304,12 @@ and the header unit number of the wanted header from that list.
       which header contains the required image data.
       
 :Returns:
-   The HDU list and the user selected index of the wanted 
-   hdu from that list. The HDU list is returned so that it
-   can be closed in the calling environment.
+
+   * *hdulist* - The HDU list and the user selected index of the wanted 
+     hdu from that list. The HDU list is returned so that it
+     can be closed in the calling environment.
+   * *hnr* - FITS header number. Usually the first header, i.e. *hnr=0*
+   * *fitsname* - Name of the FITS file.
    
 :Notes:
    --
@@ -318,6 +337,8 @@ and the header unit number of the wanted header from that list.
          break
       except IOError, (errno, strerror):
          print "I/O error(%s): %s" % (errno, strerror)
+      except KeyboardInterrupt:
+         raise
       except:
          print "Cannot open file, unknown error."
          con = raw_input("Abort? ........... [Y]/N:")
@@ -339,11 +360,39 @@ and the header unit number of the wanted header from that list.
       else:
          hnr = 0
 
-   return hdulist, hnr, filename
+   # If there is no character given for an alternate header
+   # but an alternate header is detected, then the user is
+   # prompted to enter a character from a list with allowed
+   # characters. Currently an alternatre header is found if
+   # there is a CRPIX1 followed by a character A..Z
+   if alter == None:
+      alternates = []
+      hdr = hdulist[hnr].header
+      for a in letters[:26]:
+         k = "CRPIX1%c" % a.upper()  # To be sure that it is uppercase
+         if hdr.has_key(k):
+            print "Found alternate header:", a.upper()
+            alternates.append(a)
+   
+      alter = ''
+      if len(alternates):
+         while True:
+            p = raw_input("Enter char. for alternate header: ...... [No alt. header]:")
+            if p == '':
+               alter = ''
+               break
+            else:
+               if p.upper() in alternates:
+                  alter = p.upper()
+                  break
+               else:
+                  print "Character not in list with allowed alternates!"
+
+   return hdulist, hnr, filename, alter
 
 
 
-def getimageaxes(fitsobj, axnum1=None, axnum2=None):
+def prompt_imageaxes(fitsobj, axnum1=None, axnum2=None):
 #-----------------------------------------------------------------------
    """
 Helper function for FITSimage class. It is a function that requires
@@ -414,18 +463,13 @@ translation.
      outside the image in the same order as the axes in the FITS
      header. These pixel positions are necessary
      to extract the right 2D data from FITS data with dimensions > 2.
-   * *spectrans*:
-     The selected spectral translation from a list with spectral
-     translations that are allowed for the input object of class FITSimage.
-     A spectral translation translates for example frequencies to velocities.
-
 
 :Example:
    Interactively set the axes of an image using a prompt function::
    
       # Create a maputils FITSimage object from a FITS file on disk
       fitsobject = maputils.FITSimage('rense.fits')
-      fitsobject.set_imageaxes(promptfie=maputils.getimageaxes)
+      fitsobject.set_imageaxes(promptfie=maputils.prompt_imageaxes)
    
    """
 #-----------------------------------------------------------------------
@@ -498,18 +542,37 @@ translation.
                   print "Pixel position not in range 1 to %d! Try again." % maxn
             slicepos.append(x)
 
-   # Ask user to enter spectral translation if one of the axes is spectral.
+   return axnum1, axnum2, slicepos
+
+
+
+def prompt_spectrans(fitsobj):
+#-----------------------------------------------------------------------
+   """
+Ask user to enter spectral translation if one of the axes is spectral.
+
+:param fitsobj:
+   An object from class FITSimage. This prompt function must
+   have knowledge of this object such as the allowed spectral
+   translations.
+:type fitsobj:
+   Instance of class FITSimage
+
+:Returns: 
+   * *spectrans* - The selected spectral translation from a list with spectral
+     translations that are allowed for the input object of class FITSimage.
+     A spectral translation translates for example frequencies to velocities.
+
+   """
+#-----------------------------------------------------------------------
    asktrans = False
-   for ax in axperm:
+   for ax in fitsobj.axperm:
       if fitsobj.axisinfo[ax].wcstype == 'spectral':
          asktrans = True
 
    spectrans = None
    nt = len(fitsobj.allowedtrans)
    if (nt > 0 and asktrans):
-      print "Allowed spectral translations:"
-      for i, st in enumerate(fitsobj.allowedtrans):
-         print "%d : %s" % (i, st)
       unvalid = True
       while unvalid:
          try:
@@ -521,14 +584,128 @@ translation.
                if unvalid:
                   print "Not a valid number!"
                else:
-                  spectrans = fitsobj.allowedtrans[st]
+                  spectrans = fitsobj.allowedtrans[st][0]
             else:
                unvalid = False
+         except KeyboardInterrupt:
+            raise
          except:
             unvalid = True
 
+   return spectrans
 
-   return axnum1, axnum2, slicepos, spectrans
+
+
+def prompt_skyout(fitsobj):
+#-----------------------------------------------------------------------
+   """
+   Ask user to enter the output sky system if the data is a spatial map.
+
+   :param fitsobj:
+      An object from class FITSimage. This prompt function must
+      have knowledge of this object such as the allowed spectral
+      translations.
+   :type fitsobj:
+      Instance of class FITSimage
+
+   :Returns:
+      * *skyout* - The sky definition to which positions in the native system
+        will be transformed.
+   """
+#-----------------------------------------------------------------------
+   # The check below is also done in the calling environment (method set_skyout)
+   # but we need this test also here when this function is used in a different context.
+   spatials = [fitsobj.proj.lonaxnum, fitsobj.proj.lataxnum]
+   spatialmap = fitsobj.axperm[0] in spatials and fitsobj.axperm[1] in spatials
+   if not spatialmap:
+      return         # Silently
+
+   skyout = skysys = refsys = equinox = epoch = None
+   unvalid = True
+   maxskysys = 4
+   while unvalid:
+      try:
+         prompt = "Sky system 0=eq, 1=ecl, 2=gal, 3=sup.gal .... [native]: "
+         st = raw_input(prompt)
+         if st != '':
+            st = int(st)
+            unvalid = (st < 0 or st >= maxskysys)
+            if unvalid:
+               print "Not a valid number!"
+            else:
+               skysys = st
+         else:
+            unvalid = False
+      except KeyboardInterrupt:
+         raise
+      except:
+         unvalid = True
+
+   if skysys in [wcs.equatorial, wcs.ecliptic]:    # Equatorial or ecliptic, so ask reference system
+      unvalid = True
+      maxrefsys = 5
+      prompt = "Ref.sys 0=fk4, 1=fk4_no_e, 2=fk5, 3=icrs, 4=j2000 ... [native]: "
+      while unvalid:
+         try:
+            st = raw_input(prompt)
+            if st != '':
+               st = int(st)
+               unvalid = (st < 0 or st >= maxrefsys)
+               if unvalid:
+                  print "Not a valid number!"
+               else:
+                  refsys = st + maxskysys  # The ref. systems start at maxskysys
+            else:
+               unvalid = False
+         except KeyboardInterrupt:
+            raise
+         except:
+            unvalid = True
+
+      if refsys in [wcs.fk4, wcs.fk4_no_e, wcs.fk5]:
+         prompt = "Enter equinox (e.g. J2000 or B1983.5) .... [native]: "
+         unvalid = True
+         while unvalid:
+            try:
+               st = raw_input(prompt)
+               if st != '':
+                  B, J, JD = epochs(st)
+                  equinox = st
+               unvalid = False
+            except KeyboardInterrupt:
+               raise
+            except:
+               unvalid = True
+
+      if refsys in [wcs.fk4, wcs.fk4_no_e]:
+         prompt = "Enter date of observation (e.g. MJD24034) .... [native]: "
+         unvalid = True
+         while unvalid:
+            try:
+               st = raw_input(prompt)
+               if st != '':
+                  B, J, JD = epochs(st)
+                  epoch = st
+               unvalid = False
+            except KeyboardInterrupt:
+               raise
+            except:
+               unvalid = True
+
+   if skysys == None:
+      skyout = None
+   else:
+      skyout = []
+      skyout.append(skysys)
+      if equinox != None:
+         skyout.append(equinox)
+      if refsys != None:
+         skyout.append(refsys)
+      if epoch != None:
+         skyout.append(epoch)
+      skyout = tuple(skyout)
+
+   return skyout
 
 
 
@@ -669,6 +846,7 @@ individual contours and contour labels.
 .. automethod:: set_aspectratio
 .. automethod:: add_subplot
 .. automethod:: add_axes
+.. automethod:: add_special
 .. automethod:: imshow
 .. automethod:: colorbar
 .. automethod:: contour
@@ -688,7 +866,8 @@ individual contours and contour labels.
 
    """
 #--------------------------------------------------------------------
-   def __init__(self, fig, pxlim, pylim, imdata, projection, mixpix=None, slicepos=None, pixelaspectratio=None):
+   def __init__(self, fig, pxlim, pylim, imdata, projection, mixpix=None, 
+                slicepos=None, pixelaspectratio=None):
       self.frame = None
       self.fig = fig
       self.map = imdata
@@ -701,6 +880,7 @@ individual contours and contour labels.
       self.pixelaspectratio = pixelaspectratio
       self.box = (self.pxlim[0]-0.5, self.pxlim[1]+0.5, self.pylim[0]-0.5, self.pylim[1]+0.5)
       self.levels = None
+      self.container = None  # A plot container for graticules etc.
       self.figmanager = plt_get_current_fig_manager()
       self.polygons = []
       self.currentpolygon = 0
@@ -898,7 +1078,7 @@ individual contours and contour labels.
       # Note that imshow's y origin defaulted to upper in Matplotlib's rc file.
       # Change default to 'lower'
       if self.frame == None:
-         raise Exception("The frame attribute is not yet set. Use add_subplot() first!")
+         raise Exception("The frame attribute is not yet set. Use add_subplot() or add_axes() first!")
       aspect = self.frame.get_aspect()
       newkwargs = ({'aspect':aspect, 'origin':"lower", 'extent':self.box,
                      'vmin':self.datmin, 'vmax':self.datmax, 'interpolation':'nearest'})
@@ -947,7 +1127,7 @@ individual contours and contour labels.
    :Examples:
       Add a horizontal color bar. Increase the font size to 10::
 
-         image = fitsobject.createMPLimage(fig)
+         image = fitsobject.create_MPLimage(fig)
          image.add_subplot(1,1,1)
          image.imshow(interpolation='gaussian')
          image.colorbar(fontsize=10, orientation='horizontal')
@@ -1236,7 +1416,7 @@ individual contours and contour labels.
       >>> fig = figure()
       >>> fitsobject = maputils.FITSimage('rense.fits')
       >>> fitsobject.set_imageaxes(1,3, slicepos=51)
-      >>> image = fitsobject.createMPLimage(fig)
+      >>> image = fitsobject.create_MPLimage(fig)
       >>> image.toworld(51,-20)
           (-51.282084795899998, -243000.0, 60.1538880206)
       >>> image.topixel(-51.282084795899998, -243000.0)
@@ -1392,7 +1572,7 @@ individual contours and contour labels.
       AxesCallback instance
 
    :Example:
-      Given an object from class "class:`MPLimage`, 
+      Given an object from class :class:`MPLimage`,
       register this callback function for the position information with:
 
       >>> image.motion_events()
@@ -1685,6 +1865,37 @@ individual contours and contour labels.
 
 
 
+   def add_special(self, obj):
+   #--------------------------------------------------------------------
+      """
+   Add objects derived from class :class:`wcsgrat.Graticule`
+   (i.e rulers, pixel labels, graticules) to a plot container.
+   This method is for Matplotlib only. It sets the plot environment
+   with the constructor of :class:`wcsgrat.Plotversion`.
+   This method assumes that the current instance has a valid
+   Matplotlib Figure instance and an -Axes instance.
+
+   :param obj:
+      A plot object
+   :type obj:
+      Instance of class  :class:`wcsgrat.Graticule`,
+      :class:`wcsgrat.Ruler` or :class:`wcsgrat.Gridframe`
+
+   :Example:
+      graticule = fitsobject.create_graticule()
+      ruler = graticule.ruler(208,201,310,351, 0.5)
+      pixellabels = graticule.pixellabels()
+      image.add_special([graticule, ruler, pixellabels])
+      """
+   #--------------------------------------------------------------------
+      if self.container == None:
+         if self.frame == None:
+            raise Exception("The frame attribute is not yet set. Use add_subplot() or add_axes() first!")
+         self.container = wcsgrat.Plotversion('matplotlib', self.fig, self.frame)
+      self.container.add(obj)
+      
+
+
 class FITSaxis(object):
 #-----------------------------------------------------------------
    """
@@ -1718,14 +1929,14 @@ header.
       ax = "CTYPE%d" % (axisnr,)
       self.ctype = 'Unknown'
       self.axname = 'Unknown'
-      self.axnamelong = 'Unknown'
       if hdr.has_key(ax):
          self.ctype = hdr[ax].upper()
-         self.axnamelong = string_upper(hdr[ax])
          self.axname = string_upper(hdr[ax].split('-')[0])
       ai = "NAXIS%d" % (axisnr,)
       self.axlen = hdr[ai]
       self.axisnr = axisnr
+      self.axstart = 1
+      self.axend = self.axlen
       self.cdelt = 0.0
       ai = "CDELT%d" % (axisnr,)
       if hdr.has_key(ai):
@@ -1738,6 +1949,11 @@ header.
          self.cunit = hdr[ai]
       ai = "CRPIX%d" % (axisnr,)
       self.crpix = hdr[ai]
+      ai = "CROTA%d" % (axisnr,)    # Not for all axes
+      self.crota = 0
+      if hdr.has_key(ai):
+         self.crota = hdr[ai]
+      
       self.wcstype = None
       self.wcsunits = None
       self.outsidepix = None
@@ -1759,7 +1975,6 @@ header.
    axisnr     - Axis number:  1
    axlen      - Length of axis in pixels (NAXIS):  100
    ctype      - Type of axis (CTYPE):  RA---NCP
-   axnamelong - Long axis name:  RA---NCP
    axname     - Short axis name:  RA
    cdelt      - Pixel size:  -0.007165998823
    crpix      - Reference pixel:  51.0
@@ -1782,20 +1997,23 @@ header.
 
       """
    #----------------------------------------------------------
-      print "axisnr     - Axis number: ", self.axisnr
-      print "axlen      - Length of axis in pixels (NAXIS): ", self.axlen
-      print "ctype      - Type of axis (CTYPE): ", self.ctype
-      print "axnamelong - Long axis name: ", self.axnamelong
-      print "axname     - Short axis name: ", self.axname
-      print "cdelt      - Pixel size: ", self.cdelt
-      print "crpix      - Reference pixel: ", self.crpix
-      print "crval      - World coordinate at reference pixel: ", self.crval
-      print "cunit      - Unit of world coordinate: ", self.cunit
-      print "wcstype    - Axis type according to WCSLIB: ", self.wcstype
-      print "wcsunits   - Axis units according to WCSLIB: ", self.wcsunits
-      print "outsidepix - A position on an axis that does not belong to an image: ", self.outsidepix
+      s = "axisnr     - Axis number: %s\n" % self.axisnr \
+        + "axlen      - Length of axis in pixels (NAXIS): %s\n" % self.axlen \
+        + "axstart    - First pixel coordinate: %s\n" % self.axstart \
+        + "axend      - Last pixel coordinate: %s\n" % self.axend \
+        + "ctype      - Type of axis (CTYPE): %s\n" % self.ctype \
+        + "axname     - Short axis name: %s\n" % self.axname \
+        + "cdelt      - Pixel size: %s\n" % self.cdelt \
+        + "crpix      - Reference pixel: %s\n" % self.crpix \
+        + "crval      - World coordinate at reference pixel: %s\n" % self.crval \
+        + "cunit      - Unit of world coordinate: %s\n" % self.cunit \
+        + "crota      - Rotation of axis: %s\n" % self.crota \
+        + "wcstype    - Axis type according to WCSLIB: %s\n" % self.wcstype \
+        + "wcsunits   - Axis units according to WCSLIB: %s\n" % self.wcsunits \
+        + "outsidepix - A position on an axis that does not belong to an image: %s\n" % self.outsidepix
 
-
+      return s
+   
 
    def printinfo(self):
    #----------------------------------------------------------
@@ -1804,23 +2022,38 @@ header.
    
    :Examples:
    
-   >>> from kapteyn import maputils
-   >>> fitsobject = maputils.FITSimage('rense.fits')
-   >>> ax1 = maputils.FITSaxis(1, fitsobject.hdr)
-   >>> ax1.printinfo()
-   (1) Axis RA has length 100 and units DEGREE.
-   At pixel 51.000000 the world coordinate is -51.282085 (DEGREE).
-   Step size is -0.007166 (DEGREE)
-   WCS type of this axis: None, WCS (si) units: None
+      >>> from kapteyn import maputils
+      >>> fitsobject = maputils.FITSimage('rense.fits')
+      >>> ax1 = maputils.FITSaxis(1, fitsobject.hdr)
+      >>> ax1.printinfo()
+      Axis 1: RA---NCP  from pixel 1 to   512
+      {crpix=257 crval=178.779 cdelt=-0.0012 (DEGREE)}
+      {wcs type=longitude, wcs unit=deg}
+      Axis 2: DEC--NCP  from pixel 1 to   512
+      {crpix=257 crval=53.655 cdelt=0.00149716 (DEGREE)}
+      {wcs type=latitude, wcs unit=deg}
+      
 
+   :Notes:
+      if attributes for a :class:`maputils.FITSimage` object are changed
+      then the relevant axis properties are updated.
+      So this method can return different results depending
+      on when it is used.
       """
    #----------------------------------------------------------
-      print "(%d) Axis %s has length %d and units %s.\nAt pixel %f the world coordinate is %f (%s).\nStep size is %f (%s)" %(self.axisnr,
-                  self.axname, self.axlen, self.cunit, self.crpix, self.crval, self.cunit, self.cdelt, self.cunit)
-      print "WCS type of this axis: %s, WCS (si) units: %s " % (self.wcstype, self.wcsunits)
-      if self.outsidepix != None:
-         print "Pixel position on axis outside image: ", self.outsidepix
-
+      a = self
+      s = "Axis %d: %-9s from pixel %5d to %5d\n  {crpix=%d crval=%G cdelt=%g (%s)}\n  {wcs type=%s, wcs unit=%s}" % (
+                  a.axisnr,
+                  a.ctype,
+                  a.axstart,
+                  a.axend,
+                  a.crpix,
+                  a.crval,
+                  a.cdelt,
+                  a.cunit,
+                  a.wcstype,
+                  a.wcsunits)
+      return s
 
 
 class FITSimage(object):
@@ -1847,7 +2080,7 @@ to know the properties of the FITS data beforehand.
    user for some data, opens the FITS file and returns the hdu
    list and a user selected index for the header from this hdu
    list. An example of a function supplied by
-   :mod:`maputils` is function :func:`getfitsfile`
+   :mod:`maputils` is function :func:`prompt_fitsfile`
 :type promptfie:
    Python function
 :param hdunr:
@@ -1856,9 +2089,16 @@ to know the properties of the FITS data beforehand.
    user supplied function *promptfie*.
 :type hdunr:
    Integer
+:param alter:
+   Selects an alternate header. Default is the standard header.
+   Keywords in alternate headers end on a character A..Z
+:type alter:
+   Empty or a single character. Input is case insensitive.
 :param memmap:
    Set the memory mapping for PyFITS. The default is in the PYFITS
    version we used was memory mapping set to off (i.e. memmap=0)
+:type memmap:
+   Boolean
 
 :Returns:
    --
@@ -1952,14 +2192,18 @@ to know the properties of the FITS data beforehand.
    
       >>> f = 'http://www.atnf.csiro.au/people/mcalabre/data/WCS/1904-66_ZPN.fits.gz'
       >>> fitsobject = maputils.FITSimage(f)
-      >>> fitsobject.printaxisinfo()
-      Axis 1: RA---ZPN  from pixel 1 to   192  {crpix=-183 crval=0 cdelt=-0.0666667 (Unknown)}
-      Axis 2: DEC--ZPN  from pixel 1 to   192  {crpix=22 crval=-90 cdelt=0.0666667 (Unknown)}
+      >>> print fitsobject.str_axisinfo()
+      Axis 1: RA---ZPN  from pixel 1 to   192
+        {crpix=-183 crval=0 cdelt=-0.0666667 (Unknown)}
+        {wcs type=longitude, wcs unit=deg}
+      Axis 2: DEC--ZPN  from pixel 1 to   192
+        {crpix=22 crval=-90 cdelt=0.0666667 (Unknown)}
+        {wcs type=latitude, wcs unit=deg}
 
-   Use Maputil's prompt function :func:`getfitsfile` to get
+   Use Maputil's prompt function :func:`prompt_fitsfile` to get
    user interaction for the FITS file specification.
    
-      >>> fitsobject = maputils.FITSimage(promptfie=maputils.getfitsfile)
+      >>> fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
 
 :Methods:
 
@@ -1967,23 +2211,29 @@ to know the properties of the FITS data beforehand.
 .. automethod:: set_imageaxes
 .. index:: Set pixel limits of image axes
 .. automethod:: set_limits
-.. Prepare FITS image for display
-.. automethod:: createMPLimage
+.. index:: Set spectral translation
+.. automethod:: set_spectrans
+.. index:: Set output sky
+.. automethod:: set_skyout
+.. index Prepare FITS image for display
+.. automethod:: create_MPLimage
 .. index:: Aspect ratio from FITS header data
 .. automethod:: get_pixelaspectratio
 .. index:: Print information from FITS header
-.. automethod:: printheader
-.. automethod:: printaxisinfo
+.. automethod:: str_header
+.. automethod:: str_axisinfo
+.. automethod:: str_wcsinfo
+.. automethod:: str_spectrans
 .. automethod:: globalminmax
 
    """
 #--------------------------------------------------------------------
-   def __init__(self, filespec=None, promptfie=None, hdunr=None, memmap=0):
+   def __init__(self, filespec=None, promptfie=None, hdunr=None, alter='', memmap=0):
       """-------------------------------------------------------------
       See Class description
       -------------------------------------------------------------"""
       if promptfie:
-         hdulist, hdunr, filename = promptfie(filespec, hdunr, memmap)
+         hdulist, hdunr, filename, alter = promptfie(filespec, hdunr, alter, memmap)
       else:
          if memmap == None:
             memmap = 0
@@ -1991,7 +2241,8 @@ to know the properties of the FITS data beforehand.
             hdulist = pyfits.open(filespec, memmap=memmap)
             filename = filespec
          except IOError, (errno, strerror):
-            print "I/O error(%s): %s" % (errno, strerror)
+            print "Cannot open FITS file: I/O error(%s): %s" % (errno, strerror)
+            raise
          except:
             print "Cannot open file, unknown error!"
             raise
@@ -2001,6 +2252,7 @@ to know the properties of the FITS data beforehand.
       self.filename = filename
       self.hdr = hdu.header
       self.naxis = self.hdr['NAXIS']
+      self.alter = alter.upper()
       if self.naxis < 2:
          print "You need at least two axes in your FITS file to extract a 2D image."
          print "Number of axes in your FITS file is %d" % (self.naxis,)
@@ -2042,14 +2294,31 @@ to know the properties of the FITS data beforehand.
       n2 = self.axisinfo[self.axperm[1]].axlen
       self.pxlim = [1, n1]
       self.pylim = [1, n2]
-      # Get sliced image etc.
+
+      self.proj = wcs.Projection(self.hdr, alter=self.alter)
+      for i in range(n):
+         ax = i + 1
+         self.axisinfo[ax].wcstype = self.proj.types[i]
+         self.axisinfo[ax].wcsunits = self.proj.units[i]
+         #self.axisinfo[ax].cdelt = self.proj.cdelt[i]
+         #if self.alter != '':
+         self.axisinfo[ax].cdelt = self.proj.cdelt[i]
+         self.axisinfo[ax].crval = self.proj.crval[i]
+         self.axisinfo[ax].ctype = self.proj.ctype[i]
+         self.axisinfo[ax].cunit = self.proj.cunit[i]
+         self.axisinfo[ax].crpix = self.proj.crpix[i]
+
+      self.spectrans = None   # Set the spectral translation
+      self.skyout = None      # Must be set before call to set_imageaxes
       self.set_imageaxes(self.axperm[0], self.axperm[1], self.slicepos)
       self.aspectratio = None
-      self.figsize = None
+      self.figsize = None     # TODO is dit nog belangrijk??
+      self.MPLimage = []      # A list with images for Matplotlib
 
 
 
    def globalminmax(self):
+   #------------------------------------------------------------
       """
       Get minimum and maximum value of data in entire data structure
       defined by the current FITS header. These values can be important if
@@ -2060,27 +2329,34 @@ to know the properties of the FITS data beforehand.
          min, max, two floating point numbers representing the minimum
          and maximum data value in data units of the header (*BUNIT*).
       """
-      return self.dat.min(), self.dat.max()
+   #------------------------------------------------------------
+      filtr = self.map[numpy.isfinite(self.dat)]
+      mi = filtr.min()
+      ma = filtr.max()
+      #av = filtr.mean(); print "AV=", av
+      #rms = filtr.std(); print "std=", rms
+      return mi, ma
 
 
 
-   def printheader(self):
-      #------------------------------------------------------------
+   def str_header(self):
+   #------------------------------------------------------------
       """
       Print the meta information from the selected header.
       Omit items of type *HISTORY*.
 
       :Returns:
-         --
+         A string with the header keywords
 
       :Examples:
          If you think a user needs more information from the header than
-         can be provided with method :meth:`printaxisinfo` it can be useful to
+         can be provided with method :meth:`str_axisinfo` it can be useful to
          display the contents of the selected FITS header.
+         This is the entire header and not a selected alternate header.
 
          >>> from kapteyn import maputils
          >>> fitsobject = maputils.FITSimage('rense.fits')
-         >>> fitsobject.printheader()
+         >>> print fitsobject.str_header()
          SIMPLE  =                    T / SIMPLE FITS FORMAT
          BITPIX  =                  -32 / NUMBER OF BITS PER PIXEL
          NAXIS   =                    3 / NUMBER OF AXES
@@ -2096,21 +2372,36 @@ to know the properties of the FITS data beforehand.
          etc. etc.
 
       """
-      #------------------------------------------------------------
+   #------------------------------------------------------------
+      st = ''
       for s in self.hdr.ascardlist():
          if not str(s).startswith('HISTORY'):
-            print s
+            st += "%s\n" % s
+      return st
 
 
 
-   def printaxisinfo(self):
-      #------------------------------------------------------------
+   def str_axisinfo(self, axnum=None, long=False):
+   #------------------------------------------------------------
       """
-      For each axis in the FITS header, print the data related
+      For each axis in the FITS header, return a string with the data related
       to the World Coordinate System (WCS).
 
+      :param axnum:
+         A list with axis numbers for which one wants to print information.
+         These axis numbers are FITS numbers i.e. in range [1,NAXIS].
+         To display information about the two image axes one shoulf use
+         attribute :attr:`maputils.FITSimage.axperm` as in the second example
+         below.
+      :type axnum:
+         None, Integer or list with Integers
+      :param long:
+         If *True* then more verbose information is printed.
+      :type long:
+         Boolean
+
       :Returns:
-         --
+         A string with WCS information for each axis in *axnum*.
 
       :Examples:
          Print useful header information after the input of the FITS file
@@ -2118,29 +2409,131 @@ to know the properties of the FITS data beforehand.
 
          >>> from kapteyn import maputils
          >>> fitsobject = maputils.FITSimage('rense.fits')
-         >>> fitsobject.printaxisinfo()
-         Axis 1: RA---NCP  from pixel 1 to   100  {crpix=51 crval=-51.2821 cdelt=-0.007166 (DEGREE)}
-         Axis 2: DEC--NCP  from pixel 1 to   100  {crpix=51 crval=60.1539 cdelt=0.007166 (DEGREE)}
-         Axis 3: VELO-HEL  from pixel 1 to   101  {crpix=-20 crval=-243 cdelt=4200 (km/s)}
+         >>> print fitsobject.str_axisinfo()
+         Axis 1: RA---NCP  from pixel 1 to   100
+           {crpix=51 crval=-51.2821 cdelt=-0.007166 (DEGREE)}
+           {wcs type=longitude, wcs unit=deg}
+         Axis 2: DEC--NCP  from pixel 1 to   100
+           {crpix=51 crval=60.1539 cdelt=0.007166 (DEGREE)}
+           {wcs type=latitude, wcs unit=deg}
+         Axis 3: VELO-HEL  from pixel 1 to   101
+           {crpix=-20 crval=-243 cdelt=4200 (km/s)}
+           {wcs type=spectral, wcs unit=m/s}
+
+         Print extended information for the two image axes only:
+      
+         >>> print str_axisinfo(axnum=fitsobject.axperm, long=True)
+
+        
+      :Notes:
+         For axis numbers outside the range of existing axes
+         in the FITS file, nothing will be printed. No exception
+         will be raised.
+      """
+   #------------------------------------------------------------
+      if axnum == None:
+         axnum = range(1, self.naxis+1)
+      if type(axnum) not in sequencelist:
+         axnum = [axnum]
+      s = ''
+      l = len(axnum)
+      for i, ax in enumerate(axnum):  # Note that the dictionary is unsorted. We want axes 1,2,3,...
+         if ax >= 1 and ax <= self.naxis:
+            a = self.axisinfo[ax]
+            if long:
+               s += a.printattr()
+            else:
+               s += a.printinfo()
+            if i < l-1:
+               s += '\n'
+      return s
+            
+
+
+   def str_wcsinfo(self):
+   #------------------------------------------------------------
+      """
+      Print the data related to the World Coordinate System (WCS)
+      such as the current sky system and which axes are
+      longitude, latitude or spectral.
+
+      :Returns:
+         String with WCS information for the current Projection
+         object.
+
+      :Examples: Print information related to the world coordinate system:
+
+         >>> print fitsobject.str_wcsinfo()
+         Current sky system:                 Equatorial
+         reference system:                   ICRS
+         Output sky system:                  Equatorial
+         Output reference system:            ICRS
+         projection's epoch:                 J2000.0
+         Date of observation from DATE-OBS:  2002-04-04T09:42:42.1
+         Date of observation from MJD-OBS:   None
+         Axis number longitude axis:         1
+         Axis number latitude axis:          2
+         Axis number spectral axis:          None
+         Allowed spectral translations:      None
 
       """
-      #------------------------------------------------------------      
-      for i in range(self.naxis):  # Note that the dictionary is unsorted. We want axes 1,2,3,...
-         ax = i + 1
-         a = self.axisinfo[ax]
-         print "Axis %d: %-9s from pixel 1 to %5d  {crpix=%d crval=%G cdelt=%g (%s)}" % (
-               a.axisnr, 
-               a.axnamelong,
-               a.axlen,
-               a.crpix,
-               a.crval,
-               a.cdelt,
-               a.cunit)
+   #------------------------------------------------------------
+      s = ''
+      sys, ref, equinox, epoch = skyparser(self.convproj.skysys)
+      if sys != None:     s +=  "Native sky system:                 %s\n" % skyrefsystems.id2fullname(sys)
+      if ref != None:     s +=  "Native reference system:           %s\n" % skyrefsystems.id2fullname(ref)
+      if equinox != None: s +=  "Native Equinox:                    %s\n" % equinox
+      if epoch   != None: s +=  "Native date of observation:        %s\n" % epoch
+
+      sys, ref, equinox, epoch = skyparser(self.convproj.skyout)
+      if sys != None:     s +=  "Output sky system:                 %s\n" % skyrefsystems.id2fullname(sys)
+      if ref != None:     s +=  "Output reference system:           %s\n" % skyrefsystems.id2fullname(ref)
+      if equinox != None: s +=  "Output Equinox:                    %s\n" % equinox
+      if epoch   != None: s +=  "Output date of observation:        %s\n" % epoch
+
+      s +=  "Projection's epoch:                %s\n" % self.convproj.epoch
+      s +=  "Date of observation from DATE-OBS: %s\n" % self.convproj.dateobs
+      s +=  "Date of observation from MJD-OBS:  %s\n" % self.convproj.mjdobs
+      s +=  "Axis number longitude axis:        %s\n" % self.convproj.lonaxnum
+      s +=  "Axis number latitude axis:         %s\n" % self.convproj.lataxnum
+      s +=  "Axis number spectral axis:         %s\n" % self.convproj.specaxnum
+      s +=  "Selected spectral translation:     %s\n" % self.spectrans
+
+      return s
 
 
+   def str_spectrans(self):
+   #------------------------------------------------------------
+      """
+      Print the spectral translations for this data.
 
-   def set_imageaxes(self, axnr1=None, axnr2=None, slicepos=None, spectrans=None, promptfie=None):
-      #--------------------------------------------------------------
+      :Returns:
+         String with information about the allowed spectral
+         translations for the current Projection object.
+
+      :Examples: Print allowed spectral translations:
+
+         >>> print fitsobject.str_spectrans()
+      
+      """
+   #------------------------------------------------------------
+      s = ''
+      isspectral = False
+      for ax in self.axperm:
+         if self.axisinfo[ax].wcstype == 'spectral':
+            isspectral = True
+      if not isspectral:
+         return         # Silently
+      i = 0
+      for st, un in self.convproj.altspec:
+         s += "%d   %s (%s)\n" % (i, st, un)
+         i += 1 
+
+      return s
+
+
+   def set_imageaxes(self, axnr1=None, axnr2=None, slicepos=None, promptfie=None):
+   #--------------------------------------------------------------
       """
       A FITS file can contain a data set of dimension n.
       If n < 2 we cannot display the data without more information.
@@ -2175,7 +2568,7 @@ to know the properties of the FITS data beforehand.
          A function, supplied by the user, that can
          prompt a user to enter the values for axnr1, axnr2
          and slicepos. An example of a function supplied by
-         :mod:`maputils` is function :func:`getimageaxes`
+         :mod:`maputils` is function :func:`prompt_imageaxes`
 
       :Raises:
          :exc:`Exception`
@@ -2232,7 +2625,7 @@ to know the properties of the FITS data beforehand.
 
                 Images with only one spatial axis, need another spatial axis
                 to produces useful world coordinates. This attribute is
-                extracted from the relevant axis in attribute ;attr:`slicepos`.
+                extracted from the relevant axis in attribute :attr:`slicepos`.
 
           .. attribute:: convproj
 
@@ -2256,12 +2649,11 @@ to know the properties of the FITS data beforehand.
          a prompt function:
 
          >>> fitsobject = maputils.FITSimage('rense.fits')
-         >>> fitsobject.set_imageaxes(promptfie=maputils.getimageaxes)
+         >>> fitsobject.set_imageaxes(promptfie=maputils.prompt_imageaxes)
 
       """
       #-----------------------------------------------------------------
       n = self.naxis
-      self.spectrans = spectrans      # Set the spectral translation
       if n >= 2:
          if (axnr1 == None or axnr2 == None) and promptfie == None:
             if (axnr1 == None and axnr2 == None):
@@ -2272,36 +2664,12 @@ to know the properties of the FITS data beforehand.
          if slicepos == None and promptfie == None:
             slicepos = self.slicepos
 
-      # If a spectral axis is found, make a list with allowed spectral transformations
-      proj = wcs.Projection(self.hdr)
-      allowedtrans = []
-      for i in range(n):
-         ax = i + 1
-         self.axisinfo[ax].wcstype = proj.types[i]
-         self.axisinfo[ax].wcsunits = proj.units[i]
-         self.axisinfo[ax].cdelt = proj.cdelt[i]
-         if proj.types[i] == 'spectral':
-            stypes = ['FREQ', 'ENER', 'WAVN', 'VOPT', 'VRAD', 'VELO', 'WAVE', 'ZOPT', 'AWAVE', 'BETA']
-            convs = ['F', 'W', 'V', 'A']
-            for t in stypes:
-               try:
-                  proj.spectra(t)
-                  allowedtrans.append(t)
-               except:
-                  pass
-               for c1 in convs:
-                  for c2 in convs:
-                     if c1 != c2:
-                        spectrans = '%s-%s2%s' % (t, c1, c2)
-                        try:
-                           proj.spectra(spectrans)
-                           allowedtrans.append(spectrans)
-                        except:
-                           pass
-      self.allowedtrans = allowedtrans
+      # If there is a spectral axis in the FITS file, then get allowed
+      # spectral translations
+      self.allowedtrans = self.proj.altspec
 
       if promptfie != None:
-         axnr1, axnr2, self.slicepos, self.spectrans = promptfie(self, axnr1, axnr2)
+         axnr1, axnr2, self.slicepos = promptfie(self, axnr1, axnr2)
       else:
          if slicepos != None and n > 2:
             if type(slicepos) in sequencelist:
@@ -2383,17 +2751,17 @@ to know the properties of the FITS data beforehand.
       matchingaxnum = None
       if n > 2:
          ax1 = wcsaxperm[0]; ax2 = wcsaxperm[1]
-         if ax1 == proj.lonaxnum and ax2 != proj.lataxnum:
-            matchingaxnum = proj.lataxnum
+         if ax1 == self.proj.lonaxnum and ax2 != self.proj.lataxnum:
+            matchingaxnum = self.proj.lataxnum
             mix = True
-         elif ax1 == proj.lataxnum and ax2 != proj.lonaxnum:
-            matchingaxnum = proj.lonaxnum
+         elif ax1 == self.proj.lataxnum and ax2 != self.proj.lonaxnum:
+            matchingaxnum = self.proj.lonaxnum
             mix = True
-         if ax2 == proj.lonaxnum and ax1 != proj.lataxnum:
-            matchingaxnum = proj.lataxnum
+         if ax2 == self.proj.lonaxnum and ax1 != self.proj.lataxnum:
+            matchingaxnum = self.proj.lataxnum
             mix = True
-         elif ax2 == proj.lataxnum and ax1 != proj.lonaxnum:
-            matchingaxnum = proj.lonaxnum
+         elif ax2 == self.proj.lataxnum and ax1 != self.proj.lonaxnum:
+            matchingaxnum = self.proj.lonaxnum
             mix = True
       if mix:
          if matchingaxnum != None:
@@ -2404,43 +2772,117 @@ to know the properties of the FITS data beforehand.
       else:
           ap = (axperm[0], axperm[1])
 
-      p1 = proj.sub(ap)    # To do straight conversions (x,y,mixpix) -> (xw,yw,dummy)
+      self.convproj = self.proj.sub(ap)  # Projection object for selected image only
       if self.spectrans != None:
-         self.convproj = p1.spectra(self.spectrans)
-      else:
-         self.convproj = p1
-
+         self.convproj = self.convproj.spectra(self.spectrans)
+      if self.skyout != None:
+         self.convproj.skyout = self.skyout
       self.axperm = wcsaxperm        # We need only the numbers of the first two axes
       self.aspectratio = None        # Reset the aspect ratio because we could have another image now
 
 
 
-   def createMPLimage(self, fig):
-      #---------------------------------------------------------------------
+   def set_spectrans(self, spectrans=None, promptfie=None):
+   #--------------------------------------------------------------
       """
-      This method couples the data slice that represents an image to
-      a Matplotlib Axes object (parameter *frame*). It returns an object
-      from class :class:`MPLimage` which has only attributes relevant for
-      Matplotlib.
+      Set spectral translation or ask user to enter a spectral
+      translation if one of the axes in the current FITSimage
+      is spectral.
 
-      :param frame:
-         Plot the current image in this Matplotlib Axes object.
-      :type frame:
-         A Matplotlib Axes instance
+      :param spectrans:
+         A spectral translation e.g. to convert frequencies
+         to optical velocities.
+      :type spectrans:
+         String
+      :param promptfie:
+         A function, supplied by the user, that can
+         prompt a user to enter a sky definition.
+      :type promptfie:
+         A Python function without parameters. It returns
+         a string with the spectral translation.
+         An example of a function supplied by
+         :mod:`maputils` is function :func:`prompt_spectrans`
+      
+      :Examples:
+         Set a spectral translation using 1) a prompt function,
+         2) a spectral translation for which we don't know the code
+         for the conversion algorithm and 3) set the translation explicitly:
 
-      :Returns:
-         An object from class :class:`MPLimage`
+         >>> fitsobject.set_spectrans(promptfie=maputils.prompt_spectrans)
+         >>> fitsobject.set_spectrans(spectrans="VOPT-???")
+         >>> fitsobject.set_spectrans(spectrans="VOPT-V2W")
+
       """
-      #---------------------------------------------------------------------
-      ar = self.get_pixelaspectratio()
-      mplimage = MPLimage(fig, self.pxlim, self.pylim, self.map, self.convproj,
-                          mixpix=self.mixpix, slicepos=self.slicepos, pixelaspectratio=ar)
-      return mplimage
+   #--------------------------------------------------------------
+      isspectral = False
+      for ax in self.axperm:
+         if self.axisinfo[ax].wcstype == 'spectral':
+            isspectral = True
+      if not isspectral:
+         return         # Silently
+   
+      if promptfie == None:
+         if spectrans == None:
+            raise Exception, "No spectral translation given!"
+         else:
+            self.spectrans = spectrans
+      else:
+         self.spectrans = promptfie(self)
+      if self.spectrans != None:
+         self.convproj = self.convproj.spectra(self.spectrans)
+         
 
+         
+   def set_skyout(self, skyout=None, promptfie=None):
+   #--------------------------------------------------------------
+      """
+      Set the output sky definition. Mouse positions and
+      coordinate labels will correspond to the selected
+      definition. The method will only work if both axes are
+      spatial axes.
+
+      :param skyout:
+         The output sky definition for sky system, reference system,
+         equinox and date of observation.
+         For the syntax of a sky definition see the description
+         at :meth:`celestial.skymatrix`
+      :type skyout:
+         A single value or tuple.
+      :param promptfie:
+         A function, supplied by the user, that can
+         prompt a user to enter a sky definition.
+      :type promptfie:
+         A Python function without parameters. It returns
+         the sky definition.
+         An example of a function supplied by
+         :mod:`maputils` is function :func:`prompt_skyout`
+         
+      :Notes:
+          The method sets an output system only for data with
+          two spatial axes. For XV maps the output sky system is
+          always the same as the native system.
+
+      """
+   #--------------------------------------------------------------
+      spatials = [self.proj.lonaxnum, self.proj.lataxnum]
+      spatialmap = self.axperm[0] in spatials and self.axperm[1] in spatials
+      if not spatialmap:
+         return         # Silently
+      
+      if promptfie == None:
+         if skyout == None:
+            raise Exception, "No definition for the output sky is given!"
+         else:
+            self.skyout = skyout
+      else:
+         self.skyout = promptfie(self)
+      if self.skyout != None:
+         self.convproj.skyout = self.skyout
+   
 
 
    def set_limits(self, pxlim=None, pylim=None, promptfie=None):
-      #---------------------------------------------------------------------
+   #---------------------------------------------------------------------
       """
       This method sets the image box. That is, it sets the limits
       of the image axes in pixels. This can be a useful feature if
@@ -2464,7 +2906,7 @@ to know the properties of the FITS data beforehand.
          If a function is given then there is no need to enter *pxlim* and *pylim*.
          The prompt function must return (new) values for *pxlim* and *pylim*.
          An example of a function supplied by
-         :mod:`maputils` is function :func:`getbox`
+         :mod:`maputils` is function :func:`prompt_box`
       :type promptfie:
          Python function
 
@@ -2474,19 +2916,19 @@ to know the properties of the FITS data beforehand.
       :Notes:
          --
 
-      :Examples: Ask user to enter limits with prompt function :func:`getbox`
+      :Examples: Ask user to enter limits with prompt function :func:`prompt_box`
          
          >>> fitsobject = maputils.FITSimage('rense.fits')
          >>> fitsobject.set_imageaxes(1,2, slicepos=30) # Define image in cube
-         >>> fitsobject.set_limits(promptfie=maputils.getbox)
+         >>> fitsobject.set_limits(promptfie=maputils.prompt_box)
       """
-      #---------------------------------------------------------------------
+   #---------------------------------------------------------------------
       n1 = self.axisinfo[self.axperm[0]].axlen
       n2 = self.axisinfo[self.axperm[1]].axlen
-      if pxlim == None:
-         pxlim = [1, n1]
-      if pylim == None:
-         pylim = [1, n2]
+      #if pxlim == None:
+      pxlim = [1, n1]
+      #if pylim == None:
+      pylim = [1, n2]
       if promptfie != None:
          axname1 = self.axisinfo[self.axperm[0]].axname
          axname2 = self.axisinfo[self.axperm[1]].axname
@@ -2502,6 +2944,10 @@ to know the properties of the FITS data beforehand.
       self.imshape = self.map.shape
       self.pxlim = pxlim
       self.pylim = pylim
+      self.axisinfo[self.axperm[0]].axstart = pxlim[0]
+      self.axisinfo[self.axperm[0]].axend = pxlim[1]
+      self.axisinfo[self.axperm[1]].axstart = pylim[0]
+      self.axisinfo[self.axperm[1]].axend = pylim[1]
 
 
 
@@ -2613,6 +3059,34 @@ to know the properties of the FITS data beforehand.
       self.aspectratio = aspectratio
       return aspectratio
 
+
+   def create_MPLimage(self, fig):
+   #---------------------------------------------------------------------
+      """
+      This method couples the data slice that represents an image to
+      a Matplotlib Axes object (parameter *frame*). It returns an object
+      from class :class:`MPLimage` which has only attributes relevant for
+      Matplotlib.
+
+      :param frame:
+         Plot the current image in this Matplotlib Axes object.
+      :type frame:
+         A Matplotlib Axes instance
+
+      :Returns:
+         An object from class :class:`MPLimage`
+      """
+   #---------------------------------------------------------------------
+      ar = self.get_pixelaspectratio()
+      mplimage = MPLimage(fig, self.pxlim, self.pylim, self.map, self.convproj,
+                          mixpix=self.mixpix, slicepos=self.slicepos,
+                          pixelaspectratio=ar)
+      return mplimage
+
+
+   def create_graticule(self, **kwargs):
+      self.grat = wcsgrat.Graticule(fitsimage=self, **kwargs)
+      return self.grat
 
 
 class ImageContainer(object):
