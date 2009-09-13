@@ -13,6 +13,5 @@ frame = fig.add_axes(grat.axesrect, aspect=grat.aspectratio, adjustable='box')
 
 gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
 gratplot.add(grat)
-gratplot.plot()
 
 plt.show()

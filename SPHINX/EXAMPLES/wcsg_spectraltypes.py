@@ -15,7 +15,7 @@ k = len(altspec) + 1
 # Matplotlib 
 fig = plt.figure(figsize=(7,10))
 fig.subplots_adjust(left=0.12, bottom=0.05, right=0.97, 
-                    top=0.97, wspace=0.20, hspace=0.73)
+                    top=0.97, wspace=0.20, hspace=0.90)
 frame = fig.add_subplot(k,1,1)
 
 # Limit range in x to neighbourhood of CRPIX
@@ -30,19 +30,17 @@ grat.setp_plotaxis(wcsgrat.bottom, color='r')
 grat.setp_tick(wcsaxis=(0,1), fontsize='8')
 gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
 gratplot.add(grat)
-gratplot.plot()
 
 print "Spectral translations"
-for i, alts in enumerate(altspec):
-   print i, alts
+for i, as in enumerate(altspec):
+   print i, as
    frame = fig.add_subplot(k,1,i+2)
-   grat = wcsgrat.Graticule(header, axnum=(3,2), spectrans=alts[0], pxlim=xlim)
+   grat = wcsgrat.Graticule(header, axnum=(3,2), spectrans=as[0], pxlim=xlim)
    grat.setp_tick(plotaxis=wcsgrat.bottom, fmt="%g")
-   grat.setp_plotaxis(wcsgrat.bottom, label=alts[0]+'  ('+alts[1]+')', color='b', fontsize=9)
+   grat.setp_plotaxis(wcsgrat.bottom, label=as[0]+' '+as[1], color='b', fontsize=9)
    grat.setp_plotaxis(wcsgrat.left, fontsize=9)
    grat.setp_tick(wcsaxis=(0,1), fontsize='8')
    gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
    gratplot.add(grat)
-   gratplot.plot()
 
 plt.show()

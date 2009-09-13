@@ -14,6 +14,5 @@ grat.setp_tick(plotaxis=1, fun=lambda x: x*100, fmt="%.3f")
 grat.setp_plotaxis(1, label="Wavelength (cm)")
 gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
 gratplot.add(grat)
-gratplot.plot()
 
 plt.show()

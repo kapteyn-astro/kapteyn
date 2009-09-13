@@ -23,23 +23,23 @@ grat.setp_lineswcs1(20, color='g', linestyle='--')
 # Plot labels inside the plot
 lon_constval = None
 lat_constval = 20
-lon_kwargs = {'color':'r', 'fontsize':15}
+lon_kwargs = {'color':'r', 'fontsize':12}
 lat_kwargs = {'color':'b', 'fontsize':10}
-grat.setinsidelabels(wcsaxis=0, 
+inlabs0 = grat.insidelabels(wcsaxis=0, 
                      world=lon_world, constval=lat_constval, 
                      **lon_kwargs)
-grat.setinsidelabels(wcsaxis=1, 
+inlabs1 = grat.insidelabels(wcsaxis=1, 
                      world=lat_world, constval=lon_constval, 
                      **lat_kwargs)
    
 # Select figure size ans create Matplotlib Axes object
-figsize = grat.figsize
-fig = plt.figure(figsize=figsize)
+# figsize = grat.figsize
+fig = plt.figure(figsize=(8,8))
 frame = fig.add_axes(grat.axesrect, aspect=grat.aspectratio, 
                      adjustable='box', autoscale_on=False, clip_on=True)
 
 gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
-gratplot.add(grat)
+gratplot.add( [grat,inlabs0,inlabs1] )
 
 # Set title for Matplotlib
 titlepos = 1.02

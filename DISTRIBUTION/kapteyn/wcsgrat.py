@@ -169,10 +169,7 @@ could be added in the future.
          grat = wcsgrat.Graticule(header)
          pixellabels = grat.pixellabels()
          ruler = grat.ruler()
-         gratplot.add(grat)
-         gratplot.add(pixellabels)
-         gratplot.add(ruler)
-         gratplot.plot()
+         gratplot.add( [grat,pixellabels,ruler] )
 
    One can also put objects from other sources in the same container
    as long as the corresponding axis limits are the same.
@@ -190,7 +187,6 @@ could be added in the future.
 **Methods:**
 
 .. automethod:: add
-.. automethod:: plot
 
    """
    
@@ -210,6 +206,7 @@ could be added in the future.
          self.gridframes = []
          self.rulers = []
          self.images = []
+         self.insidelabs = []
          from string import join, letters
          from random import choice
          self.baselabel = join([choice(letters) for i in range(8)], "")
@@ -249,11 +246,12 @@ could be added in the future.
       See the graticules tutorial for an example).
 
       :parameter obj:
-         Object of class :class:`Graticule`, Ruler or Gridframe.
+         Object of class :class:`Graticule`, Ruler or Gridframe or Insidelabels.
          Objects from class Ruler are created with Graticule's method
          :meth:`Graticule.ruler`. Objects from class Gridframe
          are created with Graticule's method
-         :meth:`Graticule.pixellabels`.
+         :meth:`Graticule.pixellabels` and Objects from class Insidelabels
+         are created with Graticule's method :meth:`Graticule.insidelabels`
 
       """
       if type(objlist) not in sequencelist:
@@ -268,12 +266,16 @@ could be added in the future.
          elif isinstance(obj, Gridframe):
             self.gridframes.append(obj)
             self.__plot1grid(obj)
+         elif isinstance(obj, Insidelabels):
+            self.insidelabs.append(obj)
+            self.__plotinsidelabels(obj)
          else:
             try:
                self.images.append(obj)
                obj.imshow()
             except:
                 pass
+
 
    def __plot1graticule(self, graticule):
       """
@@ -371,16 +373,24 @@ could be added in the future.
       frame.set_xlim((xlo,xhi))
       frame.set_ylim((ylo,yhi))
       frame.set_aspect(aspect=aspect, adjustable=adjust)
-      for i in [0,1]:
-         for inlabel in graticule.insidelabels[i]:
-            if tex:
-               s = '$'+inlabel.label+'$'
-            else:
-               s = inlabel.label
-            frame.text(inlabel.x, inlabel.y, s, clip_on=True, **inlabel.kwargs)
 
       self.fig.sca(self.frame)    # back to frame from calling environment
-      
+
+
+   def __plotinsidelabels(self, insidelabels):
+      """
+      -----------------------------------------------------------
+      Purpose:         Plot world coordinate labels inside a plot
+      Parameters:
+         insidelabels - Object from class Insidelabels created with 
+                       method Graticule.insidelabels
+      Returns:         --
+      Notes:
+      -----------------------------------------------------------
+      """
+      for inlabel in insidelabels.labels:
+         self.frame.text(inlabel.x, inlabel.y, inlabel.label, clip_on=True, **inlabel.kwargs)
+
 
    def __plot1grid(self, pixellabels):
       """
@@ -393,7 +403,7 @@ could be added in the future.
       Returns:         --
       Notes:           This method can only plot the grid labels along
                        two axes. If you need to label the other axes 
-                       too, then add another grid with method addgrid().
+                       too, then add another grid with method pixellabels().
       -----------------------------------------------------------
       """
       aspect = self.frame.get_aspect()
@@ -459,6 +469,9 @@ could be added in the future.
 
 
    def __plotruler(self, ruler):
+      """
+      Plot one ruler object in the current frame
+      """
       self.frame.plot((ruler.x1,ruler.x2), (ruler.y1,ruler.y2), '-', **ruler.linekwargs)
       dx = ruler.tickdx
       dy = ruler.tickdy
@@ -469,7 +482,7 @@ could be added in the future.
          self.frame.text(x+ruler.mscale*dx, y+ruler.mscale*dy, label, **ruler.kwargs)
 
 
-   def plot(self):
+   def moeteruit_plot(self):
       """
       Plot the container objects.
       
@@ -493,7 +506,7 @@ could be added in the future.
          self.frame.plot(rectx,recty, color='k')
       for ruler in self.rulers:
          self.__plotruler(ruler)
-
+      # !!! Hier nog de insidelabels aan toevoegen
 
 
 class WCStick(object):
@@ -852,6 +865,25 @@ class WCSaxis(object):
       self.label = label           # Default title for this axis
       self.kwargs = kwargs         # Keyword aguments for the axis labels
 
+
+
+class Insidelabels(object):
+   """
+   A small utility class for wcs labels inside a plot with a graticule
+   """
+   class Ilabel(object):
+      def __init__(self, Xp, Yp, lab, rots, **kwargs):
+         self.x = Xp
+         self.y = Yp
+         self.label = lab
+         self.rotation = rots
+         self.kwargs = kwargs
+
+   def __init__(self):
+      self.labels = []
+   def append(self, Xp, Yp, lab, rots, **kwargs):
+      ilab = self.Ilabel(Xp, Yp, lab, rots, **kwargs)
+      self.labels.append(ilab)
 
 
 class Ruler(object):
@@ -1383,7 +1415,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 **Methods which add plot elements:**
 
-.. automethod::   setinsidelabels
+.. automethod::   insidelabels
 .. automethod::   ruler
 .. automethod::   pixellabels
 
@@ -2183,10 +2215,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       axes.append( WCSaxis(top,    x2mode, annot[0], **kwargs4) )
       self.axes = axes
 
-      # A list with positions and labels for annotations within the plot boundaries
-      self.insidelabels = [[],[]]
-      
-      
       # Finally set default values for aspect ratio
       dummy = self.get_aspectratio()
 
@@ -2797,7 +2825,7 @@ behaviour.
             self.axes[ax].label = label
 
 
-   def setinsidelabels(self, wcsaxis=0, world=None, constval=None, deltapx=0.0, deltapy=0.0, angle=None, addangle=0.0, fmt=None, **kwargs):
+   def insidelabels(self, wcsaxis=0, world=None, constval=None, deltapx=0.0, deltapy=0.0, angle=None, addangle=0.0, fmt=None, **kwargs):
       """
 Annotate positions in world coordinates
 within the boundaries of the plot.
@@ -2815,7 +2843,10 @@ intersections with the enclosing axes rectangle.
 :param world:      One or more world coordinates on the axis given
                    by *wcsaxis*. The positions are completed
                    with one value for *constval*.
-:type world:       Floating point number(s)
+                   If world=None (the default) then the world
+                   coordinates are copied from graticule
+                   world coordinates.
+:type world:       Floating point number(s) or None
 
 :param constval:   A constant world coordinate to complete the positions
                    at which a label is plotted.
@@ -2823,7 +2854,7 @@ intersections with the enclosing axes rectangle.
 
 :param deltapx:    Small shift in pixels in x-direction of text. This enables
                    us to improve the layout of the plot by preventing that
-                   labels arre intersected by lines.
+                   labels are intersected by lines.
 :type deltapx:     Floating point number.
 
 :param deltapy:    See description at *deltapx*.
@@ -2871,21 +2902,11 @@ intersections with the enclosing axes rectangle.
                grat = Graticule(...)
                lon_world = [0,30,60,90,120,150,180]
                lat_constval = 30
-               grat.setinsidelabels(wcsaxis=0,
-                                    world=lon_world,
-                                    constval=lat_constval,
-                                    color='r')
+               inlabs = grat.insidelabels(wcsaxis=0,
+                                          world=lon_world,
+                                          constval=lat_constval,
+                                          color='r')
       """
-      class insidelabel(object):
-         """ 
-         A small utility class for wcs labels inside a graticule
-         """
-         def __init__(self, Xp, Yp, lab, rots, **kwargs):
-            self.x = Xp
-            self.y = Yp
-            self.label = lab
-            self.rotation = rots
-            self.kwargs = kwargs
          
       if world == None:
          if wcsaxis == 0:
@@ -2915,6 +2936,7 @@ intersections with the enclosing axes rectangle.
       #if self.wxlim[0] < 0.0:
       #   wxlim0 += 180.0
       #   wxlim1 += 180.0
+      insidelabels = Insidelabels()                       # Initialize the result
       if len(world) > 0 and wcsaxis in [0,1]:
          if wcsaxis == 0:
             defkwargs = {'ha':'center', 'va':'center', 'fontsize':10}
@@ -2936,7 +2958,7 @@ intersections with the enclosing axes rectangle.
                s =  fmt%labval
                if not numpy.isnan(xp):
                   #if wxlim0 <= xw < wxlim1 and self.pxlim[0] < xp < self.pxlim[1]:
-                  if self.pxlim[0] < xp < self.pxlim[1] and self.pylim[0] < yp < self.pylim[1]:
+                  if self.pxlim[0]-0.5 < xp < self.pxlim[1]+0.5 and self.pylim[0]-0.5 < yp < self.pylim[1]+0.5:
                      if angle == None:
                         if self.mixpix == None:
                            d = (self.wylim[1] - self.wylim[0])/200.0 
@@ -2950,8 +2972,7 @@ intersections with the enclosing axes rectangle.
                         phi = angle
                      defkwargs.update({'rotation':phi})
                      defkwargs.update(kwargs)
-                     inlab = insidelabel(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
-                     self.insidelabels[wcsaxis].append(inlab)
+                     insidelabels.append(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
 
          if wcsaxis == 1:
             defkwargs = {'ha':'right', 'va':'bottom', 'fontsize':10}
@@ -2987,9 +3008,9 @@ intersections with the enclosing axes rectangle.
                         phi = angle
                      defkwargs.update({'rotation':phi})
                      defkwargs.update(kwargs)
-                     inlab = insidelabel(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
-                     self.insidelabels[wcsaxis].append(inlab)
-         return self.insidelabels[wcsaxis]
+                     insidelabels.append(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
+
+         return insidelabels
 
 
    def ruler(self, x1=None, y1=None, x2=None, y2=None, lambda0=0.5, step=None,

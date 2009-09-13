@@ -25,9 +25,9 @@ should be possible to add (e.g. ppgplot).
 Simple example
 --------------
 
-Example: ex1_axnumdemo.py - Simple plot using defaults
+Example: wcsg_axnumdemosimple.py - Simple plot using defaults
 
-.. plot:: EXAMPLES/ex1_axnumdemo.py
+.. plot:: EXAMPLES/wcsg_axnumdemosimple.py
    :include-source:
    :align: center
 
@@ -104,9 +104,9 @@ in this 'artificial' FITS file::
 You can download the file `manyaxes.fits <http://www.astro.rug.nl/software/kapteyn/EXAMPLES/manyaxes.fits>`_
 for testing. The world coordinate system is arbitrary.
 
-Example: ex2_manyaxes.py - Selecting WCS axes from a FITS file
+Example: wcsg_manyaxes.py - Selecting WCS axes from a FITS file
 
-.. plot:: EXAMPLES/ex2_manyaxes.py
+.. plot:: EXAMPLES/wcsg_manyaxes.py
    :include-source:
    :align: center
 
@@ -126,9 +126,50 @@ is axis 1, the second 2, etc. (i.e. FITS standard). The default in
    to specify the relevant FITS axes with parameter *axnum* to extract a graticule.
    The (FITS) axes numbers correspond to the number n in the FITS keyword CTYPEn.
 
-If you create an object from :class:`wcsgrat.Graticule`, you can modify
-its behaviour in many ways using keyword arguments.
-In another example we show how to mix spatial and non spatial axes.
+
+This example shows an important feature of module :mod:`wcsgrat` and that is
+its functionality to change properties graticules, ticks and labels.
+We summarize:
+
+   * Graticule line properties are set with :meth:`wcsgrat.Graticule.setp_gratline`
+     or the equivalent :meth:`wcsgrat.Graticule.setp_lineswcs1` or
+     :meth:`wcsgrat.Graticule.setp_lineswcs1`. The properties are all Matplotlib
+     properties given as keyword arguments. One can apply these to all graticule
+     lines, to one of the wcs types or to one graticule line (identified by
+     its position in world coordinates).
+   * Graticule ticks (the intersections with the borders) are modified by
+     method :meth:`wcsgrat.Graticule.setp_tick`.
+     Ticks are identified by either the wcs axis (e.g. longitude or latitude)
+     or by one of the four rectangular plot axes or by a position in
+     world coordinates. Combinations of these are also possible.
+     There is only one parameter that sets a property of the tick line
+     (*markersize*) the others change properties of the text labels.
+     Plot properties are given as Matplotlib keyword arguments. The labels can be
+     scaled and formatted with parameters *fun* and *fmt* 
+   * The titles along one of the rectangular plot axes can be modified with
+     :meth:`wcsgrat.Graticule.setp_plotaxis`. A label is set with parameter *label*
+     and the plot properties are given as Matplotlib keyword arguments.
+     For each 'plotaxis' one can set which ticks (i.e. from which 'wcsaxis')
+     should be plotted and which not (think of rotated graticules).
+   * Properties of labels inside a plot are set in the constructor
+     :meth:`wcsgrat.Graticule.insidelabels`.
+ 
+Let's study the plot in more detail:
+
+   * The header shows a Stokes axes with an uncommon value for ``CRVAL`` and ``CDELT``.
+     We want to label four graticule lines with the familiar Stokes parameters.
+     With the knowledge we have about this ``CRVAL`` and ``CDELT`` we tell
+     the Graticule constructor to create 4 graticule lines (``starty=1000, deltay=10``).
+   * The four positions are stored in attribute *ystarts* as in ``grat.ystarts``.
+     we use these numbers to change the coordinate labels into Stokes parameters with
+     method :meth:`wcsgrat.Graticule.setp_tick`
+
+     >>> grat.setp_tick(plotaxis=wcsgrat.left, position=1000, color='m', fmt="I")
+
+   * We used :meth:`wcsgrat.Graticule.insidelabels` to add coordinate labels
+     inside the plot. We marked a position near ``CRVAL`` and plotted a label
+     and with the same method we added a single label at that position.
+     
 
 
 More 'axnum' variations -- Position Velocity diagrams
@@ -140,9 +181,9 @@ For the next example we used a FITS file with the following header information::
    Axis 2: DEC--NCP  from pixel 1 to   100  {crpix=51 crval=60.1539 cdelt=0.007166 (DEGREE)}
    Axis 3: VELO-HEL  from pixel 1 to   101  {crpix=-20 crval=-243 cdelt=4.2 (km/s)}
 
-Example: ex2_axnumdemo.py - Show different axes combinations for the same FITS file
+Example: wcsg_axnumdemo.py - Show different axes combinations for the same FITS file
 
-.. plot:: EXAMPLES/ex2_axnumdemo.py
+.. plot:: EXAMPLES/wcsg_axnumdemo.py
    :include-source:
    :align: center
 
@@ -160,8 +201,9 @@ These labels are not formatted to hour/min/sec or deg/min/sec for spatial axes.
 
 The two calls to this method need some extra explanation::
 
-   grat3.setinsidelabels(wcsaxis=0, constval=-51, rotation=90, fontsize=10, color='r')
-   grat3.setinsidelabels(wcsaxis=1, fontsize=10, fmt="%.2f", color='b')
+   ilabs1 = grat3.insidelabels(wcsaxis=0, constval=-51,
+                               rotation=90, fontsize=10, color='r')
+   ilabs2 = grat3.insidelabels(wcsaxis=1, fontsize=10, fmt="%.2f", color='b')
 
 The first line sets labels that correspond to positions
 in world coordinates inside a plot. It copies the positions of the velocities,
@@ -182,9 +224,9 @@ figure size and size for the actual plot window in normalized device coordinates
 (i.e. in interval [0,1]). You can use these values in a script to set
 the relevant values for Matplotlib as we show in the next example.
 
-Example: ex2_figuredemo.py - Plot figure in correct aspect ratio and fix the aspect ratio.
+Example: wcsg_figuredemo.py - Plot figure in correct aspect ratio and fix the aspect ratio.
 
-.. plot:: EXAMPLES/ex2_figuredemo.py
+.. plot:: EXAMPLES/wcsg_figuredemo.py
    :include-source:
    :align: center
 
@@ -214,9 +256,9 @@ and the contents is plotted with method :meth:`wcsgrat.Plotversion.plot`.
 The next example shows a combination of two graticules for two different sky systems.
 It demonstrates also the use of attributes to changes plot properties.
 
-Example: ex7_skyout.py - Combine two graticules in one frame
+Example: wcsg_skyout.py - Combine two graticules in one frame
 
-.. plot:: EXAMPLES/ex7_skyout.py
+.. plot:: EXAMPLES/wcsg_skyout.py
    :include-source:
    :align: center
 
@@ -275,9 +317,9 @@ header we found that the optical velocity is 1050 Km/s.
 The header is a legacy GIPSY header and module :mod:`wcs` can parse it.
 We require the frequencies to be expressed as wavelengths.
 
-Example: ex5_wave.py - Plot a graticule in a position wavelength diagram.
+Example: wcsg_wave.py - Plot a graticule in a position wavelength diagram.
 
-.. plot:: EXAMPLES/ex5_wave.py
+.. plot:: EXAMPLES/wcsg_wave.py
    :include-source:
    :align: center
 
@@ -305,10 +347,11 @@ Example: ex5_wave.py - Plot a graticule in a position wavelength diagram.
    corresponding to the missing spatial axis.
    
 
-For the next example we use the same FITS file (mclean.fits) and demonstrate 
-Example: ex5_spectraltypes.py - Plot grid lines for different spectral translations
+For the next example we use the same FITS file (mclean.fits).
+ 
+Example: wcsg_spectraltypes.py - Plot grid lines for different spectral translations
 
-.. plot:: EXAMPLES/ex5_spectraltypes.py
+.. plot:: EXAMPLES/wcsg_spectraltypes.py
    :include-source:
    :align: center
 
@@ -320,7 +363,70 @@ Example: ex5_spectraltypes.py - Plot grid lines for different spectral translati
     list with allowed spectral translations (attribute *altspec*). We need
     this list before we create the graticules 
   * A Matplotlib Figure- and Axes instance are made
-  
+  * The native FREQ axis (label in red) differs from the FREQ axis in the
+    next plot, because a legacy header was found and its freqencies were transformed
+    to a barycentric/heliocentric system.
+
+
+Rulers
+------
+
+Rulers in :mod:`wcsgrat` are objects derived from a Graticule object.
+A ruler is always plotted
+as a straight line, whatever the projection is (so it doesn't necessarily
+follow graticule lines).
+A ruler plots ticks and labels and the *spatial* distance between any two ticks is
+a constant. This makes rulers ideal to put nearby a feature in your map to
+give an idea of the physical size of that feature. Rulers can be plotted in maps
+with one or two spatial axes. 
+
+Example: wcsg_manyrulers.py - Ruler demonstration
+
+.. plot:: EXAMPLES/wcsg_manyrulers.py
+   :include-source:
+   :align: center
+
+Ruler tick labels can be formatted so that we can adjust them. In the next plot we
+want offsets to be plotted in arcminutes.
+
+Example: wcsg_arminrulers.py - Rulers with non default labels
+
+.. plot:: EXAMPLES/wcsg_arcminrulers.py
+   :include-source:
+   :align: center
+
+It is possible to put a ruler in a map with only one spatial coordinate
+(as long there is a matching axis in the header) like a Position-Velocity diagram.
+It will take the pixel coordinate of the slice as a constant so even for XV maps
+we have reliable offsets. In the next example we created two rulers.
+The red ruler is in fact the same as the Y-axis offset labeling. The blue
+ruler show the same offsets in horizontal direction. That is because only the
+horizontal direction is spatial. Such a ruler is probably not very useful but
+is a nice demonstration of the flexibility of method :meth:`wcsgrat.Graticule.ruler`.
+
+Note that we set Matplotlib's *clip_on* to *True* because if we pan the image in Matplotlib
+we don't want the labels to be visible outside the border of the frame.
+
+Example: wcsg_xvruler.py - Ruler in a XV map
+
+.. plot:: EXAMPLES/wcsg_xvruler.py
+   :include-source:
+   :align: center
+
+
+Pixel/Grid labels
+-----------------
+
+In the previous section we showed an example of multiple Graticule
+objects plotted in one plot. Also in that figure we labeled the pixel
+coordinates. Also we plotted a grid with dashed lines. This functionality is
+provided by method 
+:meth:`wcsgrat.Graticule.pixellabels`. This method consists of Matplotlib
+routines and therefore we don't need a special method to set its attributes because
+attributes can be set by keyword arguments as in the next code example::
+   
+>>> pixellabels = grat.pixellabels(plotaxis=(2,3), gridlines=True, color='c', markersize=-3, fontsize=7)
+
   
 Glossary
 --------
