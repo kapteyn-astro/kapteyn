@@ -208,3 +208,5 @@ latex_logo = 'KapteynLogo.jpg'
 
 # If false, no module index is generated.
 #latex_use_modindex = True
+
+pngmath_dvipng_args = ['-gamma 1.5', '-D 110', '-bg Transparent']
