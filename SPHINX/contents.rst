@@ -26,8 +26,9 @@ Contents
    (conf.py parameter 'unused_docs')
    ascarray
 
-Indices and tables
-==================
+.. omit:
+   Indices and tables
+   ==================
 
-* :ref:`genindex`
-* :ref:`search`
+   * :ref:`genindex`
+   * :ref:`search`

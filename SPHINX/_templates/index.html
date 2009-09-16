@@ -8,32 +8,41 @@ padding: 1em; border: thin solid red">
 <div style="text-align: center"><b>NOTICE</b></div>
 As a work in progress, this unreleased documentation and software are
 subject to change. Version: {{ version }}.</div>
-<p><b>Welcome to the Kapteyn package!</b></p>
+<p><b>Welcome to the Kapteyn Package!</b></p>
 
 <p>The Kapteyn Package is a collection of Python modules and applications 
-made by the computer group of the Kapteyn Astronomical Institute, University
-of Groningen, The Netherlands. The purpose of the package is to provide tools
+developed by the computer group of the
+<a href="http://www.rug.nl/sterrenkunde/index?lang=en">Kapteyn Astronomical
+Institute</a>, University of Groningen, The Netherlands.
+The purpose of the package is to provide tools
 for the development of astronomical applications with Python.</p>
 
 
 <p>The the following modules are included:</p>
 <ul class="simple">
-<li><a class="biglink" href="{{ pathto("wcs") }}">wcs</a>,
+<li><a class="boldlink" href="{{ pathto("wcs") }}">wcs</a>,
 a binary module
 which handles spatial and spectral coordinates and provides
 WCS projections and transformations between different sky systems.
 Spectral translations (e.g., between frequencies and velocities) are
 supported and also mixed coordinates.</li>
-<li><a class="biglink" href="{{ pathto("celestial") }}">celestial</a>,
+<li><a class="boldlink" href="{{ pathto("celestial") }}">celestial</a>,
 containing NumPy-based functions for creating
 matrices for transformation between different celestial systems.
 Also a number of other utility functions are included.</li>
-<li><a class="biglink" href="{{ pathto("wcsgrat") }}">wcsgrat</a>,
+<li><a class="boldlink" href="{{ pathto("wcsgrat") }}">wcsgrat</a>,
 for calculating parameters for WCS graticules.
 It does not require a plot package.</li>
-<li><a class="biglink" href="{{ pathto("tabarray") }}">tabarray</a>,
+<li><a class="boldlink" href="{{ pathto("maputils") }}">maputils</a>,
+versatile tool capable of many things such as extracting and plotting
+data slices from data sets with more than two axes.</li>
+<li><a class="boldlink" href="{{ pathto("tabarray") }}">tabarray</a>,
 providing a class for the efficient reading, writing and
 manipulating simple table-like structures in text files.</li>
+<li><a class="boldlink" href="{{ pathto("mplutil") }}">mplutil</a>,
+utilities for use with matplotlib. Currently only class AxesCallback,
+which provides a more powerful mechanism for handling events from
+LocationEvent and derived classes than matplotlib provides itself.</li>
 </ul>
 
 <h2>Documentation</h2>

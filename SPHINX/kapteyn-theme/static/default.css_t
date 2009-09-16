@@ -168,7 +168,8 @@ div.body h6 {
 /*    background-color: {{ theme_headbgcolor }}; */
     background-image: url("background-h.png");
     font-weight: normal;
-    color: {{ theme_headtextcolor }};
+/*    color: {{ theme_headtextcolor }}; */
+    color: {{ theme_sidebarbgcolor }};
     border-top: 2px solid {{ theme_sidebarbgcolor }};
     border-bottom: 1px solid {{ theme_sidebarbgcolor }};
     margin: 20px -20px 10px -20px;
@@ -244,4 +245,20 @@ tt {
     background-color: #ecf0f3;
     padding: 0 1px 0 1px;
     font-size: 0.95em;
+}
+
+img.align-center {
+   border: 1px solid lightgray;
+}
+
+li.toctree-l1 {
+   font-weight: bold;
+}
+
+li.toctree-l2 {
+   font-weight: normal;
+}
+
+a.boldlink {
+   font-weight: bold;
 }
