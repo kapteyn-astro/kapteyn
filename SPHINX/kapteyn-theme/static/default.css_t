@@ -30,9 +30,8 @@ div.bodywrapper {
 }
 
 div.body {
-    background-color: {{ theme_bgcolor }};
+/*     background-color: {{ theme_bgcolor }}; */
     background-image: url("background.png");
-/*    background-attachment: fixed; */
     color: {{ theme_textcolor }};
     padding: 0 20px 30px 20px;
 }
@@ -165,10 +164,8 @@ div.body h4,
 div.body h5,
 div.body h6 {
     font-family: {{ theme_headfont }};
-/*    background-color: {{ theme_headbgcolor }}; */
     background-image: url("background-h.png");
     font-weight: normal;
-/*    color: {{ theme_headtextcolor }}; */
     color: {{ theme_sidebarbgcolor }};
     border-top: 2px solid {{ theme_sidebarbgcolor }};
     border-bottom: 1px solid {{ theme_sidebarbgcolor }};

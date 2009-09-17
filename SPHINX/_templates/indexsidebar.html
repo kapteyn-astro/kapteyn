@@ -1,0 +1,12 @@
+<h3>Version</h3>
+{% if 'b' in version %}
+<p>This documentation is for version <b>{{ version }}</b>, which is
+not released yet.</p>
+{% else %}
+<p>This documentation is for version <b>{{ version }}</b> of the package.</p>
+{% endif %}
+
+<h3>Questions? Suggestions?</h3>
+
+<p>Send an e-mail to the developers:
+<a href="mailto:gipsy@astro.rug.nl">gipsy@astro.rug.nl</a>.</p>

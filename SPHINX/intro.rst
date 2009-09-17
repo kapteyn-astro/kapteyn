@@ -30,16 +30,18 @@ The the following modules are included:
 - :mod:`wcsgrat`, for calculating parameters for WCS graticules.
   It does not require a plot package.
 
-  .. not included yet
-     :mod:`maputils`. Provides methods for reading FITS files.
-     It can extract 2-dim image data from data sets with three or more axes.
-     A class is added which prepares FITS data to plot itself as an image
-     with Matplotlib.
-     The use of the methods in this module are demonstrated in sample
-     applications ``mapmaker.py`` and ``flux.py``
+- :mod:`maputils`. Provides methods for reading FITS files.
+  It can extract 2-dim image data from data sets with three or more axes.
+  A class is added which prepares FITS data to plot itself as an image
+  with Matplotlib.
 
 - :mod:`tabarray`, providing a class for the efficient reading, writing and
   manipulating simple table-like structures in text files. 
+
+- :mod:`mplutil`, utilities for use with matplotlib.
+  Currently only class AxesCallback, which provides a more powerful
+  mechanism for handling events from LocationEvent and derived classes
+  than matplotlib provides itself.
 
 .. ascarray left out
   :mod:`ascarray`, a binary module containing the base function for
