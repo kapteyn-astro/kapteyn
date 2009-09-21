@@ -2,7 +2,8 @@ Introduction
 ============
 
 The Kapteyn Package is a collection of Python modules and applications
-developed by the computer group of the Kapteyn Astronomical Institute,
+developed by the computer group of the
+`Kapteyn Astronomical Institute <http://www.astro.rug.nl>`_,
 University of Groningen, The Netherlands. 
 The purpose of the package is to provide tools for the development of
 astronomical applications with Python.
@@ -18,7 +19,8 @@ Overview
 
 The the following modules are included:
 
-- :mod:`wcs`, a binary module which handles spatial and spectral coordinates and provides
+- :mod:`wcs`, a binary module which handles spatial and spectral
+  coordinates and provides
   WCS projections and transformations between different sky systems.
   Spectral translations (e.g., between frequencies and velocities) are
   supported and also mixed coordinates.

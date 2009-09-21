@@ -1,10 +1,9 @@
 {% extends "layout.html" %}
 {% set title = 'Overview' %}
 {% block body %}
-
-<h2>Welcome</h2>
+<h2 style="margin-top: 0">Welcome</h2>
 <img src="_static/Kapteyn45.png" alt="J.C. Kapteyn, age 45"
-style="float: right; margin: 0em 0em 0em 2em" />
+style="float: right; margin: 0em 0em 1em 2em" />
 
 <p><b>Welcome to the Kapteyn Package!</b></p>
 
@@ -64,7 +63,11 @@ LocationEvent and derived classes than matplotlib provides itself.</li>
 <h2>Get the Kapteyn Package</h2>
   <p>
     The Kapteyn Package is available as a distutils-installable package
-    and can be downloaded 
+    and
+{% if 'b' in version %}
+    this <em>unreleased version</em>
+{% endif %}
+    can be downloaded 
     <a href="kapteyn-{{ version }}.tar.gz">here</a>.
     For installation instructions see the
     <a href="{{ pathto("intro") }}">Introduction</a> chapter or the

@@ -67,7 +67,8 @@ div.related a {
 
 div.sphinxsidebar {
     {%- if theme_stickysidebar|tobool %}
-    top: 30px;
+/*    top: 30px; */
+    top: 124px;  /* 69+10+15+30 */
     margin: 0;
     position: fixed;
     overflow: auto;
@@ -258,4 +259,11 @@ li.toctree-l2 {
 
 a.boldlink {
    font-weight: bold;
+}
+
+/*
+ *  cssclass directive test
+ */
+p.redlink {
+   color: red;
 }

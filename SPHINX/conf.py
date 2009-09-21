@@ -23,12 +23,17 @@ sys.path.append(os.path.abspath('.'))
 from kapteyn import __version__ as kapteynversion
 print 'Kapteyn Package version', kapteynversion
 
+def setup(app):
+   app.add_config_value('draftversion', True, True)
+
+draftversion = True
+
 # -- General configuration -----------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.pngmath', 'plot_directive',
-              'only_directives']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.pngmath', 'sphinx.ext.ifconfig',
+              'plot_directive', 'only_directives']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -109,7 +114,8 @@ html_theme_options = {
    'rightsidebar':    True,
    'relbarbgcolor':  'brown',
    'sidebarbgcolor': 'darkgreen',
-   'headtextcolor':  'black'
+   'headtextcolor':  'black',
+###   'linkcolor':      '#34812A'
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -190,7 +196,7 @@ latex_font_size = '10pt'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('contents', 'kapteyn.tex', u'Kapteyn Package Documentation',
-   u'Hans Terlouw, Martin Vogelaar', 'manual'),
+   u'Hans Terlouw, Martin Vogelaar', 'manual', False),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
