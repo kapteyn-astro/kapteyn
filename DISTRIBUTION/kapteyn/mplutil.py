@@ -149,12 +149,16 @@ first :class:`AxesCallback` object `draw` as an attribute.
          self.__scheduled.remove(self)        # remove from current position ..
          self.__scheduled.insert(0, self)     # .. and move to front of list
          return                               # no further action
+      # Try to find a handler and increment the number of
+      # registrations for this canvas-eventtype combination.
+      # If no handler can be found, connect this event type
+      # to __handler() and register this combination.
       try:
-         id, numreg = self.__handlers[self.eventtype]    # find handler
-         self.__handlers[self.eventtype] = id, numreg+1  # increment callbacks
-      except KeyError:                                   # no handler yet
+         id, numreg = self.__handlers[self.canvas, self.eventtype]
+         self.__handlers[self.canvas, self.eventtype] = id, numreg+1
+      except KeyError:
          id = self.canvas.mpl_connect(self.eventtype, self.__handler)
-         self.__handlers[self.eventtype] = id, 1 # connect and register as first
+         self.__handlers[self.canvas,self.eventtype] = id, 1
       self.active = True                      # mark active
       self.__scheduled.insert(0, self)        # insert in active list
       
@@ -167,19 +171,21 @@ first :class:`AxesCallback` object `draw` as an attribute.
       
       if not self.active:
          return                               # no action, stays inactive
-      id, numreg = self.__handlers[self.eventtype]
+      id, numreg = self.__handlers[self.canvas, self.eventtype]
       numreg -= 1                             # decrement number of callbacks
       if numreg==0:                           # was this the last one?
-         del self.__handlers[self.eventtype]  # remove from dictionary
+         del self.__handlers[self.canvas, self.eventtype]  # remove registration
          self.canvas.mpl_disconnect(id)       # disconnect handler
       else:
-         self.__handlers[self.eventtype] = id, numreg  # update number only
+         self.__handlers[self.canvas, self.eventtype] = id,  numreg
       self.active = False                     # mark inactive
       self.__scheduled.remove(self)           # remove from active list
 
    def __handler(event):
       for callback in AxesCallback.__scheduled:
-         if callback.axes.contains(event)[0] and event.name==callback.eventtype:
+         if event.canvas is callback.canvas   and \
+               event.name==callback.eventtype and \
+               callback.axes.contains(event)[0]:
             callback.event = event
             callback.xdata, callback.ydata = \
                callback.axes.transData.inverted().transform((event.x, event.y))
