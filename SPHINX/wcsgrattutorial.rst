@@ -4,6 +4,8 @@ Tutorial wcsgrat module
 .. highlight:: python
    :linenothreshold: 10
 
+.. _wcsgrat_tutorial:
+
 
 Introduction
 ------------
@@ -421,13 +423,20 @@ In the previous section we showed an example of multiple Graticule
 objects plotted in one plot. Also in that figure we labeled the pixel
 coordinates. Also we plotted a grid with dashed lines. This functionality is
 provided by method 
-:meth:`wcsgrat.Graticule.pixellabels`. This method consists of Matplotlib
+:meth:`wcsgrat.Graticule.Pixellabels`. This method consists of Matplotlib
 routines and therefore we don't need a special method to set its attributes because
 attributes can be set by keyword arguments as in the next code example::
    
->>> pixellabels = grat.pixellabels(plotaxis=(2,3), gridlines=True, color='c', markersize=-3, fontsize=7)
+>>> pixellabels = grat.Pixellabels(plotaxis=(2,3), gridlines=True, color='c', markersize=-3, fontsize=7)
 
-  
+
+Labels inside a plot
+--------------------
+
+Method :meth:`wcsgrat.Graticule.Insidelabels` sets for a given set of world coordinates
+coordinate labels. A number of examples are includes in previous sections.
+
+
 Glossary
 --------
 
@@ -435,4 +444,3 @@ Glossary
 
    graticule
       the network of lines of latitude and longitude upon which a map is drawn
-

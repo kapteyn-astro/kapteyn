@@ -68,7 +68,7 @@ div.related a {
 div.sphinxsidebar {
     {%- if theme_stickysidebar|tobool %}
 /*    top: 30px; */
-    top: 124px;  /* 69+10+15+30 */
+    top: 91px;  /* 51+5+5+30 */
     margin: 0;
     position: fixed;
     overflow: auto;
