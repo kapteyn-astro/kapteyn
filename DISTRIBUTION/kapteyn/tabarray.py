@@ -180,18 +180,65 @@ Write the contents of a tabarray to a file.
       f.close()
 
 def readColumns(filename, comment, cols='all', sepchar=', \t',
-                rows=None, lines=None, bad=0.0):
+                rows=None, lines=None, bad=0.0,
+                rowslice=(None,), colslice=(None,)):
    """
 TableIO-compatible function for directly extracting table data from a file.
+
+:param filename:
+   a string with the name of a text file containing the table.
+:param comment:
+   a string with characters which are used to designate comments in the
+   input file.  The occurrence of any of these characters on a line causes 
+   the rest of the line to be ignored.  Empty lines and lines containing
+   only a comment are also ignored. 
+:param cols:
+   a tuple or list with the column numbers.
+:param sepchar:
+   a string containing the column separation characters to be used. 
+   Columns are separated by any combination of these characters. 
+:param rows:
+   a tuple or list containing the row numbers to be extracted.
+:param lines:
+   a two-element tuple or list specifying a range of lines to be read. 
+   Line numbers are counted from one and the range is inclusive.  So (1,10)
+   specifies the first 10 lines of a file.  Comment lines are included in
+   the count.  If any element of the tuple or list is zero, this limit is
+   ignored.  So (1,0) specifies the whole file, just like the default None. 
+:param bad:
+   a number to be substituted for any field which cannot be decoded
+   as a number.
+:param rowslice:
+   a tuple containing a Python slice indicating which rows should be selected.
+   If this argument is used in combination with the argument *rows*, the latter
+   should be expressed in terms of the *new* row numbers after slicing.
+   Example: ``rowslice=(10, None)`` selects all rows, beginning with the
+   eleventh (the first row has number 0) and ``rowslice=(10, 13)`` selects
+   row numbers 10, 11 and 12.
+:param colslice:
+   a tuple containing a Python slice indicating which columns should be
+   selected.
+   If this argument is used in combination with the argument *cols*, the latter
+   should be expressed in terms of the *new* column numbers after slicing.
+   Selection is analogous to *rowslice*.
+
 """
    if cols=='all':
       cols = None
    return tabarray(filename, comment, sepchar=sepchar, lines=lines, bad=bad
-                  ).rows(rows).columns(cols)
+                  )[slice(*rowslice),slice(*colslice)].rows(rows).columns(cols)
 
 def writeColumns(filename, list, comment=[]):
    """
 TableIO-compatible function for directly writing table data to a file.
+
+:param filename:
+   the name of the file to be written;
+:param list:
+   a list containing the columns to be written.
+:param comment:
+   a list with text strings which will be inserted as comments in the
+   output file. These comments will be prefixed by the hash character (#).
 """
    tabarray(list).writeto(filename, comment=comment)
 

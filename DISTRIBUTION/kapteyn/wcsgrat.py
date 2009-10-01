@@ -33,10 +33,10 @@ Besides spatial axes, it supports also spectral axes and a mix of both
 by allowing arbitrary selections of two axes.
 The transformations between pixel coordinates and world coordinates
 are based module *wcs* which is also part of the Kapteyn Package.
-Module *wcs* is a Python binding for Mark R. Calabretta's library
+Module :mod:`wcs` is a Python binding for Mark R. Calabretta's library
 `WCSLIB <http://www.atnf.csiro.au/people/mcalabre/WCS>`_.
 >From *WCSLIB* we use only the core transformation routines.
-Header parsing is done with module *wcs*.
+Header parsing is done with module :mod:`wcs`.
 
 Axes types that are not recognized by this software is treated as being linear.
 The axes type correspond with keyword *CTYPEn* in a FITS file.
@@ -47,11 +47,13 @@ Below you will find a reference to a tutorial with working examples.
 
 .. seealso:: Tutorial material:
    
-     * Tutorial `Plotting Graticules <http://www.astro.rug.nl/software/kapteyn/wcsgraticules.php>`_
-       which contains many examples with source code.
+     * Tutorial wcsgrat module
+       which contains many examples with source code,
+       see :ref:`wcsgrat_tutorial`.
 
-     * Figure gallery `All-sky graticules <http://www.astro.rug.nl/software/kapteyn/allsky.php>`_
-       with many examples of Graticule constructors.
+     * Figure gallery 'all sky plots'
+       with many examples of Graticule constructors,
+       see :ref:`allsky_tutorial`.
    
 .. moduleauthor:: Martin Vogelaar <gipsy@astro.rug.nl>
 
@@ -62,8 +64,9 @@ Module level data
 -----------------
 
 :data:`left, bottom, right, top`
-   The variables *left*, *bottom*, *right* and *top* correspond to the numbers 0, 1, 2, and 3
-   and are used as constants to identify plot axes.
+   The variables *left*, *bottom*, *right* and *top* are
+   equivalent to the strings *"left"*, *"bottom"*, *"right"* and *"top"* 
+   and are used as identifiers for plot axes.
 :data:`native, notnative, bothticks, noticks`
    The variables *native*, *notnative*, *bothticks*, *noticks* 
    correspond to the numbers 0, 1, 2 and 3 and represent modes 
@@ -106,14 +109,59 @@ Class Graticule
 # Controle op input ruler coordinaten
 
 from kapteyn import wcs        # The Kapteyn Python binding to WCSlib, including celestial transformations
-import types
+from types import TupleType, ListType, StringType
 import numpy
 
 
 __version__ = '1.0'
 (left,bottom,right,top) = range(4)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = range(4)
-sequencelist = (types.TupleType, types.ListType)   # Tuple with sequence types
+sequencelist = (TupleType, ListType)   # Tuple with sequence types
+
+
+def parseplotaxes(plotaxes):
+   """
+   -----------------------------------------------------------
+   Purpose:      It is possible to specify axes by an integer
+                 or by a string.
+                 The function is used internally to allow
+                 flexible input of numbers to identify one of
+                 the four plot axes.
+   Parameters:
+      plotaxes - Scalar or sequence with elements that are either
+                 integers or strings or a combination of those.
+
+   Returns:      A list with unique numbers between 0 and 3
+
+   Notes:        - Order is unimportant
+                 - Input can be a scalar or a sequence (tuple, list)
+                 - Scalers are upgraded to a list.
+                 - The result has only unique numbers
+   -----------------------------------------------------------
+   """
+   if type(plotaxes) not in sequencelist:
+      plotaxes = [plotaxes,]
+   if type(plotaxes) == TupleType:
+      plotaxes = list(plotaxes)
+   for i,pa in enumerate(plotaxes):
+      if type(pa) == StringType:
+         if "LEFT".find(pa.upper()) == 0:
+            plotaxes[i] = left
+         elif "BOTTOM".find(pa.upper()) == 0:
+            plotaxes[i] = bottom
+         elif "RIGHT".find(pa.upper()) == 0:
+            plotaxes[i] = right
+         elif "TOP".find(pa.upper()) == 0:
+            plotaxes[i] = top
+         else:
+            raise ValueError, "[%s] Cannot identify this plot axis!" % pa
+   for pa in plotaxes:                           # Check validity
+      if pa < 0 or pa > 3:
+         raise ValueError, "Cannot identify this plot axis!"
+   aset = {}
+   map(aset.__setitem__, plotaxes, [])
+   return aset.keys()
+
 
 
 class Plotversion(object):
@@ -167,8 +215,8 @@ could be added in the future.
          frame = fig.add_subplot(111)
          gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
          grat = wcsgrat.Graticule(header)
-         pixellabels = grat.pixellabels()
-         ruler = grat.ruler()
+         pixellabels = grat.Pixellabels()
+         ruler = grat.Ruler()
          gratplot.add( [grat,pixellabels,ruler] )
 
    One can also put objects from other sources in the same container
@@ -211,33 +259,10 @@ could be added in the future.
          from random import choice
          self.baselabel = join([choice(letters) for i in range(8)], "")
          self.frameindx = 0
-         self.firstframe = True
+         self.firstframe = False  # was True
          self.frames.append(frame)
-
-
-   def add2(self, obj):
-      """
-      Add object to plot container. These objects can be related to different
-      world coordinate systems as long as the dimensions in pixels correspond.
-      See the graticules tutorial for an example).
-
-      :parameter obj:
-         Object of class :class:`Graticule`, Ruler or Gridframe.
-         Objects from class Ruler are created with Graticule's method
-         :meth:`Graticule.ruler`. Objects from class Gridframe
-         are created with Graticule's method
-         :meth:`Graticule.pixellabels`.
-
-      """
-      
-      if isinstance(obj, Graticule):
-         self.graticules.append(obj)
-         
-      elif isinstance(obj, Ruler):
-         self.rulers.append(obj)
-      elif isinstance(obj, Gridframe):
-         self.gridframes.append(obj)
-
+         frame.xaxis.set_visible(False)
+         frame.yaxis.set_visible(False)
 
    def add(self, objlist):
       """
@@ -248,33 +273,39 @@ could be added in the future.
       :parameter obj:
          Object of class :class:`Graticule`, Ruler or Gridframe or Insidelabels.
          Objects from class Ruler are created with Graticule's method
-         :meth:`Graticule.ruler`. Objects from class Gridframe
+         :meth:`Graticule.Ruler`. Objects from class Gridframe
          are created with Graticule's method
-         :meth:`Graticule.pixellabels` and Objects from class Insidelabels
-         are created with Graticule's method :meth:`Graticule.insidelabels`
+         :meth:`Graticule.Pixellabels` and Objects from class Insidelabels
+         are created with Graticule's method :meth:`Graticule.Insidelabels`
 
       """
       if type(objlist) not in sequencelist:
          objlist = [objlist]
       for obj in objlist:
-         if isinstance(obj, Graticule):
-            self.graticules.append(obj)
+         # Do not use isinstance() here because we don't have the types available in other modules
+         # Protect against unknown objects:
+         try:
+            t = obj.ptype
+         except:
+            raise Exception("Unknown object. Cannot plot this!")
+         if obj.ptype == "Graticule":
+            #self.graticules.append(obj)
             self.__plot1graticule(obj)
-         elif isinstance(obj, Ruler):
-            self.rulers.append(obj)
+         elif obj.ptype == "Ruler":
+            #self.rulers.append(obj)
             self.__plotruler(obj)
-         elif isinstance(obj, Gridframe):
-            self.gridframes.append(obj)
+         elif obj.ptype == "Gridframe":
+            #self.gridframes.append(obj)
             self.__plot1grid(obj)
-         elif isinstance(obj, Insidelabels):
-            self.insidelabs.append(obj)
+         elif obj.ptype == "Insidelabels":
+            #self.insidelabs.append(obj)
             self.__plotinsidelabels(obj)
-         else:
-            try:
-               self.images.append(obj)
-               obj.imshow()
-            except:
-                pass
+         #else:
+         #   try:
+         #      self.images.append(obj)
+         #      obj.imshow()
+         #   except:
+         #       pass
 
 
    def __plot1graticule(self, graticule):
@@ -383,7 +414,7 @@ could be added in the future.
       Purpose:         Plot world coordinate labels inside a plot
       Parameters:
          insidelabels - Object from class Insidelabels created with 
-                       method Graticule.insidelabels
+                       method Graticule.Insidelabels
       Returns:         --
       Notes:
       -----------------------------------------------------------
@@ -399,13 +430,34 @@ could be added in the future.
                        (or another system if an offset is given)
       Parameters:
          pixellabels - Object from class Gridframe made with 
-                       method Graticule.pixellabels
+                       method Graticule.Pixellabels
       Returns:         --
       Notes:           This method can only plot the grid labels along
                        two axes. If you need to label the other axes 
-                       too, then add another grid with method pixellabels().
+                       too, then add another grid with method Pixellabels().
+
+                       Only one frame is plotted. Needs maintenance
       -----------------------------------------------------------
       """
+      plotaxes = parseplotaxes(pixellabels.plotaxis)  # Is always a list with integers now!
+      # What are the combinations:
+      # Only one axis 0, 1, 2, 3
+      # Two axes 0,1 - 0,2 - 0,3
+      #          1,2 - 1,3
+      #          2,3
+      #
+      # The combinations 0,1 - 0,3 - 1,2 - 2,3 can be plotted in 1 frame
+      # For 0,2 - 1,3 we need two frames. Then we raise an exception
+      # and suggest a user to plot it in two steps
+      # If there are more than two plot axes then raise also
+      # an exception.
+
+      if len(plotaxes) > 2:
+         raise Exception, "Can plot labels for a maximum of 2 axes. Please split up!"
+
+      if (0 in plotaxes and 2 in plotaxes) or (1 in plotaxes and 3 in plotaxes):
+         raise Exception, "Cannot plot labels for this combination. Please split up!"
+      
       aspect = self.frame.get_aspect()
       adjust = self.frame.get_adjustable()
       kwargs = pixellabels.kwargs
@@ -427,43 +479,53 @@ could be added in the future.
       gframe.set_ylim((ylo,yhi))
       self.frames.append(gframe)
 
-      plotaxes = pixellabels.plotaxis
-      if type(plotaxes) not in sequencelist:
-         plotaxes = (plotaxes,)
-
       if 3 in plotaxes:
          gframe.xaxis.set_label_position('top')
          gframe.xaxis.tick_top()
-      else:
+      elif 1 in plotaxes:
          gframe.xaxis.set_label_position('bottom')
          gframe.xaxis.tick_bottom()
-
+      else:  # both not available -> make invisible
+         for tick in gframe.xaxis.get_major_ticks():
+            tick.label2.set(visible=False)
+            tick.label1.set(visible=False)
+           
       setmarker = pixellabels.markersize != None
       for tick in gframe.xaxis.get_major_ticks():
          if 3 in plotaxes:
             tick.label2.set(**kwargs)
             if setmarker:
                tick.tick2line.set_markersize(pixellabels.markersize)
-         else:
+            tick.tick1On = False
+         elif 1 in plotaxes:
             tick.label1.set(**kwargs)
             if setmarker:
                tick.tick1line.set_markersize(pixellabels.markersize)
+            tick.tick2On = False
+               
       if 2 in plotaxes:
          gframe.yaxis.set_label_position('right')
          gframe.yaxis.tick_right()
-      else:
+      elif 0 in plotaxes:
          gframe.yaxis.set_label_position('left')
          gframe.yaxis.tick_left()
-
+      else:
+         for tick in gframe.yaxis.get_major_ticks():
+            tick.label2.set(visible=False)
+            tick.label1.set(visible=False)
+         
       for tick in gframe.yaxis.get_major_ticks():
          if 2 in plotaxes:
             tick.label2.set(**kwargs)
             if setmarker:
                tick.tick2line.set_markersize(pixellabels.markersize)
-         else:
+            tick.tick1line.set_visible(False)
+         elif 0 in plotaxes:
             tick.label1.set(**kwargs)
             if setmarker:
                tick.tick1line.set_markersize(pixellabels.markersize)
+            tick.tick2line.set_visible(False)
+               
       gframe.grid(pixellabels.gridlines)
       self.fig.sca(self.frame)    # back to frame from calling environment
 
@@ -475,8 +537,8 @@ could be added in the future.
       self.frame.plot((ruler.x1,ruler.x2), (ruler.y1,ruler.y2), '-', **ruler.linekwargs)
       dx = ruler.tickdx
       dy = ruler.tickdy
-      self.frame.plot( [ruler.x1, ruler.x1+dx], [ruler.y1, ruler.y1+dy], '-', **ruler.linekwargs)
-      self.frame.plot( [ruler.x2, ruler.x2+dx], [ruler.y2, ruler.y2+dy], '-', **ruler.linekwargs)
+      #self.frame.plot( [ruler.x1, ruler.x1+dx], [ruler.y1, ruler.y1+dy], '-', **ruler.linekwargs)
+      #self.frame.plot( [ruler.x2, ruler.x2+dx], [ruler.y2, ruler.y2+dy], '-', **ruler.linekwargs)
       for x, y, label in zip(ruler.x, ruler.y, ruler.label):
          self.frame.plot( [x, x+dx], [y, y+dy], '-', color='k')
          self.frame.text(x+ruler.mscale*dx, y+ruler.mscale*dy, label, **ruler.kwargs)
@@ -881,6 +943,7 @@ class Insidelabels(object):
 
    def __init__(self):
       self.labels = []
+      self.ptype = "Insidelabels"
    def append(self, Xp, Yp, lab, rots, **kwargs):
       ilab = self.Ilabel(Xp, Yp, lab, rots, **kwargs)
       self.labels.append(ilab)
@@ -895,6 +958,7 @@ class Ruler(object):
    -------------------------------------------------------------------------------
    """
    def __init__(self, x1, y1, x2, y2, angle, dx, dy, mscale, **kwargs):
+      self.ptype = "Ruler"
       self.x1 = x1
       self.y1 = y1
       self.x2 = x2
@@ -942,6 +1006,7 @@ class Gridframe(object):
    -------------------------------------------------------------------------------
    """
    def __init__(self, pxlim, pylim, plotaxis, markersize, gridlines, **kwargs):
+      self.ptype = "Gridframe"
       self.pxlim = pxlim
       self.pylim = pylim
       self.plotaxis = plotaxis
@@ -964,7 +1029,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   define a projection system from scratch.
 :type header:     Python dictionary or FITS header object (pyfits.NP_pyfits.HDUList)
 
-:param fitsimage: This is a helper object. It can be any object as long it
+:param graticuledata: This is a helper object. It can be any object as long it
                   has attributes:
 
                   * header
@@ -978,7 +1043,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   and relevant properties could/should produce objects which
                   have at least values for the properties listed above.
                   Then these objects could be used as a shortcut parameter.
-:type fitsimage:  Object with some required attributes
+:type graticuledata:  Object with some required attributes
 
 :param axnum:     This parameter sets which FITS axis corresponds
                   to the x-axis of your graticule plot rectangle
@@ -1044,7 +1109,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 :param skyout:    A single number or a tuple which specifies
                   the celestial system.
                   The syntax for the tuple is:
-                  ``(sky system, equinox, referencesystem,
+                  ``(sky system, equinox, reference system,
                   epoch of observation)``.
                   Predefined are the systems:
 
@@ -1072,7 +1137,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      MJD            Modified Julian Day 'mJD 24034', 'MJD50123.2'            
                      RJD            Reduced Julian Day  'rJD50123.2', 'Rjd 23433'            
                      F              DD/MM/YY (old FITS) 'F29/11/57'                          
-                     F              YYYY-MM-DD          'F2000-01-01                         
+                     F              YYYY-MM-DD          'F2000-01-01'                         
                      F              YYYY-MM-DDTHH:MM:SS 'F2002-04-04T09:42:42.1'             
                      =============  =================== ======================================
  
@@ -1413,11 +1478,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 .. automethod::   addgratline
 .. automethod::   setp_linespecial
 
-**Methods which add plot elements:**
+**Methods related to storing and plotting elements:**
 
-.. automethod::   insidelabels
-.. automethod::   ruler
-.. automethod::   pixellabels
+.. automethod::   Insidelabels
+.. automethod::   Ruler
+.. automethod::   Pixellabels
+.. automethod::   plot
 
 **Utility methods:**
 
@@ -1672,7 +1738,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                  For other intervals, the length of the interval
                  is scaled to an interval between [0,10>. The
                  scaled length sets the number of divisions and
-                 the final step size.
+                 the final step size. The output step size is in degrees.
 
       Examples:  a=3; b = 11 
                  print  nicenumbers(a, b)
@@ -1742,22 +1808,32 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                k = 5
 
             step = (D3*10.0**f)/k
+            
       else:
          step = delta
+         
+          
 
       if step == 0.0:        # Return empty list. Cannot divide by zero
          return [], 0,0      # To get just one point, use delta > x2 - x1
 
       xxm = step*numpy.round(((x1+x2)/2.0)/step)
-
+      xxm /= fact; step /= fact
+      # Now both parameters are in the original units.
+      # Calculate a precision for the seconds along spatial axes.
+      pstep = step
+      if axtype in ['longitude', 'latitude']:
+         if skysys == wcs.equatorial and axtype == 'longitude':
+            pstep *= 240.0
+         else:
+            pstep *= 3600.0
       # Set the precision for the seconds
-      f0 = numpy.floor( numpy.log10(step) )
+      f0 = numpy.floor( numpy.log10(pstep) )
       if f0 < 0.0:
          prec = int(abs(f0))
       else:
          prec = 0
- 
-      xxm /= fact; step /= fact
+      
       startx = None
       if start != None:
          startx = start
@@ -1850,7 +1926,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       return wxmin, wxmax, wymin, wymax
 
 
-   def __init__(self, header=None, fitsimage=None, axnum=None, 
+   def __init__(self, header=None, graticuledata=None, axnum=None,
                 pxlim=None, pylim=None, 
                 mixpix=None, spectrans=None, skyout=None, alter='', 
                 wxlim=None, wylim=None,
@@ -1866,14 +1942,18 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   See class documentation above.
       -----------------------------------------------------------
       """
-      if fitsimage != None:
-         header = fitsimage.hdr
-         axnum  = fitsimage.axperm
-         pxlim  = fitsimage.pxlim
-         pylim  = fitsimage.pylim
-         mixpix = fitsimage.mixpix
-         spectrans = fitsimage.spectrans
-         skyout = fitsimage.skyout
+      self.ptype = 'Graticule'
+      if graticuledata != None:
+         header = graticuledata.hdr
+         axnum  = graticuledata.axperm
+         pxlim  = graticuledata.pxlim
+         pylim  = graticuledata.pylim
+         mixpix = graticuledata.mixpix
+         # Allow these to be overwritten
+         if spectrans == None:
+            spectrans = graticuledata.spectrans
+         if skyout == None:
+            skyout = graticuledata.skyout
          
       # Try to get two axis numbers if none are given
       if axnum == None:
@@ -1959,7 +2039,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       
       # For the labeling format (hms/dms) we need to know the sky system.
       # If the input was a tuple, then it must be equatorial or ecliptical
-      if type(proj.skyout) == types.TupleType:
+      if type(proj.skyout) == TupleType:
          s = proj.skyout[0]
          try:
             if s < 4:              # Vervangen door len(xxx)
@@ -2049,7 +2129,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          xmin = self.pxlim[0] - 0.5
          ymin = self.pylim[0] - 0.5
          x1 = xmin; x2 = xmax; y1 = y2 = ymin
-         ruler = self.ruler(x1, y1, x2, y2, lambda0=0.5, step=deltax)
+         ruler = self.Ruler(x1, y1, x2, y2, lambda0=0.5, step=deltax)
          self.xstarts = ruler.xw
          self.prec[0] = 0
          self.delta[0] = ruler.stepsizeW
@@ -2077,7 +2157,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          xmin = self.pxlim[0] - 0.5
          ymin = self.pylim[0] - 0.5
          x1 = xmin; x2 = xmin; y1 = ymin; y2 = ymax
-         ruler = self.ruler(x1, y1, x2, y2, lambda0=0.5, step=deltay)
+         ruler = self.Ruler(x1, y1, x2, y2, lambda0=0.5, step=deltay)
          self.ystarts = ruler.xw
          self.prec[1] = 0
          self.delta[1] = ruler.stepsizeW
@@ -2217,6 +2297,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
       # Finally set default values for aspect ratio
       dummy = self.get_aspectratio()
+      self.objlist = []
 
 
    def scanborder(self, xstart, ystart, deltax=None, deltay=None, nxy=1000, tol=None):
@@ -2561,10 +2642,7 @@ a sequence of values.
          else:
             wcsa = wcsaxis
       if plotaxis != None:
-         if type(plotaxis) not in sequencelist:
-            plta = [plotaxis]
-         else:
-            plta = plotaxis
+         plta = parseplotaxes(plotaxis)
       if position != None:
          if type(position) not in sequencelist:
             posn = [position]
@@ -2814,8 +2892,7 @@ behaviour.
                      grat = Graticule(...)
                      grat.setp_plotaxis(wcsgrat.bottom, fontsize=11)
       """
-      if type(plotaxis) not in sequencelist:
-         plotaxis = (plotaxis,)
+      plotaxis = parseplotaxes(plotaxis)
       for ax in plotaxis:
          if len(kwargs):
             self.axes[ax].kwargs.update(kwargs)
@@ -2825,7 +2902,7 @@ behaviour.
             self.axes[ax].label = label
 
 
-   def insidelabels(self, wcsaxis=0, world=None, constval=None, deltapx=0.0, deltapy=0.0, angle=None, addangle=0.0, fmt=None, **kwargs):
+   def Insidelabels(self, wcsaxis=0, world=None, constval=None, deltapx=0.0, deltapy=0.0, angle=None, addangle=0.0, fmt=None, **kwargs):
       """
 Annotate positions in world coordinates
 within the boundaries of the plot.
@@ -2902,7 +2979,7 @@ intersections with the enclosing axes rectangle.
                grat = Graticule(...)
                lon_world = [0,30,60,90,120,150,180]
                lat_constval = 30
-               inlabs = grat.insidelabels(wcsaxis=0,
+               inlabs = grat.Insidelabels(wcsaxis=0,
                                           world=lon_world,
                                           constval=lat_constval,
                                           color='r')
@@ -3009,11 +3086,11 @@ intersections with the enclosing axes rectangle.
                      defkwargs.update({'rotation':phi})
                      defkwargs.update(kwargs)
                      insidelabels.append(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
-
+         self.objlist.append(insidelabels)
          return insidelabels
 
 
-   def ruler(self, x1=None, y1=None, x2=None, y2=None, lambda0=0.5, step=None,
+   def Ruler(self, x1=None, y1=None, x2=None, y2=None, lambda0=0.5, step=None,
              world=False, angle=None, addangle=0.0, 
              fmt=None, fun=None, fliplabelside=False, mscale=None, **kwargs):
       """
@@ -3124,7 +3201,7 @@ a spatial axis.
 
 :Examples:     Create a ruler object and add it to plot container::
 
-                  ruler = grat.ruler(x1,y1,x2,y2)
+                  ruler = grat.Ruler(x1,y1,x2,y2)
                   gratplot.add(grat)
                   gratplot.add(pixellabels)
                   gratplot.add(ruler)
@@ -3136,9 +3213,9 @@ a spatial axis.
                lower or left side of the first pixel::
 
                   xmax = grat.pxlim[1]+0.5; ymax = grat.pylim[1]+0.5
-                  ruler = grat.ruler(xmax,0.5, xmax, ymax, lambda0=0.5, step=5.0/60.0,
-                                       fun=lambda x: x*60.0, fmt=r"$%4.0f^\prime$",
-                                       fliplabelside=True, color='r')
+                  ruler = grat.Ruler(xmax,0.5, xmax, ymax, lambda0=0.5, step=5.0/60.0,
+                                     fun=lambda x: x*60.0, fmt=r"$%4.0f^\prime$",
+                                     fliplabelside=True, color='r')
                   ruler.setp_line(lw='2', color='g')
                   ruler.setp_labels(color='y')
                   gratplot.add(ruler)
@@ -3441,77 +3518,124 @@ a spatial axis.
             elif sign == -1.0:
                break
                # raise Exception, mes
+      self.objlist.append(ruler)
       return ruler
 
 
-   def pixellabels(self, plotaxis=None, markersize=None, gridlines=False, offset=None, **kwargs):
+   def Pixellabels(self, plotaxis=None, markersize=None, gridlines=False, offset=None, **kwargs):
       """
-Draw positions in pixels along one or more
-plot axes. Nice numbers and step size are
-calculated by Matplotlib's own plot methods.
-
-
-:param plotaxis:     The axis number of one of the axes of the
-                     plot rectangle:
-
-                     * wcsgrat.left (== 0)
-                     * wcsgrat.bottom (==1)
-                     * wcsgrat.right (==2)
-                     * wcsgrat.top (==3)
-:type  plotaxis:     Integer
-
-:param markersize:   Set size of ticks at pixel positions.
-                     The size can be negative to get tick
-                     marks that point outwards.
-:type  markersize:   Integer
-
-:param gridlines:    Set plotting of grid lines (connected tick marks)
-                     on or off (True/False). The default is off.
-:type gridlines:     Boolean
-
-:param offset:       The pixels can have an integer offset.
-                     If you want the reference pixel to be pixel
-                     0 then supply offset=(crpixX, crpixY).
-                     These crpix values are usually read from then
-                     header. In this routine the nearest integer of
-                     the input is calculated to ensure that the
-                     offset is an integer value.
-:type offset:        *None* or a floating point number
-
-:param `**kwargs`:   Keyword arguments to set attributes for
-                     the labels.
-:type `**kwargs`:    Matplotlib keyword argument(s)
-
-:Returns:            An object from class *Gridframe* which
-                     is added to the plot container with Plotversion's
-                     method :meth:`Plotversion.add`.
-
-:Notes:              --
-
-:Examples:           Annotate the pixels in a plot along the right and top axis
-                     of a plot. Change the color of the labels to red::
-
-                        pixellabels = grat.pixellabels(plotaxis=(2,3), color='r',fontsize=7)
-                        gratplot.add(pixellabels)
+      Plot pixel coordinates
       """
+      gridlabs = Pixellabels(self, pxlim=self.pxlim, pylim=self.pylim, 
+                             plotaxis=plotaxis, markersize=markersize, gridlines=gridlines, 
+                             offset=offset, **kwargs)
+      self.objlist.append(gridlabs)
+      
+      
+   def plot(self, frame):
+      """
+      Plot all objects stored in attribute *objlist*.
+      """
+      container = Plotversion("matplotlib", frame.figure, frame)
+      #try:
+      visible = self.visible
+      #except:
+         #visible = True
+      if visible:
+         container.add(self)
+      if len(self.objlist) > 0:
+         container.add(self.objlist)
+
+
+class Pixellabels(object):
+   """
+   Draw positions in pixels along one or more
+   plot axes. Nice numbers and step size are
+   calculated by Matplotlib's own plot methods.
+   
+   
+   :param plotaxis:     The axis number of one or two of the axes of the
+                        plot rectangle:
+   
+                        * wcsgrat.left
+                        * wcsgrat.bottom
+                        * wcsgrat.right
+                        * wcsgrat.top
+
+                        or 'left', 'bottom', 'right', 'top'
+                        
+   :type  plotaxis:     Integer
+   
+   :param markersize:   Set size of ticks at pixel positions.
+                        The size can be negative to get tick
+                        marks that point outwards.
+   :type  markersize:   Integer
+   
+   :param gridlines:    Set plotting of grid lines (connected tick marks)
+                        on or off (True/False). The default is off.
+   :type gridlines:     Boolean
+   
+   :param offset:       The pixels can have an integer offset.
+                        If you want the reference pixel to be pixel
+                        0 then supply offset=(crpixX, crpixY).
+                        These crpix values are usually read from then
+                        header. In this routine the nearest integer of
+                        the input is calculated to ensure that the
+                        offset is an integer value.
+   :type offset:        *None* or a floating point number
+   
+   :param `**kwargs`:   Keyword arguments to set attributes for
+                        the labels.
+   :type `**kwargs`:    Matplotlib keyword argument(s)
+   
+   :Returns:            An object from class *Gridframe* which
+                        is added to the plot container with Plotversion's
+                        method :meth:`Plotversion.add`.
+   
+   :Notes:              --
+   
+   :Examples:           Annotate the pixels in a plot along the right and top axis
+                        of a plot. Change the color of the labels to red::
+   
+                           mplim = f.Annotatedimage(frame)
+                           ima = mplim.Image(visible=False)
+                           mplim.Pixellabels(plotaxis=("bottom", "right"), color="r")
+
+                           or with separate axes:
+   
+                           mplim.Pixellabels(plotaxis="bottom", color="r")
+                           mplim.Pixellabels(plotaxis="right", color="b", markersize=10)
+                           mplim.Pixellabels(plotaxis="top", color="g", markersize=-10)
+
+   """
+   def __init__(self, pxlim, pylim, plotaxis=None, markersize=None,
+                gridlines=False, offset=None, **kwargs):
+      
       def nint(x):
          return numpy.floor(x+0.5)
-
+   
+      self.ptype = "Pixellabels"
       defkwargs = {'fontsize':7}
       defkwargs.update(kwargs)
       if plotaxis == None:
          plotaxis = [2,3]
 
       px = [0,0]; py = [0,0]
-      px[0] = self.pxlim[0]; py[0] = self.pylim[0]    # Do not copy directly because new values must be temporary
-      px[1] = self.pxlim[1]; py[1] = self.pylim[1]
+      px[0] = pxlim[0]; py[0] = pylim[0]    # Do not copy directly because new values must be temporary
+      px[1] = pxlim[1]; py[1] = pylim[1]
       if offset != None:
          offX = nint(offset[0])
          offY = nint(offset[1])
          px[0] -= offX; px[1] -= offX;
          py[0] -= offY; py[1] -= offY;
-
+   
       gridlabs = Gridframe(px, py, plotaxis, markersize, gridlines, **defkwargs)
-      return gridlabs 
+      self.gridlabs = gridlabs
 
+   def plot(self, frame):
+      container = Plotversion("matplotlib", frame.figure, frame)
+      container.add(self.gridlabs)
+   
+
+      
 #--------End of file--------

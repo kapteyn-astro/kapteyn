@@ -25,6 +25,9 @@
 #----------------------------------------------------------------------
 
 """
+.. highlight:: python
+   :linenothreshold: 10
+
 Module maputils 
 ===============
 
@@ -81,12 +84,9 @@ We changed interactively the color map (keys *pageup/pagedown*)
 and the color limits (pressing right mouse button while moving mouse) and saved
 a hard copy on disk.
 
-.. literalinclude:: maputils.intro.2.py
-
-
+.. literalinclude:: EXAMPLES/mu_introduction.py
    
-   
-.. image:: maputils_plot1.*
+.. image:: EXAMPLES/mu_introduction.png
    :width: 700
    :align: center
    
@@ -114,12 +114,12 @@ Class FITSimage
 .. autoclass:: FITSimage
 
 
-Class MPLimage
+Class 
 --------------
 
 .. index:: Plot image with Matplotlib
 
-.. autoclass:: MPLimage
+.. autoclass:: Annotatedimage
 
 Class FITSaxis
 --------------
@@ -141,6 +141,8 @@ Class ImageContainer
 
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
 from matplotlib import cm
+from matplotlib.colors import LogNorm, NoNorm
+from matplotlib.colorbar import make_axes, Colorbar
 import matplotlib.nxutils as nxutils
 import pyfits
 import numpy
@@ -157,11 +159,13 @@ from string import upper as string_upper
 from string import letters
 from re import split as re_split
 
+
 sequencelist = (types_TupleType, types_ListType)
 
 __version__ = '1.0'
 
-
+(left,bottom,right,top) = (wcsgrat.left, wcsgrat.bottom, wcsgrat.right, wcsgrat.top)                 # Names of the four plot axes
+(native, notnative, bothticks, noticks) = (wcsgrat.native, wcsgrat.notnative, wcsgrat.bothticks, wcsgrat.noticks) 
 
 def prompt_box(pxlim, pylim, axnameX, axnameY):
 #-----------------------------------------------------------
@@ -708,666 +712,313 @@ def prompt_skyout(fitsobj):
    return skyout
 
 
-
-class MPLimage(object):
-#-----------------------------------------------------------------
-   """
-This class creates an object that can be displayed with
-methods from Matplotlib. Usually these objects are created
-within the context of a :class:`FITSimage` object but it can
-also be used as a stand alone class.
-
-The purpose of the class is to facilitate a user in plotting
-FITS image data. Of course one could use the Matplotlib functions
-and methods as they are, but these methods set useful
-defaults. It does focus on plotting an image and plotting contours.
-For these contours we added methods to change the properties of
-individual contours and contour labels.
-
-:param frame:
-   Couple image data to this frame in Matplotlib.
-:type frame:
-   Matplotlib Axes instance
-:param pxlim:
-   Two integer numbers which should not be smaller than 1 and not
-   bigger than the header value *NAXISn*, where n represents the
-   x axis.
-:type pxlim:
-   Tuple with two integers
-:param pylim:
-   Two integer numbers which should not be smaller than 1 and not
-   bigger than the header value *NAXISn*, where n represents the
-   y axis.
-:type pylim:
-   Tuple with two integers
-:param imdata:
-   Image data. This data must represent the area defined by
-   *pxlim* and *pylim*.
-:type imdata:
-   2D NumPy array
-:param projection:
-   The current projection object which provides this class
-   with methods *toworld()* and *topixel()* needed for conversions
-   between pixels and world coordinates.
-:type projection:
-   Instance of Projection class from module :mod:`wcs`
-:param mixpix:
-   The axis number (FITS standard i.e. starts with 1) of the missing spatial axis for
-   images with only one spatial axis (e.q. Position-Velocity plots).
-:type mixpix:
-   Value *None* or an integer
-
-:Attributes:
-   
-    .. attribute:: frame
-          
-          Matplotlib Axes instance
-    
-    .. attribute:: fig
-
-          Matplotlib Figure instance
-          
-    .. attribute:: map
-
-          Extracted image date
-          
-    .. attribute:: mixpix
-
-          The pixel of the missing spatial axis in a Position-Velocity
-          image
-          
-    .. attribute:: projection
-
-          An object from the Projection class as defined in module :mod:`wcs`
-          
-    .. attribute:: pxlim
-
-          Pixel limits in x = (xlo, xhi)
-          
-    .. attribute:: pylim
-
-          Pixel limits in y = (ylo, yhi)
-
-    .. attribute:: pixelaspectratio
-
-          The aspect ratio of the pixels in this image. It is a default value
-          for attribute :attr:`aspectratio`. The pixel aspect ratio should have been supplied
-          in the constructor of this class, because this class has
-          no knowledge of pixel sizes.
-    
-    .. attribute:: aspectratio
-
-          Aspect ratio of a pixel according to the FITS header.
-          For spatial maps this value is used to set and keep an
-          image in the correct aspect ratio.
-          
-    .. attribute:: box
-     
-          box = (self.pxlim[0]-0.5, self.pxlim[1]+0.5, self.pylim[0]-0.5, self.pylim[1]+0.5)
-
-    .. attribute:: levels
-
-          Entered or calculated contour levels
-          
-    .. attribute:: labs
-
-          Matplotlib Text instances which are used to annotate contours.
-          
-    .. attribute:: datmin
-
-          The minimum image value (in units of FITS keyword *BUNIT*)
-          
-    .. attribute:: datmax
-
-          The maximum image value (in units of FITS keyword *BUNIT*)
-
-    .. attribute:: clipmin
-
-          The minimum value of the range of image values for which
-          the colors are distributed.
-
-    .. attribute:: clipmax
-
-          The maximum value of the range of image values for which
-          the colors are distributed.
-          
-    .. attribute:: im
-
-          A *matplotlib.image.AxesImage* instance.
-
-    .. attribute:: cb
-
-          A *matplotlib.colorbar.Colorbar* instance.
+def gauss_kern(size, sizey=None):
+     """ Returns a normalized 2D gauss kernel array for convolutions """
+     size = int(size)
+     if not sizey:
+         sizey = size
+     else:
+         sizey = int(sizey)
+     x, y = numpy.mgrid[-size:size+1, -sizey:sizey+1]
+     g = numpy.exp(-(x**2/float(size)+y**2/float(sizey)))
+     return g / g.sum()
 
 
-:Methods:
-
-.. index:: How to preserve the pixel aspect ratio
-.. automethod:: set_aspectratio
-.. automethod:: add_subplot
-.. automethod:: add_axes
-.. automethod:: add_special
-.. automethod:: imshow
-.. automethod:: colorbar
-.. automethod:: contour
-.. automethod:: set_contattr
-.. automethod:: clabel
-.. automethod:: set_labelattr
-.. automethod:: toworld
-.. automethod:: topixel
-.. automethod:: positionmessage
-.. automethod:: on_move
-.. automethod:: on_click
-.. automethod:: key_pressed
-.. automethod:: motion_events
-.. automethod:: key_events
-.. automethod:: click_events
-.. automethod:: getflux
-
-   """
-#--------------------------------------------------------------------
-   def __init__(self, fig, pxlim, pylim, imdata, projection, mixpix=None, 
-                slicepos=None, pixelaspectratio=None):
-      self.frame = None
-      self.fig = fig
-      self.map = imdata
-      self.mixpix = mixpix
-      self.projection = projection
-      self.pxlim = pxlim
-      self.pylim = pylim
-      self.slicepos = slicepos
-      self.aspectratio = None
-      self.pixelaspectratio = pixelaspectratio
-      self.box = (self.pxlim[0]-0.5, self.pxlim[1]+0.5, self.pylim[0]-0.5, self.pylim[1]+0.5)
-      self.levels = None
-      self.container = None  # A plot container for graticules etc.
-      self.figmanager = plt_get_current_fig_manager()
-      self.polygons = []
-      self.currentpolygon = 0
-      self.filenameout = "polygon.dat"
-      self.datmin = self.map[numpy.isfinite(self.map)].min()  # Take care of -inf, +inf & NaN
-      self.datmax = self.map[numpy.isfinite(self.map)].max()
-      self.clipmin = self.datmin
-      self.clipmax = self.datmax
-      self.epsilon = 15            # Neighbourhood of a marker
-      self.world = False
-      self.fluxfie = lambda s, a: s/a
-      self.im = None
-      self.cb = None               # The color bar instance
-      self.cbfontsize = None       # Font size of colorbar labels
-      self.cmindx = 0              # Index in array of color maps
-      self.cidmove = None          # Identifier for the mouse move callback registration
-
-
-   def set_aspectratio(self, aspectratio=None):
-   #--------------------------------------------------------------------
-      """
-      This method sets the aspect ratio of the display pixels.
-      The aspect ratio is defined as *pixel height / pixel width*.
-      For many images this value is not 1 so we need to supply
-      the display routines with this information. When parameter
-      *aspectratio* is omitted in the call then a default is copied
-      from attribute *pixelaspectratio*.
-      A correct aspect ratio ensures correct ratios in world coordinates
-      (which is essential for spatial maps).
-       
-      :param aspectratio:
-         Defined as pixel *height / pixel width*. With this parameter you 
-         can set the aspect ratio of your image. If the value is *None*
-         then the default is the aspect ratio that preserves equal distances
-         in world coordinates. If somehow this default is not set
-         in the constructor of this class, then 1.0 is assumed.
-      :type aspectratio:
-         Floating point number
-      """
-   #--------------------------------------------------------------------
-      if aspectratio == None:
-         if self.pixelaspectratio == None:
-            self.pixelaspectratio = 1.0
-         self.aspectratio = self.pixelaspectratio
-      else:
-         self.aspectratio = abs(aspectratio)
-      #nx = float(self.pxlim[1] - self.pxlim[0] + 1)
-      #ny = float(self.pylim[1] - self.pylim[0] + 1)
-      #self.aspectratio *= nx/ny
-      #print "apsectratio", self.aspectratio, nx,ny
-
-
-
-   def add_subplot(self, *args, **kwargs):
-   #--------------------------------------------------------------------
-      """
-   Same as Matplotlib's method *add_subplot()* but now as a method of
-   the current :class:`MPLimage` object. If this was
-   created with an aspect ratio (parameter *aspectratio) unequal to *None*
-   then some extra keyword arguments are appended which preserve the
-   aspect ratio when the plot window is resized.
-
-   :param `*args`: Usually a rectangle l,b,w,h
-   :type `*args`: Matplotlib parameter arguments
-   :param `**kwargs`:
-      Arguments to change the properties of the '*Axes* object.
-   :type `**kwargs`:
-      Matplotlib keyword arguments -dictionary-
-
-   :Attributes:
-      
-      .. attribute:: frame
-
-         This is a Matplotlib Axes instance. We call it a frame.
-         It is the rectangular area in which data is plotted.
-         This value is used to set the frame for the graticules too,
-         as in:
-
-         ``gratplot = wcsgrat.Plotversion('matplotlib', fig, image.frame)``
-
-   :Examples:
-      The example below is a plot without setting an aspect ratio:
-
-      .. literalinclude:: maputils.add_subplot.1.py
-
-      
-      In the example below we set the plot frame (i.e. a Matplotlib Axes instance)
-      with an aspect ratio:
-
-      .. literalinclude:: maputils.add_subplot.2.py
-
-      """
-   #--------------------------------------------------------------------
-      if self.aspectratio == None:
-         self.frame = self.fig.add_subplot(*args, **kwargs)
-      else:
-         # An aspect ratio was set and should be preserved if one resizes the plot window.
-         kwargs.update({'aspect':self.aspectratio, 'adjustable':'box', 'autoscale_on':False, 'anchor':'C'})
-         self.frame = self.fig.add_subplot(*args, **kwargs)
-
-      #self.frame.apply_aspect()
-
-
-
-   def add_axes(self, *args, **kwargs):
-   #--------------------------------------------------------------------
-      """
-   Same as Matplotlib's method *add_axes()* but now as a method of
-   the current :class:`MPLimage` object. If this was
-   created with an aspect ratio (parameter *aspectratio*) unequal to *None*
-   then some extra keyword arguments are appended which preserve the
-   aspect ratio when the plot window is resized.
-
-   :param `*args`: Usually a rectangle l,b,w,h
-   :type `*args`: Matplotlib parameter arguments
-   :param `**kwargs`:
-      Arguments to change the properties of the *Axes* object.
-   :type `**kwargs`:
-      Matplotlib keyword arguments -dictionary-
-
-   :Attributes:
-      
-      .. attribute:: frame
-
-         This is a Matplotlib Axes instance. We call it a frame.
-         It is the rectangular area in which data is plotted.
-         This value is used to set the frame for the graticules too,
-         as in:
-
-         ``gratplot = wcsgrat.Plotversion('matplotlib', fig, image.frame)``
-
-
-      """
-   #--------------------------------------------------------------------
-      if self.aspectratio == None:
-         newkwargs = ({'aspect':'auto','autoscale_on':True}) # Allowed to overwrite
-         newkwargs.update(kwargs)
-         self.frame = self.fig.add_axes(*args, **newkwargs)
-      else:
-         # An aspect ratio was set and should be preserved if one resizes the plot window.
-         kwargs.update({'aspect':self.aspectratio, 'adjustable':'box', 'autoscale_on':False, 'anchor':'C'})
-         self.frame = self.fig.add_axes(*args, **kwargs)
-      #self.frame.apply_aspect()
-
-
-
-   def imshow(self, **kwargs):
-   #--------------------------------------------------------------------
-      """
-   Same as Matplotlib's method *imshow()* but now as a method of
-   the current :class:`MPLimage` object.
-   Some keywords were added to process the curent image data.
-   It sets the origin of the plot (lower left corner). It sets also
-   the data limits for the plot axes, the aspect ratio and the minimum
-   and maximum values of the image for the colors.
-   Finally, this method sets the interpolation to 'nearest', i.e.
-   no interpolation. Usually this is the default for viewing
-   astronomical data.
-
-   These defaults can be changed. When this method is called with keyword
-   arguments which are the same as the defaults set here, then they will
-   overwrite the defaults.
-   Possible keyword arguments:
-   *cmap, interpolation, norm, vmin, vmax, alpha, filternorm, filterrad*.
-
-   :param `**kwargs`:
-      Arguments to change the properties
-      of a :class:`matplotlib.image.AxesImage` instance. Examples are:
-      *colors, alpha, cmap, norm, interpolation* etc.
-   :type `**kwargs`:
-      Matplotlib keyword arguments -dictionary-
-
-   :Raises:
-      :exc:`Exception`
-          *The frame attribute is not yet set. Use add_subplot() first!* -- 
-          One cannot plot an image if Matplotlib doesn't know where to plot it.
-          An *Axes* object must be created. We call this a frame. Frames are
-          created with :meth:`add_subplot` or with :meth:`add_axes`.
-          
-          
-   :Attributes:
-
-     .. attribute:: im
-
-        *matplotlib.image.AxesImage* instance
-        
-   :Examples:
-      A simple demonstration how to plot a channel map from
-      a data cube:
-
-      .. literalinclude:: maputils.imshow.1.py
-   
-      """
-   #--------------------------------------------------------------------
-      # Note that imshow's y origin defaulted to upper in Matplotlib's rc file.
-      # Change default to 'lower'
-      if self.frame == None:
-         raise Exception("The frame attribute is not yet set. Use add_subplot() or add_axes() first!")
-      aspect = self.frame.get_aspect()
-      newkwargs = ({'aspect':aspect, 'origin':"lower", 'extent':self.box,
-                     'vmin':self.datmin, 'vmax':self.datmax, 'interpolation':'nearest'})
+class Image(object):
+   def __init__(self, imdata, box, aspect=1.0, **kwargs):
+      self.ptype = "Image"
+      self.box = box
+      self.datmin = imdata[numpy.isfinite(imdata)].min()  # Take care of -inf, +inf & NaN
+      self.datmax = imdata[numpy.isfinite(imdata)].max()
+      self.norm = None
+      newkwargs = ({'aspect':aspect, 'origin':"lower", 'extent':self.box, 'norm':self.norm,
+                    'vmin':self.datmin, 'vmax':self.datmax, 'interpolation':'nearest'})
       newkwargs.update(kwargs)
-      self.im = self.frame.imshow(self.map, **newkwargs)
+      self.kwargs = newkwargs
+      self.data = imdata
+      self.clipmin = None
+      self.clipmax = None
+      self.clevels = None                # Contour levels
+      self.frame = None                  # MPL Axes object is where the image is displayed
+      self.im = None                     # The MPL image as a result of imshow()
+      self.cmindx = 0
+
+   def plot(self, frame):
+      self.frame = frame
+      self.im = self.frame.imshow(self.data, **self.kwargs)
       self.frame.set_xlim((self.box[0], self.box[1]))
       self.frame.set_ylim((self.box[2], self.box[3]))
-      # It can be that vmin and/or vamx are part of the keyword arguments
+      # It can be that vmin and/or vmax are part of the keyword arguments
       # Make sure that if the are that the min and max clip values are updated.
       # Otherwise the keep the values of datmin and datmax.
       self.clipmin, self.clipmax = self.im.get_clim()
 
 
-
-   def colorbar(self, fontsize=8, **kwargs):
-   #--------------------------------------------------------------------
-      """
-   Same as Matplotlib's method *colorbar()* but now as a method of
-   the current :class:`MPLimage` object.
-   We added a parameter *fontsize* to change the size of the fonts
-   in the labels along the colorbar.
-   The default for the orientation is set to vertical. 
-   These defaults can be changed. When this method is called with keyword
-   arguments which are the same as the defaults set here, then they will
-   overwrite the defaults.
-   Possible keyword arguments:
-   *orientation, fraction, pad, shrink, aspect*.
-
-   :param fontsize:
-      The font size of the colorbar labels.
-   :type fontsize:
-      Integer
-   :param `**kwargs`:
-      Arguments to change the properties
-      of a :class:`matplotlib.colorbar.Colorbar` instance. Examples are:
-      *colors, alpha, cmap, norm, interpolation* etc.
-   :type `**kwargs`:
-      Matplotlib keyword arguments -dictionary-
-
-   :Attributes:
-
-     .. attribute:: cb
-
-        *matplotlib.colorbar.Colorbar* instance
-        
-   :Examples:
-      Add a horizontal color bar. Increase the font size to 10::
-
-         image = fitsobject.create_MPLimage(fig)
-         image.add_subplot(1,1,1)
-         image.imshow(interpolation='gaussian')
-         image.colorbar(fontsize=10, orientation='horizontal')
+   def histeq(self, nbr_bins=256):
+      # Algorithm by Jan Erik Solem
+      im = self.data
+      #get image histogram
+      imhist,bins = numpy.histogram(im.flatten(),nbr_bins,normed=True, new=True)
+      cdf = imhist.cumsum() #cumulative distribution function
+      cdf = 255 * cdf / cdf[-1] #normalize
    
+      #use linear interpolation of cdf to find new pixel values
+      im2 = numpy.interp(im.flatten(),bins[:-1],cdf)
+   
+      self.data = im2.reshape(im.shape)  #, cdf
+      self.datmin = self.data.min()
+      self.datmax = self.data.max()
+      u = {'vmin':self.datmin, 'vmax':self.datmax}
+      self.kwargs.update(u)
+
+
+   def blur_image(self, n, ny=None) :
+      """ blurs the image by convolving with a gaussian kernel of typical
+          size n. The optional keyword argument ny allows for a different
+          size in the y direction.
       """
-   #--------------------------------------------------------------------
+      g = gauss_kern(n, sizey=ny)
+      self.data = numpy.convolve(self.data, g, mode='valid')
+      self.datmin = self.data.min()
+      self.datmax = self.data.max()
+      u = {'vmin':self.datmin, 'vmax':self.datmax}
+      self.kwargs.update(u)
+
+
+class Contours(object):
+   def __init__(self, imdata, box, levels=None, **kwargs):
+      self.ptype = "Contour"
+      self.box = box
+      newkwargs = ({'origin':"lower", 'extent':box})
+      newkwargs.update(kwargs)
+      self.kwargs = newkwargs
+      self.data = imdata
+      self.clevels = levels
+      self.commoncontourkwargs = None
+      self.ckwargslist = None
+      if self.clevels != None:
+         self.ckwargslist = [None]*len(self.clevels)
+      self.commonlabelkwargs = None
+      self.lkwargslist = None
+      if self.clevels != None:
+         self.lkwargslist = [None]*len(self.clevels)
+      self.labs = None
+      
+   def plot(self, frame):
+      self.frame = frame
+      if self.clevels == None:
+         self.CS = self.frame.contour(self.data, **self.kwargs)
+         self.clevels = self.CS.levels
+      else:
+         if type(self.clevels) not in sequencelist:
+            self.clevels = [self.clevels]
+         self.CS = self.frame.contour(self.data, self.clevels, **self.kwargs)
+         self.clevels = self.CS.levels
+      # Properties
+      if self.commoncontourkwargs != None:
+         for c in self.CS.collections:
+            plt_setp(c, **self.commoncontourkwargs)
+      if self.ckwargslist != None:
+         for i, kws in enumerate(self.ckwargslist):
+            if kws != None:
+               plt_setp(self.CS.collections[i], **kws)
+
+      if self.commonlabelkwargs != None:
+         self.labs = self.frame.clabel(self.CS, **self.commonlabelkwargs)
+         #for c in self.labs:
+         #   plt_setp(c, **self.commonlabelkwargs)
+            
+      if self.lkwargslist != None:
+         for i, kws in enumerate(self.lkwargslist):
+            if kws != None:
+               lab = self.frame.clabel(self.CS, [self.clevels[i]], **kws)
+               #plt_setp(lab, **kws)
+
+   def setp_contour(self, levels=None, **kwargs):
+      if levels == None:
+         self.commoncontourkwargs = kwargs
+      else:
+         if self.clevels == None:
+            raise Exception, "Contour levels not set so I cannot identify contours"
+         # Change only contour properties for levels in parameter 'levels'.
+         if type(levels) not in sequencelist:
+            levels = [levels]
+         for lev in levels:
+            try:
+               i = list(self.clevels).index(lev)
+            except ValueError:
+               i = -1 # no match
+            if i != -1:
+               self.ckwargslist[i] = kwargs
+                
+   def setp_label(self, levels=None, **kwargs):
+      if levels == None:
+         self.commonlabelkwargs = kwargs
+      else:
+         if self.clevels == None:
+            raise Exception, "Contour levels not set so I cannot identify contours"
+         # Change only contour properties for levels in parameter 'levels'.
+         if type(levels) not in sequencelist:
+            levels = [levels]
+         for lev in levels:
+            try:
+               i = list(self.clevels).index(lev)
+            except ValueError:
+               i = -1 # no match
+            if i != -1:
+               self.lkwargslist[i] = kwargs
+   
+class Colorbar(object):
+   def __init__(self, image, contourset=None, clines=False, fontsize=9, **kwargs):
+      self.ptype = "Colorbar"
+      self.image = image
+      self.contourset = contourset
+      self.plotcontourlines = clines
+      self.cbfontsize = fontsize
       newkwargs = ({'orientation':'vertical'})
       newkwargs.update(kwargs)
-      self.cb = self.fig.colorbar(self.im, ax=self.frame, **newkwargs)
-      self.cbfontsize = fontsize
-      for t in self.cb.ax.get_yticklabels():
+      self.kwargs = newkwargs
+
+
+   def update(self):
+      for t in self.cb.ax.get_xticklabels():  # Smaller font for color bar
          t.set_fontsize(self.cbfontsize)
-      for t in self.cb.ax.get_xticklabels():
+      for t in self.cb.ax.get_yticklabels():  # Smaller font for color bar
          t.set_fontsize(self.cbfontsize)
 
-
-
-   def contour(self, levels=None, **kwargs):
-   #--------------------------------------------------------------------
-      """
-   Same as Matplotlib's method *contour()* but now as a method of
-   the current :class:`MPLimage` object.
-
-   Note that the attributes for individual contours
-   can be changed with method :meth:`set_contattr`.
-
-   :param levels:
-      One level or a sequence of levels corresponding to the image values for
-      which you want to plot contours.
-      to annotate the contour.
-   :type levels:
-      Value *None* or 1 floating point number or a sequence of floating point numbers
-   :param `**kwargs`:
-      Arguments to change the properties
-      of a :class:`matplotlib.contour.ContourSet` instance. Examples are:
-      *colors, alpha, cmap, norm, linewidths* and *linestyles.*
-   :type `**kwargs`:
-      Matplotlib keyword arguments -dictionary-
-
-   :Returns:
-
-      *levels* - a numpy.ndarray object with the entered or calculated levels
-
-   :Attributes:
-
-      .. attribute:: CS
-        
-         A matplotlib.contour.ContourSet instance
-
-      .. attribute:: levels
-
-         The entered or calculated contour levels
-
-
-   :Examples:
-      Next example shows how to plot contours over an image.
-      and how to change properties of individual contours and labels.
       
-      .. literalinclude:: maputils.contour.2.py
-     
+   def plot(self, frame, cbframe, im):
+      #im = self.image.im
+      if im == None:
+         raise Exception, "Cannot plot a colorbar withhout an image. Plot image first"
       """
-   #--------------------------------------------------------------------
-      if self.frame == None:
-         raise Exception("The frame attribute is not yet set. Use add_subplot() first!")
-      if levels == None:
-         self.CS = self.frame.contour(self.map, origin='lower', extent=self.box, **kwargs)
-         self.levels = self.CS.levels
-      else:
-         if type(levels) not in sequencelist:
-            levels = [levels]
-         self.CS = self.frame.contour(self.map, levels, origin='lower', extent=self.box, **kwargs)
-         self.levels = self.CS.levels
-      return self.CS.levels
-
-
-
-   def set_contattr(self, levels=None, **kwargs):
-   #--------------------------------------------------------------------
+      aspect = self.frame.get_aspect()
+      adjust = self.frame.get_adjustable()
+      pos = self.frame.get_position()
+      l, b, w, h = pos.bounds
+      #axesrect = (l+1.01*w, b, w/20.0, h)
+      axesrect = (l+1.01*w, b, w/20.0, h)
+      print "Frame for vcolorbar:", axesrect
+      fig = frame.figure
+      cax = fig.add_axes(axesrect,
+                         # label=idstr,
+                         #aspect=20.0,
+                         #adjustable='box',
+                         #autoscale_on=False,
+                         #anchor='C')
+                         )
+      self.cb = fig.colorbar(im, cax=cax, orientation='vertical')
       """
-   Set contour attributes for one contour. The contour is given
-   by its index in the levels list (attribute *levels*).
-   When contours are set, an attribute *CS* is set. This attribute
-   stores acollection of contours. We can isolate a contour by
-   an array index. Then such a contour is an instance of class
-   :class:`matplotlib.LineCollection`. Some of the properties of
-   these objects are *linewidth*, *color*, and *linestyle*.
-   A different linestyle is often applied to image data less than zero.
-
-   :param levels:
-      One level or a sequence of levels corresponding to the contour for
-      which you want to want to change properties.
-      If *levels=None* then all the properties for all labels are changed.
-   :type levels:
-      Value *None* or 1 floating point number or a sequence of floating point numbers
-   :param `**kwargs`:
-      Arguments to change the properties
-      of a :class:`matplotlib.collections.LineCollection` instance. Examples are:
-      *backgroundcolor, color, family, fontname, fontsize, fontstyle
-      fontweight, rotation, text, ha, va.*
-   :type `**kwargs`:
-      Matplotlib keyword arguments -dictionary-
-
-   :Examples: Change properties of the first contour
-
-      >>> image.set_contattr(0.02, linewidth=4, color='r', linestyle='dashed')
+      #self.cb = self.frame.figure.colorbar(im, ax=self.frame, **self.kwargs)
+      #self.cb = Colorbar(cbframe, im, **self.kwargs)
+      self.cb = frame.figure.colorbar(im, cax=cbframe, **self.kwargs)
+      #if self.plotcontourlines and self.contourset != None:
+      #   self.cb.add_lines(self.contourset.CS)
+      self.update()
       
-      """
-   #--------------------------------------------------------------------
-      l = len(self.levels)
-      if l == 0:
-         # There are no contours, do nothing
-         return
-
-      if levels == None:
-         # Change properties of all contours
-         for c in self.CS.collections:
-            plt_setp(c, **kwargs)
-      else:
-         # Change only contour properties for levels in parameter 'levels'.
-         if type(levels) not in sequencelist:
-            levels = [levels]
-         for lev in levels:
-            try:
-               i = list(self.levels).index(lev)
-            except ValueError:
-               i = -1 # no match
-            if i != -1:
-                plt_setp(self.CS.collections[i], **kwargs)
 
 
+class Annotatedimage(object):
+   def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, skyout, spectrans,
+                mixpix=None, aspect=1, **kwargs):
+      self.ptype = "Annotatedimage"
+      self.hdr = header
+      self.data = imdata
+      self.mixpix = mixpix
+      self.projection = projection
+      self.axperm = axperm
+      self.pxlim = pxlim
+      self.pylim = pylim
+      self.skyout = skyout
+      self.spectrans = spectrans
+      self.box = (self.pxlim[0]-0.5, self.pxlim[1]+0.5, self.pylim[0]-0.5, self.pylim[1]+0.5)
+      self.image = None
+      self.aspect = aspect
+      self.contours = None
+      self.colorbar = None
+      self.contourset = None
+      # self.image = Image(self.data, self.box, self.aspect, **kwargs)
+      self.objlist = []
+      # Set aspect ratio for this frame
+      self.frame = self.prepare(frame)
+      self.cmindx = 0
+      self.figmanager = plt_get_current_fig_manager()
 
-   def clabel(self, levels=None, **kwargs):
-   #--------------------------------------------------------------------
-      """
-   Same as Matplotlib's method *clabel()* but now as a method of
-   the current :class:`MPLimage` object.
-
-   :param levels:
-      One level or a sequence of levels corresponding to the contour for
-      which you want to want to plot a label
-      to annotate the contour.
-   :type levels:
-      One floating point number or a sequence of floating point numbers
-   :param `**kwargs`:
-      Arguments to change the properties
-      of all :class:`matplotlib.Text` instance. Examples are:
-      *fontsize, colors, inline, fmt*, etc.
-   :type `**kwargs`:
-      Matplotlib keyword arguments -dictionary- 
-
-   :Attributes:
-
-     .. attribute:: labs
-        
-        a list of n matplotlib.text.Text objects
-        
-   :Examples:
-      Plot contours at default levels and label them
-
-      >>> image.contour()
-      >>> image.clabel(colors='r', fontsize=14, fmt="%.3f")
-
-      or plot only a label for contour at image value 0.02:
-
-      >>> image.clabel(0.02, colors='r', fontsize=14, fmt="%.3f")
-
-      """
-   #--------------------------------------------------------------------
-      if levels == None:
-         self.labs = self.frame.clabel(self.CS, **kwargs)
-      else:
-         if type(levels) not in sequencelist:
-            levels = [levels]
-         self.labs = self.frame.clabel(self.CS, levels, **kwargs)
-
-
-
-   def set_labelattr(self, levels=None, **kwargs):
-   #--------------------------------------------------------------------
-      """
-   Change the properties of a single contour label.
-
-   :param levels:
-      One level or a sequence of levels corresponding to the contour level for
-      which you want to want to change the label properties.
-      If *levels=None* then all the properties for all labels are changed.
-   :type levels:
-      Value *None* or 1 floating point number or a sequence of floating point numbers
-   :param lnr:
-      Index for one label in array of labels stored in
-      attribute *labs*. If the integer is outside the range
-      of valid indices, nothing will be done. Also there is
-      no warning.
-   :type lnr:
-      Integer
-   :param `**kwargs`:
-      Arguments to change the properties
-      of a :class:`matplotlib.Text` instance. Examples are:
-      *backgroundcolor, color, family, fontname, fontsize, fontstyle
-      fontweight, rotation, text, ha, va*
-   :type `**kwargs`:
-      Matplotlib keyword arguments -dictionary-
-
-   :Example:
-      Change label that corresponds to the contour level
-      0.025. Make the text horizontal and give it a yellow background.
-      Change also the text of the label.
-
-      >>> image.set_labelattr(0.025, backgroundcolor="yellow",
-                text="Contour 0.025", rotation=0, color="magenta", clip_on=True)
-
-   :Notes:
+   def prepare(self, frame):
+      frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
+      frame.set_autoscale_on(False)
+      frame.xaxis.set_visible(False)
+      frame.yaxis.set_visible(False)
+      frame.set_xlim((self.box[0], self.box[1]))   # Initialize in case no objects are created
+      frame.set_ylim((self.box[2], self.box[3]))   # then we still can navigate with the mouse
+      return frame
       
-      * fontsize seems to apply on all labels at once.
-      * fontstyle doesn't seem to work
-      * fontweight doesn't seem to work
+   def Image(self, **kwargs):
+      image = Image(self.data, self.box, self.aspect, **kwargs)
+      self.objlist.append(image)
+      self.image = image
+      return image
+
+   def Contours(self, levels=None, **kwargs):
+      contourset = Contours(self.data, self.box, levels, **kwargs)
+      self.objlist.append(contourset)
+      self.contourset = contourset
+      return contourset
+
+   def Colorbar(self, clines=False, **kwargs):
+      colorbar = Colorbar(self.image, self.contourset, clines=clines, **kwargs)
+      self.objlist.append(colorbar)
+      self.colorbar = colorbar
+      return colorbar
+
+   def Graticule(self, visible=True, **kwargs):
+      class Gratdata(object):
+         def __init__(self, hdr, axperm, pxlim, pylim, mixpix, skyout, spectrans):
+            self.hdr = hdr
+            self.axperm = axperm
+            self.pxlim = pxlim
+            self.pylim = pylim
+            self.mixpix = mixpix
+            self.skyout = skyout
+            self.spectrans = spectrans
+
+      gratdata = Gratdata(self.hdr, self.axperm, self.pxlim, self.pylim, self.mixpix, self.skyout, self.spectrans)
+      graticule = wcsgrat.Graticule(graticuledata=gratdata, **kwargs)
+      graticule.visible = visible     # A new attribute only for this context
+      self.objlist.append(graticule)
+      return graticule
+
+   def Pixellabels(self, **kwargs):
+      pixlabels = wcsgrat.Pixellabels(self.pxlim, self.pylim, **kwargs)
+      self.objlist.append(pixlabels)
+      return pixlabels
+
+   def plot(self):
+      needresize = False
+      for obj in self.objlist:
+         try:
+            pt = obj.ptype
+            if pt == "Colorbar":
+               needresize = True
+               orientation = obj.kwargs['orientation']
+         except:
+            raise Exception, "Unknown object. Cannot plot this!"
+
+      if needresize:                             # because a colorbar must be included
+         self.cbframe = make_axes(self.frame, orientation=orientation)[0]
+         self.frame = self.prepare(self.frame)
       
-      """
-   #--------------------------------------------------------------------
-      l = len(self.labs)
-      if l == 0:
-         # There are no contours, do nothing
-         return
-
-      if levels == None:
-         # Change properties of all contours
-         for c in self.labs:
-            plt_setp(c, **kwargs)
-      else:
-         # Change only contour properties for levels in parameter 'levels'.
-         if type(levels) not in sequencelist:
-            levels = [levels]
-         for lev in levels:
-            try:
-               i = list(self.levels).index(lev) # Find this value in the list and return its index or -1
-            except ValueError:
-               i = -1 # no match
-            if i != -1:
-                plt_setp(self.labs[i], **kwargs)
-
+      for obj in self.objlist:
+         try:
+            pt = obj.ptype
+         except:
+            raise Exception, "Unknown object. Cannot plot this!"
+         if pt in ["Image", "Contour", "Graticule", "Pixellabels"]:
+            obj.plot(self.frame)
+            # If we want to plot derived objects (e.g. ruler) and not the graticule
+            # then set visible to False in the constructor.
+         if pt == "Colorbar":
+            obj.plot(self.frame, self.cbframe, self.image.im)
 
 
    def toworld(self, xp, yp):
@@ -1416,10 +1067,11 @@ individual contours and contour labels.
       >>> fig = figure()
       >>> fitsobject = maputils.FITSimage('rense.fits')
       >>> fitsobject.set_imageaxes(1,3, slicepos=51)
-      >>> image = fitsobject.create_MPLimage(fig)
-      >>> image.toworld(51,-20)
+      >>> frame = fig.add_subplot(1,1,1)
+      >>> mplim = fitsobject.Annotatedimage(frame)
+      >>> mplim.toworld(51,-20)
           (-51.282084795899998, -243000.0, 60.1538880206)
-      >>> image.topixel(-51.282084795899998, -243000.0)
+      >>> mplim.topixel(-51.282084795899998, -243000.0)
           (51.0, -20.0)
 
       """
@@ -1530,36 +1182,88 @@ individual contours and contour labels.
             xi = numpy.round(x) - (self.pxlim[0]-1)
             yi = numpy.round(y) - (self.pylim[0]-1)
             #if not numpy.ma.is_masked(self.map[yi-1, xi-1]):
-            if not numpy.isnan(self.map[yi-1, xi-1]):
-               z = self.map[yi-1, xi-1]
+            if not numpy.isnan(self.data[yi-1, xi-1]):
+               z = self.data[yi-1, xi-1]
                if missingspatial == None:
-                  s = "x,y=%6.2f,%6.2f  wcs=%10f,%10f  Z=%+8.2e " % (x, y, xw, yw, z)
+                  s = "x,y=%6.1f,%6.1f  wcs=%10f,%10f  Z=%+8.2e " % (x, y, xw, yw, z)
                else:
-                  s = "x,y=%6.2f,%6.2f  wcs=%10f,%10f,%10f  Z=%+8.2e " % (x, y, xw, yw, missingspatial, z)
+                  s = "x,y=%6.1f,%6.1f  wcs=%10f,%10f,%10f  Z=%+8.2e " % (x, y, xw, yw, missingspatial, z)
             else:
                if missingspatial == None:
-                  s = "x,y=%6.2f,%6.2f  wcs=%10f,%10f  Z=NaN" % (x, y, xw, yw)
+                  s = "x,y=%6.21,%6.1f  wcs=%10f,%10f  Z=NaN" % (x, y, xw, yw)
                else:
-                  s = "x,y=%6.2f,%6.2f  wcs=%10f,%10f,%10f  Z=NaN" % (x, y, xw, yw, missingspatial)
+                  s = "x,y=%6.1f,%6.1f  wcs=%10f,%10f,%10f  Z=NaN" % (x, y, xw, yw, missingspatial)
          else: #except:
             s = "xp,yp: %.2f %.2f " % (x, y)
       return s
 
 
-
-   def on_move(self, axesevent):
+   def mouse_toolbarinfo(self, axesevent):
    #--------------------------------------------------------------------
       """
    *Display position information:*
-      
-   Moving the mouse to another position in your image will
-   update the figure message in the toolbar. Use the projection
-   information from the FITS header to create a message with pixel- and
-   world coordinates and the image value of the pixel.
-   You need to connect the mouse event with this function,
-   see example. The string with position information is
-   is returned by :meth:`positionmessage`.
 
+   
+      """
+   #--------------------------------------------------------------------
+      s = ''
+      x, y = axesevent.xdata, axesevent.ydata
+      if self.figmanager.toolbar.mode == '':
+         s = self.positionmessage(x, y)
+      if s != '':
+         self.figmanager.toolbar.set_message(s)
+
+
+   def interact_toolbarinfo(self):
+   #--------------------------------------------------------------------
+      """
+      Allow this :class:`Annotatedimage` object to interact with the user.
+      It reacts on mouse movements. A message is prepared with position information
+      in both pixel coordinates and world coordinates. The world coordinates
+      are in the units given by the (FITS) header.
+
+      :Notes:
+
+         If a message does not fit in the toolbar then nothing is
+         displayed. We don't have control over the maximum size of that message
+         because it depends on the backend that is used (GTK, QT,...).
+         If nothing appears, then a manual resize of the window will suffice.
+
+      :Example: 
+
+         Attach to an object from class :class:`Annotatedimage`:
+      
+         >>> mplim = f.Annotatedimage(frame)
+         >>> mplim.interact_toolbarinfo()
+
+         A more complete example::
+
+            from kapteyn import maputils
+            from matplotlib import pyplot as plt
+
+            f = maputils.FITSimage("m101.fits")
+            
+            fig = plt.figure(figsize=(9,7))
+            frame = fig.add_subplot(1,1,1)
+            
+            mplim = f.Annotatedimage(frame)
+            ima = mplim.Image()
+            mplim.Pixellabels()
+            mplim.plot()
+            
+            mplim.interact_toolbarinfo()
+            
+            plt.show()
+
+      """
+   #--------------------------------------------------------------------
+      self.toolbarkey = AxesCallback(self.mouse_toolbarinfo, self.frame, 'motion_notify_event')
+
+
+
+   def mouse_imagecolors(self, axesevent):
+   #--------------------------------------------------------------------
+      """
    *Reset color limits:*
 
    If you move the mouse in this image and press the **right mouse button**
@@ -1572,7 +1276,7 @@ individual contours and contour labels.
       AxesCallback instance
 
    :Example:
-      Given an object from class :class:`MPLimage`,
+      Given an object from class :class:`Annotatedimage`,
       register this callback function for the position information with:
 
       >>> image.motion_events()
@@ -1600,7 +1304,7 @@ individual contours and contour labels.
       *  **Important**: If you want more than one image in your plot and
          want mouse interaction for each image separately, then you have
          to register this callback function for each instance of class
-         :class:`MPLimage`. But you have to register them before you register
+         :class:`Annotatedimage`. But you have to register them before you register
          any *press* related events (key_press_event, button_press_event).
          Otherwise, you will get only the position
          information from the first image in the toolbar.
@@ -1630,15 +1334,10 @@ individual contours and contour labels.
          is triggered, it is for the right frame.
       """
    #--------------------------------------------------------------------
-      s = ''
-      x, y = axesevent.xdata, axesevent.ydata
-      if self.figmanager.toolbar.mode == '':
-         s = self.positionmessage(x, y)
-      if s != '':
-         self.figmanager.toolbar.set_message(s)
 
       if axesevent.event.button == 3:
-         if self.im == None:                     # There is no image to adjust
+         x, y = axesevent.xdata, axesevent.ydata
+         if self.image.im == None:                     # There is no image to adjust
             return
          # 1. event.xdata and event.ydata are the coordinates of the mouse location in
          # data coordinates (i.e. in screen pixels)
@@ -1647,34 +1346,34 @@ individual contours and contour labels.
          # normalized coordinates for the current frame.
          xy = self.frame.transData.transform((x,y))
          xyn = self.frame.transAxes.inverted().transform(xy)
-         Dx = self.datmax - self.datmin
-         clipC = self.datmin + Dx * xyn[0]
+         Dx = self.image.datmax - self.image.datmin
+         clipC = self.image.datmin + Dx * xyn[0]
          Dy = Dx * xyn[1]
-         self.clipmin = clipC - Dy
-         self.clipmax = clipC + Dy
-         self.im.set_clim(self.clipmin, self.clipmax)
+         self.image.clipmin = clipC - Dy
+         self.image.clipmax = clipC + Dy
+         self.image.im.set_clim(self.image.clipmin, self.image.clipmax)
 
-         if self.cb != None:
-            # Next lines seem to be necessary to keep the right
+        
+         if self.colorbar != None:
+            # Next line seem to be necessary to keep the right
             # font size for the colorbar labels. Otherwise each
             # call to clim() wil reset the size to 12.
-            for t in self.cb.ax.get_xticklabels():  # Smaller font for color bar
-               t.set_fontsize(self.cbfontsize)
-            for t in self.cb.ax.get_yticklabels():  # Smaller font for color bar
-               t.set_fontsize(self.cbfontsize)
-
-         self.fig.canvas.draw()
+            self.colorbar.update()
+            
+         self.frame.figure.canvas.draw()
 
 
 
-   def key_pressed(self, axesevent):
+   def key_imagecolors(self, axesevent):
    #--------------------------------------------------------------------
       """
-   A function that can be registerd to catch key presses. Currently we
-   catch keys *pageup* and *pagedown* and 'r'. These page keys move through a list
+   This method catches keys which change the color setting of an image.
+   These keys are *pageup* and *pagedown*, 'N', and 'R'.
+   The page up/down keys move through a list
    with known color maps. You will see the results of a change immediately.
    Key 'r' (or 'R') reset the colors to the original colormap and scaling.
    The default color map is called 'jet'.
+   Key 'n' (or 'N') toggles between logarithmic scaling and no scaling.
    
    :param axesevent:
       AxesCallback event object with pixel position information.
@@ -1682,7 +1381,7 @@ individual contours and contour labels.
       AxesCallback instance
 
    :Examples:
-      If *image* is an object from :class:`MPLimage` then register
+      If *image* is an object from :class:`Annotatedimage` then register
       this function with:
       
       >>> image1.key_events()
@@ -1703,30 +1402,59 @@ individual contours and contour labels.
          
          m = cm.get_cmap(maps[self.cmindx])
          print "Color map %i: %s" % (self.cmindx, maps[self.cmindx])
-         self.im.set_cmap(m)
+         self.image.im.set_cmap(m)
          redraw = True
       elif axesevent.event.key.upper() == 'R':
-         self.clipmin = self.datmin
-         self.clipmax = self.datmax
-         self.im.set_cmap(cm.get_cmap('jet'))
-         self.im.set_clim(self.clipmin, self.clipmax)
+         self.image.clipmin = self.image.datmin
+         self.image.clipmax = self.image.datmax
+         self.image.norm = None
+         self.image.im.set_cmap(cm.get_cmap('jet'))
+         self.image.im.set_clim(self.image.clipmin, self.image.clipmax)
+         self.image.im.set_norm(self.image.norm)
+         redraw = True
+      elif axesevent.event.key.upper() == 'N':
+         # Toggle between log norm and standard
+         if self.image.norm == None:
+            self.image.norm = LogNorm(vmin=self.image.clipmin, vmax=self.image.clipmax)
+         else:
+            self.image.norm = None
+         self.image.im.set_norm(self.image.norm)
+         #if self.colorbar != None:
+         #   self.colorbar.cb.set_norm(self.image.norm)
          redraw = True
 
+      
       if redraw:
-         if self.cb != None:
+         if self.colorbar != None:
             # Next lines seem to be necessary to keep the right
             # font size for the colorbar labels. Otherwise each
             # call to clim() wil reset the size to 12.
-            for t in self.cb.ax.get_xticklabels():  # Smaller font for color bar
-               t.set_fontsize(self.cbfontsize)
-            for t in self.cb.ax.get_yticklabels():  # Smaller font for color bar
-               t.set_fontsize(self.cbfontsize)
+            self.colorbar.update()
 
-         self.fig.canvas.draw()
+            
+         self.frame.figure.canvas.draw()
 
 
+   def interact_imagecolors(self):
+   #--------------------------------------------------------------------
+      """
+      Add mouse interaction (right mouse button) to change the colors
+      in an image.
+      
+      Add key interaction (page-up, page-down, 'N', 'R') to change or reset the
+      colormap.
 
-   def on_click(self, axesevent):
+      If *mplim* is an object from class :class:`Annotatedimage` then acticate
+      color editing with:
+      
+      >>> mplim.interact_imagecolors()
+      """
+   #--------------------------------------------------------------------
+      self.imagecolorskey = AxesCallback(self.key_imagecolors, self.frame, 'key_press_event')
+      self.imagecolorsmouse = AxesCallback(self.mouse_imagecolors, self.frame, 'motion_notify_event')
+
+
+   def mouse_writepos(self, axesevent):
    #--------------------------------------------------------------------
       """
    Print position information of the position where
@@ -1762,11 +1490,25 @@ individual contours and contour labels.
          print s
 
 
+   def interact_writepos(self):
+   #--------------------------------------------------------------------
+      """
+      Add mouse interaction (left mouse button) to write the position
+      of the mouse to screen. The position is written both in pixel
+      coordinates and world coordinates.
+      
+      :Example:
+      
+      >>> mplim.interact_writepos()
+      """
+   #--------------------------------------------------------------------
+      self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame, 'button_press_event')
+
 
    def motion_events(self):
    #--------------------------------------------------------------------
       """
-      Allow this :class:`MPLimage` object to interact with the user.
+      Allow this :class:`Annotatedimage` object to interact with the user.
       It reacts on mouse movements. During these movements, a message
       with information about the position of the cursor in pixels
       and world coordinates is displayed on the toolbar.
@@ -1781,13 +1523,14 @@ individual contours and contour labels.
    def key_events(self):
    #--------------------------------------------------------------------
       """
-      Allow this :class:`MPLimage` object to interact with the user.
+      Allow this :class:`Annotatedimage` object to interact with the user.
       It reacts on keyboard key presses. With *pageup* and *pagedown*
       one scrolls to a list with color maps. Key 'r' (or 'R') resets
       the current image to its original color map and color limits.
       """
    #--------------------------------------------------------------------
       #self.cidkey = self.fig.canvas.mpl_connect('key_press_event', self.key_pressed)
+      print "Frame in key events=", self.frame
       self.cidkey = AxesCallback(self.key_pressed, self.frame, 'key_press_event')
 
 
@@ -1795,7 +1538,7 @@ individual contours and contour labels.
    def click_events(self):
    #--------------------------------------------------------------------
       """
-      Allow this :class:`MPLimage` object to interact with the user.
+      Allow this :class:`Annotatedimage` object to interact with the user.
       It reacts on pressing the left mouse button and prints a message
       to stdout with information about the position of the cursor in pixels
       and world coordinates.
@@ -1806,94 +1549,9 @@ individual contours and contour labels.
 
 
 
-   def getflux(self, xy, pixelstep=0.20):
-   #--------------------------------------------------------------------
-      """
-   Return area in pixels and the sum of the image values in
-   the polygon defined by *xy*.
-
-   It is a demonstration how we can add methods to this class
-   when we want to analyze the image. In this case one can
-   extract the flux in a polygon. The positions of this
-   polygon could be the result of interaction with the mouse.
-
-   :param xy:
-      Sequence of pixel positions (x,y)
-   :type xy:
-      Sequence of tuples/lists with two floating point numbers
-   :param pixelstep:
-      Sampling step size (usually smaller than one pixel to get
-      the best results). The default is 0.2.
-   :type pixelstep:
-      Floating point number
-   :Notes:
-      There are some examples in the module :mod:`ellinteract`.
-      
-      """
-   #--------------------------------------------------------------------
-      poly = numpy.asarray(xy)
-      mm = poly.min(0)
-      xmin = mm[0]; ymin = mm[1]
-      mm = poly.max(0)
-      xmax = mm[0]; ymax = mm[1]
-      xmin = numpy.floor(xmin); xmax = numpy.ceil(xmax)
-      ymin = numpy.floor(ymin); ymax = numpy.ceil(ymax)
-      # print xmin, xmax, ymin, ymax
-      Y = numpy.arange(ymin,ymax+1, pixelstep)
-      X = numpy.arange(xmin,xmax+1, pixelstep)
-      l = int(xmax-xmin+1); b = int(ymax-ymin+1)
-      numpoints = len(X)*len(Y)
-      x, y = numpy.meshgrid(X, Y)
-      pos = zip(x.flatten(), y.flatten())
-      mask = nxutils.points_inside_poly(pos, poly)
-      # Correction consists of three elements:
-      # 1) The start position of the box must map on the start position of the array
-      # 2) Positions all > 0.5 so add 0.5 and take int to avoid the need of a round function
-      # 3) The start index of the array is not 
-      xcor = self.pxlim[0] - 0.5
-      ycor = self.pylim[0] - 0.5
-      count = 0
-      sum = 0.0
-      for i, xy in enumerate(pos):
-         if mask[i]:
-            xp = int(xy[0] - xcor)
-            yp = int(xy[1] - ycor)
-            z = self.map[yp,xp]
-            sum += z
-            count += 1
-      return count*(pixelstep*pixelstep), sum*(pixelstep*pixelstep)
 
 
 
-   def add_special(self, obj):
-   #--------------------------------------------------------------------
-      """
-   Add objects derived from class :class:`wcsgrat.Graticule`
-   (i.e rulers, pixel labels, graticules) to a plot container.
-   This method is for Matplotlib only. It sets the plot environment
-   with the constructor of :class:`wcsgrat.Plotversion`.
-   This method assumes that the current instance has a valid
-   Matplotlib Figure instance and an -Axes instance.
-
-   :param obj:
-      A plot object
-   :type obj:
-      Instance of class  :class:`wcsgrat.Graticule`,
-      :class:`wcsgrat.Ruler` or :class:`wcsgrat.Gridframe`
-
-   :Example:
-      graticule = fitsobject.create_graticule()
-      ruler = graticule.ruler(208,201,310,351, 0.5)
-      pixellabels = graticule.pixellabels()
-      image.add_special([graticule, ruler, pixellabels])
-      """
-   #--------------------------------------------------------------------
-      if self.container == None:
-         if self.frame == None:
-            raise Exception("The frame attribute is not yet set. Use add_subplot() or add_axes() first!")
-         self.container = wcsgrat.Plotversion('matplotlib', self.fig, self.frame)
-      self.container.add(obj)
-      
 
 
 class FITSaxis(object):
@@ -2216,7 +1874,7 @@ to know the properties of the FITS data beforehand.
 .. index:: Set output sky
 .. automethod:: set_skyout
 .. index Prepare FITS image for display
-.. automethod:: create_MPLimage
+.. automethod:: Annotatedimage
 .. index:: Aspect ratio from FITS header data
 .. automethod:: get_pixelaspectratio
 .. index:: Print information from FITS header
@@ -2313,8 +1971,8 @@ to know the properties of the FITS data beforehand.
       self.set_imageaxes(self.axperm[0], self.axperm[1], self.slicepos)
       self.aspectratio = None
       self.figsize = None     # TODO is dit nog belangrijk??
-      self.MPLimage = []      # A list with images for Matplotlib
-
+      #self.MPLimage = []      # A list with images for Matplotlib
+      self.container = None
 
 
    def globalminmax(self):
@@ -2925,29 +2583,41 @@ to know the properties of the FITS data beforehand.
    #---------------------------------------------------------------------
       n1 = self.axisinfo[self.axperm[0]].axlen
       n2 = self.axisinfo[self.axperm[1]].axlen
-      #if pxlim == None:
-      pxlim = [1, n1]
-      #if pylim == None:
-      pylim = [1, n2]
+      npxlim = [None,None]
+      npylim = [None,None]
+      if pxlim == None:
+         npxlim = [1, n1]
+      else:
+         if type(pxlim) not in sequencelist:
+            raise Exception, "pxlim must be tuple or list!"
+         npxlim[0] = pxlim[0]
+         npxlim[1] = pxlim[1]
+      if pylim == None:
+         npylim = [1, n2]
+      else:
+         if type(pylim) not in sequencelist:
+            raise Exception, "pylim must be tuple or list!"
+         npylim[0] = pylim[0]
+         npylim[1] = pylim[1]
       if promptfie != None:
          axname1 = self.axisinfo[self.axperm[0]].axname
          axname2 = self.axisinfo[self.axperm[1]].axname
-         pxlim, pylim = promptfie(self.pxlim, self.pylim, axname1, axname2)
+         npxlim, npylim = promptfie(self.pxlim, self.pylim, axname1, axname2)
       # Check whether these values are within the array limits
-      if pxlim[0] < 1:  pxlim[0] = 1
-      if pxlim[1] > n1: pxlim[1] = n1
-      if pylim[0] < 1:  pylim[0] = 1
-      if pylim[1] > n2: pylim[1] = n2
-      # Get the subset from the (already) 2-dim array 
-      self.map = self.map[pylim[0]-1:pylim[1], pxlim[0]-1:pxlim[1]]       # map is a subset of the original (squeezed into 2d) image
+      if npxlim[0] < 1:  npxlim[0] = 1
+      if npxlim[1] > n1: npxlim[1] = n1
+      if npylim[0] < 1:  npylim[0] = 1
+      if npylim[1] > n2: npylim[1] = n2
+      # Get the subset from the (already) 2-dim array
+      self.map = self.map[npylim[0]-1:npylim[1], npxlim[0]-1:npxlim[1]]       # map is a subset of the original (squeezed into 2d) image
       # self.map = numpy.ma.masked_where(numpy.isnan(z), z)
       self.imshape = self.map.shape
-      self.pxlim = pxlim
-      self.pylim = pylim
-      self.axisinfo[self.axperm[0]].axstart = pxlim[0]
-      self.axisinfo[self.axperm[0]].axend = pxlim[1]
-      self.axisinfo[self.axperm[1]].axstart = pylim[0]
-      self.axisinfo[self.axperm[1]].axend = pylim[1]
+      self.pxlim = npxlim
+      self.pylim = npylim
+      self.axisinfo[self.axperm[0]].axstart = npxlim[0]
+      self.axisinfo[self.axperm[0]].axend = npxlim[1]
+      self.axisinfo[self.axperm[1]].axstart = npylim[0]
+      self.axisinfo[self.axperm[1]].axend = npylim[1]
 
 
 
@@ -3048,7 +2718,7 @@ to know the properties of the FITS data beforehand.
             if xcm == None:
                xcm = ycm
             else:
-               ycm = xcm
+               ycm = xcm   
       if ycm == None:
          ycm = xcm * (ny/nx) * aspectratio
       if xcm == None:
@@ -3060,12 +2730,12 @@ to know the properties of the FITS data beforehand.
       return aspectratio
 
 
-   def create_MPLimage(self, fig):
+   def Annotatedimage(self, frame, **kwargs):
    #---------------------------------------------------------------------
       """
       This method couples the data slice that represents an image to
       a Matplotlib Axes object (parameter *frame*). It returns an object
-      from class :class:`MPLimage` which has only attributes relevant for
+      from class :class:`Annotatedimage` which has only attributes relevant for
       Matplotlib.
 
       :param frame:
@@ -3074,17 +2744,45 @@ to know the properties of the FITS data beforehand.
          A Matplotlib Axes instance
 
       :Returns:
-         An object from class :class:`MPLimage`
+         An object from class :class:`Annotatedimage`
       """
    #---------------------------------------------------------------------
       ar = self.get_pixelaspectratio()
-      mplimage = MPLimage(fig, self.pxlim, self.pylim, self.map, self.convproj,
+      """
+      mplimage = MPLimage(fig, frame, self.pxlim, self.pylim, self.map, self.convproj,
                           mixpix=self.mixpix, slicepos=self.slicepos,
                           pixelaspectratio=ar)
+      """
+      mplimage = Annotatedimage(frame, self.hdr, self.pxlim, self.pylim, self.map, self.convproj, self.axperm,
+                                skyout=self.skyout, spectrans=self.spectrans,
+                                mixpix=self.mixpix, aspect=ar, **kwargs)
+      #if self.container == None:
+      #   self.container = wcsgrat.Plotversion('matplotlib', fig, frame)
+      
       return mplimage
 
 
-   def create_graticule(self, **kwargs):
+   def plotqqq(self, objlist):
+      ar = self.get_pixelaspectratio()
+      if type(objlist) not in sequencelist:
+         objlist = [objlist]
+      frame.set_aspect(aspect=ar, adjustable='box', anchor='C')
+      frame.set_autoscale_on(False)
+      gratplot = wcsgrat.Plotversion('matplotlib', frame.figure, frame)
+      for obj in objlist:
+         try:
+            pt = obj.ptype
+         except:
+            raise Exception, "Unknown object. Cannot plot this!"
+         if pt in ["Image", "Contour", "Colorbar"]:
+            obj.plot(frame)
+         else:
+            gratplot.add(obj)
+
+   #def add2container(self, obj):
+   #   self.container.add(obj)
+
+   def Graticule(self, **kwargs):
       self.grat = wcsgrat.Graticule(fitsimage=self, **kwargs)
       return self.grat
 
@@ -3092,7 +2790,7 @@ to know the properties of the FITS data beforehand.
 class ImageContainer(object):
 #-----------------------------------------------------------------
    """
-This class is a container for objects from class :class:`MPLimage`.
+This class is a container for objects from class :class:`Annotatedimage`.
 The objects are stored in a list. The class has methods that 
 act on all or single objects. A toggle which reacts on the keyboard keys
 '*,*' and '*.*' sets the visibility of images. This property 
@@ -3109,7 +2807,7 @@ images stored in the container.
    
     .. attribute:: mplim
 
-       List with objects from class :class:`MPLimage`.
+       List with objects from class :class:`Annotatedimage`.
        
     .. attribute:: indx
     
@@ -3134,7 +2832,7 @@ images stored in the container.
    """
 #--------------------------------------------------------------------
    def __init__(self):
-      self.mplim = []                            # The list with MPLimage objects
+      self.mplim = []                            # The list with Annotatedimage objects
       self.indx = 0                              # Sets the current image in the list
       self.fig = None                            # Current Matplotlib figure instance
       self.textid = None                         # Plot and erase text on canvas using this id.
@@ -3143,22 +2841,22 @@ images stored in the container.
 
    def append(self, imobj, visible=True, schedule=True):
       """
-      Append MPLimage object. First there is a check for the class
+      Append Annotatedimage object. First there is a check for the class
       of the incoming object. If it is the first object that is appended then
       from this object the Matplotlib figure instance is copied.
       
       :param imobj:
          Add an image object to the list.
       :type imobj:
-         An object from class :class:`MPLimage`.
+         An object from class :class:`Annotatedimage`.
           
       :Returns:
           --
       :Notes:
           --
       """
-      if not isinstance(imobj, MPLimage):
-         raise TypeError, "Container object not of class maputils.MPLimage!" 
+      if not isinstance(imobj, Annotatedimage):
+         raise TypeError, "Container object not of class maputils.Annotatedimage!" 
       if len(self.mplim) == 0:                   # This must be the first object in the container
          self.fig = imobj.fig
       imobj.im.set_visible(visible)
@@ -3184,9 +2882,9 @@ images stored in the container.
           --
       """
       if self.fig == None:
-         raise Exception("No matplotlib.figure instance available!")
+         raise Exception, "No matplotlib.figure instance available!"
       if len(self.mplim) == 0:
-         raise Exception("No objects in container!")
+         raise Exception, "No objects in container!"
       self.cidkey = self.fig.canvas.mpl_connect('key_press_event', self.toggle_images)
       self.textid = self.fig.text(0.01, 0.95, "Use keys ',' and '.' to loop through list with images", color='g', fontsize=8)
 
@@ -3253,4 +2951,3 @@ images stored in the container.
           self.textid.set_text("im #%d slice:%s"%(newindx, slicepos))
        #newim.frame.set_xlabel("%d"%self.indx)
        self.fig.canvas.draw()
-
