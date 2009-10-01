@@ -1525,6 +1525,8 @@ Below a table with a short explanation of the attributes.
 More information about epochs and equinoxes can be found
 in the documentation of :mod:`celestial`.
  
+.. tabularcolumns:: p{2cm}|J
+
 ========== ===============================================================
 Attribute    Explanation
 ========== ===============================================================

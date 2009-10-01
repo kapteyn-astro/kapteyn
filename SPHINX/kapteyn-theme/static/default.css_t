@@ -251,9 +251,15 @@ img.align-center {
 
 li.toctree-l1 {
    font-weight: bold;
+   font-size: 125%;
 }
 
 li.toctree-l2 {
+   font-size: 80%;
+   font-weight: bold;
+}
+ 
+li.toctree-l3 {
    font-weight: normal;
 }
 
