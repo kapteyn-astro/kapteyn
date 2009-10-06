@@ -6,12 +6,19 @@ Module mplutil
 .. highlight:: python
    :linenothreshold: 5
 
-Utilities for use with matplotlib. Currently only class :class:`AxesCallback`.
+Utilities for use with matplotlib.
+Classes :class:`AxesCallback` and :class:`VariableColormap`.
 
 Class AxesCallback
 ------------------
 
-.. autoclass:: AxesCallback 
+.. autoclass:: AxesCallback
+
+Class VariableColormap
+----------------------
+
+.. autoclass:: VariableColormap
+
 """
 
 class AxesCallback(object):
@@ -192,3 +199,131 @@ first :class:`AxesCallback` object `draw` as an attribute.
             if callback.proc(callback):
                break
    __handler = staticmethod(__handler)
+
+import numpy, math
+from matplotlib.colors import Colormap
+from tabarray import tabarray
+
+class VariableColormap(Colormap):
+   """:class:`VariableColormap` is a subclass of
+:class:`matplotlib.colors.Colormap` with special methods that allow the
+colormap to be modified. A VariableColormap can be constructed from
+any other matplotlib colormap or from a textfile with one RGB triplet per
+line. Values should be between 0.0 and 1.0.
+
+:param source:
+   the object from which the VariableColormap is created. Either an other
+   colormap object or the name of a text file containing RGB triplets.
+:param name:
+   the name of the color map.
+   
+**Methods**
+
+.. automethod:: modify
+.. automethod:: set_scale
+.. automethod:: add_frame
+.. automethod:: remove_frame
+""" 
+
+   def __init__(self, source, name='Variable'):
+      if isinstance(source, Colormap):
+         if not source._isinit:
+            source._init()
+         self.baselut = source._lut
+      else:
+         colors = tabarray(source)
+         ncolors = colors.shape[0]
+         self.baselut = numpy.ones((ncolors+3,4), numpy.float)
+         self.baselut[:ncolors,:3] = colors
+      self.worklut = self.baselut.copy()
+      Colormap.__init__(self, name, self.worklut.shape[0]-3)
+      self.frames = set()
+      self.slope = 1.0
+      self.shift = 0.0
+
+   def _init(self):
+      self._lut = self.worklut.copy()
+      self._isinit = True
+      self._set_extremes()
+      
+   def modify(self, slopeval, shiftval):
+      """
+      Apply a slope and a shift to the colormap. Defaults are 1.0 and 0.0.
+      If one or more Axes objects have been registered with method
+      :meth:`add_frame`, the corresponding canvases will be redrawn.
+      """
+      if not self._isinit:
+         self._init()
+      ncolors = self.N
+      lut     = self._lut
+      worklut = self.worklut
+      for i in xrange(ncolors):
+         x = (float(i)/float(ncolors-1))-0.5
+         y = slopeval*(x-shiftval)+0.5
+         if y>1.0:
+            y = 1.0
+         elif y<0.0:
+            y = 0.0
+         m = float(ncolors-1)*y+0.5
+         lut[i] = worklut[m]
+         
+      self.slope = slopeval
+      self.shift = shiftval
+      self.update()
+
+   def add_frame(self, frame):
+      """
+      Associate matplotlib Axes object *frame* with this colormap.
+      If the colormap is subsequently modified, *frame*'s canvas
+      will be redrawn.
+      """
+      self.frames.add(frame)
+
+   def remove_frame(self, frame):
+      """
+      Disassociate matplotlib Axes object *frame* from this colormap.
+      """
+      self.frames.remove(frame)
+
+   def update(self):
+      for frame in self.frames:
+         frame.figure.canvas.draw()
+
+   def set_scale(self, scale='LINEAR'):
+      """
+      Apply a scale to this colormap. *scale* can be one of:
+      'LINEAR', 'LOG', 'EXP', 'SQRT' and 'SQUARE'.
+      """
+      scale = scale.upper()
+      ncolors = self.N
+      baselut = self.baselut
+      worklut = self.worklut
+
+      if scale=='LOG':
+         fac = float(ncolors-1)/math.log(ncolors)
+         for i in xrange(ncolors):
+            worklut[i] = baselut[fac*math.log(i+1)]
+
+      elif scale=='EXP':
+         fac = float(ncolors-1)/math.pow(10.0, (ncolors-1)/100.0 -1.0)
+         for i in xrange(ncolors):
+            worklut[i] = baselut[fac*math.pow(10.0, i/100.0-1.0)]
+
+      elif scale=='SQRT':
+         fac = float(ncolors-1)/math.sqrt(ncolors)
+         for i in xrange(ncolors):
+            worklut[i] = baselut[fac*math.sqrt(i)]
+            
+      elif scale=='SQUARE':
+         fac = float(ncolors-1)/(ncolors*ncolors)
+         for i in xrange(ncolors):
+            worklut[i] = baselut[fac*i*i]
+
+      elif scale=='LINEAR':
+         worklut[:] = baselut[:]
+
+      else:
+         raise Exception, 'invalid colormap scale'
+      
+      self.modify(self.slope, self.shift)
+
