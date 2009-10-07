@@ -202,18 +202,22 @@ first :class:`AxesCallback` object `draw` as an attribute.
 
 import numpy, math
 from matplotlib.colors import Colormap
+from matplotlib import cm
 from tabarray import tabarray
 
 class VariableColormap(Colormap):
-   """:class:`VariableColormap` is a subclass of
+   """
+:class:`VariableColormap` is a subclass of
 :class:`matplotlib.colors.Colormap` with special methods that allow the
 colormap to be modified. A VariableColormap can be constructed from
-any other matplotlib colormap or from a textfile with one RGB triplet per
+any other matplotlib colormap object
+or from a textfile with one RGB triplet per
 line. Values should be between 0.0 and 1.0.
 
 :param source:
    the object from which the VariableColormap is created. Either an other
-   colormap object or the name of a text file containing RGB triplets.
+   colormap object or its registered name,
+   or the name of a text file containing RGB triplets.
 :param name:
    the name of the color map.
    
@@ -221,11 +225,33 @@ line. Values should be between 0.0 and 1.0.
 
 .. automethod:: modify
 .. automethod:: set_scale
+.. automethod:: set_source
 .. automethod:: add_frame
 .. automethod:: remove_frame
 """ 
 
    def __init__(self, source, name='Variable'):
+      self.name = None                      # new VariableColormap object
+      self.set_source(source)
+      self.monochrome = False
+      Colormap.__init__(self, name, self.worklut.shape[0]-3)
+      self.canvases = {}
+      self.slope = 1.0
+      self.shift = 0.0
+      self.invrt = 1.0
+      self.scale = 'LINEAR'
+
+   def set_source(self, source):
+      """
+      Define an alternative source for the colormap.
+      *source* can be any other matplotlib colormap object or its registered
+      name, or the name of a textfile
+      with one RGB triplet per line. Values should be between 0.0 and 1.0.
+      """
+      try:
+         source = cm.get_cmap(source)
+      except:
+         pass
       if isinstance(source, Colormap):
          if not source._isinit:
             source._init()
@@ -236,17 +262,15 @@ line. Values should be between 0.0 and 1.0.
          self.baselut = numpy.ones((ncolors+3,4), numpy.float)
          self.baselut[:ncolors,:3] = colors
       self.worklut = self.baselut.copy()
-      Colormap.__init__(self, name, self.worklut.shape[0]-3)
-      self.frames = set()
-      self.slope = 1.0
-      self.shift = 0.0
+      if self.name is not None:             # existing VariableColormap object?
+         self.set_scale(self.scale)
 
    def _init(self):
       self._lut = self.worklut.copy()
       self._isinit = True
       self._set_extremes()
       
-   def modify(self, slopeval, shiftval):
+   def modify(self, slope, shift):
       """
       Apply a slope and a shift to the colormap. Defaults are 1.0 and 0.0.
       If one or more Axes objects have been registered with method
@@ -254,12 +278,15 @@ line. Values should be between 0.0 and 1.0.
       """
       if not self._isinit:
          self._init()
+      self.slope = slope
+      self.shift = shift
       ncolors = self.N
       lut     = self._lut
       worklut = self.worklut
+      slope   = slope*self.invrt
       for i in xrange(ncolors):
          x = (float(i)/float(ncolors-1))-0.5
-         y = slopeval*(x-shiftval)+0.5
+         y = slope*(x-shift)+0.5
          if y>1.0:
             y = 1.0
          elif y<0.0:
@@ -267,27 +294,14 @@ line. Values should be between 0.0 and 1.0.
          m = float(ncolors-1)*y+0.5
          lut[i] = worklut[m]
          
-      self.slope = slopeval
-      self.shift = shiftval
       self.update()
 
-   def add_frame(self, frame):
-      """
-      Associate matplotlib Axes object *frame* with this colormap.
-      If the colormap is subsequently modified, *frame*'s canvas
-      will be redrawn.
-      """
-      self.frames.add(frame)
-
-   def remove_frame(self, frame):
-      """
-      Disassociate matplotlib Axes object *frame* from this colormap.
-      """
-      self.frames.remove(frame)
-
-   def update(self):
-      for frame in self.frames:
-         frame.figure.canvas.draw()
+   def set_inverse(self, inverse=False):
+      if inverse:
+         self.invrt = -1.0
+      else:
+         self.invrt =  1.0
+      self.modify(self.slope, self.shift)
 
    def set_scale(self, scale='LINEAR'):
       """
@@ -325,5 +339,33 @@ line. Values should be between 0.0 and 1.0.
       else:
          raise Exception, 'invalid colormap scale'
       
+      self.scale = scale
       self.modify(self.slope, self.shift)
+
+   def add_frame(self, frame):
+      """
+      Associate matplotlib Axes object *frame* with this colormap.
+      If the colormap is subsequently modified, *frame*'s canvas
+      will be redrawn.
+      """
+      canvas = frame.figure.canvas
+      if canvas not in self.canvases:
+         self.canvases[canvas] = 1
+      else:
+         self.canvases[canvas] += 1
+
+   def remove_frame(self, frame):
+      """
+      Disassociate matplotlib Axes object *frame* from this colormap.
+      """
+      canvas = frame.figure.canvas
+      self.canvases[canvas] -= 1
+      if self.canvases[canvas]==0:
+         del self.canvases[canvas]
+
+   def update(self):
+      for canvas in self.canvases:
+         canvas.draw()
+
+
 
