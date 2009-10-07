@@ -236,6 +236,7 @@ line. Values should be between 0.0 and 1.0.
       self.monochrome = False
       Colormap.__init__(self, name, self.worklut.shape[0]-3)
       self.canvases = {}
+      self.frames = set()
       self.slope = 1.0
       self.shift = 0.0
       self.invrt = 1.0
@@ -348,6 +349,7 @@ line. Values should be between 0.0 and 1.0.
       If the colormap is subsequently modified, *frame*'s canvas
       will be redrawn.
       """
+      self.frames.add(frame)
       canvas = frame.figure.canvas
       if canvas not in self.canvases:
          self.canvases[canvas] = 1
@@ -358,14 +360,21 @@ line. Values should be between 0.0 and 1.0.
       """
       Disassociate matplotlib Axes object *frame* from this colormap.
       """
+      self.frames.remove(frame)
       canvas = frame.figure.canvas
       self.canvases[canvas] -= 1
       if self.canvases[canvas]==0:
          del self.canvases[canvas]
 
-   def update(self):
+   def updatex(self):
       for canvas in self.canvases:
          canvas.draw()
 
-
+   def update(self):
+      for frame in self.frames:
+         images = frame.get_images()
+         for image in images:
+            image.changed()
+      for canvas in self.canvases:
+         canvas.draw()
 
