@@ -1,4 +1,5 @@
 syntax: glob
+TEST
 DISTRIBUTION/build
 DISTRIBUTION/dist
 DISTRIBUTION/doc/kapteyn.pdf
