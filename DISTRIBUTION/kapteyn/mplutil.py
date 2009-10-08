@@ -393,8 +393,7 @@ line. Values should be between 0.0 and 1.0.
       changes while :attr:`auto` is True.
       """
       for frame in self.frames:
-         images = frame.get_images()
-         for image in images:
+         for image in frame.get_images():
             image.changed()
       for canvas in self.canvases:
          canvas.draw()
