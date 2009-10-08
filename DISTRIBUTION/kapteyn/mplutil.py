@@ -221,6 +221,22 @@ line. Values should be between 0.0 and 1.0.
 :param name:
    the name of the color map.
    
+  
+**Attributes**
+
+.. attribute:: auto 
+
+   Indicates whether Axes objects registered with method :meth:`add_frame`
+   will be automatically updated when the colormap changes. Default True.
+
+.. attribute:: slope
+
+   The colormap slope as specified with method :meth:`modify`.
+
+.. attribute:: shift
+
+   The colormap shift as specified with method :meth:`modify`.
+ 
 **Methods**
 
 .. automethod:: modify
@@ -228,6 +244,7 @@ line. Values should be between 0.0 and 1.0.
 .. automethod:: set_source
 .. automethod:: add_frame
 .. automethod:: remove_frame
+.. automethod:: update
 """ 
 
    def __init__(self, source, name='Variable'):
@@ -241,6 +258,7 @@ line. Values should be between 0.0 and 1.0.
       self.shift = 0.0
       self.invrt = 1.0
       self.scale = 'LINEAR'
+      self.auto  = True
 
    def set_source(self, source):
       """
@@ -275,7 +293,8 @@ line. Values should be between 0.0 and 1.0.
       """
       Apply a slope and a shift to the colormap. Defaults are 1.0 and 0.0.
       If one or more Axes objects have been registered with method
-      :meth:`add_frame`, the corresponding canvases will be redrawn.
+      :meth:`add_frame`, the images in them will be updated and
+      the corresponding canvases will be redrawn.
       """
       if not self._isinit:
          self._init()
@@ -294,8 +313,9 @@ line. Values should be between 0.0 and 1.0.
             y = 0.0
          m = float(ncolors-1)*y+0.5
          lut[i] = worklut[m]
-         
-      self.update()
+      
+      if self.auto:
+         self.update()
 
    def set_inverse(self, inverse=False):
       if inverse:
@@ -346,8 +366,8 @@ line. Values should be between 0.0 and 1.0.
    def add_frame(self, frame):
       """
       Associate matplotlib Axes object *frame* with this colormap.
-      If the colormap is subsequently modified, *frame*'s canvas
-      will be redrawn.
+      If the colormap is subsequently modified, images in this frame will
+      be updated and *frame*'s canvas will be redrawn.
       """
       self.frames.add(frame)
       canvas = frame.figure.canvas
@@ -366,15 +386,15 @@ line. Values should be between 0.0 and 1.0.
       if self.canvases[canvas]==0:
          del self.canvases[canvas]
 
-   def updatex(self):
-      for canvas in self.canvases:
-         canvas.draw()
-
    def update(self):
+      """
+      Redraw all images in the Axes objects registered with method
+      :meth:`add_frame`. update() is called automatically when the colormap
+      changes while :attr:`auto` is True.
+      """
       for frame in self.frames:
          images = frame.get_images()
          for image in images:
             image.changed()
       for canvas in self.canvases:
          canvas.draw()
-
