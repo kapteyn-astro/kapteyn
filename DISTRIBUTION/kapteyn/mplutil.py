@@ -201,6 +201,7 @@ first :class:`AxesCallback` object `draw` as an attribute.
    __handler = staticmethod(__handler)
 
 import numpy, math
+from numpy import ma
 from matplotlib.colors import Colormap
 from matplotlib import cm
 from tabarray import tabarray
@@ -222,7 +223,7 @@ line. Values should be between 0.0 and 1.0.
    the name of the color map.
    
   
-**Attributes**
+**Attributes:**
 
 .. attribute:: auto 
 
@@ -236,6 +237,15 @@ line. Values should be between 0.0 and 1.0.
 .. attribute:: shift
 
    The colormap shift as specified with method :meth:`modify`.
+
+.. attribute:: scale
+
+   The colormap's current scale as specified with methon :meth"`set_scale`.
+
+.. attribute:: source
+
+   The object (string or colormap) from which the colormap is currently
+   derived.
  
 **Methods**
 
@@ -259,6 +269,18 @@ line. Values should be between 0.0 and 1.0.
       self.invrt = 1.0
       self.scale = 'LINEAR'
       self.auto  = True
+      self.bad_set = False
+
+   def __call__(self, X, alpha=1.0, bytes=False):
+      if self.bad_set:
+         if not isinstance(X, numpy.ma.masked_array):
+            X = numpy.ma.asarray(X)
+         X.mask = ma.make_mask(-numpy.isfinite(X))
+      return Colormap.__call__(self, X, alpha, bytes)
+
+   def set_bad(self, color='k', alpha = 1.0):
+      self.bad_set = True
+      return Colormap.set_bad(self, color, alpha)
 
    def set_source(self, source):
       """
@@ -267,6 +289,7 @@ line. Values should be between 0.0 and 1.0.
       name, or the name of a textfile
       with one RGB triplet per line. Values should be between 0.0 and 1.0.
       """
+      self.source = source
       try:
          source = cm.get_cmap(source)
       except:
@@ -283,6 +306,7 @@ line. Values should be between 0.0 and 1.0.
       self.worklut = self.baselut.copy()
       if self.name is not None:             # existing VariableColormap object?
          self.set_scale(self.scale)
+
 
    def _init(self):
       self._lut = self.worklut.copy()
