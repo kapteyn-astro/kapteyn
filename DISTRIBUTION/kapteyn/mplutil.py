@@ -7,7 +7,8 @@ Module mplutil
    :linenothreshold: 5
 
 Utilities for use with matplotlib.
-Classes :class:`AxesCallback` and :class:`VariableColormap`.
+Classes :class:`AxesCallback` and :class:`VariableColormap` and module-internal
+function :func:`KeyPressFilter`.
 
 Class AxesCallback
 ------------------
@@ -19,8 +20,22 @@ Class VariableColormap
 
 .. autoclass:: VariableColormap
 
-"""
+Key press filter
+----------------
 
+Via its internal function :func:`KeyPressFilter` the module filters key_press
+events for the backend in which the application displays its contents.
+By default all key_press events are discarded by the filter and do not reach
+the backend. This behaviour can be changed by assigning a list of acceptable
+keys to KeyPressFilter's attribute *allowed*. E.g.,
+``KeyPressFilter.allowed = ['g', 'f']`` will allow characters ``g`` and ``f``
+to reach the backend so that the backend's grid- and full-screen toggles
+will be available again.
+
+"""
+# ==========================================================================
+#                             class AxesCallback
+# --------------------------------------------------------------------------
 class AxesCallback(object):
    """
 :class:`AxesCallback` has been built on top of matplotlib's event
@@ -200,6 +215,10 @@ first :class:`AxesCallback` object `draw` as an attribute.
                break
    __handler = staticmethod(__handler)
 
+
+# ==========================================================================
+#                          class VariableColormap
+# --------------------------------------------------------------------------
 import numpy, math
 from numpy import ma
 from matplotlib.colors import Colormap
@@ -421,3 +440,20 @@ line. Values should be between 0.0 and 1.0.
             image.changed()
       for canvas in self.canvases:
          canvas.draw()
+
+
+# ==========================================================================
+#                        function KeyPressFilter
+# --------------------------------------------------------------------------
+from matplotlib.backend_bases import FigureManagerBase
+
+___key_press = FigureManagerBase.key_press
+
+def KeyPressFilter(fmb_obj, event):
+   if event.key in KeyPressFilter.allowed:
+      ___key_press(fmb_obj, event)
+      
+KeyPressFilter.allowed = []
+
+FigureManagerBase.key_press = KeyPressFilter
+
