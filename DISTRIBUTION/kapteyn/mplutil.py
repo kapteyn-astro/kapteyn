@@ -299,7 +299,9 @@ line. Values should be between 0.0 and 1.0.
 
    def set_bad(self, color='k', alpha = 1.0):
       self.bad_set = True
-      return Colormap.set_bad(self, color, alpha)
+      Colormap.set_bad(self, color, alpha)
+      if self.auto:
+         self.update()
 
    def set_source(self, source):
       """
@@ -447,11 +449,11 @@ line. Values should be between 0.0 and 1.0.
 # --------------------------------------------------------------------------
 from matplotlib.backend_bases import FigureManagerBase
 
-___key_press = FigureManagerBase.key_press
+__key_press = FigureManagerBase.key_press
 
 def KeyPressFilter(fmb_obj, event):
    if event.key in KeyPressFilter.allowed:
-      ___key_press(fmb_obj, event)
+      __key_press(fmb_obj, event)
       
 KeyPressFilter.allowed = []
 

@@ -62,3 +62,4 @@ Universite Laval @ 132.203.76.185
 Shanghai Jiaotong University @ 202.120.52.45
 Humboldt-Universitaet zu Berlin @ 141.20.192.106
 TNO @ 134.221.241.31
+INAF -Astronomical Observatory of Padova @ 193.206.241.155
