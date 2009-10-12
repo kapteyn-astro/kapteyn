@@ -482,9 +482,7 @@ GTK and Qt4Agg.
 :param proc:
    the function to be called upon receiving an event of the specified
    type and occurring in the specified Axes object. It is called with one
-   argument: the current TimeCallback object. If it returns a value which
-   evaluates to True, processing of the current event stops, i.e., no
-   further callback functions will be called for this event.
+   argument: the current TimeCallback object.
 :param interval:
    the time interval in seconds.
 :param schedule:
@@ -574,7 +572,7 @@ except:
    pass
 
 
-# PyQt4AGG:
+# Qt4AGG:
 #
 try:
    from PyQt4 import QtCore
