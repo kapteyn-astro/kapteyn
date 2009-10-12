@@ -500,7 +500,47 @@ GTK and Qt4Agg.
 **Methods:**
 
 .. automethod:: schedule
-.. automethod:: deschedule   
+.. automethod:: deschedule
+.. automethod:: set_interval
+
+**Example:**
+
+::
+
+   #/usr/bin/env python
+
+   from matplotlib import pyplot
+   from kapteyn.mplutil import VariableColormap, TimeCallback
+   import numpy
+   from matplotlib import mlab
+
+   def colour_cb(cb):
+      slope = cb.cmap.slope
+      shift = cb.cmap.shift
+      if shift>0.5:
+         shift = -0.5
+      cb.cmap.modify(slope, shift+0.01)                   # change colormap
+
+   figure = pyplot.figure(figsize=(8,8))
+   frame = figure.add_axes([0.05, 0.05, 0.85, 0.85])
+
+   colormap = VariableColormap('jet')
+   colormap.add_frame(frame)
+   TimeCallback(colour_cb, 0.1, cmap=colormap)             # change every 0.1 s
+
+   x = y = numpy.arange(-3.0, 3.0, 0.025)
+   X, Y  = numpy.meshgrid(x, y)
+   Z1    = mlab.bivariate_normal(X, Y, 1.0, 1.0, 0.0, 0.0) # Gaussian 1
+   Z2    = mlab.bivariate_normal(X, Y, 1.5, 0.5, 1, 1)     # Gaussian 2
+   Z     = Z2-Z1                                           # difference
+
+   img = frame.imshow(Z, origin="lower", cmap=colormap)
+
+   pyplot.show()
+
+This code displays an image composed of 2 Gaussians and continuously modifies
+its colormap's shift value between -0.5 and 0.5 in steps of 0.01.
+These steps take place at 0.1 second intervals.
 """
    supported = {}
    scheduled = []
@@ -534,6 +574,15 @@ GTK and Qt4Agg.
       If the object is already inactive, nothing will be done.
       """
       pass
+
+   def set_interval(self, interval):
+      """
+      Changes the object's time interval in seconds.
+      """
+      self.interval = interval
+      if self.active:
+         self.deschedule()
+         self.schedule()
 
 # --------------------------------------------------------------------------
 #                     backend-dependent implementations
