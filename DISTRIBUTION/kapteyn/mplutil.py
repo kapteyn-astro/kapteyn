@@ -15,6 +15,11 @@ Class AxesCallback
 
 .. autoclass:: AxesCallback
 
+Class TimeCallback
+------------------
+
+.. autoclass:: TimeCallback
+
 Class VariableColormap
 ----------------------
 
@@ -459,3 +464,144 @@ KeyPressFilter.allowed = []
 
 FigureManagerBase.key_press = KeyPressFilter
 
+# ==========================================================================
+#                        class TimeCallback
+# --------------------------------------------------------------------------
+from matplotlib import rcParams
+
+class TimeCallback(object):
+   """
+Objects of this class are responsible for handling timer events.  Timer
+events occur periodically whenever a predefined period of time expires. 
+A TimeCallback object will not be deleted as long as it
+is scheduled ("active"), so it is not always necessary to keep a reference
+to it.
+This class is backend-dependent. Currently supported backends are GTKAgg,
+GTK and Qt4Agg.
+
+:param proc:
+   the function to be called upon receiving an event of the specified
+   type and occurring in the specified Axes object. It is called with one
+   argument: the current TimeCallback object. If it returns a value which
+   evaluates to True, processing of the current event stops, i.e., no
+   further callback functions will be called for this event.
+:param interval:
+   the time interval in seconds.
+:param schedule:
+   indicates whether the object should start handling events immediately.
+   Default True.
+:param attr:
+   keyword arguments each resulting in an attribute with the same name.  
+
+**Attribute:**
+
+.. attribute:: active
+   
+   True if callback is scheduled, False otherwise.
+
+**Methods:**
+
+.. automethod:: schedule
+.. automethod:: deschedule   
+"""
+   supported = {}
+   scheduled = []
+
+   def __new__(cls, *args, **kwds):
+      backend = rcParams['backend'].upper()
+      if backend in TimeCallback.supported:
+         return object.__new__(TimeCallback.supported[backend], *args, **kwds)
+      else:
+         raise Exception, 'TimeCallback not supported for backend %s' % backend
+
+   def __init__(self, proc, interval, schedule=True, **attr):
+      self.proc     = proc
+      self.interval = interval
+      for name in attr.keys():
+         self.__dict__[name] = attr[name]
+      self.id     = 0
+      self.active   = False
+      if schedule: self.schedule()
+
+   def schedule(self):
+      """
+      Activate the object so that it will start calling the callback function
+      periodically. If the object is already active, nothing will be done.
+      """
+      pass
+
+   def deschedule(self):
+      """
+      Deactivate the object so that it stops calling its callback function.
+      If the object is already inactive, nothing will be done.
+      """
+      pass
+
+# --------------------------------------------------------------------------
+#                     backend-dependent implementations
+# --------------------------------------------------------------------------
+
+# GTK, GTKAgg:
+#
+try:
+   import gobject
+   
+   class TimeCallback_GTK(TimeCallback):
+       
+      def schedule(self):
+         if self.id:
+            return
+         milliseconds = max(1,int(round(self.interval*1000.0)))
+         self.id    = gobject.timeout_add(milliseconds, self.reached)
+         self.active = True
+         self.scheduled.append(self)
+      
+      def deschedule(self):
+         if not self.id:
+            return
+         gobject.source_remove(self.id)
+         self.id = 0
+         self.active = False
+         self.scheduled.remove(self)
+
+      def reached(self):
+         self.proc(self)
+         return True
+
+   TimeCallback.supported['GTKAGG'] = TimeCallback_GTK
+   TimeCallback.supported['GTK'] = TimeCallback_GTK
+except:
+   pass
+
+
+# PyQt4AGG:
+#
+try:
+   from PyQt4 import QtCore
+   
+   class TimeCallback_QT4(TimeCallback):
+       
+      def schedule(self):
+         if self.id:
+            return
+         milliseconds = max(1,int(round(self.interval*1000.0)))
+         self.id   = QtCore.QTimer()
+         QtCore.QObject.connect(self.id, QtCore.SIGNAL("timeout()"), self.reached)
+         self.id.start(milliseconds)
+         self.active = True
+         self.scheduled.append(self)
+      
+      def deschedule(self):
+         if not self.id:
+            return
+         self.id.deleteLater()
+         self.id = 0
+         self.active = False
+         self.scheduled.remove(self)
+         
+      def reached(self):
+         self.proc(self)
+
+   TimeCallback.supported['QT4AGG'] = TimeCallback_QT4
+except:
+   pass
