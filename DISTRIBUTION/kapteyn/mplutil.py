@@ -7,8 +7,9 @@ Module mplutil
    :linenothreshold: 5
 
 Utilities for use with matplotlib.
-Classes :class:`AxesCallback` and :class:`VariableColormap` and module-internal
-function :func:`KeyPressFilter`.
+Classes :class:`AxesCallback`, :class:`TimeCallback`
+and :class:`VariableColormap`
+and module-internal function :func:`KeyPressFilter`.
 
 Class AxesCallback
 ------------------
@@ -264,7 +265,7 @@ line. Values should be between 0.0 and 1.0.
 
 .. attribute:: scale
 
-   The colormap's current scale as specified with methon :meth"`set_scale`.
+   The colormap's current scale as specified with methon :meth:`set_scale`.
 
 .. attribute:: source
 

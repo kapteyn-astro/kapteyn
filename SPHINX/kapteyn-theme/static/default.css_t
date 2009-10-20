@@ -68,6 +68,7 @@ div.related a {
 div.sphinxsidebar {
     {%- if theme_stickysidebar|tobool %}
 /*    top: 30px; */
+    background-image: url("background-b.png");
     top: 91px;  /* 51+5+5+30 */
     margin: 0;
     position: fixed;
