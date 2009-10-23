@@ -927,9 +927,9 @@ def plotfig(fignum, smallversion=False):
    #usetex = plt.rcParams['text.usetex']
    
    if figsize == None:
-      #figsize = grat.figsize
-      figsize = (8.5,8.5)
-   fig = plt.figure(figsize=figsize)
+      figsize = grat.figsize
+   #fig = plt.figure(figsize=figsize)
+   fig = plt.figure(figsize=(8,6))
    # Note that both Graticule and FITSimage objects set an aspect ratio attribute.
    frame = fig.add_axes(grat.axesrect, aspect=grat.aspectratio, adjustable='box', autoscale_on=False, clip_on=True)
    if framebackgroundcolor != None:
@@ -955,17 +955,15 @@ def plotfig(fignum, smallversion=False):
    
    annotatekwargs0.update({'fontsize':fsize})
    annotatekwargs1.update({'fontsize':fsize})
-   inlabs0 = grat.insidelabels(wcsaxis=0, 
-                        world=lon_world, constval=lat_constval, 
-                        deltapx=deltapx, deltapy=deltapy, 
+   grat.Insidelabels(wcsaxis=0, 
+                        world=lon_world, constval=lat_constval, deltapx=deltapx, deltapy=deltapy, 
                         addangle=addangle0, **annotatekwargs0)
-   inlabs1 = grat.insidelabels(wcsaxis=1, 
-                        world=lat_world, constval=lon_constval, 
-                        deltapx=deltapx, deltapy=deltapy, 
+   grat.Insidelabels(wcsaxis=1, 
+                        world=lat_world, constval=lon_constval, deltapx=deltapx, deltapy=deltapy, 
                         addangle=addangle1, **annotatekwargs1)
    
    gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
-   gratplot.add( [grat,inlabs0,inlabs1] )
+   gratplot.add(grat)
    
    if border != None:
       gratplot.add(border)
@@ -992,7 +990,8 @@ def plotfig(fignum, smallversion=False):
    else:
       t = frame.set_title(title, color='g')
    t.set_y(titlepos)
-
+   #gratplot.plot()
+   
    
    # We need a Matplotlib figure manager to display wcs information in the toolbar 
    figmanager = plt.get_current_fig_manager()

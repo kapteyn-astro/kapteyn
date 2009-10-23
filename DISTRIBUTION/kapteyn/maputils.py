@@ -1200,6 +1200,8 @@ this class.
 .. automethod:: interact_toolbarinfo
 .. automethod:: interact_imagecolors
 .. automethod:: interact_writepos
+.. automethod:: key_imagecolors
+.. automethod:: mouse_imagecolors
 
 :Attributes:
 
@@ -1257,6 +1259,7 @@ this class.
            The color map. This is an object from class :class:`mplutil.VariableColormap`.
            which is inherited from the Matplotlib color map class.
            Its main methods are:
+   
            * :class:`mplutil.VariableColormap.set_source`
            * :class:`mplutil.VariableColormap.set_bad`
            * :class:`mplutil.VariableColormap.add_frame`
@@ -1304,11 +1307,15 @@ this class.
       self.set_blankcolor(blankcolor)
       # Calculate defaults for clips if nothing is given
       self.clipmin = clipmin
-      if self.clipmin == None:                   # Take care of -inf, +inf & NaN
-         self.clipmin = imdata[numpy.isfinite(imdata)].min()  
-      self.clipmax = clipmax
-      if self.clipmax == None:
-         self.clipmax = imdata[numpy.isfinite(imdata)].max()
+      if self.data != None:
+         if self.clipmin == None:                   # Take care of -inf, +inf & NaN
+            self.clipmin = imdata[numpy.isfinite(imdata)].min()  
+         self.clipmax = clipmax
+         if self.clipmax == None:
+            self.clipmax = imdata[numpy.isfinite(imdata)].max()
+      else:
+         self.clipmin = 0.0
+         self.clipmax = 1.0
       self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax)
       self.histogram = False                     # Is current image equalized?
       self.data_hist = None                      # There is not yet a hist. eq. version of the data
@@ -1865,62 +1872,20 @@ this class.
          AxesCallback instance
    
       :Example:
-         Given an object from class :class:`Annotatedimage`,
+         Given an object from class :class:`Annotatedimage` called *annimage*,
          register this callback function for the position information with:
    
-         >>> image.motion_events()
-   
-         In the next example we present a small program that displays a
-         position-velocity plot. In the toolbar (if there is
-         enough space, otherwise make you window wider) you
-         will see the position of the missing spatial axis as
-         the third coordinate. It is the coordinate that
-         changes the least if you move the mouse.
-   
-         .. literalinclude:: maputils.interaction.2.py
-   
-         In the next example we demonstrate the interaction with
-         the mouse to change colors in image and colorbar. The colors are
-         only changed when you move the mouse in an image while pressing
-         the right mouse button. We also registerd a function for keyboard
-         keys. If you press *pageup* or *pagedown* you will loop through a
-         list will color maps.
-         
-         .. literalinclude:: maputils.interaction.3.py
+         >>> annimage.interact_imagecolors()
    
       :Notes:
-         
-         *  **Important**: If you want more than one image in your plot and
-            want mouse interaction for each image separately, then you have
-            to register this callback function for each instance of class
-            :class:`Annotatedimage`. But you have to register them before you register
-            any *press* related events (key_press_event, button_press_event).
-            Otherwise, you will get only the position
-            information from the first image in the toolbar.
          
          *  New color limits are calculated as follows: first the position
             of the mouse is transformed into normalized coordinates.
             These values are used to set a shift and a compression factor
             for the color limits. The shift changes with horizontal moves
             and the compression with vertical moves.
-            If the data range of image values is [*datmin*, *datmax*] then
-            :math:`\Delta_x = datmax - datmin`. If the mouse position in normalized
-            coordinates is :math:`(\delta_x,\delta_y)` then a central clip
-            value is :math:`c = datmin + \delta_x*\Delta_x`. Further,
-            :math:`\Delta_y = \delta_y*\Delta_x` from which we calculate
-            the new clip- or color limits: :math:`clipmin = c - \Delta_y`
-            and :math:`clipmax = c + \Delta_y`.
-   
-         *  A 'standard' event object has an attribute which represents the frame
-            (Axes object) in which it occurred. So we can check if this
-            frame corresponds to the frame in which the current image is
-            plotted. However, when we also plot graticules then more frames
-            correspond to the current image and there is no rule from
-            which we can derive to which frame the event belongs to.
-            Therefore we use a modified event object. It is an object from class
-            :class:`AxesCallback` and it is connected to a frame which was
-            set in the constructor. Therefore we are sure that when the event
-            is triggered, it is for the right frame.
+            If the data range of image values is [*datmin*, *datmax*] then...
+
       """
       #--------------------------------------------------------------------      
       if axesevent.event.button == 3:
@@ -2097,10 +2062,14 @@ this class.
       Add mouse interaction (right mouse button) to change the colors
       in an image.
       
-      Add key interaction (page-up, page-down and others)
-      to change or reset the colormap.
+      Add key interaction to change or reset the colormap.
+      See also description of the used keys at
+      :meth:`Annotatedimage.key_imagecolors`
 
-      If *mplim* is an object from class :class:`Annotatedimage` then acticate
+      For mouse interaction see documentation at:
+      :meth:`Annotatedimage.mouse_imagecolors`
+
+      If *mplim* is an object from class :class:`Annotatedimage` then activate
       color editing with:
       
       >>> mplim.interact_imagecolors()
