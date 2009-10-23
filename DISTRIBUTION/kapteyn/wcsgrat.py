@@ -47,9 +47,9 @@ Below you will find a reference to a tutorial with working examples.
 
 .. seealso:: Tutorial material:
    
-     * Tutorial wcsgrat module
+     * Tutorial maputils module
        which contains many examples with source code,
-       see :ref:`wcsgrat_tutorial`.
+       see :ref:`maputils_tutorial`.
 
      * Figure gallery 'all sky plots'
        with many examples of Graticule constructors,
@@ -164,6 +164,38 @@ def parseplotaxes(plotaxes):
 
 
 
+def parsetickmode(tickmode):
+   """
+   -----------------------------------------------------------
+   Purpose:
+   Parameters:
+      tickmode - Scalar or sequence with elements that are either
+                 integers or strings or a combination of those.
+
+   Returns:      A list with unique numbers between 0 and 3
+
+   Notes:        
+
+   -----------------------------------------------------------
+   """
+   #(native, notnative, bothticks, noticks) = range(4)
+   if type(tickmode) == StringType:
+      if "NATIVE_TICKS".find(tickmode.upper()) == 0:
+         tickmode = native
+      elif "SWITCHED_TICKS".find(tickmode.upper()) == 0:
+         tickmode = notnative
+      elif "ALL_TICKS".find(tickmode.upper()) == 0:
+         tickmode = bothticks
+      elif "NO_TICKS".find(tickmode.upper()) == 0:
+         tickmode = noticks
+      else:
+         raise ValueError, "[%s] Cannot identify this tick mode!" % tickmode
+   if tickmode < 0 or tickmode > 3:
+      raise ValueError, "%d does not correspond to a supported tick mode!" % tickmode
+   return tickmode
+      
+
+
 class Plotversion(object):
    """
 Return an object which serves as a container for plot objects.
@@ -264,6 +296,7 @@ could be added in the future.
          frame.xaxis.set_visible(False)
          frame.yaxis.set_visible(False)
 
+
    def add(self, objlist):
       """
       Add object to plot container. These objects can be related to different
@@ -297,16 +330,11 @@ could be added in the future.
          elif obj.ptype == "Gridframe":
             #self.gridframes.append(obj)
             self.__plot1grid(obj)
+         elif obj.ptype == "Pixellabels":
+            self.__plot1grid(obj.gridlabs)
          elif obj.ptype == "Insidelabels":
             #self.insidelabs.append(obj)
             self.__plotinsidelabels(obj)
-         #else:
-         #   try:
-         #      self.images.append(obj)
-         #      obj.imshow()
-         #   except:
-         #       pass
-
 
    def __plot1graticule(self, graticule):
       """
@@ -338,6 +366,7 @@ could be added in the future.
                                     frameon=False, 
                                     label=framelabel)
          self.frames.append(frame)
+      graticule.frame = frame  # !!!! DOCUMENTEREN
       xlo = graticule.pxlim[0]-0.5; ylo = graticule.pylim[0]-0.5; 
       xhi = graticule.pxlim[1]+0.5; yhi = graticule.pylim[1]+0.5  
       frame.set_yticks(pos[left])
@@ -422,6 +451,13 @@ could be added in the future.
       for inlabel in insidelabels.labels:
          self.frame.text(inlabel.x, inlabel.y, inlabel.label, clip_on=True, **inlabel.kwargs)
 
+      # Set limits
+      xlo = insidelabels.pxlim[0]-0.5
+      ylo = insidelabels.pylim[0]-0.5
+      xhi = insidelabels.pxlim[1]+0.5
+      yhi = insidelabels.pylim[1]+0.5
+      self.frame.set_xlim((xlo,xhi))
+      self.frame.set_ylim((ylo,yhi))
 
    def __plot1grid(self, pixellabels):
       """
@@ -543,6 +579,13 @@ could be added in the future.
          self.frame.plot( [x, x+dx], [y, y+dy], '-', color='k')
          self.frame.text(x+ruler.mscale*dx, y+ruler.mscale*dy, label, **ruler.kwargs)
 
+      # Set limits explicitly
+      xlo = ruler.pxlim[0]-0.5
+      ylo = ruler.pylim[0]-0.5
+      xhi = ruler.pxlim[1]+0.5
+      yhi = ruler.pylim[1]+0.5
+      self.frame.set_xlim((xlo,xhi))
+      self.frame.set_ylim((ylo,yhi))
 
    def moeteruit_plot(self):
       """
@@ -1609,13 +1652,15 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                 skip = True
 
              if not skip:
-                if gridline.axtype == 'longitude' and not t.offset:
-                   if (gridline.skysys == wcs.equatorial):
-                      lab = wcs.lon2hms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
-                   else:
-                      lab = wcs.lon2dms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
-                elif gridline.axtype == 'latitude' and not t.offset:
-                   lab = wcs.lat2dms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
+                # There are some conditions for plotting labels in hms/dms:
+                if gridline.axtype in ['longitude', 'latitude'] and t.offset == False and t.fmt == None and t.fun == None:
+                  if gridline.axtype == 'longitude':
+                     if (gridline.skysys == wcs.equatorial):
+                        lab = wcs.lon2hms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
+                     else:
+                        lab = wcs.lon2dms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
+                  else:    # must be latitude
+                     lab = wcs.lat2dms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
                 else:
                    if t.fun == None:
                       val = t.labval
@@ -1625,8 +1670,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                       lab = "%g" % val
                    else:
                       lab = t.fmt % val
-                      if tex and not t.fmt.startswith('$'):
-                         lab = r"$%s$"% lab
+                      if tex:
+                         lab = r"%s" % lab
+                      #if tex and not t.fmt.startswith('$'):
+                      #   lab = r"$%s$"% lab
                 ticklab[anr].append(lab)
                 if anr in [left,right]:
                    tickpos[anr].append(t.y)
@@ -2894,9 +2941,14 @@ behaviour.
       """
       plotaxis = parseplotaxes(plotaxis)
       for ax in plotaxis:
+         # User wants to make something visible, but right and top
+         # axis labels are default invisible. Keyword 'visible' in the
+         # kwargs list can overrule this default
+         self.axes[ax].kwargs.update({'visible':True})
          if len(kwargs):
             self.axes[ax].kwargs.update(kwargs)
          if mode != None:
+            mode = parsetickmode(mode)
             self.axes[ax].mode = mode
          if label != None:
             self.axes[ax].label = label
@@ -3086,6 +3138,8 @@ intersections with the enclosing axes rectangle.
                      defkwargs.update({'rotation':phi})
                      defkwargs.update(kwargs)
                      insidelabels.append(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
+         insidelabels.pxlim = self.pxlim
+         insidelabels.pylim = self.pylim
          self.objlist.append(insidelabels)
          return insidelabels
 
@@ -3518,7 +3572,12 @@ a spatial axis.
             elif sign == -1.0:
                break
                # raise Exception, mes
-      self.objlist.append(ruler)
+      ruler.pxlim = self.pxlim
+      ruler.pylim = self.pylim
+      try:
+         self.objlist.append(ruler)
+      except:
+         pass
       return ruler
 
 
@@ -3526,11 +3585,12 @@ a spatial axis.
       """
       Plot pixel coordinates
       """
-      gridlabs = Pixellabels(self, pxlim=self.pxlim, pylim=self.pylim, 
-                             plotaxis=plotaxis, markersize=markersize, gridlines=gridlines, 
-                             offset=offset, **kwargs)
-      self.objlist.append(gridlabs)
-      
+      pixobj = Pixellabels(self.pxlim, self.pylim,
+                           plotaxis, markersize, gridlines,
+                           offset, **kwargs)
+      self.objlist.append(pixobj)
+      return pixobj
+   
       
    def plot(self, frame):
       """
@@ -3610,11 +3670,11 @@ class Pixellabels(object):
    """
    def __init__(self, pxlim, pylim, plotaxis=None, markersize=None,
                 gridlines=False, offset=None, **kwargs):
-      
+
       def nint(x):
          return numpy.floor(x+0.5)
    
-      self.ptype = "Pixellabels"
+      self.ptype = "Pixellabels"       # not a gridframe object
       defkwargs = {'fontsize':7}
       defkwargs.update(kwargs)
       if plotaxis == None:

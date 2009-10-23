@@ -64,3 +64,4 @@ Humboldt-Universitaet zu Berlin @ 141.20.192.106
 TNO @ 134.221.241.31
 INAF -Astronomical Observatory of Padova @ 193.206.241.155
 University of Leicester X-ray and Observational Astronomy Group @ 143.210.37.33
+Dominion Radio Astrophysical Observatory @ 192.139.21.252
