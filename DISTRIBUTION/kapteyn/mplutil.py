@@ -37,7 +37,10 @@ keys to KeyPressFilter's attribute *allowed*. E.g.,
 ``KeyPressFilter.allowed = ['g', 'f']`` will allow characters ``g`` and ``f``
 to reach the backend so that the backend's grid- and full-screen toggles
 will be available again.
-
+The filtering can be completely switched on and off by assigning True or False
+to KeyPressFilter's attribute *enabled*. E.g.,
+``KeyPressFilter.enabled = False``.
+ 
 """
 # ==========================================================================
 #                             class AxesCallback
@@ -458,10 +461,11 @@ from matplotlib.backend_bases import FigureManagerBase
 __key_press = FigureManagerBase.key_press
 
 def KeyPressFilter(fmb_obj, event):
-   if event.key in KeyPressFilter.allowed:
+   if not KeyPressFilter.enabled or event.key in KeyPressFilter.allowed:
       __key_press(fmb_obj, event)
       
 KeyPressFilter.allowed = []
+KeyPressFilter.enabled = True
 
 FigureManagerBase.key_press = KeyPressFilter
 
