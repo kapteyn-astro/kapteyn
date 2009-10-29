@@ -317,35 +317,37 @@ This example is a complete program and illustrates how a FITS file containing
 a 2-dimensional image with equatorial coordinates can be reprojected into an
 image with galactic coordinates.
 """
+   cdef int *grids_c
+   cdef int offset_c[20], factors_c[20], npixels_c, naxis_c, index_c, i_c, ax_c
 
    if debug: print "wcs.coordmap"
    naxis = len(img_shape)
+   naxis_c = naxis
    if img_offset is None:
       img_offset = []
       for i in range(naxis):
          img_offset.append(0)
 
-   npixels = reduce(mpy, img_shape)
+   for i in range(naxis):
+      offset_c[i] = img_offset[-i-1]
+
+   npixels_c = reduce(mpy, img_shape)
 
    if len(proj_src.types)!=naxis or len(proj_dst.types)!=naxis:
       raise TypeError, "incompatible projections and shape"
 
    grids_dst = numpy.zeros(shape=img_shape+(naxis,), dtype=numpy.int)
 
-   factors = [1]
+   factors_c[0] = 1
    for i in range(naxis):
-      factors.append(factors[-1]*img_shape[-i-1])
+      factors_c[i+1] = factors_c[i]*img_shape[-i-1]
 
-   shape = grids_dst.shape
-   grids_dst.shape=(reduce(mpy, shape),)
-
-   if debug: print "     populate"
-   for i in xrange(npixels):
-      for ax in range(naxis):
-         grids_dst[i*naxis+ax] = (i%factors[ax+1])/factors[ax]+img_offset[-ax-1]+1
-   if debug: print "end  populate"
-   
-   grids_dst.shape = shape
+   index_c = 0
+   grids_c = <int*>PyArray_DATA(grids_dst)
+   for i_c in range(npixels_c):
+      for ax_c in range(naxis_c):
+         grids_c[index_c] = (i_c%factors_c[ax_c+1])/factors_c[ax_c]+offset_c[ax_c]
+         index_c += 1
    
    dst_types = proj_dst.types
    proj_dst = proj_dst.copy()
