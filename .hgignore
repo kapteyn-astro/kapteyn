@@ -8,7 +8,7 @@ SPHINX/EXAMPLES/fig2_axnumdemo.png
 SPHINX/HTML
 SPHINX/LATEX
 SPHINX/build/*
-PACKAGE
+PACKAGE*
 *.pyc
 *.new
 *.sav
