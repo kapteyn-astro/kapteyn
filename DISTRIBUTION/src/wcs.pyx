@@ -336,7 +336,7 @@ image with galactic coordinates.
    if len(proj_src.types)!=naxis or len(proj_dst.types)!=naxis:
       raise TypeError, "incompatible projections and shape"
 
-   grids_dst = numpy.zeros(shape=img_shape+(naxis,), dtype=numpy.int)
+   grids_dst = numpy.zeros(shape=img_shape+(naxis,), dtype=numpy.int32)
 
    factors_c[0] = 1
    for i in range(naxis):
