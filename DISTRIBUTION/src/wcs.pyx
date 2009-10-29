@@ -346,7 +346,7 @@ image with galactic coordinates.
    grids_c = <int*>PyArray_DATA(grids_dst)
    for i_c in range(npixels_c):
       for ax_c in range(naxis_c):
-         grids_c[index_c] = (i_c%factors_c[ax_c+1])/factors_c[ax_c]+offset_c[ax_c]
+         grids_c[index_c] = (i_c%factors_c[ax_c+1])/factors_c[ax_c]+offset_c[ax_c]+1
          index_c += 1
    
    dst_types = proj_dst.types
