@@ -233,6 +233,7 @@ from numpy import ma
 from matplotlib.colors import Colormap
 from matplotlib import cm
 from tabarray import tabarray
+from kapteyn import package_dir
 
 class VariableColormap(Colormap):
    """
@@ -247,6 +248,8 @@ line. Values should be between 0.0 and 1.0.
    the object from which the VariableColormap is created. Either an other
    colormap object or its registered name,
    or the name of a text file containing RGB triplets.
+   A number of colormap files is available within the package, currently
+   ``mousse.lut`` and ``ronekers.lut``. 
 :param name:
    the name of the color map.
    
@@ -268,7 +271,7 @@ line. Values should be between 0.0 and 1.0.
 
 .. attribute:: scale
 
-   The colormap's current scale as specified with methon :meth:`set_scale`.
+   The colormap's current scale as specified with method :meth:`set_scale`.
 
 .. attribute:: source
 
@@ -329,7 +332,10 @@ line. Values should be between 0.0 and 1.0.
             source._init()
          self.baselut = source._lut
       else:
-         colors = tabarray(source)
+         try:
+            colors = tabarray(source)
+         except:
+            colors = tabarray(package_dir + '/lut/' + source)
          ncolors = colors.shape[0]
          self.baselut = numpy.ones((ncolors+3,4), numpy.float)
          self.baselut[:ncolors,:3] = colors
