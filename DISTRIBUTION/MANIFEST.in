@@ -1,0 +1,8 @@
+include MANIFEST.in
+include MANIFEST
+include setup.py
+include INSTALL.txt  LICENSE.txt  README.txt
+graft   kapteyn
+graft   src
+graft   doc
+graft   lut
