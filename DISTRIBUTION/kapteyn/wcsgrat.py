@@ -102,7 +102,7 @@ Class Graticule
 ---------------
 
 .. autoclass:: Graticule
-
+.. autoclass:: WCStick
 """
 
 # TODO sequencetype uitbreiden met numpy
@@ -615,15 +615,16 @@ could be added in the future.
 
 
 class WCStick(object):
+   #-------------------------------------------------------------------------------
    """
-   -------------------------------------------------------------------------------
    A WCStick object is an intersection of a parallel or meridian (or equivalent
    lines with one constant world coordinate) with one of 
    the axes of a rectangle in pixels. The position of that intersection is 
    stored in pixel coordinates and can be used to plot a (formatted) label
    showing the position of the constant world coordinate of the graticule line.
-  -------------------------------------------------------------------------------
+   This class is only used in the context of the Graticule class.
    """
+   #-------------------------------------------------------------------------------
    def __init__(self, x, y, axisnr, labval, wcsaxis, offset, fun=None, fmt=None):
       """
       -----------------------------------------------------------
@@ -2243,8 +2244,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if self.gmap.types[aa] in [None, 'spectral']:
             annot[aa] += self.gmap.ctype[aa].split('-')[0] + ' (' + self.gmap.units[aa] + ')'
          else:        # Must be spatial
-            if (aa == 0 and self.radoffsetx) or (aa == 1 and self.radoffsety):
-               annot[aa] = 'Radial offset'
+            if (aa == 0 and self.radoffsetx):
+               annot[aa] = 'Radial offset lon.'
+            elif (aa == 1 and self.radoffsety):
+               annot[aa] = 'Radial offset lat.'
             else:
                if self.gmap.types[aa] == 'longitude':
                   if self.__skysys == wcs.equatorial:

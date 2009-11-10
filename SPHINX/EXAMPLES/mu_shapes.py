@@ -16,7 +16,7 @@ fitsobject = maputils.FITSimage('rense.fits')
 #ch = range(15,85)
 ch = [20, 30]
 count = 0
-vmin, vmax = fitsobject.globalminmax()
+vmin, vmax = fitsobject.get_dataminmax()
 print "Vmin, Vmax:", vmin, vmax
 for i in ch:
    fitsobject.set_imageaxes(1,2, slicepos=i)

@@ -1,6 +1,10 @@
 """Show interaction options"""
 from kapteyn import maputils
 from matplotlib import pyplot as plt
+from kapteyn.mplutil import KeyPressFilter
+
+KeyPressFilter.allowed = ['f','g', 'l']
+
 
 f = maputils.FITSimage("m101.fits")
 #f.set_limits((100,500),(200,400))

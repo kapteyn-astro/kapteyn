@@ -25,5 +25,7 @@ ruler2.setp_labels(clip_on=True, color='b')
 grat.setp_plotaxis("right", label="Offset (Arcsec)", visible=True)
 
 mplim.plot()
+mplim.interact_writepos()
+
 plt.show()
 
