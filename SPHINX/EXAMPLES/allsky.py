@@ -981,7 +981,7 @@ def plotfig(fignum, smallversion=False):
       frame.plot( (pixel[0],), (pixel[1],), 'o', color='red' )
    
    if drawgrid:
-      pixellabels = grat.pixellabels(plotaxis=(2,3))
+      pixellabels = grat.Pixellabels(plotaxis=(2,3))
       gratplot.add(pixellabels)
    
    # Plot the title

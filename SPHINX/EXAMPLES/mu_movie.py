@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 from kapteyn import wcsgrat, maputils
 from matplotlib import pylab as plt
-from kapteyn.mplutil import KeyPressFilter
-
-KeyPressFilter.allowed = ['f', 'g']
 
 # Get connected to Matplotlib
 fig = plt.figure()
@@ -18,7 +15,7 @@ fitsobject = maputils.FITSimage('ngc6946.fits')
 # Get a the range of channels in the data cube
 n3 = fitsobject.hdr['NAXIS3']
 ch = range(1,n3)
-vmin, vmax = fitsobject.globalminmax()
+vmin, vmax = fitsobject.get_dataminmax()
 print "Vmin, Vmax of data in cube:", vmin, vmax
 cmap = None
 

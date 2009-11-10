@@ -13,8 +13,8 @@ frame = fig.add_subplot(rows,cols,1)
 mplim = f.Annotatedimage(frame, cmap="spectral")
 mplim.Image(visible=False)
 cont = mplim.Contours()
-mplim.Colorbar(clines=True, fontsize=8, 
-               linewidths=3, alpha=0.0) # show only cont. lines
+mplim.Colorbar(clines=True, fontsize=8,
+               linewidths=3, visible=False) # show only cont. lines
 mplim.plot()
 # Levels only known after plotted
 print "Proposed levels:", cont.clevels
