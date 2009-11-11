@@ -228,7 +228,8 @@ first :class:`AxesCallback` object `draw` as an attribute.
 # ==========================================================================
 #                          class VariableColormap
 # --------------------------------------------------------------------------
-import numpy, math
+import numpy, math, glob
+from os.path import basename
 from numpy import ma
 from matplotlib.colors import Colormap
 from matplotlib import cm
@@ -248,8 +249,8 @@ line. Values should be between 0.0 and 1.0.
    the object from which the VariableColormap is created. Either an other
    colormap object or its registered name,
    or the name of a text file containing RGB triplets.
-   A number of colormap files is available within the package, currently
-   ``mousse.lut`` and ``ronekers.lut``. 
+   A number of colormap files is available within the package.
+   A list of names can be obtained with class method :meth:`luts`.
 :param name:
    the name of the color map.
    
@@ -286,7 +287,14 @@ line. Values should be between 0.0 and 1.0.
 .. automethod:: add_frame
 .. automethod:: remove_frame
 .. automethod:: update
+.. automethod:: luts
 """ 
+   @classmethod
+   def luts(cls):
+      "Return a list with filenames of colormaps available within the package."
+      maps = [basename(lut) for lut in glob.glob(package_dir + '/lut/*.lut')]
+      maps.sort()
+      return maps
 
    def __init__(self, source, name='Variable'):
       self.name = None                      # new VariableColormap object
