@@ -50,6 +50,7 @@ def plotfig(fignum, smallversion=False):
    oblique = None
    framebackgroundcolor = None
    grat = None                            # Just initialize
+   ilabs1 = ilabs2 = None
    
    
    
@@ -67,11 +68,11 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,380.0,30.0);
       Y = numpy.arange(-90,100,30.0)  # i.e. include +90 also
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       pixel = grat.gmap.topixel((120.0,60))
       header['CRVAL1'] = 0.0
-      border = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      border = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                                  startx=(180-epsilon,-180+epsilon, 0), starty=(-90,0,90))
       lat_world = lon_world = None
    elif fignum == 2:
@@ -87,13 +88,13 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,360.0,30.0);
       Y = numpy.arange(-90,100,30.0)  # i.e. include +90 also
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       pixel = grat.gmap.topixel((120.0,60))
       # Get the non-oblique version for the border
       header['CRVAL1'] = 0.0
       header['CRVAL2'] = 0.0
-      border = wcsgrat.Graticule( header, axnum= (1,2), boxsamples=10000, wylim=(-90,90.0), wxlim=(-180,180),
+      border = wcsgrat.Graticule(header, axnum= (1,2), boxsamples=10000, wylim=(-90,90.0), wxlim=(-180,180),
                                  startx=(180-epsilon,-180+epsilon), starty=(-90,90))
       lat_world = lon_world = None
    elif fignum == 3:
@@ -170,7 +171,7 @@ def plotfig(fignum, smallversion=False):
       X = numpy.arange(0,360.0,15.0)
       #Y = numpy.arange(0,90,15.0)
       Y = [20, 30,45, 60, 75, 90]
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(20.0,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(20.0,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_constval = 20
       lat_world = [20, 30, 60, dec0]
@@ -185,7 +186,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,360.0,30.0)
       Y = numpy.arange(-60,90,10.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-60,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-60,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_constval = -62
       lat_world = range(-50, 10, 10)
@@ -201,7 +202,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,360.0,30.0)
       Y = numpy.arange(-90,90,10.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       # Special care for the boundary (algorithm from Calabretta et al)
       a = numpy.linspace(0,360,500)
@@ -225,7 +226,7 @@ def plotfig(fignum, smallversion=False):
       Y = numpy.arange(-90,90,30.0)
       Y[0]= -89.999999   # Graticule for -90 exactly is not plotted
       #lat_world = range(-80,80,20)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
    elif fignum == 9:
       title = r"Zenithal polynomial projection (ZPN) with PV2\_n parameters 0 to 7. (Cal. fig.12)"
@@ -240,7 +241,7 @@ def plotfig(fignum, smallversion=False):
       X = numpy.arange(0,360.0,30.0)
       #Y = numpy.arange(-70,90,30.0)   # Diverges (this depends on selected parameters)
       Y = [-70, -60, -45, -30, 0, 15, 30, 45, 60, 90]
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-70,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-70,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       # Configure annotations
       lat_constval = -72
@@ -258,7 +259,7 @@ def plotfig(fignum, smallversion=False):
       X = numpy.arange(0,360.0,30.0)
       Y = numpy.arange(-90,90,30.0)
       Y[0]= -dec0+0.00000001
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       grat.setp_lineswcs1(position=0, color='g', lw=2)   # Set attributes for graticule line at lat = 0
       lat_world = [-dec0, -30, 30, 60]
@@ -273,7 +274,7 @@ def plotfig(fignum, smallversion=False):
       X = numpy.arange(0,360.0,30.0)
       Y = numpy.arange(-30,90,10.0)
       # Diverges at dec = -90, start at dec = -30
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-30, -20, -10, 10, 40, 70]
    # CYLINDRICALS
@@ -288,7 +289,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,100,30.0)  # i.e. include +90 also
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-90, -60,-30, 30, 60, dec0]
       lon_world = range(0,360,30)
@@ -305,7 +306,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,100,30.0)  # i.e. include +90 also
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-60,-30, 30, 60]
       lon_world = range(0,360,30)
@@ -320,7 +321,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,100,30.0)  # i.e. include +90 also
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-90, -60,-30, 30, 60, dec0]
       lon_world = range(0,360,30)
@@ -336,7 +337,7 @@ def plotfig(fignum, smallversion=False):
       
       X = cylrange()
       Y = numpy.arange(-80,90,10.0)  # Diverges at +-90 so exclude these values
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-80,80.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-80,80.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-90, -60,-30, 30, 60, dec0]
       lon_world = range(0,360,30)
@@ -352,7 +353,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,100,30.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-dec0, -60,-30, 30, 60, dec0]
       lon_world = range(0,360,30)
@@ -367,7 +368,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,100,30.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-dec0, -60,-30, 30, 60, dec0]
       lon_world = range(0,360,30)
@@ -382,7 +383,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,100,30.0)  # Diverges at +-90 so exclude these values
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-60,-30, 30, 60]
       lon_world = range(0,360,30)
@@ -397,7 +398,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,100,30.0) 
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lat_world = [-dec0, -60,-30, 30, 60, dec0]
       lon_world = range(0,360,30)
@@ -418,7 +419,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,370.0,30.0);  X[-1] = 180+epsilon
       Y = numpy.arange(-30,90,15.0)  # Diverges at theta_a +- 90.0
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       grat.setp_lineswcs1(-30, linestyle='--', color='g')
       lon_world.append(180+epsilon)
@@ -437,7 +438,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,91,30.0); Y[-1] = dec0
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lon_world.append(180+epsilon)
       lat_constval = 5
@@ -458,7 +459,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-90,91,15)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lon_world.append(180.0+epsilon)
    elif fignum == 23:
@@ -476,7 +477,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = cylrange()
       Y = numpy.arange(-30,90,30.0)  # Diverges at theta_a= -90.0
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       grat.setp_lineswcs1(-30, linestyle='--', color='g')
       lon_world.append(180.0+epsilon)
@@ -493,7 +494,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = polrange()
       Y = numpy.arange(-90,100,15.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lon_world.append(180+epsilon)
    elif fignum == 25:
@@ -527,7 +528,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,370.0,15.0)
       Y = numpy.arange(-90,100,15.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                               startx=X, starty=Y)
       # Make a polygon for the border
       xlo, py = grat.gmap.topixel((-45.0-epsilon, 0.0));
@@ -550,7 +551,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,370.0,15.0)
       Y = numpy.arange(-90,100,15.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                               startx=X, starty=Y)
       xlo, py = grat.gmap.topixel((-45.0-epsilon, 0.0));
       px, ylo = grat.gmap.topixel((-180, -45));
@@ -572,7 +573,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(-180,180,15);
       Y = numpy.arange(-90,100,15.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       xlo, py = grat.gmap.topixel((-45.0-epsilon, 0.0));
       px, ylo = grat.gmap.topixel((-180, -45));
@@ -596,7 +597,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(-180,180,15)
       Y = numpy.arange(-90,100,15.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       lon_world = range(0,360,30)
       lat_world = [-90, -60, -30, 30, 60, dec0]
@@ -624,7 +625,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,370.0,15.0)
       Y = numpy.arange(-90,100,15.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                               startx=X, starty=Y)
       lon_world = range(-180,180,30)
       lat_world = [-90, -60, -30, 30, 60, dec0]
@@ -650,7 +651,7 @@ def plotfig(fignum, smallversion=False):
       X = numpy.arange(0,360,15.0)
       Y = numpy.arange(-90,90,15.0)
       Y[0]= -dec0
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
    elif fignum == 30:
       title = r"""Zenith equal area projection (ZEA) oblique with:
@@ -664,7 +665,7 @@ def plotfig(fignum, smallversion=False):
       X = numpy.arange(0,360.0,15.0)
       Y = numpy.arange(-90,90,15.0)
       Y[0]= -dec0
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       grat.setp_lineswcs0((0,180), color='g', lw=2)
    elif fignum == 31:
@@ -680,7 +681,7 @@ def plotfig(fignum, smallversion=False):
       X = numpy.arange(0,360.0,15.0)
       Y = numpy.arange(-90,90,15.0)
       Y[0]= -dec0
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       grat.setp_lineswcs0((0,180), color='g', lw=2)
    elif fignum == 32:
@@ -696,7 +697,7 @@ def plotfig(fignum, smallversion=False):
       X = numpy.arange(0,360.0,15.0)
       Y = numpy.arange(-90,90,15.0)
       Y[0]= -dec0
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       grat.setp_lineswcs0((0,180), color='g', lw=2)
    elif fignum == 33:
@@ -718,7 +719,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,370.0,15.0);  X[-1] = 180.000001
       Y = numpy.arange(-90,100,15.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       # Draw border with standard graticule
       header['CRVAL1'] = 0.0
@@ -745,7 +746,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,390.0,15.0); 
       Y = numpy.arange(-90,100,15.0) 
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       # Draw border with standard graticule
       header['CRVAL1'] = 0.0
@@ -772,14 +773,14 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,370.0,30.0)
       Y = numpy.arange(-90,100,30.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                               startx=X, starty=Y)
       # Take border from non-oblique version
       header['CRVAL2'] = 0.0
       del header['PV1_1']
       del header['PV1_2']
       del header['LONPOLE']
-      border = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      border = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                                  skipx=True, skipy=True)
       xlo, py = border.gmap.topixel((-45.0-epsilon, 0.0));
       px, ylo = border.gmap.topixel((-180, -45));
@@ -844,14 +845,14 @@ def plotfig(fignum, smallversion=False):
       Y = numpy.arange(-90,120,15.0) 
       # Here we demonstrate how to avoid a jump at the right corner boundary 
       # of the plot by increasing the value of 'gridsamples'.
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                               startx=X, starty=Y, gridsamples=4000)
       grat.setp_tick(position=(-15.0,-45.0, -60.0,-75.0), visible=False)
       deltapx = 3
       header['CRVAL1'] = 0.0
       header['CRVAL2'] = 0.0
       header['LONPOLE'] = 999
-      border = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      border = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                                  startx=(180-epsilon, -180+epsilon), starty=(-90,90))
       border.setp_gratline((0,1), color='g', lw=2)
       border.setp_plotaxis((0,1,2,3), mode=wcsgrat.noticks, visible=False)
@@ -868,7 +869,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = numpy.arange(0,390.0,30.0);
       Y = numpy.arange(-90,120,30.0) 
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       grat.setp_lineswcs0(color='r')
       grat.setp_lineswcs1(color='b')
@@ -879,7 +880,7 @@ def plotfig(fignum, smallversion=False):
       header['CRVAL2'] = 60.0
       header['LONPOLE'] = 999
       header['LATPOLE'] = 999
-      border = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+      border = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                                  startx=(180-epsilon, -180+epsilon), starty=(-90,90))
       border.setp_gratline((0,1), color='g', lw=2)
       border.setp_plotaxis((0,1,2,3), mode=wcsgrat.noticks, visible=False)
@@ -899,7 +900,7 @@ def plotfig(fignum, smallversion=False):
                }
       X = polrange()
       Y = numpy.arange(-90.0,100.0,15.0)
-      grat = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      grat = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                               startx=X, starty=Y)
       annotatekwargs0.update({'visible':False})
       annotatekwargs1.update({'visible':False})
@@ -908,7 +909,7 @@ def plotfig(fignum, smallversion=False):
       header['LONPOLE'] = 45.0  # Or PV1_3
       header['CRVAL1'] = 0.0
       header['CRVAL2'] = 45.0
-      oblique = wcsgrat.Graticule( header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
+      oblique = wcsgrat.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                                  startx=X, starty=Y)
       oblique.setp_lineswcs0(0.0, color='y')
       oblique.setp_lineswcs1(0.0, color='y')
@@ -932,6 +933,9 @@ def plotfig(fignum, smallversion=False):
    fig = plt.figure(figsize=(8,6))
    # Note that both Graticule and FITSimage objects set an aspect ratio attribute.
    frame = fig.add_axes(grat.axesrect, aspect=grat.aspectratio, adjustable='box', autoscale_on=False, clip_on=True)
+   frame.set_xlim(grat.pxlim[0]-0.5, grat.pxlim[1]+0.5)
+   frame.set_ylim(grat.pylim[0]-0.5, grat.pylim[1]+0.5)
+
    if framebackgroundcolor != None:
       frame.set_axis_bgcolor(framebackgroundcolor)
    
@@ -939,13 +943,13 @@ def plotfig(fignum, smallversion=False):
    if plotdata:
       from kapteyn import tabarray
       # ... or, if you prefer: import TableIO as tabarray
-      fn= 'WDB/world.txt'
+      fn= 'WDB/smallworld.txt'
       lat, lon= tabarray.readColumns(fn, 's',[0, 1])
       xp, yp = grat.gmap.topixel((datasign*lon,lat))
       # Clip the positions if they are outside the pixel limits.
       xp = numpy.ma.masked_where((xp > grat.pxlim[1]) | (xp < grat.pxlim[0]), xp)
       yp = numpy.ma.masked_where((yp > grat.pylim[1]) | (yp < grat.pylim[0]), yp)
-      frame.plot(xp, yp, ',', color='#FFDAAA')
+      frame.plot(xp, yp, 'r,')
    
    # Plot alternative borders
    if polygon != None:
@@ -955,15 +959,18 @@ def plotfig(fignum, smallversion=False):
    
    annotatekwargs0.update({'fontsize':fsize})
    annotatekwargs1.update({'fontsize':fsize})
-   grat.Insidelabels(wcsaxis=0, 
+   ilabs1 = grat.Insidelabels(wcsaxis=0, 
                         world=lon_world, constval=lat_constval, deltapx=deltapx, deltapy=deltapy, 
                         addangle=addangle0, **annotatekwargs0)
-   grat.Insidelabels(wcsaxis=1, 
+   ilabs2 = grat.Insidelabels(wcsaxis=1, 
                         world=lat_world, constval=lon_constval, deltapx=deltapx, deltapy=deltapy, 
                         addangle=addangle1, **annotatekwargs1)
    
    gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
-   gratplot.add(grat)
+   if ilabs1 != None and ilabs2 != None:
+      gratplot.add((grat, ilabs1, ilabs2))
+   else:
+      gratplot.add((grat))
    
    if border != None:
       gratplot.add(border)
