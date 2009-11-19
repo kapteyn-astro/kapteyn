@@ -9,7 +9,7 @@ has been built.
 Function ascarray
 -----------------
 
-.. autofunction:: ascarray(filename[, comchar='#!', sepchar=', \\\\t', lines=None, bad=None])
+.. autofunction:: ascarray(filename[, comchar='#!', sepchar=', \\\\t', lines=None, bad=None, segsep=None])
 
 """
 
@@ -59,7 +59,8 @@ import_array()
 # --------------------------------------------------------------------------
 #  Read an ASCII table file and return its data as a NumPy array.
 #
-def ascarray(filename, char *comchar='#!', sepchar=', \t', lines=None, bad=None):
+def ascarray(filename, char *comchar='#!', sepchar=', \t', lines=None,
+             bad=None, segsep=None):
    """
 Read an ASCII table file and return its data as a NumPy array.
 
@@ -87,8 +88,14 @@ Read an ASCII table file and return its data as a NumPy array.
    a number to be substituted for any field which cannot be
    decoded as a number. The default None causes a :exc:`ValueError`
    exception to be raised in such cases.
+:param segsep:
+   a string containing the segment separation characters. If any of
+   these characters is present in a comment line, this comment block
+   is taken as the end of the current segment. The default None indicates
+   that every comment block will separate segments.
 :returns:
-   a NumPy array containing the selected data from the table file.
+   a tuple containing 1) a NumPy array containing the selected data from
+   the table file, and 2) a list of slice objects, one for every segment.
 :raises:
    :exc:`IOError`, when the file cannot be opened.
 
@@ -102,11 +109,12 @@ Read an ASCII table file and return its data as a NumPy array.
    cdef FILE *f
    cdef char line[32768]
    cdef char *tokens[10000]
-   cdef char *curline, *token, *comstart, *csep
+   cdef char *curline, *token, *comstart, *csep, *c_segsep=NULL
    cdef char *endptr
    cdef int i, column, ncols=0, lineno=0, lstart=0, lend=0
    cdef npy_intp nvalues=0
    cdef int filesize, maxitems, badflag
+   cdef int *segments=NULL, maxseg=0, nseg=0, segfirst=0, segflag
    cdef double *data=NULL, badvalue
    f = fopen(filename, "r")
    if f==NULL:
@@ -121,12 +129,16 @@ Read an ASCII table file and return its data as a NumPy array.
       badvalue = bad
    if lines:
       lstart, lend = lines
+   if segsep is not None:
+      c_segsep = segsep
+   segments = <int*>malloc(sizeof(int))
    while fgets(line, 32768, f) != NULL:
       lineno += 1
       if lstart>0 and lineno<lstart:
          continue
       if lend>0 and lineno>lend:
          break
+      segflag = (c_segsep == NULL or strpbrk(line, c_segsep) != NULL)
       comstart = strpbrk(line, comchar)
       if comstart!=NULL:
          comstart[0] = 0
@@ -140,8 +152,10 @@ Read an ASCII table file and return its data as a NumPy array.
             column += 1
          else:
             if column>0:
+               segfirst = 1
                if ncols>0:
                   if ncols!=column:
+                     free(segments)
                      fclose(f)
                      raise IndexError, \
                         '%s, line %d: row width error' % (filename, lineno)
@@ -149,27 +163,49 @@ Read an ASCII table file and return its data as a NumPy array.
                   ncols = column
                   maxitems = <int>(1.3*ncols*filesize/strlen(line))+ncols
                   data = <double*>malloc(maxitems*sizeof(double))
-            for i from 0 <= i <column:
-               if nvalues>=maxitems:
-                  maxitems = <int>(1.3*maxitems)+ncols
-                  data = <double*>realloc(data, maxitems*sizeof(double))
-               data[nvalues] = strtod(tokens[i], &endptr)
-               if endptr[0]!=0:
-                  if badflag:
-                     data[nvalues] = badvalue
-                  else:
-                     fclose(f)
-                     raise ValueError, \
-                      '%s, line %d, column %d: invalid number "%s"' \
-                      % (filename, lineno, i+1, tokens[i])
-               nvalues += 1
+               for i from 0 <= i <column:
+                  if nvalues>=maxitems:
+                     maxitems = <int>(1.3*maxitems)+ncols
+                     data = <double*>realloc(data, maxitems*sizeof(double))
+                  data[nvalues] = strtod(tokens[i], &endptr)
+                  if endptr[0]!=0:
+                     if badflag:
+                        data[nvalues] = badvalue
+                     else:
+                        fclose(f)
+                        free(segments)
+                        raise ValueError, \
+                         '%s, line %d, column %d: invalid number "%s"' \
+                         % (filename, lineno, i+1, tokens[i])
+                  nvalues += 1
+            else:
+               if segflag:
+                  if segfirst:
+                     if nseg >= maxseg:
+                        maxseg += 1000
+                        segments = <int*>realloc(segments, (maxseg+1)*sizeof(int))
+                     segments[nseg] = nvalues/ncols  # number of rows up to here
+                     nseg += 1
+                     segfirst = 0
             break
+
+   if segfirst:
+      segments[nseg] = nvalues/ncols  # final number of rows
+      nseg += 1
+
+   seglist = []
+   segstart = 0
+   for i from 0 <= i <nseg:
+      segend = segments[i]
+      seglist.append(slice(segstart, segend))
+      segstart = segend
+
    fclose(f)
    if not data:
       raise IndexError, '%s: no lines of data read' % filename
    data = <double*>realloc(data, nvalues*sizeof(double))
-   result = PyArray_SimpleNewFromData(1, &nvalues, NPY_DOUBLE, data)
-   result.shape = (nvalues/ncols, ncols)
-   return result
+   array = PyArray_SimpleNewFromData(1, &nvalues, NPY_DOUBLE, data)
+   array.shape = (nvalues/ncols, ncols)
+   return (array, seglist)
 
 __version__ = '1.2'

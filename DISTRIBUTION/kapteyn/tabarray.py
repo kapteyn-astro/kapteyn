@@ -33,7 +33,7 @@ be considered as an alternative.
 Class tabarray
 --------------
 
-.. autoclass:: tabarray(source[, comchar='#!', sepchar=' \\\\t', lines=None, bad=None])
+.. autoclass:: tabarray(source[, comchar='#!', sepchar=' \\\\t', lines=None, bad=None, segsep=None])
    :members:
 
 
@@ -80,6 +80,11 @@ ndarray's functionality as well as some extra methods and attributes.
    is a number to be substituted for any field which cannot be
    decoded as a number.  The default None causes a ValueError exception to
    be raised in such cases.
+:param segsep:
+   a string containing segment separation characters. If any of
+   these characters is present in a comment block, this comment block
+   is taken as the end of the current segment. The default None indicates
+   that every comment block will separate segments.
 :raises:
    :exc:`IOError`, when the file cannot be opened.
 
@@ -89,18 +94,57 @@ ndarray's functionality as well as some extra methods and attributes.
    :exc:`ValueError`: when a field cannot be decoded as a number and
    no alternative value was specified.
 
+**Attributes:**
+
+.. attribute:: nrows
+
+   the number of rows
+
+.. attribute:: ncols
+
+   the number of columns
+
+.. attribute:: segments
+
+   a list with slice objects which can be used to address the different
+   segments from the table. Segments are parts of the table which
+   are separated by comment blocks which meet the conditions specified
+   by argument *segsep*. The following example illustrates how a program
+   can iterate over all segments::
+
+      from kapteyn.tabarray import tabarray
+
+      coasts = tabarray('world.txt')
+
+      for segment in coasts.segments:
+         coast = coasts[segment]
+         .
+         .
+         .
+
+**Methods:**
+
 """
 
-   def __new__(cls, source, comchar='#!', sepchar=' \t', lines=None, bad=None):
+   def __new__(cls, source, comchar='#!', sepchar=' \t', lines=None,
+               bad=None, segsep=None):
       if isinstance(source, numpy.ndarray):
          return source.view(cls)
       elif isinstance(source, tuple) or isinstance(source, list):
          return numpy.column_stack(source).view(tabarray)
       else:
-         return ascarray(source, comchar, sepchar, lines, bad).view(cls)
+         arrayspec = ascarray(source, comchar, sepchar, lines, bad, segsep)
+         array = arrayspec[0].view(cls)
+         array.segments = arrayspec[1] 
+         return array
 
-   def __init__(self, source, comchar=None, sepchar=None, lines=None, bad=None):
+   def __init__(self, source, comchar=None, sepchar=None, lines=None,
+               bad=None, segsep=None):
       self.nrows, self.ncols = self.shape
+      try:
+         self.segments
+      except:
+         self.segments = [slice(0,self.nrows)]
       
    def __array_finalize__(self, obj):
       try:
@@ -242,5 +286,5 @@ TableIO-compatible function for directly writing table data to a file.
 """
    tabarray(list).writeto(filename, comment=comment)
 
-__version__ = '1.1'
+__version__ = '1.2'
 __docformat__ = 'restructuredtext'
