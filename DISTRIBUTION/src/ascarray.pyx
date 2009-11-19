@@ -144,7 +144,7 @@ Read an ASCII table file and return its data as a NumPy array.
                   if ncols!=column:
                      fclose(f)
                      raise IndexError, \
-                        '%s, line %d: column width error' % (filename, lineno)
+                        '%s, line %d: row width error' % (filename, lineno)
                else:
                   ncols = column
                   maxitems = <int>(1.3*ncols*filesize/strlen(line))+ncols
@@ -172,4 +172,4 @@ Read an ASCII table file and return its data as a NumPy array.
    result.shape = (nvalues/ncols, ncols)
    return result
 
-__version__ = '1.1'
+__version__ = '1.2'
