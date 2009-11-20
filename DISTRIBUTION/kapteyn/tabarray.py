@@ -145,10 +145,14 @@ ndarray's functionality as well as some extra methods and attributes.
          self.segments
       except:
          self.segments = [slice(0,self.nrows)]
-      
+
    def __array_finalize__(self, obj):
       try:
          self.nrows, self.ncols = self.shape
+      except:
+         pass
+      try:
+         self.segments = [slice(0,self.nrows)]
       except:
          pass
 
