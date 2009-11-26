@@ -23,6 +23,9 @@ Module tabarray
 
 .. moduleauthor:: Hans Terlouw <J.P.Terlouw@astro.rug.nl>
 
+.. highlight:: python
+   :linenothreshold: 5
+
 Module tabarray provides a class which allows the user to read,
 write and manipulate simple table-like structures.
 It is based on NumPy and the table-reading part has been
@@ -118,9 +121,7 @@ ndarray's functionality as well as some extra methods and attributes.
 
       for segment in coasts.segments:
          coast = coasts[segment]
-         .
-         .
-         .
+
 
 **Methods:**
 

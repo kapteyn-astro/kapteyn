@@ -71,3 +71,4 @@ Boston University @ 128.197.64.212
 Max-Planck-Instituts fuer extraterrestrische Physik @ 130.183.72.82
 Peking University @ 222.29.49.249
 University of California, Berkeley @ 128.32.92.238
+Max-Planck-Institut fuer Radioastronomie @ 134.104.17.227
