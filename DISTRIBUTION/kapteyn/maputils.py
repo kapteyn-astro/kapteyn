@@ -99,6 +99,32 @@ a hard copy on disk.
    
 .. centered:: Image from FITS file with graticules and WCS labels
 
+Module level data
+-----------------
+
+:data:`cmlist`
+   Object from class Colmaplist which has attribute *colormaps* which
+   is a sorted list with names of colormaps.
+:data:`colormaps`
+   The actual list of colormaps.
+
+:Example:
+
+   >>> from kapteyn import maputils
+   >>> print maputils.colormaps
+   >>> cmap = raw_input("Enter name of a colormap: ")
+   ['Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'Dark2',
+    'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn',
+    'Paired', 'Pastel1', 'Pastel2', 'PiYG', 'PuBu', 'PuBuGn',
+    'PuOr', 'PuRd', 'Purples', 'RdBu', 'RdGy', 'RdPu',
+    'RdYlBu', 'RdYlGn', 'Reds', 'Set1', 'Set2', 'Set3',
+    'Spectral', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd',
+    'autumn', 'binary', 'bone', 'cool', 'copper', 'flag',
+    'gist_earth', 'gist_gray', 'gist_heat', 'gist_ncar',
+    'gist_rainbow', 'gist_stern', 'gist_yarg', 'gray',
+    'hot', 'hsv', 'jet', 'pink', 'prism', 'spectral',
+    'spring', 'summer', 'winter']
+
 Prompt functions
 ----------------
 
@@ -145,6 +171,11 @@ Class Colorbar
 
 .. autoclass:: Colorbar
 
+Class Colmaplist
+----------------
+
+.. autoclass:: Colmaplist
+
 
 Class FITSaxis
 --------------
@@ -169,11 +200,13 @@ from matplotlib.pyplot import figure
 from matplotlib import cm
 from matplotlib.colors import Colormap, Normalize          #, LogNorm, NoNorm
 from matplotlib.colorbar import make_axes, Colorbar, ColorbarBase
+from matplotlib.patches import Polygon
+import matplotlib.nxutils as nxutils
 import pyfits
 import numpy
 from kapteyn import wcs, wcsgrat
 from kapteyn.celestial import skyrefsystems, epochs, skyparser
-from kapteyn.tabarray import tabarray
+from kapteyn.tabarray import tabarray, readColumns
 #from kapteyn import mplutil
 from kapteyn.mplutil import AxesCallback, VariableColormap, TimeCallback, KeyPressFilter
 import readline
@@ -201,6 +234,23 @@ def issequence(obj):
 
 
 class Colmaplist(object):
+#-----------------------------------------------------------
+   """
+   This class provides an object which  stores
+   the names of all available colormaps.
+   The method *add()* adds external colormaps to
+   this list. The class is used in the context of
+   other classes but its attribute *colormaps*
+   can be useful.
+
+   .. attribute:: colormaps
+
+      List with names of colormaps as used in combination
+      with keyword parameter *cmap* in the constructor
+      of :class:`Annotatedimage`.
+      
+   """
+#-----------------------------------------------------------
    def __init__(self):
       # A list with available Matplotlib color maps
       # The '_r' entries are reversed versions
@@ -621,6 +671,11 @@ Ask user to enter spectral translation if one of the axes is spectral.
      translations that are allowed for the input object of class FITSimage.
      A spectral translation translates for example frequencies to velocities.
 
+:Example:
+
+   >>> fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
+   >>> print fitsobject.str_spectrans()    # Print a list with options first
+   >>> fitsobject.set_spectrans(promptfie=maputils.prompt_spectrans)
    """
 #-----------------------------------------------------------------------
    asktrans = False
@@ -657,18 +712,23 @@ Ask user to enter spectral translation if one of the axes is spectral.
 def prompt_skyout(fitsobj):
 #-----------------------------------------------------------------------
    """
-   Ask user to enter the output sky system if the data is a spatial map.
+Ask user to enter the output sky system if the data is a spatial map.
 
-   :param fitsobj:
-      An object from class FITSimage. This prompt function must
-      have knowledge of this object such as the allowed spectral
-      translations.
-   :type fitsobj:
-      Instance of class FITSimage
+:param fitsobj:
+   An object from class FITSimage. This prompt function must
+   have knowledge of this object such as the allowed spectral
+   translations.
+:type fitsobj:
+   Instance of class FITSimage
 
-   :Returns:
-      * *skyout* - The sky definition to which positions in the native system
-        will be transformed.
+:Returns:
+   * *skyout* - The sky definition to which positions in the native system
+      will be transformed.
+
+:Example:
+
+   >>> fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
+   >>> fitsobject.set_skyout(promptfie=maputils.prompt_skyout)
    """
 #-----------------------------------------------------------------------
    # The check below is also done in the calling environment (method set_skyout)
@@ -783,6 +843,12 @@ def prompt_dataminmax(fitsobj):
    :Returns:
       * *clipmin*, *clipmax* - Two values to set limits on the image value
         e.g. for color editing.
+
+   :Example:
+
+      >>> fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
+      >>> clipmin, clipmax = maputils.prompt_dataminmax(fitsobject)
+      >>> annim = fitsobject.Annotatedimage(frame, clipmin=clipmin, clipmax=clipmax)
    """
    #-----------------------------------------------------------------------
    mi, ma = fitsobj.get_dataminmax()
@@ -854,7 +920,7 @@ class Image(object):
       #--------------------------------------------------------------------
       self.ptype = "Image"
       self.box = box
-      newkwargs = ({'origin':'lower', 'extent':self.box, 'norm':norm,
+      newkwargs = ({'origin':'lower', 'extent':self.box,
                     'interpolation':'nearest'})
       newkwargs.update(kwargs)
       self.kwargs = newkwargs
@@ -874,9 +940,9 @@ class Image(object):
 
       :Example:
 
-      >>> mplim = fitsobject.Annotatedimage(frame)
+      >>> annim = fitsobject.Annotatedimage(frame)
       >>> frame = fig.add_subplot(1,1,1)
-      >>> grat = mplim.Graticule()
+      >>> grat = annim.Graticule()
       >>> grat.plot(frame)
 
       """
@@ -886,7 +952,7 @@ class Image(object):
       self.frame = frame
       # In the following call to imshow() it seems to be necessary to set the
       # aspect ratio explicitly. We copy its value from the current frame.
-      self.im = self.frame.imshow(self.data, cmap=self.cmap, aspect=frame.get_aspect(), **self.kwargs)
+      self.im = self.frame.imshow(self.data, cmap=self.cmap, norm=self.norm, aspect=frame.get_aspect(), **self.kwargs)
       self.frame.set_xlim((self.box[0], self.box[1]))
       self.frame.set_ylim((self.box[2], self.box[3]))
 
@@ -1015,7 +1081,7 @@ class Contours(object):
 
       :Examples:
       
-      >>> cont = mplim.Contours(levels=range(10000,16000,1000))
+      >>> cont = annim.Contours(levels=range(10000,16000,1000))
       >>> cont.setp_contour(linewidth=1)
       >>> cont.setp_contour(levels=11000, color='g', linewidth=3)
       """
@@ -1044,7 +1110,7 @@ class Contours(object):
 
       :Examples;
 
-      >>> cont2 = mplim.Contours(levels=(8000,9000,10000,11000))
+      >>> cont2 = annim.Contours(levels=(8000,9000,10000,11000))
       >>> cont2.setp_label(11000, colors='b', fontsize=14, fmt="%.3f")
       >>> cont2.setp_label(fontsize=10, fmt="$%g \lambda$")
       """
@@ -1165,6 +1231,95 @@ class Colorbar(object):
       self.labelkwargs = kwargs
 
 
+class Beam(object):
+#--------------------------------------------------------------------
+   """
+Objects from class Beam are graphical representations of the resolution
+of an instrument. The beam is plotted at a position xc, yc (for now,
+these coordinates are in world coordinates).
+The major axis of the beam is the FWHM of longest distance between
+two opposite points on the ellipse. The angle betwee the major axis
+and the North is the position angle.
+
+/* INPUT:   longitude: enter in degrees.                      */
+/*          latitude:  enter in degrees.                      */
+/*          disp:      the displacement in the sky entered    */
+/*                     in degrees. The value can also be      */
+/*                     negative to indicate the opposite      */
+/*                     direction.                             */
+/*          angle:     the angle wrt. a great circle of       */
+/*                     constant declination entered in        */
+/*                     degrees.                               */
+/*          direction: If the longitude increases in the -X   */
+/*                     direction (e.q. RA-DEC) then direction */
+/*                     is -1. else direction = +1             */
+/*                                                            */
+/* Assume a triangle on a sphere with side b(=disp) connec-   */
+/* ting two positions along a great circle and sides 90-d1,   */
+/* and 90-d2 (d1, d2 are the declinations of the input and    */
+/* output positions) that connect the input and output        */
+/* position to the pole P of the sphere. Then the distance    */
+/* between the two points Q1=(a1,d1) and Q2=(a2,d2) is:       */
+/* cos(b)=cos(90-d1)cos(90-d2)+sin(90-d1)sin(90-d2)cos(a2-a1) */
+/* Q2 is siuated to the left of Q1.                           */
+/* If the angle PQ1Q2 is alpha then we have anoher cosine     */
+/* rule:                                                      */
+/* cos(90-d2) = cos(b)cos(90-d1)+sin(b)sin(90-d1)cos(alpha)   */
+/* or :                                                       */
+/* sin(d2) = cos(b)sin(d1)+sin(b)cos(d1)cos(alpha)            */
+/* which gives d2. Angle Q1PQ2 is equal to a2-a1. For this    */
+/* angle we have the sine formula:                            */
+/* sin(b)/sin(a2-a1) = sin(90-d2)/sin(alpha) so that:         */
+/* sin(a2-a1) = sin(b)sin(alpha)/cos(d2).                     */
+/* b,alpha and d2 are known -> a2.
+
+   """
+#--------------------------------------------------------------------
+
+   def __init__(self, xc, yc, fwhm_major, fwhm_minor, pa, projection=None, **kwargs):
+      semimajor = fwhm_major / 2.0
+      semiminor = fwhm_minor / 2.0
+      self.ptype = "Beam"
+      Pi = numpy.pi
+      startang, endang, delta = (0.0, 360.0, 1.0)
+      sinP = numpy.sin( pa*Pi/180.0 )
+      cosP = numpy.cos( pa*Pi/180.0 )
+      phi  = numpy.arange( startang, endang+delta, delta, dtype="f" ) 
+      cosA = numpy.cos( phi*Pi/180.0 )
+      sinA = numpy.sin( phi*Pi/180.0 )
+      d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
+      r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
+      lon_new, lat_new = self.dispcoord(xc, yc, r, -1, phi+pa)
+      #Xell = r * cosA
+      #Yell = r * sinA
+      #Xr = Xell * cosP - Yell * sinP + xc
+      #Yr = Xell * sinP + Yell * cosP + yc
+      xp, yp = projection.topixel((lon_new, lat_new))
+      self.vertices = zip(xp, yp)
+      self.kwargs = kwargs
+
+   def dispcoord(self, longitude, latitude, disp, direction, angle):
+      Pi = numpy.pi
+      b = abs(disp*Pi/180.0)
+      a1 = longitude * Pi/180.0
+      d1 = latitude * Pi/180.0
+      alpha = angle * Pi/180.0
+      #z = zip(b, alpha); print z
+      d2 = numpy.arcsin( numpy.cos(b)*numpy.sin(d1)+numpy.cos(d1)*numpy.sin(b)*numpy.cos(alpha) )
+      dH = direction * numpy.arcsin( numpy.sin(b)*numpy.sin(alpha)/numpy.cos(d2) )
+
+      #Note that a2 is to the left of a1 and direction = -1 if cdelt[0] < 0
+
+      a2 = a1 - dH
+      lonout = a2*180.0/Pi
+      latout = d2*180.0/Pi
+      return lonout, latout
+
+   def plot(self, frame):
+      p = Polygon(self.vertices, **self.kwargs)
+      frame.add_patch(p)
+
+
 class Annotatedimage(object):
 #--------------------------------------------------------------------
    """
@@ -1266,26 +1421,6 @@ this class.
 :type clipmax:
    Float
 
-:Methods:
-
-.. automethod:: set_norm
-.. automethod:: set_colormap
-.. automethod:: write_colormap
-.. automethod:: set_blankcolor
-.. automethod:: set_aspectratio
-.. automethod:: Image
-.. automethod:: Contours
-.. automethod:: Colorbar
-.. automethod:: Graticule
-.. automethod:: Pixellabels
-.. automethod:: plot
-.. automethod:: toworld
-.. automethod:: topixel
-.. automethod:: histeq
-.. automethod:: interact_toolbarinfo
-.. automethod:: interact_imagecolors
-.. automethod:: interact_writepos
-
 
 :Attributes:
 
@@ -1357,6 +1492,27 @@ this class.
           List with all plot objects (image, contours, colour bar, graticules)
           for this annotated image object.
 
+:Methods:
+
+.. automethod:: set_norm
+.. automethod:: set_colormap
+.. automethod:: write_colormap
+.. automethod:: set_blankcolor
+.. automethod:: set_aspectratio
+.. automethod:: Image
+.. automethod:: Contours
+.. automethod:: Colorbar
+.. automethod:: Graticule
+.. automethod:: Pixellabels
+.. automethod:: plot
+.. automethod:: toworld
+.. automethod:: topixel
+.. automethod:: histeq
+.. automethod:: interact_toolbarinfo
+.. automethod:: interact_imagecolors
+.. automethod:: interact_writepos
+.. automethod:: positionsfromfile
+
    """
 #--------------------------------------------------------------------
    def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, skyout, spectrans,
@@ -1422,17 +1578,50 @@ this class.
       colors in a smaller intensity range, then use different *clipmin*
       and *clipmax* in the constructor of :class:`Annotatedimage` or
       in this method.
+
+
+      :param clipmin:
+         Image data below this threshold will get the same color
+      :type clipmin:
+         Float
+      :param clipmax:
+         Image data above this threshold will get the same color
+      :type clipmax:
+         Float
+
+      :Examples:
+
+         >>> fitsobj = maputils.FITSimage("m101.fits")
+         >>> annim = fitsobj.Annotatedimage(frame, cmap="spectral")
+         >>> annim.Image(interpolation='spline36')
+         >>> annim.set_norm(10000, 15500)
+
+         or:
+
+         >>> fitsobj = maputils.FITSimage("m101.fits")
+         >>> annim = fitsobj.Annotatedimage(frame, cmap="spectral", clipmin=10000, clipmax=15500)
+
+      :notes:
+      
+         It is also possible to change the norm after an image has been displayed.
+         This enables a programmer to setup key interaction for
+         changing the clip levels in an image for example when the default clip levels
+         are not suitable to inspect a certain data range.
+         Usually the color editing (with :meth:`Annotatedimage.interact_imagecolors`)
+         can do this job very well so we think there is not much demand in a scripting
+         environment. With GUI's it will be different.
       """
       #-----------------------------------------------------------------
       # Here we need maintenance. The image is updated but the colorbar is not
       self.norm = Normalize(vmin=clipmin, vmax=clipmax, clip=True)
       self.clipmin = clipmin; self.clipmax = clipmax
-      print "In update norm:", self.clipmin, self.clipmax
       if self.cmap != None:
          self.cmap.update()
-      if self.image.im != None:
-         #self.image.im.set_norm(self.norm)
-         self.image.im.set_clim(clipmin, clipmax)
+      if self.image != None:
+         print "Hier doe ik iets"
+         self.image.norm = self.norm
+         if self.image.im != None:
+            self.image.im.set_clim(clipmin, clipmax)
       if self.colorbar != None:
          #self.colorbar.cb.set_norm(self.norm)
          self.colorbar.cb.set_clim(clipmin, clipmax)
@@ -1451,6 +1640,25 @@ this class.
 
       If you add the event handler *interact_imagecolors()* it is
       possible to change colormaps with keyboard keys and mouse.
+
+      :param cmap:
+         The color map to be used for image, contours and colorbar
+      :type cmap:
+         String or instance of VariableColormap
+      :param blankcolor:
+         Color of the bad pixels in your image.
+      :type blankcolor:
+          Matplotlib color
+
+      :Examples:
+
+         >>> fitsobj = maputils.FITSimage("m101.fits")
+         >>> annim = fitsobj.Annotatedimage(frame, clipmin=10000, clipmax=15500)
+         >>> annim.set_colormap("spectral")
+
+         or use the constructor as in:
+
+         >>> annim = fitsobj.Annotatedimage(frame, cmap="spectral", clipmin=10000, clipmax=15500)
       """
       #-----------------------------------------------------------------
       if cmap == None:
@@ -1486,6 +1694,9 @@ this class.
       Method to write current colormap rgb values to file on disk.
       If you add the event handler *interact_imagecolors()*, this
       method is automatically invoked if you press key 'm'.
+
+      This method is only useful if the colormap changes i.e.
+      in an interactive environment.
       """
       #-----------------------------------------------------------------
       print self.cmap.name
@@ -1501,6 +1712,19 @@ this class.
       If you add the event handler *interact_imagecolors()*, this
       method steps throug a list of colors for the bad pixels in an
       image.
+
+      :param blankcolor:
+         The color of the bad pixels (blanks) in your map
+      :type blankcolor:
+         Matplotlib color
+      :param alpha:
+         Make the color of bad pixels transparant with *alpha < 1*
+      :type alpha:
+         Float in interval [0,1]
+         
+      :Example:
+
+         >>> annim.set_blankcolor('c')
       """
       #-----------------------------------------------------------------
       self.cmap.set_bad(blankcolor, alpha)
@@ -1511,11 +1735,27 @@ this class.
       #-----------------------------------------------------------------
       """
       Set the aspect ratio. Overrule the default aspect ratio which corrects
-      pixels that are not square in world coordinates.
+      pixels that are not square in world coordinates. Can be useful if you
+      want to stretch images for which the aspect ratio doesn't matter
+      (e.g. XV maps).
+
+      :param aspect:
+         The aspect ratio is defined as *pixel height / pixel width*.
+         With this value one can stretch an image in x- or y direction.
+         The default is such that 1 arcmin in x has the same length
+         in cm as 1 arcmin in y.
+      :type aspect:
+         Float
+         
+      :Example:
+
+         >>> annim = fitsobj.Annotatedimage(frame)
+         >>> annim.set_aspectratio(1.2)
       """
       #-----------------------------------------------------------------
       self.aspect = abs(aspect)
       self.frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
+
 
    def adjustframe(self, frame):
       #-----------------------------------------------------------------
@@ -1537,15 +1777,19 @@ this class.
       #-----------------------------------------------------------------
       """
       Create a histogram equalized version of the data.
+
+      The histogram equalized data is stored in attribute *data_hist*.
+
       """
       #-----------------------------------------------------------------
       if self.data == None:
          raise Exception, "Cannot plot image because image data is not available!"
       # Algorithm by Jan Erik Solem
       im = self.data
+      ix = numpy.isfinite(im)
       #im = numpy.ma.masked_where(numpy.isfinite(self.data), self.data)
       #get image histogram
-      imhist,bins = numpy.histogram(im.flatten(), nbr_bins, normed=True, new=True,
+      imhist,bins = numpy.histogram(im[ix].flatten(), nbr_bins, normed=True, new=True,
                                     range=(self.clipmin, self.clipmax))
       cdf = imhist.cumsum() #cumulative distribution function
       #cdf = 255 * cdf / cdf[-1] #normalize
@@ -1554,7 +1798,7 @@ this class.
       im2 = numpy.interp(im.flatten(),bins[:-1],cdf)
       # Rescale between clip levels of original data
       m = (self.clipmax-self.clipmin) / (cdf[-1]-cdf[0])
-      im2 = m * (im2-cdf[0]) + self.clipmin 
+      im2 = m * (im2-cdf[0]) + self.clipmin
       self.data_hist = im2.reshape(im.shape)
 
 
@@ -1562,16 +1806,44 @@ this class.
    def Image(self, **kwargs):
       #-----------------------------------------------------------------
       """
-      Setup of an image. This object has an attribute *im* which is
+      Setup of an image.
+      This method is a call to the constructor of class :class:`Image` with
+      a default value for most of the keyword parameters.
+      This created object has an attribute *im* which is
       an instance of Matplotlib's *imshow()* method.
       This object has a plot method. This method is used by the
       more general :meth:`Annotatedimage.plot` method.
 
+      :param kwargs:
+         From the documentation
+         of Matplotlib we learn that for method *imshow()* (used in the plot method
+         if an Image) a few interesting keyword arguments remain:
+
+         * *interpolation* - From Matplotlib's documentation: Acceptable values are
+           None, 'nearest', 'bilinear', 'bicubic', 'spline16', 'spline36', 'hanning',
+           'hamming', 'hermite', 'kaiser', 'quadric', 'catrom', 'gaussian', 'bessel',
+           'mitchell', 'sinc', 'lanczos'
+         * *visible* - Switch the visibility of the image
+         * *alpha* - Value between 0 and 1 which sets the transparancy of the image.
+
+      :type kwargs:
+         Python keyword parameters
+
       :Attributes:
 
          .. attribute:: im
+      
+         The object generated after a call to Matplotlib's *imshow()*.
 
-            The object generated after a call to Matplotlib's *imshow()*.
+      :Examples:
+
+         >>> fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
+         >>> annim = fitsobject.Annotatedimage()
+         >>> annim.Image(interpolation="spline36")
+
+         or create an image but make it invisible:
+      
+         >>> annim.Image(visible=False)
       """
       #-----------------------------------------------------------------
       if self.image != None:
@@ -1585,8 +1857,84 @@ this class.
    def Contours(self, levels=None, **kwargs):
       #-----------------------------------------------------------------
       """
-      Setup of contours. Either as single contour lines or as a combination
-      of contour lines and filled regions between contours.
+      Setup of contour lines.
+      This method is a call to the constructor of class :class:`Contours`
+      with a number of default parameters.
+      Either it plots single contour lines or a combination
+      of contour lines and filled regions between the contours.
+      The colors are taken from the current colormap.
+
+      :param levels:
+         Image values for which contours must be plotted. The default
+         is *None* which results in a list with values calculated
+         by the Contour constructor.
+      :type levels:
+         None or a list with floating point numbers
+      :param kwargs:
+         There are a number of keyword arguments that
+         are useful:
+       
+         * *filled* - if set to True the area between two contours will
+           get a color (close to the color of the contour.
+         * negative - one of Matplotlib's line styles
+           'solid', 'dashed', 'dashdot', 'dotted' in which contours are
+           plotted which represent negative image values.
+         * *colors* - If None, the current colormap will be used.
+           If a character or string, all levels will be plotted in this color.
+           If a tuple of matplotlib colors then different levels will be
+           plotted in different colors in the order specified.
+         * *linewidths* - If a number, all levels will be plotted with this linewidth.
+           If a tuple, different levels will be plotted with different
+           linewidths in the order specified
+         * *linestyles* - One of 'solid', 'dashed', 'dashdot', 'dotted', which
+           sets the style of the contour. It can also be given in a list. See the
+           Matplotlib documentation for its behaviour.
+      :type kwargs:
+         Python keyword parameters
+
+      :Methods:
+
+         * :meth:`Contours.setp_contour` - Set properties for individual contours
+         * :meth:`Contours.setp_label` - Plot labels for individual contours
+
+      :Examples:
+
+         >>> fitsobj = maputils.FITSimage("m101.fits")
+         >>> annim = fitsobj.Annotatedimage()
+         >>> annim.Image(alpha=0.5)
+         >>> cont = annim.Contours()
+         >>> print "Levels=", cont.clevels
+         Levels= [  4000.   6000.   8000.  10000.  12000.  14000.]
+
+         >>> annim.Contours(filled=True)
+
+         In the next example not the plural form of the standard Matplotlib
+         keywords. They apply to all contours:
+         
+         >>> annim.Contours(colors='w', linewidths=2)
+
+         Set levels and the line style for megative contours:
+      
+         >>> annim.Contours(levels=[-500,-300, 0, 300, 500], negative="dotted")
+
+         A combination of keyword parameters with less elements then
+         the number of contour levels:
+      
+         >>> cont = annim.Contours(linestyles=('solid', 'dashed', 'dashdot', 'dotted'),
+                                   linewidths=(2,3,4), colors=('r','g','b','m'))
+
+         Example of seeting of properties for all and 1 contour with
+         *setp_contour()*:
+      
+         >>> cont = annim.Contours(levels=range(10000,16000,1000))
+         >>> cont.setp_contour(linewidth=1)
+         >>> cont.setp_contour(levels=11000, color='g', linewidth=3)
+
+         Plot a (formatted) label near a contour with *setp_label()*:
+      
+         >>> cont2 = annim.Contours(levels=(8000,9000,10000,11000))
+         >>> cont2.setp_label(11000, colors='b', fontsize=14, fmt="%.3f")
+         >>> cont2.setp_label(fontsize=10, fmt="$%g \lambda$")
       """
       #-----------------------------------------------------------------
       contourset = Contours(self.data, self.box, levels, cmap=self.cmap, norm=self.norm, **kwargs)
@@ -1598,22 +1946,59 @@ this class.
    def Colorbar(self, clines=False, **kwargs):
       #-----------------------------------------------------------------
       """
+      This method is a call to the constructor of class :class:`Colorbar`
+      with a number of default parameters.
       A color bar is an image which represents the current color scheme.
       It annotates the colors with image values so that it is possible
       to get an idea of the distribution of the values in your image.
 
       :param clines:
-          If set to true AND a contour set (a :meth:`Contours` object)
-          is available, then lines will be plotted in the color bar
+          If set to true AND a contour set (an :meth:`Annotatedimage.Contours` object)
+          is available, then lines will be plotted in the colorbar
           at positions that correspond to the contour levels
       :type clines:
           Boolean
       :param kwargs:
-          Keyword arguments for Matplotlib's method *ColorbarBase()*
+          Method specific keyword arguments and Keyword arguments for Matplotlib's method *ColorbarBase()*
 
-      :Notes:
-          The labels
-      
+          * *frame* - Default a colorbar will 'steal' some space from its parent frame
+            but this behaviour can be overruled by setting an explicit frame (Matplotlib Axes object).
+          * *label* - A text that will be plotted along the long axis of the colorbar.
+
+          From Matplotlib:
+             
+          * *orientation* - 'horizontal' or 'vertical'
+          * *fontsize* - Size of numbers along the colorbar
+          * *ticks* - Levels which are annotated along the colorbar
+           
+      :type kwargs:
+          Python keyword arguments
+
+      :methods:
+          :meth:`Colorbar.set_label` - Plot a title along the long side of the colorbar.
+
+      :Examples:
+
+          A basic example were the font size for the ticks are set:
+             
+          >>> fitsobj = maputils.FITSimage("m101.fits")
+          >>> annim = fitsobj.Annotatedimage(cmap="spectral")
+          >>> annim.Image()
+          >>> colbar = annim.Colorbar(fontsize=8)
+          >>> annim.plot()
+          >>>plt.show()
+
+          Set frames for Image and Colorbar:
+
+          >>> frame = fig.add_axes((0.1, 0.2, 0.8, 0.8))
+          >>> cbframe = fig.add_axes((0.1, 0.1, 0.8, 0.1))
+          >>> annim = fitsobj.Annotatedimage(cmap="Accent", clipmin=8000, frame=frame)
+          >>> colbar = annim.Colorbar(fontsize=8, orientation='horizontal', frame=cbframe)
+
+          Create a title for the colorbar and change its font size:
+
+          >>> units = r'$ergs/(sec.cm^2)$'
+          >>> colbar.set_label(label=units, fontsize=24)
       """
       #------------------------------------------------------------------
       if self.colorbar != None:
@@ -1627,16 +2012,53 @@ this class.
    def Graticule(self, visible=True, **kwargs):
       #-----------------------------------------------------------------
       """
-      Calculate and plot graticule lines of constant longitude or constant
+      This method is a call to the constructor of class :class:`wcsgrat.Graticule`
+      with a number of default parameters.
+      
+      It calculates and plots graticule lines of constant longitude or constant
       latitude. The description of the parameters is found in
       :class:`wcsgrat.Graticule`. An extra parameter is *visible*.
       If visible is set to False than we can plot objects derived from this
-      class such as 'Rulers' and 'Insidelabels' without plotting
+      class such as 'Rulers' and 'Insidelabels' without plotting unwanted
       graticule lines and labels.
+
+      :Methods:
+
+         * :meth:`wcsgrat.Graticule.Ruler`
+         * :meth:`wcsgrat.Graticule.Insidelabels`
 
       Other parameters such as *hdr*, *axperm*, *pxlim*, *pylim*, *mixpix*,
       *skyout* and *spectrans* are set to defaults in the context of this method
-      and should not to be supplied.
+      and should not be overwritten.
+
+      :Examples:
+
+         >>> fitsobj = maputils.FITSimage('m101.fits')
+         >>> annim = fitsobj.Annotatedimage()
+         >>> grat = annim.Graticule()
+         >>> annim.plot()
+         >>> plt.show()
+
+         Set the range in world coordinates and set the positions for
+         the labels with (X, Y):
+         
+         >>> X = arange(0,360.0,15.0)
+         >>> Y = [20, 30,45, 60, 75, 90]
+         >>> grat = annim.Graticule(wylim=(20.0,90.0), wxlim=(0,360), 
+                                    startx=X, starty=Y)
+
+         Add a ruler, based on the current Graticule:
+         
+         >>> ruler3 = grat.Ruler(23*15,30,22*15,15, 0.5, 1, world=True,
+                                 fmt=r"$%4.0f^\prime$",
+                                 fun=lambda x: x*60.0, addangle=0)
+         >>> ruler3.setp_labels(color='r')
+
+         Add world coordinate labels inside the plot:
+         
+         >>> grat.Insidelabels(wcsaxis=0, constval=-51, rotation=90, fontsize=10,
+                               color='r', ha='right')
+
       """
       #-----------------------------------------------------------------
       class Gratdata(object):
@@ -1659,8 +2081,49 @@ this class.
    def Pixellabels(self, **kwargs):
       #-----------------------------------------------------------------
       """
-      Set annotation along a plot axis to pixel coordinates.
-      See also description at :class:`wcsgrat.Pixellabels`.
+      This method is a call to the constructor of class
+      :class:`wcsgrat.Pixellabels`
+      with a number of default parameters.
+      It sets the annotation along a plot axis to pixel coordinates.
+
+      :param plotaxis:     The axis name of one or two of the axes of the
+                           plot rectangle:
+                           or 'left', 'bottom', 'right', 'top'
+                           Combinations are always between
+                           'left' and 'bottom' and 'right' and 'top'.
+      :type  plotaxis:     String
+      :param markersize:   Set size of ticks at pixel positions.
+                           The size can be negative to get tick
+                           marks that point outwards.
+      :type  markersize:   Integer
+      :param gridlines:    Set plotting of grid lines (connected tick marks)
+                           on or off (True/False). The default is off.
+      :type gridlines:     Boolean
+      :param offset:       The pixels can have an integer offset.
+                           If you want the reference pixel to be pixel
+                           0 then supply offset=(crpixX, crpixY).
+                           These crpix values are usually read from then
+                           header (e.g. as CRPIX1 and CRPIX2).
+                           In this routine the nearest integer of
+                           the input is calculated to ensure that the
+                           offset is an integer value.
+      :type offset:        *None* or a floating point number
+
+      Other parameters are related to Matplotlib label attributes.
+
+      :Examples:
+
+      >>> fitsobject = maputils.FITSimage("m101.fits")
+      >>> annim = fitsobject.Annotatedimage()
+      >>> annim.Pixellabels(plotaxis=("top","right"), color="b", markersize=10)
+
+      or separate the labeling so that you can give different properties
+      for different axes. In this case we shift the labels along the
+      top axis towards the axis line with *va='top'*:
+         
+      >>> annim.Pixellabels(plotaxis='top', va='top')
+      >>> annim.Pixellabels(plotaxis='right')
+
       """
       #-----------------------------------------------------------------
       pixlabels = wcsgrat.Pixellabels(self.pxlim, self.pylim, **kwargs)
@@ -1668,10 +2131,30 @@ this class.
       return pixlabels
 
 
+   def Beam(self, xc, yc, major, minor, pa, **kwargs):
+      spatials = [self.projection.lonaxnum, self.projection.lataxnum]
+      spatialmap = self.axperm[0] in spatials and self.axperm[1] in spatials
+      if not spatialmap:
+         raise Exception, "Can only plot a beam in a spatial map"
+
+      beam = Beam(xc, yc, major, minor, pa, projection=self.projection, **kwargs)
+      self.objlist.append(beam)
+      return beam
+
+
    def plot(self):
       #-----------------------------------------------------------------
       """
       Plot all objects stored in the objects list for this Annotated image.
+
+      :Example:
+
+         >>> fitsobj = maputils.FITSimage('m101.fits')
+         >>> annim = fitsobj.Annotatedimage()
+         >>> grat = annim.Graticule()
+         >>> annim.plot()
+         >>> plt.show()
+
       """
       #-----------------------------------------------------------------
       needresize = False
@@ -1689,7 +2172,26 @@ this class.
 
       if needresize:                             # because a colorbar must be included
          self.cbframe = make_axes(self.frame, orientation=orientation)[0]
+         # A frame is created for the colorbar, but for vertical bars, the
+         # bar is often too high, so we want to adjust the height then.
          self.frame = self.adjustframe(self.frame)
+         self.frame.apply_aspect()
+         xxyy = self.frame.get_position().get_points()
+         cbf = self.cbframe.get_position().get_points()
+         x0 = cbf[0,0]; y0 = cbf[0,1]
+         if orientation == 'vertical':
+            yylo = xxyy[0,1]; yyhi = xxyy[1,1]
+            newhei = abs(yyhi - yylo)
+            wid = abs(cbf[1,0] - x0)
+            newpos = (x0, yylo, wid, newhei)
+         else:
+            xxlo = xxyy[0,0]; xxhi = xxyy[1,0]
+            newwid = abs(xxhi - xxlo)
+            hei = abs(cbf[1,1] - y0)
+            newpos = (xxlo, y0, newwid, hei)
+         self.cbframe.set_position(newpos)
+
+            
       self.cmap.add_frame(self.frame)
       
       for obj in self.objlist:
@@ -1697,7 +2199,7 @@ this class.
             pt = obj.ptype
          except:
             raise Exception, "Unknown object. Cannot plot this!"
-         if pt in ["Image", "Contour", "Graticule", "Pixellabels"]:
+         if pt in ["Image", "Contour", "Graticule", "Pixellabels", "Beam"]:
             obj.plot(self.frame)
             # If we want to plot derived objects (e.g. ruler) and not the graticule
             # then set visible to False in the constructor.
@@ -1765,10 +2267,10 @@ this class.
          >>> fig = figure()
          >>> fitsobject = maputils.FITSimage('ngc6946.fits')
          >>> fitsobject.set_imageaxes(1,3, slicepos=51)
-         >>> mplim = fitsobject.Annotatedimage()
-         >>> mplim.toworld(51,-20)
+         >>> annim = fitsobject.Annotatedimage()
+         >>> annim.toworld(51,-20)
          (-51.282084795899998, -243000.0, 60.1538880206)
-         >>> mplim.topixel(-51.282084795899998, -243000.0)
+         >>> annim.topixel(-51.282084795899998, -243000.0)
          (51.0, -20.0)
 
          Or work with a sequence of numbers (list, tuple of NumPy ndarray
@@ -1982,8 +2484,8 @@ this class.
 
          Attach to an object from class :class:`Annotatedimage`:
       
-         >>> mplim = f.Annotatedimage(frame)
-         >>> mplim.interact_toolbarinfo()
+         >>> annim = f.Annotatedimage(frame)
+         >>> annim.interact_toolbarinfo()
 
          A more complete example::
 
@@ -1995,11 +2497,11 @@ this class.
             fig = plt.figure(figsize=(9,7))
             frame = fig.add_subplot(1,1,1)
             
-            mplim = f.Annotatedimage(frame)
-            ima = mplim.Image()
-            mplim.Pixellabels()
-            mplim.plot()
-            mplim.interact_toolbarinfo()
+            annim = f.Annotatedimage(frame)
+            ima = annim.Image()
+            annim.Pixellabels()
+            annim.plot()
+            annim.interact_toolbarinfo()
             
             plt.show()
 
@@ -2024,10 +2526,10 @@ this class.
          AxesCallback instance
    
       :Example:
-         Given an object from class :class:`Annotatedimage` called *annimage*,
+         Given an object from class :class:`Annotatedimage` called *annim*,
          register this callback function for the position information with:
    
-         >>> annimage.interact_imagecolors()
+         >>> annim.interact_imagecolors()
    
       :Notes:
          See *interact_imagecolors()* for more info.
@@ -2045,7 +2547,7 @@ this class.
          xy = self.frame.transData.transform((x,y))
          self.image.xyn_mouse = self.frame.transAxes.inverted().transform(xy)
          x , y = self.image.xyn_mouse
-         slope = 2.0 * x; offset = y - 0.5       # i.e. at center slope=1, offset=0
+         slope = 2.0 * x; offset = y - 0.5       # i.e. at center: slope=1, offset=0
          self.cmap.modify(slope, offset)
 
 
@@ -2064,8 +2566,8 @@ this class.
       If *image* is an object from :class:`Annotatedimage` then register
       this function with:
 
-      >>> mplim = f.Annotatedimage(frame)
-      >>> mplim.interact_imagecolors()
+      >>> annim = f.Annotatedimage(frame)
+      >>> annim.interact_imagecolors()
       """
    #--------------------------------------------------------------------
       scales = {'1': 'linear', '2': 'log', '3': 'exp', '4': 'sqrt', '5': 'square'}
@@ -2107,22 +2609,26 @@ this class.
       elif axesevent.event.key.upper() == 'R':
          self.cmap.auto = False      # Postpone updates of the canvas.
          self.figmanager.toolbar.set_message('Reset color map to default')
+         #self.cmap.set_source(self.startcmap)
+         self.cmap.set_source(colormaps[self.startcmindx])
          self.cmap.modify(1.0, 0.0)
          if self.cmapinverse:
             self.cmap.set_inverse(False)
             self.cmapinverse = False
          #colmap_start = colormaps[self.image.startcmap]
-         self.cmap.set_source(self.startcmap)
          self.cmindx = self.startcmindx
          self.cmap.set_scale(scales['1'])
          self.cmap.auto = True
          self.cmap.update()          # Update all
          """
+         # Template for user interaction to set clip levels in existing image
          elif axesevent.event.key.upper() == 'C':
-            cmin = self.clipmin + 200.0
-            cmax = self.clipmax - 200.0
-            self.set_norm(cmin, cmax)
+               cmin = self.clipmin + 200.0
+               cmax = self.clipmax - 200.0
+               print "cmin, max voor norm:", cmin, cmax
+               self.set_norm(cmin, cmax)
          """
+         
       elif axesevent.event.key.upper() == 'B':
          # Toggle colors for bad pixels (blanks) 
          blankcols = ['w', 'k', 'y', 'm', 'c', 'r', 'g', 'b']
@@ -2162,7 +2668,8 @@ this class.
          self.histogram = False
       else:
          if self.data_hist == None:
-            self.datahist = self.histeq()
+            #self.data_hist = self.histeq()
+            self.histeq()         # It sets attribute data_hist to new image
          self.data = self.data_hist
          self.histogram = True
       #self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax)
@@ -2259,9 +2766,9 @@ this class.
          AxesCallback instance
    
       :Example:
-         Register this callback function for object *mplim* with:
+         Register this callback function for object *annim* with:
    
-         >>> image.interact_writepos()
+         >>> annim.interact_writepos()
       """
       #--------------------------------------------------------------------
       """
@@ -2342,6 +2849,67 @@ this class.
       #--------------------------------------------------------------------
       # self.cidclick = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
       self.cidclick = AxesCallback(self.on_click, self.frame, 'button_press_event')
+
+
+   def positionsfromfile(self, filename, comment, **kwargs):
+      #--------------------------------------------------------------------
+      """
+      Read positions from a file with world coordinates and convert them to
+      pixel coordinates. The interface is exactly the same as from method
+      :meth:`tabarray.readColumns()`
+
+      :Examples:
+      
+      >>> fn = 'smallworld.txt'
+      >>> xp, yp = annim.positionsfromfile(fn, 's', cols=[0,1])
+      >>> frame.plot(xp, yp, ',', color='#FFDAAA')
+      """
+      #--------------------------------------------------------------------
+      ainv = self.projection.allow_invalid
+      self.projection.allow_invalid = True
+      lat, lon= readColumns(filename, comment, **kwargs)
+      xp, yp = self.projection.topixel((lon,lat))
+      xp = numpy.ma.masked_where(numpy.isnan(xp) | (xp > self.pxlim[1]) | (xp < self.pxlim[0]), xp)
+      yp = numpy.ma.masked_where(numpy.isnan(yp) | (yp > self.pylim[1]) | (yp < self.pylim[0]), yp)
+      self.projection.allow_invalid = ainv       # Reset status for invalid transformations
+      return xp, yp
+
+
+   def getflux(self, xy, pixelstep=0.2):
+      # Return Area in pixels and sum of image values in
+      # polygon defined by xy
+
+      poly = numpy.asarray(xy)
+      mm = poly.min(0)
+      xmin = mm[0]; ymin = mm[1]
+      mm = poly.max(0)
+      xmax = mm[0]; ymax = mm[1]
+      xmin = numpy.floor(xmin); xmax = numpy.ceil(xmax)
+      ymin = numpy.floor(ymin); ymax = numpy.ceil(ymax)
+      # print xmin, xmax, ymin, ymax
+      Y = numpy.arange(ymin,ymax+1, pixelstep)
+      X = numpy.arange(xmin,xmax+1, pixelstep)
+      l = int(xmax-xmin+1); b = int(ymax-ymin+1)
+      numpoints = len(X)*len(Y)
+      x, y = numpy.meshgrid(X, Y)
+      pos = zip(x.flatten(), y.flatten())
+      mask = nxutils.points_inside_poly(pos, poly)
+      # Correction consists of three elements:
+      # 1) The start position of the box must map on the start position of the array
+      # 2) Positions all > 0.5 so add 0.5 and take int to avoid the need of a round function
+      # 3) The start index of the array is not ...
+      xcor = self.pxlim[0] - 0.5
+      ycor = self.pylim[0] - 0.5
+      count = 0
+      sum = 0.0
+      for i, xy in enumerate(pos):
+         if mask[i]:
+            xp = int(xy[0] - xcor)
+            yp = int(xy[1] - ycor)
+            z = self.data[yp,xp]
+            sum += z
+            count += 1
+      return count*(pixelstep*pixelstep), sum*(pixelstep*pixelstep)
 
 
 
@@ -3490,6 +4058,12 @@ to know the properties of the FITS data beforehand.
       Return the aspect ratio of the pixels in the current
       data structure defined by the two selected axes.
       The aspect ratio is defined as *pixel height / pixel width*.
+
+      :Example:
+
+         >>> fitsobject = maputils.FITSimage('m101.fits')
+         >>> print fitsobject.get_pixelaspectratio()
+         1.0002571958
       """
    #---------------------------------------------------------------------
       a1 = self.axperm[0]; a2 = self.axperm[1];
