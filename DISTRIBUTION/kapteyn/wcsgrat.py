@@ -103,6 +103,12 @@ Class Graticule
 
 .. autoclass:: Graticule
 .. autoclass:: WCStick
+
+Class Pixellabels
+-----------------
+
+.. autoclass:: Pixellabels
+
 """
 
 # TODO sequencetype uitbreiden met numpy
@@ -427,7 +433,10 @@ could be added in the future.
       # Plot the line pieces
       for gridline in graticule.graticule:
          for line in gridline.linepieces:
+            #ppx = numpy.ma.masked_where(numpy.isfinite(line[0]), line[0])
+            #ppy = numpy.ma.masked_where(numpy.isfinite(line[1]), line[1])
             frame.plot(line[0], line[1], **gridline.kwargs)
+            #frame.plot(ppx, ppy, **gridline.kwargs)
       # set the limits of the plot axes
       # this setting can be overwritten in the calling environment
       frame.set_xlim((xlo,xhi))
@@ -3661,7 +3670,6 @@ class Pixellabels(object):
                         of a plot. Change the color of the labels to red::
    
                            mplim = f.Annotatedimage(frame)
-                           ima = mplim.Image(visible=False)
                            mplim.Pixellabels(plotaxis=("bottom", "right"), color="r")
 
                            or with separate axes:

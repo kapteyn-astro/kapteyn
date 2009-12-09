@@ -10,7 +10,10 @@ from kapteyn import tabarray
 import matplotlib.nxutils as nxutils
 import numpy
 from kapteyn.maputils import AxesCallback
+from sys import stdout
+from kapteyn.mplutil import KeyPressFilter
 
+KeyPressFilter.allowed = ['f', 'g']
 
 
 def cubicspline(xyu, nsamples):
@@ -650,7 +653,7 @@ class Shapecollection(object):
                        change the radius of a circle or
                        change the minor axis of an ellipse or
                        change the major axis and position angle of an ellipse
-      mouse - right :  Select an existing object in any frame
+      mouse - middle:  Select an existing object in any frame
       key   - a     :  Add a point to a polygon or spline
       key   - c     :  Copy current object at mouse cursor
       key   - d     :  Delete a point in a polygon or spline
@@ -658,9 +661,7 @@ class Shapecollection(object):
       key   - i     :  Insert a point in a polygon or spline
       key   - n     :  Start with a new object
       key   - w     :  Write object data in current image to file on disk
-      key   - x     :  Extract objects from file for current image
-      key   - ,     :  Select next object in a group with same shape
-      key   - .     :  Select previous object in a group with same shape
+      key   - r     :  Read objects from file for current image
       key   - [     :  Next active object in current shape selection
       key   - ]     :  Previous active object in current shape selection
       
@@ -670,6 +671,7 @@ class Shapecollection(object):
       key   - g     :  Toggle grid
       """
       print helptxt
+      stdout.flush()
 
       
    def setshape(self, label):
@@ -768,6 +770,7 @@ class Shapecollection(object):
    
       xyworld1 =  proj1.toworld(xy1)
       xy2 = proj2.topixel(xyworld1)
+      stdout.flush()
       proj1.skyout = None                           # Reset
       return xy2
 
@@ -1111,18 +1114,19 @@ class Shapecollection(object):
          # All markers of current image to one file. The first column sets the number of
          # the polygon it belongs. The format is:
          # polygon-number  x-pixels  y-pixels  x-wcs  y-wcs
-         stamp = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
+         stamp = datetime.now().strftime("%d%m%Y_%H%M%S")
          filename = "shapes_" + stamp + ".dat"
          f = open(filename, 'w')
          stamp = datetime.now().strftime("! Saved at %A %d/%m/%Y %H:%M:%S\n")
          f.write(stamp)
-         iminfo = "! Data saved for image: %s\n" % self.currentimage.filename
+         iminfo = "! Data saved for image: %s\n" % self.currentimage.basename
          f.write(iminfo)
          f.write('! Format: Shape - object number - x pixel - y pixel - x world - y world\n')
          for sh in self.shapes:
             for ol, objlist in enumerate(sh):
                for obj in objlist:
-                  if obj.frame is self.currentimage.frame:
+                  #if obj.frame is self.currentimage.frame:
+                  if self.framesequal(obj.frame, self.currentimage.frame):
                      im = self.images[obj.framenr]
                      for mx, my in obj.xy:   # Note that this is also valid for splines
                         if (im.mixpix == None):
@@ -1131,14 +1135,16 @@ class Shapecollection(object):
                            xw, yw, dum = im.projection.toworld((mx, my, im.mixpix))
                         f.write('%d %d %12f %12f %12f %12f\n' % (obj.shapetype, ol, mx, my, xw, yw))
          f.close()
-         print "Wrote shape data to file: ", filename
+         mes = "Wrote shape data to file: %s" % filename
+         self.toolbar.set_message(mes)
 
-      elif event.key == 'x':
+
+      elif event.key == 'r':
          # Read data from file. Select between pixel- or world
          # coordinates. First number in the file is an index for
          # the polygon the data belongs to.
          if self.inputfilename == None:
-            print "No input file name specified!"
+            self.toolbar.set_message("No input file name specified!")
             return
          im = self.currentimage
          framenr = self.getframenr(event)
@@ -1163,7 +1169,8 @@ class Shapecollection(object):
                      ylist.append(y1)
                if len(xlist):
                   self.addnewobject(sh, xlist, ylist, framenr) 
-
+         mes = "Read data from file %s" % self.inputfilename
+         self.toolbar.set_message(mes)
 
    def button_press(self, event):
       # -A position pointed with the mouse could be within a polygon
@@ -1174,7 +1181,7 @@ class Shapecollection(object):
          return
       if not self.activeobject:           # There is not an object selected to have interaction with
          return
-      if event.button == 2:
+      if event.button == 2:               # Middle button
          for i, fr in enumerate(self.frames):
             if fr.contains(event)[0]:
                currentframe = i
@@ -1383,9 +1390,10 @@ class Shapecollection(object):
    def saveresults(self, event):
       # Save the flux results to file on disk
       if not self.results:
-         print "Calculate results first with button 'plot results'"
-         return
-      stamp = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
+         self.plotresults(event)
+         #print "Calculate results first with button 'plot results'"
+         #return
+      stamp = datetime.now().strftime("%d%m%Y_%H%M%S")
       filename = "flux_" + stamp + ".dat"
       f = open(filename, 'w')
       stamp = datetime.now().strftime("! Saved at %A %d/%m/%Y %H:%M:%S\n")
@@ -1405,8 +1413,8 @@ class Shapecollection(object):
                if obj.area != None:
                   f.write('  %4d %4d %4d %16g %16g %16g\n' % (obj.shapetype, ol, obj.framenr, obj.sum, obj.area, obj.flux))
       f.close()
-      print "Wrote flux results to file: ", filename
-
+      mes = "Wrote flux results to file: %s" % filename
+      self.toolbar.set_message(mes)
 
 
 

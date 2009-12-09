@@ -5,7 +5,7 @@ from matplotlib import pylab as plt
 # Open FITS file and get header
 f = maputils.FITSimage('example1test.fits')
 
-fig = plt.figure(figsize=(7,7))
+fig = plt.figure(figsize=(6,6))
 frame = fig.add_subplot(1,1,1)
 mplim = f.Annotatedimage(frame)
 

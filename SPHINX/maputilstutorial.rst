@@ -549,7 +549,7 @@ Let's study the plot in more detail:
 
 
 More 'axnum' variations -- Position Velocity diagrams
------------------------------------------------------
+.....................................................
 
 For the next example we used a FITS file with the following header information::
 
@@ -820,9 +820,20 @@ Contours
    :include-source:
    :align: center
 
-This example shows how to plot contours without plotting an image.
+The example above shows how to plot contours without plotting an image.
 It also shows how one can retrieve the contour levels that are
 calculated as a default because no levels were specified.
+
+Next we demonstrate how to use the three Matplotlib keyword arguments to set some
+global properties of the contours:
+   
+**Example: mu_contourlinestyles.py - Setting global colors and line styles/widths**
+
+.. plot:: EXAMPLES/mu_contourlinestyles.py
+   :include-source:
+   :align: center
+
+
 
 **Example: mu_annotatedcontours.py - Add annotation to contours**
 
@@ -904,6 +915,24 @@ Adding pixel coordinate labels
    :align: center
 
 
+Adding a beam
+-------------
+
+Objects from class Beam are graphical representations of the resolution
+of an instrument. The beam is plotted at a position xc, yc (for now,
+these coordinates are in world coordinates).
+The major axis of the beam is the FWHM of longest distance between
+two opposite points on the ellipse. The angle between the major axis
+and the North is the position angle of the beam.
+
+**Example: mu_beam.py - Plot an ellipse representing a beam**
+
+.. plot:: EXAMPLES/mu_beam.py
+   :include-source:
+   :align: center
+
+
+
 Combining different plot objects
 --------------------------------
 
@@ -921,6 +950,11 @@ plot. Her is a practical example:
 External headers and/or data
 -----------------------------
 
+You are not restricted to FITS files to get plots of your data. The only
+requirement is that you must be able to get your data into a NumPy array
+and you need to supply a Python dictionary with FITS keywords.
+For both options we show an example.
+
 **Example: mu_externalheader.py - Header data from Python dictionary and setting a figure size**
 
 .. plot:: EXAMPLES/mu_externalheader.py
@@ -937,6 +971,19 @@ External headers and/or data
 
    Manipulated headers and data can be written to a FITS file with method
    :meth:`maputils.FITSimage.writetofits`.
+
+We use the method with external headers also to create all sky maps.
+In the next example we demonstrate how a graticule is created for an all sky map.
+You will find examples about plotting data in these plots in the document
+about all sky maps.
+
+**Example: mu_allsky_single.py - Using Python dictionary to define all-sky map**
+
+.. plot:: EXAMPLES/mu_allsky_single.py
+   :include-source:
+   :align: center
+
+
 
 The data from a FITS file is stored in a NumPy array. Then it
 is straightforward to maniplate this data. NumPy has many methods for this.
@@ -965,12 +1012,93 @@ besides a label, one also get numbers along the axes and that was what we
 want to avoid.
 
 
+Plotting markers from file
+----------------------------
+
+There are many situations where you want to identify features using markers
+at positions listed in a file. These positions are world coordinates.
+and assumed to be in degrees.
+The format of the file we used to read positions is as follows::
+   
+   segment 1  rank 4  points 169
+         31.270000 32.268889
+         31.148611 32.277500
+         31.104722 32.171389
+         31.061111 32.114444
+         31.120833 32.056667
+
+The first line is an example of a comment. Therefore we use
+in :meth:`maputils.Annotatedimage.positionsfromfile` character 's' as
+indentifier of a line with comments.
+In this method, the numbers are read from file with a method from module :mod:`tabarray`
+and are transformed to pixel coordinates in the
+projection system of the image in the FITS file. We changed the header values
+of CDELT a bit to get a bigger area in world coordinates. The positions
+are plotted as small dots. The dots represent coastlines in the Caribbean.
+
+
+**Example: mu_markers.py - Use special method to read positions from file and mark those positions**
+
+.. plot:: EXAMPLES/mu_markers.py
+   :include-source:
+   :align: center
+
+Method :meth:`maputils.Annotatedimage.positionsfromfile` is based on method
+:meth:`tabarray.readColumns`. They share the same parameters which implies that you have
+many options to get your data from a file.
+
+The next plot also uses :mod:`tabarray.tabarray` to read coast line data. But here we wanted
+the coast line dots to be connect to get more realistic coast lines. For this we changed
+all the lines in the data files that start with 'segment' to 'nan nan'.
+The parser does not recognize these values as valid and the array
+read from file will contain *numpy.nan* at those positions. This gives us an option
+to process the data in segments and avoid that distant segments are connected with
+straight lines. Again we used the adapted header of the M101 FITS file to scale
+things up and to set the eye of the 'hurricane' in the Caribbean. The example
+also shows the use of masked arrays for plotting.
+
+**Example: mu_hurricane - Hurricane 'M101' threatens the Caribbean**
+
+.. plot:: EXAMPLES/mu_hurricane.py
+   :include-source:
+   :align: center
+
+
+
+Mosaics of plots
+----------------------------------
+
+We have two examples of a mosaic of plots. First a mosaic is presented with an
+image and two position-velocity diagrams. The second is a classic examples which
+shows channel maps from a HI data cube at different velocities.
+
+The base of the image is a velocity for which we want to show data and
+a pixel coordinate to set the position of the slice (*slicepos=51*).
+This code can be used as a template for a more general application e.g. with
+user input of parameters that set velocity and slice position.
 
 **Example: mu_channelmaps1.py - Adding two slices**
 
 .. plot:: EXAMPLES/mu_channelmaps1.py
    :include-source:
    :align: center
+
+For a series of so called *channel maps* we use Matplotlib's *add_subplot()* to
+position the plots automatically. To set the same scale for the colors in each plot, we first
+calculate the minimum and maximum values in the data with
+:meth:`maputils.FITSimage.get_dataminmax`. The scale itself is set with parameters
+*clipmin* and *clipmax* in the constructor of :class:`maputils.Annotatedimage`.
+
+Before you make a hardcopy, it is possible to fine tune the colors because
+for each plot both mouse and key interaction is added with
+:meth:`maputils.Annotatedimage.interact_imagecolors`.
+Some channels seem not to contain any signal but when you fine tune the colors
+you discover that they show features. 
+For inspection one can set
+histogram equalization on/off for each plot separately. Special attention
+is paid to put labels in the plots with velocity information. 
+
+Also this example turns out to be a small but practical tool to inspect data.
 
 **Example: mu_channelmosaic.py - A mosaic of channelmaps**
 
@@ -1032,13 +1160,13 @@ Colormap scaling square                            5
 Toggle between data and histgram equalized version h
 Loop forward through list with colormaps           page-up
 Loop backwards through list with colormaps         page-down
-Save curent colormap to disk                       m
-Toggle between inverse and normal scaling          i
-reset the colors to start values                   r
+Save current colormap to disk                      m
+Toggle between inverse and normal scaling          9 (nine)
+reset the colors to start values                   0 (zero)
 Change color of bad pixels (blanks)                b
 ================================================== =============================
 
-The **left mouse button** must be pressed to change slope and offset of the
+The **right mouse button** must be pressed to change slope and offset of the
 function that maps image values to colors in the current color map.
        
 

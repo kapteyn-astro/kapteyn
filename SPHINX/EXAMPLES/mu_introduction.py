@@ -15,13 +15,13 @@ fig = plt.figure()
 frame = fig.add_subplot(1,1,1)
    
 # Create an image to be used in Matplotlib
-mplim = fitsobject.Annotatedimage(frame, clipmin=clipmin, clipmax=clipmax)
-mplim.Image()
-mplim.Graticule()
-mplim.plot()
+annim = fitsobject.Annotatedimage(frame, clipmin=clipmin, clipmax=clipmax)
+annim.Image()
+annim.Graticule()
+annim.plot()
 
-mplim.interact_toolbarinfo()
-mplim.interact_imagecolors()
-mplim.interact_writepos()
+annim.interact_toolbarinfo()
+annim.interact_imagecolors()
+annim.interact_writepos()
 
 plt.show()

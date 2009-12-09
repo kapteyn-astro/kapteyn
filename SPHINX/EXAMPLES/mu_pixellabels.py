@@ -1,18 +1,15 @@
 from kapteyn import maputils
 from matplotlib import pyplot as plt
 
-f = maputils.FITSimage("m101.fits")
-
-fig = plt.figure()
+fig = plt.figure(figsize=(4,4))
 frame = fig.add_subplot(1,1,1)
 
-mplim = f.Annotatedimage(frame)
-#ima = mplim.Image(visible=False)
-#mplim.Pixellabels(plotaxis=("bottom", "right"), color="r")
-mplim.Pixellabels(plotaxis="bottom", color="r")
-mplim.Pixellabels(plotaxis="right", color="b", markersize=10)
-mplim.Pixellabels(plotaxis="top", color="g", markersize=-10)
+fitsobject = maputils.FITSimage("m101.fits")
+annim = fitsobject.Annotatedimage(frame)
+annim.Pixellabels(plotaxis="bottom", color="r")
+annim.Pixellabels(plotaxis="right", color="b", markersize=10)
+annim.Pixellabels(plotaxis="top", color="g", markersize=-10, va='top')
 
-mplim.plot()
+annim.plot()
 plt.show()
 
