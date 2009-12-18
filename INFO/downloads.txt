@@ -73,3 +73,7 @@ Peking University @ 222.29.49.249
 University of California, Berkeley @ 128.32.92.238
 Max-Planck-Institut fuer Radioastronomie @ 134.104.17.227
 National Centre for Radio Astrophysics TIFR @ 158.144.16.24
+Das Deutsche Forschungsnetz @ 141.33.144.13
+Astrophysikalisches Institut Potsdam @ 141.33.143.115
+Max-Planck-Institut fuer Astronomie @ 149.217.40.222
+Niels Bohr Institutet - Koebenhavns Universitet -130.225.113.254
