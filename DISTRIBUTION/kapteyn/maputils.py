@@ -171,6 +171,11 @@ Class Colorbar
 
 .. autoclass:: Colorbar
 
+Class Beam
+----------
+
+.. autoclass:: Beam
+
 Class Colmaplist
 ----------------
 
@@ -216,6 +221,8 @@ from types import StringType as types_StringType
 from string import upper as string_upper
 from string import letters
 from re import split as re_split
+from datetime import datetime
+from kapteyn.positions import str2pos
 
 
 KeyPressFilter.allowed = ['f', 'g']
@@ -263,6 +270,7 @@ class Colmaplist(object):
 
 cmlist = Colmaplist()
 colormaps = cmlist.colormaps
+
 
 
 def prompt_box(pxlim, pylim, axnameX, axnameY):
@@ -617,7 +625,7 @@ translation.
             if unvalid:
                # No exceptions because we are in a loop
                print "Incorrect input of image axes!"
-            if (ax1 == ax2):
+            if (ax1 == ax2 and ax1 != -1):
                print "axis 1 == axis 2"
          else:
             print "Number of images axes must be 2. You entered %d" % (len(axes),)
@@ -1165,6 +1173,7 @@ class Colorbar(object):
       self.linewidths = linewidths
       self.frame = frame
       self.label = label
+      self.labelkwargs = None
       newkwargs = ({'orientation':'vertical'})
       if not visible:
          alpha = {'alpha':0.0}
@@ -1232,50 +1241,27 @@ class Colorbar(object):
 
 
 class Beam(object):
-#--------------------------------------------------------------------
+   #--------------------------------------------------------------------
    """
-Objects from class Beam are graphical representations of the resolution
-of an instrument. The beam is plotted at a position xc, yc (for now,
-these coordinates are in world coordinates).
-The major axis of the beam is the FWHM of longest distance between
-two opposite points on the ellipse. The angle betwee the major axis
-and the North is the position angle.
+   Beam class. Usually the parameters will be provide by method
+   :meth:`Annotatedimage.Beam`
+   
+   Objects from class Beam are graphical representations of the resolution
+   of an instrument. The beam is centered at a position xc, yc.
+   The major axis of the beam is the FWHM of longest distance between
+   two opposite points on the ellipse. The angle between the major axis
+   and the North is the position angle.
 
-/* INPUT:   longitude: enter in degrees.                      */
-/*          latitude:  enter in degrees.                      */
-/*          disp:      the displacement in the sky entered    */
-/*                     in degrees. The value can also be      */
-/*                     negative to indicate the opposite      */
-/*                     direction.                             */
-/*          angle:     the angle wrt. a great circle of       */
-/*                     constant declination entered in        */
-/*                     degrees.                               */
-/*          direction: If the longitude increases in the -X   */
-/*                     direction (e.q. RA-DEC) then direction */
-/*                     is -1. else direction = +1             */
-/*                                                            */
-/* Assume a triangle on a sphere with side b(=disp) connec-   */
-/* ting two positions along a great circle and sides 90-d1,   */
-/* and 90-d2 (d1, d2 are the declinations of the input and    */
-/* output positions) that connect the input and output        */
-/* position to the pole P of the sphere. Then the distance    */
-/* between the two points Q1=(a1,d1) and Q2=(a2,d2) is:       */
-/* cos(b)=cos(90-d1)cos(90-d2)+sin(90-d1)sin(90-d2)cos(a2-a1) */
-/* Q2 is siuated to the left of Q1.                           */
-/* If the angle PQ1Q2 is alpha then we have anoher cosine     */
-/* rule:                                                      */
-/* cos(90-d2) = cos(b)cos(90-d1)+sin(b)sin(90-d1)cos(alpha)   */
-/* or :                                                       */
-/* sin(d2) = cos(b)sin(d1)+sin(b)cos(d1)cos(alpha)            */
-/* which gives d2. Angle Q1PQ2 is equal to a2-a1. For this    */
-/* angle we have the sine formula:                            */
-/* sin(b)/sin(a2-a1) = sin(90-d2)/sin(alpha) so that:         */
-/* sin(a2-a1) = sin(b)sin(alpha)/cos(d2).                     */
-/* b,alpha and d2 are known -> a2.
-
+   Note that it is not correct to calculate the ellipse that represents
+   the beam by applying distance 'r' (see code) as a function of
+   angle, to get the new world coordinates. The reason is that the
+   fwhm's are given as sizes on a sphere and therefore a correction for
+   the declination is required. With method *dispcoord()* (see code)
+   we sample the
+   ellipse on a sphere with a correct position angle and with the correct
+   sizes.
    """
-#--------------------------------------------------------------------
-
+   #--------------------------------------------------------------------
    def __init__(self, xc, yc, fwhm_major, fwhm_minor, pa, projection=None, **kwargs):
       semimajor = fwhm_major / 2.0
       semiminor = fwhm_minor / 2.0
@@ -1298,7 +1284,44 @@ and the North is the position angle.
       self.vertices = zip(xp, yp)
       self.kwargs = kwargs
 
+
    def dispcoord(self, longitude, latitude, disp, direction, angle):
+      #--------------------------------------------------------------------
+      """
+      INPUT:   longitude: enter in degrees.
+               latitude:  enter in degrees.
+               disp:      the displacement in the sky entered
+                          in degrees. The value can also be
+                          negative to indicate the opposite
+                          direction
+               angle:     the angle wrt. a great circle of
+                          constant declination entered in
+                          degrees.
+               direction: If the longitude increases in the -X
+                          direction (e.q. RA-DEC) then direction
+                          is -1. else direction = +1
+
+      Assume a triangle on a sphere with side b(=disp) connec-
+      ting two positions along a great circle and sides 90-d1,
+      and 90-d2 (d1, d2 are the declinations of the input and
+      output positions) that connect the input and output
+      position to the pole P of the sphere. Then the distance
+      between the two points Q1=(a1,d1) and Q2=(a2,d2) is:
+      cos(b)=cos(90-d1)cos(90-d2)+sin(90-d1)sin(90-d2)cos(a2-a1) 
+      Q2 is situated to the left of Q1.
+      If the angle PQ1Q2 is alpha then we have another cosine     
+      rule:
+      cos(90-d2) = cos(b)cos(90-d1)+sin(b)sin(90-d1)cos(alpha)   
+      or:
+      sin(d2) = cos(b)sin(d1)+sin(b)cos(d1)cos(alpha)
+      which gives d2. Angle Q1PQ2 is equal to a2-a1. For this
+      angle we have the sine formula:
+      sin(b)/sin(a2-a1) = sin(90-d2)/sin(alpha) so that:
+      sin(a2-a1) = sin(b)sin(alpha)/cos(d2).
+      b,alpha and d2 are known -> a2.
+      """
+      #--------------------------------------------------------------------
+
       Pi = numpy.pi
       b = abs(disp*Pi/180.0)
       a1 = longitude * Pi/180.0
@@ -1504,6 +1527,7 @@ this class.
 .. automethod:: Colorbar
 .. automethod:: Graticule
 .. automethod:: Pixellabels
+.. automethod:: Beam
 .. automethod:: plot
 .. automethod:: toworld
 .. automethod:: topixel
@@ -1699,11 +1723,11 @@ this class.
       in an interactive environment.
       """
       #-----------------------------------------------------------------
-      print self.cmap.name
-      print self.cmap._lut[0:-3,0:3]
+      #print self.cmap.name
+      #print self.cmap._lut[0:-3,0:3]
       a = tabarray(self.cmap._lut[0:-3,0:3])
       a.writeto(filename)
-      
+
 
    def set_blankcolor(self, blankcolor, alpha=1.0):
       #-----------------------------------------------------------------
@@ -2131,13 +2155,88 @@ this class.
       return pixlabels
 
 
-   def Beam(self, xc, yc, major, minor, pa, **kwargs):
+   def Beam(self, major, minor, pa=0.0, pos=None, xc=None, yc=None, **kwargs):
+      #-----------------------------------------------------------------
+      """
+      Objects from class Beam are graphical representations of the resolution
+      of an instrument. The beam is centered at a position xc, yc.
+      The major axis of the beam is the FWHM of the longest distance between
+      two opposite points on the ellipse. The angle between the major axis
+      and the North is the position angle.
+
+      A beam is an ellipse in world coordinates.
+      To draw a beam given the input parameters, points are calculated in world
+      coordinates so that angle and required distance of sample points on the
+      ellipse are correct on a sphere.
+       
+      
+      :param major: Full width at half maximum of major axis of beam in degrees.
+      :type major:  Float
+      :param minor: Full width at half maximum of minor axis of beam in degrees.
+      :type minor:  Float
+      :param pa:    Position angle in degrees. This is the angle between
+                    the positive y-axis and the major axis of the beam.
+                    The default value is 0.0.
+      :type pa:     Float
+      :param pos:   A string that represents the position of the center
+                    of the beam. If two numbers are available then
+                    one can also use parameters *xc* and *yc*.
+                    The value in parameter *pos* supersedes the values
+                    in *xc* and *yc*.
+      :type pos:    String
+      :param xc:    X value in **world** coordinates of the center position
+                    of the beam.
+      :type xc:     Float
+      :param yc:    Y value in **world** coordinates of the center position
+                    of the beam.
+      :type yc:     Float
+
+      :Examples:
+      
+       ::
+      
+         fwhm_maj = 0.08
+         fwhm_min = 0.06
+         lat = 54.347395233845
+         lon = 210.80254413455
+         beam = annim.Beam(fwhm_maj, fwhm_min, 90, xc=lon, yc=lat,
+                           fc='g', fill=True, alpha=0.6)
+         pos = '210.80254413455 deg, 54.347395233845 deg'
+         beam = annim.Beam(fwhm_maj, fwhm_min, pos=pos, fc='m', fill=True, alpha=0.6)
+         pos = '14h03m12.6105s 54d20m50.622s'
+         beam = annim.Beam(fwhm_maj, fwhm_min, pos=pos, fc='y', fill=True, alpha=0.6)
+         pos = 'ga 102.0354152 {} 59.7725125'
+         beam = annim.Beam(fwhm_maj, fwhm_min, pos=pos, fc='g', fill=True, alpha=0.6)
+         pos = 'ga 102d02m07.494s {} 59.7725125'
+         beam = annim.Beam(fwhm_maj, fwhm_min, pos=pos, fc='b', fill=True, alpha=0.6)
+         pos = '{ecliptic,fk4, j2000} 174.3674627 {} 59.7961737'
+         beam = annim.Beam(fwhm_maj, fwhm_min, pos=pos, fc='r', fill=True, alpha=0.6)
+         pos = '{eq, fk4-no-e, B1950} 14h01m26.4501s {} 54d35m13.480s'
+         beam = annim.Beam(fwhm_maj, fwhm_min, pos=pos, fc='c', fill=True, alpha=0.6)
+         pos = '{eq, fk4-no-e, B1950, F24/04/55} 14h01m26.4482s {} 54d35m13.460s'
+         beam = annim.Beam(fwhm_maj, fwhm_min, pos=pos, fc='c', fill=True, alpha=0.6)
+         pos = '{ecl} 174.367764 {} 59.79623457'
+         beam = annim.Beam(fwhm_maj, fwhm_min, pos=pos, fc='c', fill=True, alpha=0.6)
+         pos = '53 58'     # Pixels
+         beam = annim.Beam(0.04, 0.02, pa=30, pos=pos, fc='y', fill=True, alpha=0.4)
+         pos = '14h03m12.6105s 58' # World coordinate and a pixel coordinate
+         beam = annim.Beam(0.04, 0.02, pa=-30, pos=pos, fc='y', fill=True, alpha=0.4)
+
+      """
+      #-----------------------------------------------------------------
+      if pos != None:
+         poswp = str2pos(pos, self.projection, mixpix=self.mixpix, maxpos=1)
+         if poswp[3] != "":
+            raise Exception, poswp[3]
+         world = poswp[0][0]
+      else:
+         world = (xc, yc)
       spatials = [self.projection.lonaxnum, self.projection.lataxnum]
       spatialmap = self.axperm[0] in spatials and self.axperm[1] in spatials
       if not spatialmap:
          raise Exception, "Can only plot a beam in a spatial map"
 
-      beam = Beam(xc, yc, major, minor, pa, projection=self.projection, **kwargs)
+      beam = Beam(world[0], world[1], major, minor, pa, projection=self.projection, **kwargs)
       self.objlist.append(beam)
       return beam
 
@@ -2175,7 +2274,16 @@ this class.
          # A frame is created for the colorbar, but for vertical bars, the
          # bar is often too high, so we want to adjust the height then.
          self.frame = self.adjustframe(self.frame)
-         self.frame.apply_aspect()
+         ### The apply_aspect is necessary otherwise we cannot obtain
+         # the final position and size of the adjusted frame.
+         # However this disturbs the frame of other objects like the graticule.
+         # So, if we need a trick to improve the default size of the
+         # colorbar, we cannot use apply_aspect()
+         """
+         # self.frame.apply_aspect()
+         print "aspect=", self.frame.get_aspect()
+         print "adjust", self.frame.get_adjustable()
+         print "autoscale", self.frame.get_autoscale_on()
          xxyy = self.frame.get_position().get_points()
          cbf = self.cbframe.get_position().get_points()
          x0 = cbf[0,0]; y0 = cbf[0,1]
@@ -2190,8 +2298,7 @@ this class.
             hei = abs(cbf[1,1] - y0)
             newpos = (xxlo, y0, newwid, hei)
          self.cbframe.set_position(newpos)
-
-            
+         """
       self.cmap.add_frame(self.frame)
       
       for obj in self.objlist:
@@ -2571,7 +2678,8 @@ this class.
       """
    #--------------------------------------------------------------------
       scales = {'1': 'linear', '2': 'log', '3': 'exp', '4': 'sqrt', '5': 'square'}
- 
+
+
       # Request for another color map with page up/down keys
       if axesevent.event.key in ['pageup', 'pagedown']:
          lm = len(colormaps)
@@ -2595,7 +2703,8 @@ this class.
          mes = "Color map scale set to '%s'" % scales[key]
          self.figmanager.toolbar.set_message(mes)
       # Invert the color map colors
-      elif axesevent.event.key.upper() == 'I':
+      #elif axesevent.event.key.upper() == 'I':
+      elif axesevent.event.key == '9':
          if self.cmapinverse:
             self.cmap.set_inverse(False)
             self.cmapinverse = False
@@ -2606,7 +2715,8 @@ this class.
             mes = "Color map inverted!"
          self.figmanager.toolbar.set_message(mes)
       # Reset all color map parameters
-      elif axesevent.event.key.upper() == 'R':
+      #elif axesevent.event.key.upper() == 'R':
+      elif axesevent.event.key == '0':
          self.cmap.auto = False      # Postpone updates of the canvas.
          self.figmanager.toolbar.set_message('Reset color map to default')
          #self.cmap.set_source(self.startcmap)
@@ -2645,8 +2755,10 @@ this class.
          mes = "Color of bad pixels changed to '%s'" % self.blankcol
          self.figmanager.toolbar.set_message(mes)
       elif axesevent.event.key.upper() == 'M':
-         self.write_colormap(self.colormapfilename)
-         mes = "Save color map to file [%s]" % self.colormapfilename
+         stamp = datetime.now().strftime("%d%m%Y_%H%M%S")
+         filename = self.basename + "_" + stamp + ".lut"
+         self.write_colormap(filename)
+         mes = "Save color map to file [%s]" % filename
          self.figmanager.toolbar.set_message(mes)
       elif axesevent.event.key.upper() == 'H':
          # Set data to histogram equalized version
