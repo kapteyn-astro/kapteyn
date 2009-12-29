@@ -6,3 +6,4 @@ Background information
    :maxdepth: 2
 
    celestialbackground
+   spectralbackground

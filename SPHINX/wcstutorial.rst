@@ -1525,8 +1525,6 @@ Below a table with a short explanation of the attributes.
 More information about epochs and equinoxes can be found
 in the documentation of :mod:`celestial`.
  
-.. tabularcolumns:: p{2cm}|J
-
 ========== ===============================================================
 Attribute    Explanation
 ========== ===============================================================
@@ -1637,7 +1635,7 @@ article to illustrate how a FITS header can be modified.
 In the background information you find a more elaborate discussion. Here we 
 summarize some results.
 
-The topocentric spectral properties in the FITS header from the paper are found to be::
+The topocentric spectral properties in the FITS header from the paper are::
 
    CTYPE3= 'FREQ'
    CRVAL3=  1.37835117405e9
@@ -1665,7 +1663,6 @@ The numbers are frequencies. The units are *Hz* and the central frequency is *CR
 The step in frequency is *CDELT3*. Our minimal header (here presented as a Python dictionary)
 shows only one axis so our header items got axis number 1 (e.g. *CRVAL1*, *CDELT1*, etc.)::
 
-
    from kapteyn import wcs
    header = { 'NAXIS'  :  1,
               'CTYPE1' : 'FREQ',
@@ -1691,7 +1688,6 @@ The output shows frequency as function of pixel coordinate. Pixel coordinate 32 
 of *CRVAL1*. Now we have a method to find at which frequency a spatial map in the data cube was 
 observed.
 
-
 WCSlib velocities from frequency data
 .....................................
 
@@ -1700,8 +1696,9 @@ Velocities is what we need for the analysis of the kinematics and dynamics
 of the observed objects. But there are several definitions for velocities
 (*radio*, *optical*, *apparent radial*). 
 
-For the radio interferometer, like the WSRT, an observer requesting for an observation, needs to specify:
-   
+For the radio interferometer, like the WSRT, an observer requesting for an observation,
+needs to specify:
+
    * A rest frequency
    * A velocity or Doppler shift
    * A frame definition (bary or lsrk)
@@ -1709,7 +1706,7 @@ For the radio interferometer, like the WSRT, an observer requesting for an obser
    * A time of observation. This time is needed (together with the location of 
      the observatory) to calculate the topocentric frequencies needed 
      for the receivers
- 
+
 
 *The observer requests that an observation must correspond to a velocity or Doppler shift
 (see list below) and a reference system. Only then topocentric frequencies for the
@@ -1888,8 +1885,9 @@ Other reference systems are the barycenter of the Solar system and the Local Sta
 During observations one knows the location of the source, the time of observation and the location
 of the observatory on Earth. Software then can calculate the (true) velocity of the Earth with
 respect to a selected inertial reference system and we can transform from topocentric
-velocities to velocities in another system. Usually these correction velocities (called *topocentric correction*)
-are not recorded in the FITS file of the data set.
+velocities to velocities in another system. Usually these correction velocities
+(called *topocentric correction*)
+are not recorded in the FITS file of the data set. The keyword to look for is VELOSYS=
 
 In the background information about spectral coordinates we give a recipe how one can
 change the value of the reference frequency in CRVAL1 to a barycentric value.
@@ -1913,6 +1911,17 @@ returns velocities in the same system as the system of reference frequency.
       Module :mod:`wcs`
       converts between frequencies and velocities in the *same* reference system.
       You should inspect your FITS header to find what this system is.
+
+.. warning::
+
+      Legacy FITS headers often define frequencies in a Topocentric system. Also
+      a reference velocity is given in another reference system. WCSLIB needs instructions
+      how to convert between these systems. If legacy headers are recognized, module
+      :mod:`wcs` tries to convert the frequency system to the reference system
+      of the reference velocity. See also the next section and the background
+      documentation about spectral coordinates 
+      
+       
 
 Spectral CTYPE's with special extensions
 ........................................
@@ -2010,6 +2019,9 @@ the wildcards are used to find the algorithm code (assuming that for the given P
 and the spectral type only one algorithm is possible). A tuple is created with the
 allowed spectral translation as first element and its associated unit as second element) and the
 tuple is added to the list :attr:`wcs.Projection.altspec`.
+
+.. note::  For a given header the attribute :attr:`wcs.Projection.altspec` stores
+           all possible spectral translations.
 
 The attribute is useful if you want to write code that prompts a user to enter a spectral
 translation from a list of allowed translations. It can be used as follows::
