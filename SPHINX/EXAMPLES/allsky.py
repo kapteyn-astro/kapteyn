@@ -943,7 +943,7 @@ def plotfig(fignum, smallversion=False):
    if plotdata:
       from kapteyn import tabarray
       # ... or, if you prefer: import TableIO as tabarray
-      fn= 'WDB/smallworld.txt'
+      fn= 'smallworld.txt'
       lat, lon= tabarray.readColumns(fn, 's',[0, 1])
       xp, yp = grat.gmap.topixel((datasign*lon,lat))
       # Clip the positions if they are outside the pixel limits.

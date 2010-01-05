@@ -16,7 +16,7 @@ The set of file formats to generate can be specified with the
 plot_formats configuration variable.
 """
 
-import sys, os, glob, shutil, imp, warnings, cStringIO
+import sys, os, glob, shutil, imp, cStringIO
 try:
     from hashlib import md5
 except ImportError:
@@ -216,7 +216,7 @@ def makefig(fullpath, code, outdir):
             runfile(fullpath)
         except:
             s = cbook.exception_to_str("Exception running plot %s" % fullpath)
-            warnings.warn(s)
+            print(s)
             return 0
 
     fig_managers = _pylab_helpers.Gcf.get_all_fig_managers()
@@ -231,7 +231,7 @@ def makefig(fullpath, code, outdir):
                 figman.canvas.figure.savefig(outpath, dpi=dpi)
             except:
                 s = cbook.exception_to_str("Exception running plot %s" % fullpath)
-                warnings.warn(s)
+                print(s)
                 return 0
 
             write_char('*')
