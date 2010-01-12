@@ -6,19 +6,21 @@ else
    set destdir = ${argv[1]}
 endif
 
-UTILS/makepack.csh --clean
+UTILS/makepack.csh --clean                    # build new private package
 
 setenv PYTHONPATH ../PACKAGE/
 
-mkdir ${destdir} >& /dev/null
+mkdir ${destdir} >& /dev/null                 # try to make home directory
 
 cd SPHINX
-sphinx-build -E -b html . ${destdir}
+sphinx-build -E -b html . ${destdir}          # make html doc
 cd ..
 
-UTILS/makedist.csh
+UTILS/makedist.csh                            # make distro, including pdf doc
 
-\rm ${destdir}/kapteyn*tar.gz >& /dev/null
-\mv DISTRIBUTION/dist/kapteyn*tar.gz ${destdir}
-\mv DISTRIBUTION/doc/kapteyn.pdf ${destdir}
-ln -s ${destdir}/kapteyn*tar.gz ${destdir}/kapteyn.tar.gz
+mkdir ${destdir}/OLD >& /dev/null
+\rm ${destdir}/kapteyn.tar.gz >& /dev/null                  # old symbolic link
+\mv ${destdir}/kapteyn*tar.gz ${destdir}/OLD/ >& /dev/null  # keep old distro
+\mv DISTRIBUTION/dist/kapteyn*tar.gz ${destdir}             # new distro
+\mv DISTRIBUTION/doc/kapteyn.pdf ${destdir}                 # new pdf doc
+ln -s ${destdir}/kapteyn*tar.gz ${destdir}/kapteyn.tar.gz   # new symbolic link

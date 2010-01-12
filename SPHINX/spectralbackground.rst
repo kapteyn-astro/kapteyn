@@ -844,7 +844,9 @@ Then with the numbers we find:
 which is the increment in optical velocity earlier given for CDELT3Z.
 
 This is one of the possible conversions between wavelength and velocity. Others are listed 
-in `scs.pdf <scs.pdf>`_ table 3 of E.W. Greisen et al. page 750.
+in table 3 of
+`E.W. Greisen et al. <http://www.atnf.csiro.au/people/mcalabre/WCS/scs.pdf>`_
+page 750.
 
 
 Conclusions
@@ -2187,7 +2189,7 @@ this task and  *COORDS* are:
         also converts the frequency increment to the barycentric or lsrk system).
 
 Read more about GIPSY tasks written in Python in
-`Python recipes for GIPSY <https://www.astro.rug.nl/~gipsy/python/recipes/pythonrep.php>`_
+`Python recipes for GIPSY <http://www.astro.rug.nl/~gipsy/python/recipes/pythonrep.php>`_
 
 
 
@@ -2196,6 +2198,6 @@ Read more about GIPSY tasks written in Python in
 References
 ----------
 
-.. [Aipsmemo] `AIPS memo 27 <_static/aips27.ps>`_  Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
+.. [Aipsmemo] `AIPS memo 27 <http://www.cv.nrao.edu/fits/wcs/aips27.ps>`_  Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
 
         
