@@ -5,4 +5,4 @@ include INSTALL.txt  LICENSE.txt  README.txt
 graft   kapteyn
 graft   src
 graft   doc
-graft   lut
+graft   kapteyn/lut

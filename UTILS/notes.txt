@@ -29,3 +29,14 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTILS/make..."
   bouwt de pdf documentatie onder de directory SPHINX/LATEX/.
   Argument -E : bouw alles opnieuw. 
 
+
+- release.csh
+
+  bouwt de complete release, d.w.z. de HTML documentatieboom, de PDF
+  documentatie en de distributie tar.gz file. De laatste twee worden onder
+  de HTML "root" geplaatst. Voor de tar.gz file met de versie in de naam
+  wordt een symbolic link gemaakt met de vaste naam 'kapteyn.tar.gz' die
+  daar naar wijst.
+  Argument: de directory waar de release wordt geplaatst (verplicht).
+            Voor een definitieve release zal dat
+            /net/webserver/var/www/base/internet/software/kapteyn zijn.
