@@ -1,7 +1,7 @@
 Naval Research Laboratory (Paul S. Ray)
 ---
 Observatoire Midi Pyrenees @ 195.83.21.123
-National Aeronautics and Space Administration @ 128.158.1.165
+National Aeronautics and Space Administration (NASA) @ 128.158.1.165
 Columbia University @ 128.59.171.104
 Raman Research Institute @ 61.14.43.10
 IN2P3/CNRS @ 193.48.98.136
@@ -79,3 +79,5 @@ Max-Planck-Institut fuer Astronomie @ 149.217.40.222
 Niels Bohr Institutet - Koebenhavns Universitet @ 130.225.113.254
 Max-Planck-Institut fuer Kernphysik @ 149.217.1.6
 Weizmann Institute of Science @ 132.77.4.43
+University of California, Irvine @ 128.200.44.68
+Instituto de Optica "Daza de Valdes" @ 161.111.24.211
