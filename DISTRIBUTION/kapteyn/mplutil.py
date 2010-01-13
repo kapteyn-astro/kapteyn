@@ -498,7 +498,7 @@ A TimeCallback object will not be deleted as long as it
 is scheduled ("active"), so it is not always necessary to keep a reference
 to it.
 This class is backend-dependent. Currently supported backends are GTKAgg,
-GTK and Qt4Agg.
+GTK, Qt4Agg and TkAgg.
 
 :param proc:
    the function to be called upon receiving an event of the specified
@@ -642,7 +642,7 @@ except:
    pass
 
 
-# Qt4AGG:
+# Qt4Agg:
 #
 try:
    from PyQt4 import QtCore
@@ -671,5 +671,38 @@ try:
          self.proc(self)
 
    TimeCallback.supported['QT4AGG'] = TimeCallback_QT4
+except:
+   pass
+
+# TkAgg:
+#
+try:
+   from matplotlib.pyplot import get_current_fig_manager
+   
+   class TimeCallback_TKAGG(TimeCallback):
+
+      def schedule(self):
+         if self.id:
+            return
+         self.window = get_current_fig_manager().window
+         self.milliseconds = max(1,int(round(self.interval*1000.0)))
+         self.id   = self.window.after(self.milliseconds, self.reached)
+         self.active = True
+         self.scheduled.append(self)
+      
+      def deschedule(self):
+         if not self.id:
+            return
+         self.id = 0
+         self.active = False
+         self.scheduled.remove(self)
+         
+      def reached(self):
+         if self.id:
+            self.proc(self)
+            self.window.after(self.milliseconds, self.reached)
+
+   TimeCallback.supported['TKAGG'] = TimeCallback_TKAGG         
+   
 except:
    pass
