@@ -1,6 +1,9 @@
 Developer's notes. (Dutch)
 --------------------------
 
+[ de volgende informatie is achterhaald door de nieuwe aanpak met een
+  Mercurial repository ]
+
 De source distributie van het package is een file met een naam als
 'kapteyn-1.8.1.tar.gz'. (Voorheen was dat iets als 'kapteyn-1.008.tar.gz',
 maar dat is geen gangbaar versieschema.)
@@ -32,3 +35,12 @@ Aanpassingen worden als volgt uitgevoerd:
    Onder de directory 'dist' staat dan de nieuwe distributie file.
 
                                                               31-08-2009, JPT
+
+[ De volgende informatie stond eerder in doc/notes.txt ]
+
+This directory receives the package's documentation in PDF format: kapteyn.pdf.
+Normally it is put there when the distribution is built using the script
+UTIL/makedist.csh. kapteyn.pdf is not a part of the Mercurial repository.
+The file you are reading (notes.txt) is, but is not included in the
+distribution, i.e., is not in the MANIFEST file.
+

@@ -5,14 +5,12 @@ MANIFEST.in
 README.txt
 setup.py
 doc/kapteyn.pdf
-doc/notes.txt
 kapteyn/__init__.py
 kapteyn/__init__.pyc
 kapteyn/celestial.py
 kapteyn/ellinteract.py
 kapteyn/maputils.py
 kapteyn/mplutil.py
-kapteyn/mplutil.py.sav
 kapteyn/positions.py
 kapteyn/tabarray.py
 kapteyn/wcsgrat.py
@@ -76,5 +74,6 @@ src/incdir.py
 src/wcs.c
 src/wcs.make
 src/wcs.pyx
+src/wcs.pyx.sav
 src/xyz.c
 src/xyz.h

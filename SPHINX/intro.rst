@@ -37,13 +37,18 @@ The the following modules are included:
   A class is added which prepares FITS data to plot itself as an image
   with Matplotlib.
 
-- :mod:`tabarray`, providing a class for the efficient reading, writing and
-  manipulating simple table-like structures in text files. 
+- :mod:`positions`, enabling a user/programmer to specify positions in
+  either pixel- or world coordinates.
 
 - :mod:`mplutil`, utilities for use with matplotlib.
-  Currently only class AxesCallback, which provides a more powerful
+  Classes AxesCallback, providing a more powerful
   mechanism for handling events from LocationEvent and derived classes
-  than matplotlib provides itself.
+  than matplotlib provides itself; TimeCallback for handling timer events
+  and VariableColormap which implements a matplotlib Colormap subclass
+  with special methods that allow the colormap to be modified..
+
+- :mod:`tabarray`, providing a class for the efficient reading, writing and
+  manipulating simple table-like structures in text files. 
 
 .. ascarray left out
   :mod:`ascarray`, a binary module containing the base function for

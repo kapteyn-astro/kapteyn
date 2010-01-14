@@ -1,5 +1,0 @@
-This directory receives the package's documentation in PDF format: kapteyn.pdf.
-Normally it is put there when the distribution is built using the script
-UTIL/makedist.csh. kapteyn.pdf is not a part of the Mercurial repository.
-The file you are reading (notes.txt) is, but is not included in the
-distribution, i.e., is not in the MANIFEST file.
