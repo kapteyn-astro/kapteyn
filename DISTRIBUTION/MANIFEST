@@ -1,10 +1,10 @@
 INSTALL.txt
 LICENSE.txt
-MANIFEST
 MANIFEST.in
 README.txt
 setup.py
 doc/kapteyn.pdf
+doc/notes.txt
 kapteyn/__init__.py
 kapteyn/__init__.pyc
 kapteyn/celestial.py
@@ -74,6 +74,5 @@ src/incdir.py
 src/wcs.c
 src/wcs.make
 src/wcs.pyx
-src/wcs.pyx.sav
 src/xyz.c
 src/xyz.h
