@@ -25,4 +25,3 @@ mkdir ${destdir}/OLD >& /dev/null
 \mv DISTRIBUTION/doc/kapteyn.pdf ${destdir}                 # new pdf doc
 ln -s ${destdir}/kapteyn*tar.gz ${destdir}/kapteyn.tar.gz   # new symbolic link
 echo "AddDefaultCharset utf-8" > ${destdir}/.htaccess
-
