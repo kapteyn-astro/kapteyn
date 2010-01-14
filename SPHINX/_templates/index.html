@@ -13,35 +13,41 @@ developed by the computer group of the
 Institute</a>, University of Groningen, The Netherlands.
 The purpose of the package is to provide tools
 for the development of astronomical applications with Python.</p>
+<p>The package is suitable for both inexperienced and experienced users
+and developers and documentation is provided for both groups.
+The documentation also provides in-depth chapters about celestial
+transformations and spectral translations.
+<p> 
 
-
-<p>The the following modules are included:</p>
+<p>Some of the package's features:</p>
 <ul class="simple">
-<li><a class="boldlink" href="{{ pathto("wcs") }}">wcs</a>,
-a binary module
-which handles spatial and spectral coordinates and provides
+
+<li>The handling of spatial and spectral coordinates,
 WCS projections and transformations between different sky systems.
 Spectral translations (e.g., between frequencies and velocities) are
-supported and also mixed coordinates.</li>
-<li><a class="boldlink" href="{{ pathto("celestial") }}">celestial</a>,
-containing NumPy-based functions for creating
-matrices for transformation between different celestial systems.
-Also a number of other utility functions are included.</li>
-<li><a class="boldlink" href="{{ pathto("wcsgrat") }}">wcsgrat</a>,
-for calculating parameters for WCS graticules.
-It does not require a plot package.</li>
-<li><a class="boldlink" href="{{ pathto("maputils") }}">maputils</a>,
-versatile tool capable of many things such as extracting and plotting
-data slices from data sets with more than two axes.</li>
-<li><a class="boldlink" href="{{ pathto("tabarray") }}">tabarray</a>,
-providing a class for the efficient reading, writing and
-manipulating simple table-like structures in text files.</li>
-<li><a class="boldlink" href="{{ pathto("mplutil") }}">mplutil</a>,
-utilities for use with matplotlib. Classes AxesCallback,
-which provides a more powerful mechanism for handling events from
-LocationEvent and derived classes than matplotlib provides itself and
-VariableColormap which provides a colormap that can be modified
-interactively.</li>
+supported and also mixed coordinates. (Modules
+<a href="{{ pathto("wcs") }}">wcs</a> and
+<a href="{{ pathto("celestial") }}">celestial</a>)</li>
+
+<li>Versatile tools for writing small and dedicated applications for the
+inspection of FITS headers, the extraction and display of (FITS) data,
+interactive inspection of this data (color editing) and for the creation
+of plots with world coordinate information. (Module
+<a href="{{ pathto("maputils") }}">maputils</a>)
+As one example, a
+<a href="{{ pathto("allsky") }}#all-sky-plot-gallery">gallery</a> of all-sky plots
+is provided.</li>
+
+<li>A class for the efficient reading, writing and
+manipulating simple table-like structures in text files.
+(Module <a href="{{ pathto("tabarray") }}">tabarray</a>)</li>
+
+<li>Utilities for use with matplotlib such as
+obtaining coordinate information from plots, interactively modifiable
+colormaps and timer events
+(module <a href="{{ pathto("mplutil") }}">mplutil</a>); tools for parsing and
+interpreting coordinate information entered by the user (module
+<a href="{{ pathto("positions") }}">positions</a>).</li>
 </ul>
 
 <h2>Documentation</h2>
