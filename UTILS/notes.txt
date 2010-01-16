@@ -16,7 +16,8 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTILS/make..."
   PYTHONPATH naar de directory PACKAGE wijzen.
   Argument --clean : bouw alles opnieuw. Dit is met name van belang als
   je in dezelfde boom van architectuur overstapt.
-
+  N.B. let er bij het testen op, dat dit niet in een directory wordt
+  gedaan waarin een directory 'kapteyn' aanwezig is.
 
 - makehtml.csh
 

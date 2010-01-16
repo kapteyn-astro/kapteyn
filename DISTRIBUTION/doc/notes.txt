@@ -1,3 +1,5 @@
+(developers notes)
+
 This directory receives the package's documentation in PDF format: kapteyn.pdf.
 Normally it is put there when the distribution is built using the script
 UTIL/makedist.csh. kapteyn.pdf is not a part of the Mercurial repository.
