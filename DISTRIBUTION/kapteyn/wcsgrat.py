@@ -112,7 +112,6 @@ Class Pixellabels
 """
 
 # TODO sequencetype uitbreiden met numpy
-# Controle op input ruler coordinaten
 
 from kapteyn import wcs        # The Kapteyn Python binding to WCSlib, including celestial transformations
 from types import TupleType, ListType, StringType
@@ -201,6 +200,23 @@ def parsetickmode(tickmode):
    return tickmode
       
 
+class Gridframe(object):
+   """
+   -------------------------------------------------------------------------------
+   Helper class which defines objects with properties which are read
+   when pixel coordinates need to be plotted.
+   -------------------------------------------------------------------------------
+   """
+   def __init__(self, pxlim, pylim, plotaxis, markersize, gridlines, **kwargs):
+      self.ptype = "Gridframe"
+      self.pxlim = pxlim
+      self.pylim = pylim
+      self.plotaxis = plotaxis
+      self.markersize = markersize
+      self.kwargs = kwargs
+      self.gridlines = gridlines
+      
+
 
 class Plotversion(object):
    """
@@ -253,9 +269,7 @@ could be added in the future.
          frame = fig.add_subplot(111)
          gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
          grat = wcsgrat.Graticule(header)
-         pixellabels = grat.Pixellabels()
-         ruler = grat.Ruler()
-         gratplot.add( [grat,pixellabels,ruler] )
+         gratplot.add(grat)
 
    One can also put objects from other sources in the same container
    as long as the corresponding axis limits are the same.
@@ -290,14 +304,12 @@ could be added in the future.
          self.frames = []
          self.graticules = []
          self.gridframes = []
-         self.rulers = []
          self.images = []
          self.insidelabs = []
          from string import join, letters
          from random import choice
          self.baselabel = join([choice(letters) for i in range(8)], "")
          self.frameindx = 0
-         self.firstframe = False  # was True
          self.frames.append(frame)
          frame.xaxis.set_visible(False)
          frame.yaxis.set_visible(False)
@@ -310,13 +322,9 @@ could be added in the future.
       See the graticules tutorial for an example).
 
       :parameter obj:
-         Object of class :class:`Graticule`, Ruler or Gridframe or Insidelabels.
-         Objects from class Ruler are created with Graticule's method
-         :meth:`Graticule.Ruler`. Objects from class Gridframe
-         are created with Graticule's method
-         :meth:`Graticule.Pixellabels` and Objects from class Insidelabels
+         Object of class :class:`Graticule`, or Insidelabels.
+         Objects from class Insidelabels
          are created with Graticule's method :meth:`Graticule.Insidelabels`
-
       """
       if type(objlist) not in sequencelist:
          objlist = [objlist]
@@ -330,17 +338,10 @@ could be added in the future.
          if obj.ptype == "Graticule":
             #self.graticules.append(obj)
             self.__plot1graticule(obj)
-         elif obj.ptype == "Ruler":
-            #self.rulers.append(obj)
-            self.__plotruler(obj)
-         elif obj.ptype == "Gridframe":
-            #self.gridframes.append(obj)
-            self.__plot1grid(obj)
-         elif obj.ptype == "Pixellabels":
-            self.__plot1grid(obj.gridlabs)
          elif obj.ptype == "Insidelabels":
             #self.insidelabs.append(obj)
             self.__plotinsidelabels(obj)
+
 
    def __plot1graticule(self, graticule):
       """
@@ -359,19 +360,15 @@ could be added in the future.
       pos, lab, kwargs, size = graticule.sortticks(tex=tex)
       aspect = self.frame.get_aspect()
       adjust = self.frame.get_adjustable()
-      if self.firstframe:
-         frame = self.frame
-         self.firstframe = False
-      else:
-         framelabel = "F%s%d" % (self.baselabel, self.frameindx)
-         self.frameindx += 1
-         frame = self.fig.add_axes(self.frame.get_position(), 
-                                    aspect=aspect, 
-                                    adjustable=adjust, 
-                                    autoscale_on=False, 
-                                    frameon=False, 
-                                    label=framelabel)
-         self.frames.append(frame)
+      framelabel = "F%s%d" % (self.baselabel, self.frameindx)
+      self.frameindx += 1
+      frame = self.fig.add_axes(self.frame.get_position(),
+                                 aspect=aspect,
+                                 adjustable=adjust,
+                                 autoscale_on=False,
+                                 frameon=False,
+                                 label=framelabel)
+      self.frames.append(frame)
       graticule.frame = frame  # !!!! DOCUMENTEREN
       xlo = graticule.pxlim[0]-0.5; ylo = graticule.pylim[0]-0.5; 
       xhi = graticule.pxlim[1]+0.5; yhi = graticule.pylim[1]+0.5  
@@ -443,7 +440,7 @@ could be added in the future.
       frame.set_ylim((ylo,yhi))
       frame.set_aspect(aspect=aspect, adjustable=adjust)
 
-      self.fig.sca(self.frame)    # back to frame from calling environment
+      self.frame.figure.sca(self.frame)    # back to frame from calling environment
 
 
    def __plotinsidelabels(self, insidelabels):
@@ -467,6 +464,7 @@ could be added in the future.
       yhi = insidelabels.pylim[1]+0.5
       self.frame.set_xlim((xlo,xhi))
       self.frame.set_ylim((ylo,yhi))
+
 
    def __plot1grid(self, pixellabels):
       """
@@ -575,52 +573,52 @@ could be added in the future.
       self.fig.sca(self.frame)    # back to frame from calling environment
 
 
-   def __plotruler(self, ruler):
-      """
-      Plot one ruler object in the current frame
-      """
-      self.frame.plot((ruler.x1,ruler.x2), (ruler.y1,ruler.y2), '-', **ruler.linekwargs)
-      dx = ruler.tickdx
-      dy = ruler.tickdy
-      #self.frame.plot( [ruler.x1, ruler.x1+dx], [ruler.y1, ruler.y1+dy], '-', **ruler.linekwargs)
-      #self.frame.plot( [ruler.x2, ruler.x2+dx], [ruler.y2, ruler.y2+dy], '-', **ruler.linekwargs)
-      for x, y, label in zip(ruler.x, ruler.y, ruler.label):
-         self.frame.plot( [x, x+dx], [y, y+dy], '-', color='k')
-         self.frame.text(x+ruler.mscale*dx, y+ruler.mscale*dy, label, **ruler.kwargs)
-
-      # Set limits explicitly
-      xlo = ruler.pxlim[0]-0.5
-      ylo = ruler.pylim[0]-0.5
-      xhi = ruler.pxlim[1]+0.5
-      yhi = ruler.pylim[1]+0.5
-      self.frame.set_xlim((xlo,xhi))
-      self.frame.set_ylim((ylo,yhi))
-
-   def moeteruit_plot(self):
-      """
-      Plot the container objects.
+class Ruler(object):
+   """
+   -------------------------------------------------------------------------------
+   Attributes and methods for a ruler object. A ruler is a line piece with
+   a start- end endpoint and along this line there are labels which 
+   annotates values of constant offset w.r.t. a selected point on the line.
+   -------------------------------------------------------------------------------
+   """
+   def __init__(self, x1, y1, x2, y2, angle, dx, dy, mscale, **kwargs):
+      self.ptype = "Ruler"
+      self.x1 = x1
+      self.y1 = y1
+      self.x2 = x2
+      self.y2 = y2
+      self.x = []
+      self.y = []
+      self.xw = []
+      self.yw = []
+      self.stepsizeW = None
+      self.label = []
+      self.offsets = []      # Store the offsets in degrees
+      self.angle = angle
+      self.kwargs = {'clip_on' : True}   # clip_on is buggy for plot() in MPL versions <= 0.98.3 change later
+      self.tickdx = dx
+      self.tickdy = dy
+      self.mscale = mscale
+      self.fun = None
+      self.fmt = None
+      self.linekwargs = {'color' : 'k'}
+      self.kwargs.update(kwargs)    # These are the kwargs for the labels
       
-      :raises:
-         :exc:`Exception` 
-            *No graticules set yet!*
-      """
-      # plot all
-      if len(self.graticules) == 0:
-         raise Exception,"No graticules set yet!"
-      for graticule in self.graticules:
-         self.__plot1graticule(graticule)
-      for pixellabels in self.gridframes:
-         self.__plot1grid(pixellabels)
-      if len(self.graticules) > 0:
-         # Draw enclosing rectangle
-         xlo = self.graticules[0].pxlim[0]-0.5; xhi = self.graticules[0].pxlim[1]+0.5
-         ylo = self.graticules[0].pylim[0]-0.5; yhi = self.graticules[0].pylim[1]+0.5
-         rectx = (xlo, xhi, xhi, xlo, xlo)
-         recty = (ylo, ylo, yhi, yhi, ylo)
-         self.frame.plot(rectx,recty, color='k')
-      for ruler in self.rulers:
-         self.__plotruler(ruler)
-      # !!! Hier nog de insidelabels aan toevoegen
+   def setp_line(self, **kwargs):
+      self.linekwargs.update(kwargs)
+   
+   def setp_labels(self, **kwargs):
+      self.kwargs.update(kwargs)
+      
+   def append(self, x, y, offset, label):
+      self.x.append(x)
+      self.y.append(y)
+      self.offsets.append(offset)
+      self.label.append(label)
+
+   def appendW(self, xw, yw):
+      self.xw.append(xw)
+      self.yw.append(yw)
 
 
 class WCStick(object):
@@ -1002,72 +1000,6 @@ class Insidelabels(object):
       self.labels.append(ilab)
 
 
-class Ruler(object):
-   """
-   -------------------------------------------------------------------------------
-   Attributes and methods for a ruler object. A ruler is a line piece with
-   a start- end endpoint and along this line there are labels which 
-   annotates values of constant offset w.r.t. a selected point on the line.
-   -------------------------------------------------------------------------------
-   """
-   def __init__(self, x1, y1, x2, y2, angle, dx, dy, mscale, **kwargs):
-      self.ptype = "Ruler"
-      self.x1 = x1
-      self.y1 = y1
-      self.x2 = x2
-      self.y2 = y2
-      self.x = []
-      self.y = []
-      self.xw = []
-      self.yw = []
-      self.stepsizeW = None
-      self.label = []
-      self.offsets = []      # Store the offsets in degrees
-      self.angle = angle
-      self.kwargs = {}        # {'clip_on' : True}   # clip_on is buggy for plot() in MPL versions <= 0.98.3 change later
-      self.tickdx = dx
-      self.tickdy = dy
-      self.mscale = mscale
-      self.fun = None
-      self.fmt = None
-      self.linekwargs = {'color' : 'k'}
-      self.kwargs.update(kwargs)    # These are the kwargs for the labels
-      
-   def setp_line(self, **kwargs):
-      self.linekwargs.update(kwargs)
-   
-   def setp_labels(self, **kwargs):
-      self.kwargs.update(kwargs)
-      
-   def append(self, x, y, offset, label):
-      self.x.append(x)
-      self.y.append(y)
-      self.offsets.append(offset)
-      self.label.append(label)
-
-   def appendW(self, xw, yw):
-      self.xw.append(xw)
-      self.yw.append(yw)
-
-
-
-class Gridframe(object):
-   """
-   -------------------------------------------------------------------------------
-   Helper class which defines objects with properties which are read
-   when pixel coordinates need to be plotted.
-   -------------------------------------------------------------------------------
-   """
-   def __init__(self, pxlim, pylim, plotaxis, markersize, gridlines, **kwargs):
-      self.ptype = "Gridframe"
-      self.pxlim = pxlim
-      self.pylim = pylim
-      self.plotaxis = plotaxis
-      self.markersize = markersize
-      self.kwargs = kwargs
-      self.gridlines = gridlines;
-
-
 class Graticule(object):
    """
 Creates an object that defines a graticule
@@ -1157,6 +1089,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   Module *maputils* from the Kapteyn Package provides
                   a method that creates a list with possible spectral
                   translations given a arbitrary header.
+                  The spectral translation should be followed by
+                  a code (e.g. as in 'VOPT-F2W') which sets the
+                  conversion algorithm. If you
+                  don't know this beforehand, you can either append
+                  the string '-???' or try your translation without this
+                  coding. Then this module tries to find the appropriate
+                  code itself.
 :type spectrans:  String
 
 :param skyout:    A single number or a tuple which specifies
@@ -1534,8 +1473,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 **Methods related to storing and plotting elements:**
 
 .. automethod::   Insidelabels
-.. automethod::   Ruler
-.. automethod::   Pixellabels
 .. automethod::   plot
 
 **Utility methods:**
@@ -1677,7 +1614,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                    else:
                       val = t.fun(t.labval)
                    if t.fmt == None:
-                      lab = "%g" % val
+                      # No format given. Format default in LaTeX.
+                      lab = r"$%g$" % val
                    else:
                       lab = t.fmt % val
                       if tex:
@@ -2001,7 +1939,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       """
       self.ptype = 'Graticule'
       if graticuledata != None:
-         header = graticuledata.hdr
+         if header == None:
+            header = graticuledata.hdr
          axnum  = graticuledata.axperm
          pxlim  = graticuledata.pxlim
          pylim  = graticuledata.pylim
@@ -2087,7 +2026,11 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          self.mixpix = None
 
       # Set the spectral translation and make Projection object an attribute
+      # First process the string
       if spectrans != None:
+         st2 = spectrans.split('-')
+         if len(st2) == 1:
+            spectrans += '-???'
          self.gmap = gmap.spectra(spectrans)
       else:
          self.gmap = gmap
@@ -2924,7 +2867,10 @@ behaviour.
                      * wcsgrat.right (==2)
                      * wcsgrat.top (==3)
 
-:type plotaxis:    Integer
+                   or (part of) a string which can be (case insensitive)
+                   matched by one from "left', 'bottom', 'right', 'top'. 
+                   
+:type plotaxis:    Integer or String
 
 :param mode:       What should this axis do with the tick
                    marks and labels?
