@@ -57,7 +57,7 @@ For useful references see information below.
    `Matplotlib <http://matplotlib.sourceforge.net/index.html>`_
       Starting point for documentation about plotting with Matplotlib.
 
-   'PyFITS <http://www.stsci.edu/resources/software_hardware/pyfits>`_
+   `PyFITS <http://www.stsci.edu/resources/software_hardware/pyfits>`_
       Package for reading and writing FITS files.
       
    Module :mod:`celestial`
@@ -395,8 +395,7 @@ These positions are stored in a graticule object.
 The positions at which these lines cross one of the sides
 of the rectangle (made up by the limits in pixels in both x- and y-direction),
 are stored in a list together with a
-text label showing the world coordinate of the crossing. In principle this is
-all what this module does.
+text label showing the world coordinate of the crossing.
 
 
 Simple example
@@ -713,7 +712,7 @@ header we found that the optical velocity is 1050 Km/s.
 The header is a legacy GIPSY header and module :mod:`wcs` can parse it.
 We require the frequencies to be expressed as wavelengths.
 
-**Example: wcsg_wave.py - Plot a graticule in a position wavelength diagram.**
+**Example: mu_wave.py - Plot a graticule in a position wavelength diagram.**
 
 .. plot:: EXAMPLES/mu_wave.py
    :include-source:
@@ -776,6 +775,12 @@ a constant. This makes rulers ideal to put nearby a feature in your map to
 give an idea of the physical size of that feature. Rulers can be plotted in maps
 with one or two spatial axes. 
 
+.. note::
+
+   Rulers, Beams and Markers are positioned using either pixel coordinates or
+   world coordinates. See the examples in module :mod:`positions`.
+
+
 **Example: mu_manyrulers.py - Ruler demonstration**
 
 .. plot:: EXAMPLES/mu_manyrulers.py
@@ -798,7 +803,7 @@ we have reliable offsets. In the next example we created two rulers.
 The red ruler is in fact the same as the Y-axis offset labeling. The blue
 ruler show the same offsets in horizontal direction. That is because only the
 horizontal direction is spatial. Such a ruler is probably not very useful but
-is a nice demonstration of the flexibility of method :meth:`wcsgrat.Graticule.Ruler`.
+is a nice demonstration of the flexibility of method :meth:`maputils.Annotatedimage.Ruler`.
 
 Note that we set Matplotlib's *clip_on* to *True* because if we pan the image in Matplotlib
 we don't want the labels to be visible outside the border of the frame.
@@ -919,11 +924,20 @@ Adding a beam
 -------------
 
 Objects from class Beam are graphical representations of the resolution
-of an instrument. The beam is plotted at a position xc, yc (for now,
-these coordinates are in world coordinates).
+of an instrument. The beam is plotted at a center position entered as
+a string that represents a position or as two world coordinates.
 The major axis of the beam is the FWHM of longest distance between
 two opposite points on the ellipse. The angle between the major axis
 and the North is the position angle of the beam.
+
+.. note::
+
+   Rulers, Beams and Markers are positioned using either pixel coordinates or
+   world coordinates. See the examples in module :mod:`positions`.
+
+
+In the next example we added two rulers to prove that the sizes of
+plotted ellipse are indeed the correct values on a sphere.
 
 **Example: mu_beam.py - Plot an ellipse representing a beam**
 
@@ -932,12 +946,43 @@ and the North is the position angle of the beam.
    :align: center
 
 
+Markers
+-------
+
+Sometimes there are features in an image that you want to mark with a symbol.
+In other cases you want to plot positions from an external source (file or database etc.).
+Then you use objects from class :meth:`maputils.Annotatedimage.Marker`. The use is straightforward.
+Positions can entered in different formats: as pixel coordinates, as world coordinates
+or as strings with position information (see module :mod:`positions`).
+
+.. note::
+
+   Rulers, Beams and Markers are positioned using either pixel coordinates or
+   world coordinates. See the examples in module :mod:`positions`.
+
+Note the use of Matplotlib keyword arguments to set the properties of
+the marker symbols. The most important are:
+
+
+>>> marker=
+>>> markersize=
+>>> markeredgewidth=
+>>> markeredgecolor=
+>>> markerfacecolor=
+
+**Example: mu_markers.py - Different ways to define marker positions**
+
+.. plot:: EXAMPLES/mu_markers.py
+   :include-source:
+   :align: center
+
+   
 
 Combining different plot objects
 --------------------------------
 
 We arrived at a stage where one is challenged to apply different plot objects in one
-plot. Her is a practical example:
+plot. Here is a practical example:
    
 **Example: mu_graticules.py - Combining plot with contours and a colorbar**
 
@@ -1037,9 +1082,9 @@ of CDELT a bit to get a bigger area in world coordinates. The positions
 are plotted as small dots. The dots represent coastlines in the Caribbean.
 
 
-**Example: mu_markers.py - Use special method to read positions from file and mark those positions**
+**Example: mu_markersfromfile.py - Use special method to read positions from file and mark those positions**
 
-.. plot:: EXAMPLES/mu_markers.py
+.. plot:: EXAMPLES/mu_markersfromfile.py
    :include-source:
    :align: center
 
@@ -1048,11 +1093,10 @@ Method :meth:`maputils.Annotatedimage.positionsfromfile` is based on method
 many options to get your data from a file.
 
 The next plot also uses :mod:`tabarray.tabarray` to read coast line data. But here we wanted
-the coast line dots to be connect to get more realistic coast lines. For this we changed
-all the lines in the data files that start with 'segment' to 'nan nan'.
-The parser does not recognize these values as valid and the array
-read from file will contain *numpy.nan* at those positions. This gives us an option
-to process the data in segments and avoid that distant segments are connected with
+the coast line dots to be connect to get more realistic coast lines. For this we
+use the comment lines in the file as segment separator. This gives us an option
+to process the data in segments using tabarray's segment attribute
+and avoid that distant segments are connected with
 straight lines. Again we used the adapted header of the M101 FITS file to scale
 things up and to set the eye of the 'hurricane' in the Caribbean. The example
 also shows the use of masked arrays for plotting.
@@ -1138,7 +1182,7 @@ Toggle grid                      g
 Toggle y axis scale (log/linear) l
 ================================ =============================
 
-Three methods from :class:`Annotatedimage` add mouse and keyboard interaction.
+Three methods from :class:`maputils.Annotatedimage` add mouse and keyboard interaction.
 These methods are described in the next sections:
    
 Changing colors in an image
@@ -1174,7 +1218,7 @@ function that maps image values to colors in the current color map.
 Adding messages with position information
 .........................................
 
-Method :meth:`maputils.annotatedimage.interact_toolbarinfo` connects
+Method :meth:`maputils.Annotatedimage.interact_toolbarinfo` connects
 movements of your mouse to messages in the toolbar of your canvas.
 The message shows pixel position, the corresponding world coordinates,
 and the image value of the pixel. 
@@ -1189,7 +1233,7 @@ and the image value of the pixel.
 Writing position information to terminal
 ........................................
 
-Method :meth:`maputils.annotatedimage.interact_writepos`
+Method :meth:`maputils.Annotatedimage.interact_writepos`
 write the toolbar message with indormation about coordinates and
 image values to the terminal.
 This is a primitive way to collect positional information about
@@ -1219,13 +1263,13 @@ In the constructor of :class:`maputils.Annotatedimage` one can set a colormap
 with keyword *cmap*. There are three options here:
 
 
-============================================================== ======================================
+===================================================== ===============================================
 Option                                                         Example
-============================================================== ======================================
+===================================================== ===============================================
 Matplotlib colormap (string)                                   cmap='jet'
 Path and filename of colormap on disk                          cmap='/home/user/myluts/rainbow4.lut'
 Instance of class :class:`mplutil.VariableColormap`            cmap=myimage.cmap
-============================================================== ======================================
+===================================================== ===============================================
 
 Module :mod:`maputils` has a global list called *cmlist* which contains
 the colormaps provided by Matplotlib. You can add an external colormap

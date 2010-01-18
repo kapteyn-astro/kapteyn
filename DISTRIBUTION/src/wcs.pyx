@@ -1618,7 +1618,7 @@ Example::
       for i_c from 0 <= i_c < n_c:               # copy from input to output
          wldout[i_c] = wldin[i_c]
          if pixnan[i_c%param.naxis]:
-            pixout[i_c] = 1.0                    # temporary valid dummy value
+            pixout[i_c] = param.crpix[i_c%param.naxis] # temporary dummy value
          else:
             pixout[i_c] = pixin[i_c]
             
