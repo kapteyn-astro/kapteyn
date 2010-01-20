@@ -1674,7 +1674,7 @@ Example::
       free(stat)
       if first_err:
          if not (self.invalid and self.allow_invalid):
-            raise WCSerror, (first_err, wcs_errmsg[status])
+            raise WCSerror, (first_err, wcs_errmsg[first_err])
 
       for i_c from 0 <= i_c < n_c:             # final restore of originals
          if not pixnan[i_c%param.naxis]:
