@@ -9,6 +9,7 @@ SPHINX/EXAMPLES/fig2_axnumdemo.png
 SPHINX/EXAMPLES/FITS*.fits
 SPHINX/HTML
 SPHINX/LATEX
+SPHINX/examples.tar.gz
 SPHINX/build/*
 PACKAGE*
 *.pyc

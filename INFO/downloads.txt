@@ -83,3 +83,6 @@ University of California, Irvine @ 128.200.44.68
 Instituto de Optica "Daza de Valdes" @ 161.111.24.211
 SRON Netherlands Institute for Space Research @ 129.125.20.3
 Gemini Observatory @ 128.171.188.40
+Istituto Nazionale di Fisica Nucleare (INFN) @ 212.189.159.177
+University of Pennsylvania @ 128.91.79.251
+Institut national de physique nucleaire et de physique des particules (IN2P3) @ 134.158.185.189
