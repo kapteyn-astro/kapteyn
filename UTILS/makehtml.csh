@@ -5,6 +5,7 @@ if ( ${#argv} == 1 ) then
 else
    set flag = ''
 endif
+touch examples.tar.gz
 setenv PYTHONPATH ../PACKAGE/
 mkdir HTML >& /dev/null
 sphinx-build ${flag} -b html  . HTML

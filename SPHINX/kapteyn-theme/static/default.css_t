@@ -192,18 +192,18 @@ div.body h3 { font-size: 120%; }
 div.body h4 { font-size: 110%; }
 div.body h5 { font-size: 110%; }
 div.body h6 { font-size: 100%; }
-*/
+
 
 a.headerlink {
-    color: {{ theme_headlinkcolor }};
+/*    color: {{ theme_headlinkcolor }}; */
     font-size: 0.8em;
     padding: 0 4px 0 4px;
     text-decoration: none;
 }
 
 a.headerlink:hover {
-    background-color: {{ theme_headlinkcolor }};
-    color: white;
+/*    background-color: #c60f0f; */
+    color: red;  
 }
 
 div.body p, div.body dd, div.body li {

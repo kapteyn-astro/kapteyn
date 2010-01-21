@@ -86,3 +86,4 @@ Gemini Observatory @ 128.171.188.40
 Istituto Nazionale di Fisica Nucleare (INFN) @ 212.189.159.177
 University of Pennsylvania @ 128.91.79.251
 Institut national de physique nucleaire et de physique des particules (IN2P3) @ 134.158.185.189
+Special Astrophysical Observatory (sao.ru) @ 194.85.27.3

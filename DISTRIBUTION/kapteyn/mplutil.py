@@ -241,13 +241,15 @@ class VariableColormap(Colormap):
 :class:`VariableColormap` is a subclass of
 :class:`matplotlib.colors.Colormap` with special methods that allow the
 colormap to be modified. A VariableColormap can be constructed from
-any other matplotlib colormap object
-or from a textfile with one RGB triplet per
-line. Values should be between 0.0 and 1.0.
+any other matplotlib colormap object,
+from a NumPy array with one RGB triplet per row or
+from a textfile with one RGB triplet per line.
+Values should be between 0.0 and 1.0.
 
 :param source:
    the object from which the VariableColormap is created. Either an other
    colormap object or its registered name,
+   a NumPy array
    or the name of a text file containing RGB triplets.
    A number of colormap files is available within the package.
    A list of names can be obtained with class method :meth:`luts`.
@@ -327,7 +329,7 @@ line. Values should be between 0.0 and 1.0.
       """
       Define an alternative source for the colormap.
       *source* can be any other matplotlib colormap object or its registered
-      name, or the name of a textfile
+      name, a NumPy array with one RGB tripelt per row or the name of a textfile
       with one RGB triplet per line. Values should be between 0.0 and 1.0.
       """
       self.source = source
@@ -341,6 +343,10 @@ line. Values should be between 0.0 and 1.0.
          if not source._isinit:
             source._init()
          self.baselut = source._lut
+      elif isinstance(source, numpy.ndarray):
+         ncolors = source.shape[0]
+         self.baselut = numpy.ones((ncolors+3,4), numpy.float)
+         self.baselut[:ncolors,:3] = source
       else:
          try:
             colors = tabarray(source)
