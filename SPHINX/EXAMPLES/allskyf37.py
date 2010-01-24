@@ -1,0 +1,39 @@
+from kapteyn import maputils
+import numpy
+from service import *
+
+fignum = 37
+fig = plt.figure(figsize=figsize)
+frame = fig.add_axes(plotbox)
+title = 'WCS polyconic (PGSBOX fig.1)'
+rot = 30.0 *numpy.pi/180.0
+header = {'NAXIS'  : 2, 'NAXIS1': 512, 'NAXIS2': 512,
+          'CTYPE1' : 'RA---PCO',
+          'PC1_1' : numpy.cos(rot), 'PC1_2' : numpy.sin(rot),
+          'PC2_1' : -numpy.sin(rot), 'PC2_2' : numpy.cos(rot),
+          'CRVAL1' : 332.0, 'CRPIX1' : 192, 'CUNIT1' : 'deg', 'CDELT1' : -1.0/5.0,
+          'CTYPE2' : 'DEC--PCO',
+          'CRVAL2' : 40.0, 'CRPIX2' : 640, 'CUNIT2' : 'deg', 'CDELT2' : 1.0/5.0,
+          'LONPOLE' : -30.0
+         }
+X = numpy.arange(-180,180.0,15.0);
+Y = numpy.arange(-90,120,15.0) 
+# Here we demonstrate how to avoid a jump at the right corner boundary 
+# of the plot by increasing the value of 'gridsamples'.
+f = maputils.FITSimage(externalheader=header)
+annim = f.Annotatedimage(frame)
+grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+                       startx=X, starty=Y, gridsamples=4000)
+grat.setp_tick(position=(-15.0,-45.0, -60.0,-75.0), visible=False)
+deltapx = 3
+header['CRVAL1'] = 0.0
+header['CRVAL2'] = 0.0
+header['LONPOLE'] = 999
+border = annim.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
+                         startx=(180-epsilon, -180+epsilon), starty=(-90,90))
+border.setp_gratline((0,1), color='g', lw=2)
+border.setp_plotaxis((0,1,2,3), mode='no_ticks', visible=False)
+lon_world = range(0,360,30)
+lat_world = [-dec0, -60, -30, 30, 60, dec0]
+doplot(frame, fignum, annim, grat, title,
+       lon_world=lon_world, lat_world=lat_world)
