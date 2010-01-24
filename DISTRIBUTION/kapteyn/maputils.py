@@ -1386,7 +1386,7 @@ class Marker(object):
 
 
    def plot(self, frame):
-      if self.xp == None or self.yp == None:
+      if self.xp is None or self.yp is None:
          return
       if not issequence(self.xp):
          self.xp = [self.xp]

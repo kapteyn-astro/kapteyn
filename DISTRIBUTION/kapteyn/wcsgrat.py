@@ -455,7 +455,8 @@ could be added in the future.
       -----------------------------------------------------------
       """
       for inlabel in insidelabels.labels:
-         self.frame.text(inlabel.x, inlabel.y, inlabel.label, clip_on=True, **inlabel.kwargs)
+         self.frame.text(inlabel.x, inlabel.y, inlabel.label,
+                         clip_on=True, **inlabel.kwargs)
 
       # Set limits
       xlo = insidelabels.pxlim[0]-0.5
@@ -3057,7 +3058,7 @@ intersections with the enclosing axes rectangle.
                                  phi -= 180.0
                      else:
                         phi = angle
-                     defkwargs.update({'rotation':phi})
+                     defkwargs.update({'rotation':phi+addangle})
                      defkwargs.update(kwargs)
                      insidelabels.append(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
 
@@ -3093,7 +3094,7 @@ intersections with the enclosing axes rectangle.
                                  phi -= 180.0
                      else:
                         phi = angle
-                     defkwargs.update({'rotation':phi})
+                     defkwargs.update({'rotation':phi+addangle})
                      defkwargs.update(kwargs)
                      insidelabels.append(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
          insidelabels.pxlim = self.pxlim

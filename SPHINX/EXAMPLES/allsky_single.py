@@ -30,10 +30,11 @@ lat_constval = 20
 lon_kwargs = {'color':'r', 'fontsize':15}
 lat_kwargs = {'color':'b', 'fontsize':10}
 grat.Insidelabels(wcsaxis=0, 
-                  world=lon_world, constval=lat_constval, 
+                  world=lon_world, constval=lat_constval-1, fmt="$%g^\circ$",
+                  addangle=90,
                   **lon_kwargs)
 grat.Insidelabels(wcsaxis=1, 
-                  world=lat_world, constval=lon_constval, 
+                  world=lat_world, constval=lon_constval, fmt="$%g^\circ$",
                   **lat_kwargs)
    
 annim.plot()
