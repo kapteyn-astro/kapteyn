@@ -22,8 +22,6 @@ f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                        startx=X, starty=Y)
-annotatekwargs0.update({'visible':False})
-annotatekwargs1.update({'visible':False})
 grat.setp_lineswcs0(color='#339333')  # Dark green
 grat.setp_lineswcs1(color='#339333')
 header['LONPOLE'] = 45.0  # Or PV1_3
@@ -43,6 +41,9 @@ framebgcolor = 'k'
 if not smallversion:
    txt ="""Green:  Native, non-oblique graticule.  Yellow: Equator and prime meridian
 Others: Colour coded oblique graticule"""
-plt.figtext(0.1, 0.008, txt, fontsize=10)
+plt.figtext(0.1, 0.008, txt, fontsize=6)
+labkwargs0 = {'visible':False}
+labkwargs1 = {'visible':False}
 doplot(frame, fignum, annim, grat, title, 
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
        framebgcolor=framebgcolor)

@@ -30,6 +30,7 @@ different Python scripts and the service module
 (see also the source code at the end of this document).
 
 .. plot:: EXAMPLES/allsky_single.py
+   :align: center
    :include-source:
 
 
@@ -74,6 +75,7 @@ The Projection object in this code is *grat.gmap*.
 
 
 .. plot:: EXAMPLES/allskyf1.py
+   :align: center
    :include-source:
 
 Fig.2: Oblique Plate Carree projection (CAR)
@@ -87,6 +89,7 @@ to specify the borders as in:
 ``startx=(180-epsilon,-180+epsilon), starty=(-90,90))``
 
 .. plot:: EXAMPLES/allskyf2.py
+   :align: center
    :include-source:
 
 
@@ -103,6 +106,7 @@ It uses a formula given in Calabretta's article to get a value for the border:
 ``lowval = (180.0/numpy.pi)*numpy.arcsin(-1.0/mu) + 0.00001``
 
 .. plot:: EXAMPLES/allskyf3.py
+   :align: center
    :include-source:   
 
 
@@ -119,6 +123,7 @@ The brute force method gives a more accurate border but needs a user to
 enter start positions for the bisection.
 
 .. plot:: EXAMPLES/allskyf4.py
+   :align: center
    :include-source:   
 
 Fig.5: Gnomonic projection (TAN)
@@ -132,12 +137,14 @@ the graticule line with its position i.e. latitude 20 deg.
 
 
 .. plot:: EXAMPLES/allskyf5.py
+   :align: center
    :include-source:   
 
 Fig.6: Stereographic projection (STG)
 .....................................
 
 .. plot:: EXAMPLES/allskyf6.py
+   :align: center
    :include-source:   
 
 Fig.7: Slant orthographic projection (SIN)
@@ -146,12 +153,14 @@ Fig.7: Slant orthographic projection (SIN)
 The green colored border is calculated with a border formula given in [Ref2]_
 
 .. plot:: EXAMPLES/allskyf7.py
+   :align: center
    :include-source:   
 
 Fig.8: Zenithal equidistant projection (ARC)
 ............................................
 
 .. plot:: EXAMPLES/allskyf8.py
+   :align: center
    :include-source:      
 
 Fig.9: Zenithal polynomial projection (ZPN)
@@ -161,18 +170,21 @@ Diverges at some latitude depending on selected parameters
 in the PV elements.
 
 .. plot:: EXAMPLES/allskyf9.py
+   :align: center
    :include-source:   
 
 Fig.10: Zenith equal area projection (ZEA)
 ..........................................
 
 .. plot:: EXAMPLES/allskyf10.py
+   :align: center
    :include-source:   
 
 Fig.11: Airy projection (AIR)
 .............................
 
 .. plot:: EXAMPLES/allskyf11.py
+   :align: center
    :include-source:
 
 
@@ -183,48 +195,56 @@ Fig.12: Gall's stereographic projection (CYP)
 .............................................
        
 .. plot:: EXAMPLES/allskyf12.py
+   :align: center
    :include-source:
 
 Fig.13: Lambert's equal area projection (CEA)
 .............................................
 
 .. plot:: EXAMPLES/allskyf13.py
+   :align: center
    :include-source:
 
 Fig.14: Plate Carree projection (CAR)
 .....................................
 
 .. plot:: EXAMPLES/allskyf14.py
+   :align: center
    :include-source:
 
 Fig.15: Mercator's projection (MER)
 ...................................
 
 .. plot:: EXAMPLES/allskyf15.py
+   :align: center
    :include-source:
 
 Fig.16: Sanson-Flamsteed projection (SFL)
 ..........................................
 
 .. plot:: EXAMPLES/allskyf16.py
+   :align: center
    :include-source:
 
 Fig.17: Parabolic projection (PAR)
 ..................................
 
 .. plot:: EXAMPLES/allskyf17.py
+   :align: center
    :include-source:
 
 Fig.18: Mollweide's projection (MOL)
 ....................................
 
 .. plot:: EXAMPLES/allskyf18.py
+   :align: center
    :include-source:
 
 Fig.19: Hammer Aitoff projection (AIT)
 ......................................
 
 .. plot:: EXAMPLES/allskyf19.py
+   :align: center
    :include-source:
 
 Conic projections
@@ -234,24 +254,28 @@ Fig.20: Conic perspective projection (COP)
 ..........................................
 
 .. plot:: EXAMPLES/allskyf20.py
+   :align: center
    :include-source:
 
 Fig.21: Conic equal area projection (COE)
 .........................................
 
 .. plot:: EXAMPLES/allskyf21.py
+   :align: center
    :include-source:
 
 Fig.22: Conic equidistant projection (COD)
 ..........................................
 
 .. plot:: EXAMPLES/allskyf22.py
+   :align: center
    :include-source:
 
 Fig.23: Conic orthomorfic projection (COO)
 ..........................................
 
 .. plot:: EXAMPLES/allskyf23.py
+   :align: center
    :include-source:
 
 Polyconic and pseudoconic projections
@@ -261,6 +285,7 @@ Fig.24: Bonne's equal area projection (BON)
 ...........................................
 
 .. plot:: EXAMPLES/allskyf24.py
+   :align: center
    :include-source:
 
 Fig.25: Polyconic projection (PCO)
@@ -293,9 +318,9 @@ Note that we could also have decreased the size of the range
 in world coordinates in longitude (e.g. ``wxlim=(-179.9, 179.9)``) but this
 results in small gaps near all borders.
 
- 
 
 .. plot:: EXAMPLES/allskyf25.py
+   :align: center
    :include-source:
 
 Quad cube projections projections
@@ -309,18 +334,21 @@ by converting edges in world coordinates into pixels coordinates
 and connected them in the right order. 
 
 .. plot:: EXAMPLES/allskyf26.py
+   :align: center
    :include-source:
 
 Fig.27: COBE quadrilateralized spherical cube projection (CSC)
 ..............................................................
 
 .. plot:: EXAMPLES/allskyf27.py
+   :align: center
    :include-source:
 
 Fig.28: Quadrilateralized spherical cube projection (QSC)
 ..........................................................
 
 .. plot:: EXAMPLES/allskyf28.py
+   :align: center
    :include-source:
 
 Oblique projections
@@ -330,42 +358,49 @@ Fig.29: Zenith equal area projection (ZEA) oblique
 .....................................................
 
 .. plot:: EXAMPLES/allskyf29.py
+   :align: center
    :include-source:
 
 Fig.30: Zenith equal area projection (ZEA) oblique
 ..................................................
 
 .. plot:: EXAMPLES/allskyf30.py
+   :align: center
    :include-source:
 
 Fig.31: Zenith equal area projection (ZEA) oblique with PV1_3 element
 ......................................................................
 
 .. plot:: EXAMPLES/allskyf31.py
+   :align: center
    :include-source:
 
 Fig.32: Zenith equal area projection (ZEA) oblique with PV1_3 element II
 .........................................................................
 
 .. plot:: EXAMPLES/allskyf32.py
+   :align: center
    :include-source:
 
 Fig.33: Conic equidistant projection (COD) oblique
 ..................................................
 
 .. plot:: EXAMPLES/allskyf33.py
+   :align: center
    :include-source:
 
 Fig.34: Hammer Aitoff projection (AIT) oblique
 ...............................................
 
 .. plot:: EXAMPLES/allskyf34.py
+   :align: center
    :include-source:
 
 Fig.35: COBE quadrilateralized spherical cube projection (CSC) oblique
 ......................................................................
 
 .. plot:: EXAMPLES/allskyf35.py
+   :align: center
    :include-source:
 
 Miscellaneous
@@ -390,6 +425,7 @@ Note the intensive use of methods to set label/tick- and plot properties.
 :meth:`wcsgrat.Graticule.setp_linespecial`
 
 .. plot:: EXAMPLES/allskyf36.py
+   :align: center
    :include-source:
 
 Fig.37: WCS polyconic
@@ -403,6 +439,7 @@ from 1000 (which is the default value) to 4000.
 See equivalent plot at http://www.atnf.csiro.au/people/mcalabre/WCS/PGSBOX/index.html
 
 .. plot:: EXAMPLES/allskyf37.py
+   :align: center
    :include-source:
 
 Fig.38: WCS conic equal area projection
@@ -411,6 +448,7 @@ Fig.38: WCS conic equal area projection
 See equivalent plot at http://www.atnf.csiro.au/people/mcalabre/WCS/PGSBOX/index.html
 
 .. plot:: EXAMPLES/allskyf38.py
+   :align: center
    :include-source:
 
 Fig.39: Bonne's equal area projection (BON) II
@@ -418,6 +456,7 @@ Fig.39: Bonne's equal area projection (BON) II
 See equivalent plot at http://www.atnf.csiro.au/people/mcalabre/WCS/
 
 .. plot:: EXAMPLES/allskyf39.py
+   :align: center
    :include-source:
 
 

@@ -41,6 +41,8 @@ drawgrid = True
 markerpos = None
 # Proof that WCSlib thinks TLON, TLAT are valid longitudes & latitudes
 print "TLON and TLAT are recognized as:", grat.gmap.types
-annotatekwargs1.update({'color':'g','va':'top', 'ha':'left'})
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
+labkwargs1 = {'color':'g', 'va':'top', 'ha':'left'}
 doplot(frame, fignum, annim, grat, title,
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
        plotdata=True, markerpos=markerpos)

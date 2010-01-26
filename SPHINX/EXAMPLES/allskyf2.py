@@ -29,4 +29,10 @@ header['CRVAL2'] = 0.0
 border = annim.Graticule(header, axnum= (1,2), boxsamples=10000, 
                          wylim=(-90,90.0), wxlim=(-180,180),
                          startx=(180-epsilon,-180+epsilon), starty=(-90,90))
-doplot(frame, fignum, annim, grat, title, markerpos=markerpos)
+lat_world = [-60, -30, 0, 30, 60]
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'right'}
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'center'}
+doplot(frame, fignum, annim, grat, title, 
+       lat_world=lat_world, deltapx1=1, deltapy1=1,
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1, 
+       markerpos=markerpos)

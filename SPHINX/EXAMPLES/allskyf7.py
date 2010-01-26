@@ -5,7 +5,10 @@ from service import *
 fignum = 7
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
-title = r"Slant orthograpic projection (SIN) with: $\xi=\frac{-1}{\sqrt{6}}$ and $\eta=\frac{1}{\sqrt{6}}$ (Cal. fig.10b)"
+t1 = r"""Slant orthograpic projection (SIN) with: """
+t2 = r"""$\xi=\frac{-1}{\sqrt{6}}$ and $\eta=\frac{1}{\sqrt{6}}$
+(Cal. fig.10b)"""
+title = t1 + t2
 xi =  -1/numpy.sqrt(6); eta = 1/numpy.sqrt(6)
 header = {'NAXIS' : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---SIN',
@@ -32,7 +35,12 @@ lat_constval = 50
 lon_constval = 180
 lat_world = [0,30,60,dec0]
 lon_world = range(0,360,30)
+addangle0 = -90
+addangle1 = -180
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title, 
        lon_world=lon_world, lat_world=lat_world, 
-       lon_constval=lon_constval, lat_constval=lat_constval, 
-       markerpos=markerpos)
+       lon_constval=lon_constval, lat_constval=lat_constval,
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
+       addangle0=addangle0, addangle1=addangle1, markerpos=markerpos)

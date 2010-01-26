@@ -24,9 +24,17 @@ annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
                        startx=X, starty=Y)
 grat.setp_lineswcs1(-30, linestyle='--', color='g')
+grat.setp_lineswcs0(0, lw=2)
+grat.setp_lineswcs1(0, lw=2)
 lon_world = range(0,360,30)
 lon_world.append(180.0+epsilon)
-lat_world = [-dec0, -60, -30, 30, 60, dec0]
+lat_world = [-30, 30, 60]
+addangle0 = -90.0
+lat_constval = 10
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,
-       markerpos=markerpos)
+       lat_constval=lat_constval,
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
+       addangle0=addangle0, markerpos=markerpos)

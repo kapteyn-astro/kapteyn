@@ -18,10 +18,18 @@ f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(header, axnum= (1,2), wylim=(-80,80.0), wxlim=(0,360),
                        startx=X, starty=Y)
-lat_world = [-90, -60,-30, 30, 60, dec0]
-lon_world = range(0,360,30)
-lon_world.append(180+epsilon)
 grat.setp_lineswcs1((-80,80), linestyle='--', color='g')
+grat.setp_lineswcs0(0, lw=2)
+grat.setp_lineswcs1(0, lw=2)
+lat_world = [-60,-30, 0, 30, 60]
+# Remove the left 180 deg and print the right 180 deg instead
+w1 = numpy.arange(0,179,30.0)
+w2 = numpy.arange(180,360,30.0)
+w2[0] = 180 + epsilon
+lon_world = numpy.concatenate((w1, w2))
+labkwargs0 = {'color':'r', 'va':'top', 'ha':'right'}
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
        markerpos=markerpos)

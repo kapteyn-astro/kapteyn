@@ -84,14 +84,12 @@ def plotcoast(fn, frame, grat, col='k', lim=100, decim=5, plotsym=None, sign=1.0
 title = ''
 titlepos = 1.02
 dec0 = 89.9999999999
-annotatekwargs0 = {'color':'r'}
-annotatekwargs1 = {'color':'b'}
 fsize = 11
 figsize = (7,6)
 drawgrid = False
 grat = None
 smallversion = False
-plotbox = (0.1,0.05,0.8,0.85)
+plotbox = (0.1,0.05,0.8,0.8)
 markerpos = "120 deg 60 deg"
 
 
@@ -100,7 +98,9 @@ def doplot(frame, fignum, annim, grat, title,
            lon_constval=None, lat_constval=None, markerpos=None, 
            plotdata=False, perimeter=None, drawgrid=None, 
            smallversion=False, addangle0=0.0, addangle1=0.0, 
-           framebgcolor=None, deltapx=0.0, deltapy=0.0):
+           framebgcolor=None, deltapx0=0.0, deltapy0=0.0,
+           deltapx1=0.0, deltapy1=0.0,
+           labkwargs0={'color':'r'}, labkwargs1={'color':'b'}):
 # Apply some extra settings
    
    if framebgcolor != None:
@@ -122,16 +122,16 @@ def doplot(frame, fignum, annim, grat, title,
       frame.plot(Xp, Yp, color='r')
 
    # Plot labels inside graticule if required
-   annotatekwargs0.update({'fontsize':fsize})
-   annotatekwargs1.update({'fontsize':fsize})
+   labkwargs0.update({'fontsize':fsize})
+   labkwargs1.update({'fontsize':fsize})
    ilabs1 = grat.Insidelabels(wcsaxis=0, 
                         world=lon_world, constval=lat_constval, 
-                        deltapx=deltapx, deltapy=deltapy, 
-                        addangle=addangle0, fmt="$%g$", **annotatekwargs0)
+                        deltapx=deltapx0, deltapy=deltapy0, 
+                        addangle=addangle0, fmt="$%g$", **labkwargs0)
    ilabs2 = grat.Insidelabels(wcsaxis=1, 
                         world=lat_world, constval=lon_constval, 
-                        deltapx=deltapx, deltapy=deltapy, 
-                        addangle=addangle1, fmt="$%g$", **annotatekwargs1)
+                        deltapx=deltapx1, deltapy=deltapy1, 
+                        addangle=addangle1, fmt="$%g$", **labkwargs1)
 
    # Plot just 1 pixel c.q. marker
    if markerpos != None:

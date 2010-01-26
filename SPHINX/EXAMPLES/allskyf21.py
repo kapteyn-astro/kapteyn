@@ -23,13 +23,17 @@ f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                        startx=X, starty=Y)
+grat.setp_lineswcs0(0, lw=2)
+grat.setp_lineswcs1(0, lw=2)
 lon_world = range(0,360,30)
 lon_world.append(180+epsilon)
-lat_constval = 5
+lat_constval = 10
 lat_world = [-60,-30,0,30,60]
 addangle0 = -90.0
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world, 
        lat_constval=lat_constval,
-       addangle0=addangle0,
-       markerpos=markerpos)
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
+       addangle0=addangle0, markerpos=markerpos)

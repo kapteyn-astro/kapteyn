@@ -22,6 +22,8 @@ f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                        startx=X, starty=Y)
+grat.setp_lineswcs0(0, lw=2)
+grat.setp_lineswcs1(0, lw=2)
 # Take border from non-oblique version
 header['CRVAL2'] = 0.0
 del header['PV1_1']
@@ -32,7 +34,9 @@ border = annim.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180
 perimeter = getperimeter(border)
 lon_world = range(0,360,30)
 lat_world = [-60, -30, 30, 60]
-annotatekwargs1.update({'va':'top', 'ha':'center'})
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'left'}
+labkwargs1 = {'color':'b', 'va':'top', 'ha':'center'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
        perimeter=perimeter, markerpos=markerpos)

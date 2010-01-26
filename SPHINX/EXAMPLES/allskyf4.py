@@ -47,6 +47,10 @@ g3 = grat.scanborder(30,66.3,3,3)
 grat.setp_linespecial(g2, color='r', lw=1)
 grat.setp_linespecial(g3, color='r', lw=1)
 lon_world = range(0,360,30)
-lat_world = [-dec0, -60, -30, 30, 60, dec0]
+lat_world = [-60, -30, 30, 60]
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title, 
-       lon_world=lon_world, lat_world=lat_world, markerpos=markerpos)
+       lon_world=lon_world, lat_world=lat_world, 
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
+       markerpos=markerpos)

@@ -20,6 +20,11 @@ annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
                         startx=X, starty=Y)
 lat_world = [-30, -20, -10, 10, 40, 70]
+addangle0 = -90
+lat_constval = 4.0
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
-       lat_world=lat_world,
-       markerpos=markerpos)
+       lat_world=lat_world, lat_constval=lat_constval,
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
+       addangle0=addangle0, markerpos=markerpos)

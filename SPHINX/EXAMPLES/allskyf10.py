@@ -22,6 +22,11 @@ grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
 # Set attributes for graticule line at lat = 0
 grat.setp_lineswcs1(position=0, color='g', lw=2)   
 lat_world = [-dec0, -30, 30, 60]
+addangle0 = -90
+lat_constval = 5.0
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
-       lat_world=lat_world,
-       markerpos=markerpos)
+       lat_world=lat_world,  lat_constval=lat_constval, 
+       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
+       addangle0=addangle0, markerpos=markerpos)
