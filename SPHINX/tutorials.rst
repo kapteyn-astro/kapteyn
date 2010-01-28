@@ -9,4 +9,3 @@ Tutorials
    maputilstutorial
    tabarraytutorial
 
-Download all example scripts: :download:`examples.tar.gz <examples.tar.gz>`.   

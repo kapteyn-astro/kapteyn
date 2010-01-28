@@ -95,8 +95,8 @@ PyFITS_ and matplotlib_ are recommended.
 Download
 --------
 
-The Kapteyn Package can be downloaded from this location:
-http://www.astro.rug.nl/software/kapteyn/kapteyn.tar.gz.
+The Kapteyn Package and the example scripts can be downloaded via links on
+the package's homepage: http://www.astro.rug.nl/software/kapteyn/
 
 .. index:: install
 
