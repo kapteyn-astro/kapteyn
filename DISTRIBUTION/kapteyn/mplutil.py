@@ -329,7 +329,7 @@ Values should be between 0.0 and 1.0.
       """
       Define an alternative source for the colormap.
       *source* can be any other matplotlib colormap object or its registered
-      name, a NumPy array with one RGB tripelt per row or the name of a textfile
+      name, a NumPy array with one RGB triplet per row or the name of a textfile
       with one RGB triplet per line. Values should be between 0.0 and 1.0.
       """
       self.source = source

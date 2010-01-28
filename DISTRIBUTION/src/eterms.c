@@ -1,3 +1,6 @@
+/*
+ *  Author: J.P. Terlouw
+ */
 #include "eterms.h"
 #include <math.h>
 

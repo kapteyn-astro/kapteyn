@@ -1,3 +1,6 @@
+/*
+ *  Author: J. P. Terlouw
+ */
 #include <stdlib.h>
 #include <math.h>
 #include "xyz.h"

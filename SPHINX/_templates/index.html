@@ -73,13 +73,13 @@ interpreting coordinate information entered by the user (module
 
 <h2>Get the Kapteyn Package</h2>
   <p>
-    The Kapteyn Package is available as a distutils-installable package
-    and
 {% if 'b' in version %}
-    this <em>unreleased version</em>
+    This <em>unreleased version</em> of the
+{% else %}
+    The
 {% endif %}
-    can be downloaded 
-    <a href="kapteyn-{{ version }}.tar.gz">here</a>.
+    Kapteyn Package is available for download as a
+    <a href="kapteyn-{{ version }}.tar.gz">distutils-installable package</a>.
     For installation instructions see the
     <a href="{{ pathto("intro") }}">Introduction</a> chapter or the
     file INSTALL.txt in the distribution.
