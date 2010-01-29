@@ -10,14 +10,14 @@ All sky plots and graticules
 All Sky plots
 -------------
 
-An all sky plot is a plot where the longitude is in the range
-[0,360> and the latitude in the range [-90,90>.
+An all sky plot is a plot where the range in longitude is
+[0,360> and the range in latitude is [-90,90>.
 There are many examples in Calabretta's article
 `Representations of celestial coordinates in FITS <http://www.atnf.csiro.au/people/mcalabre/WCS/ccs.pdf>`_
 We tried to reproduce these figures both to prove that the modules in the Kapteyn Package
 have the functionality to do it and to facilitate users who want to set up
-an all-sky plot with module :mod:`wcsgrat`. For this purpose we
-created for each figure minimal FITS headers.
+an all-sky plot with module :mod:`maputils`. For this purpose we
+created for each figure the minimal required FITS headers.
 Header and other code is listed below the examples.
 Click on the hires link to get a plot which shows more details.
 With the information in this document, it should be easy to compose
@@ -37,17 +37,17 @@ different Python scripts and the service module
 **The recipe**
 
 The next session shows a gallery of all sky plots, all based on the same recipe.
-Usually these plots need a lot of fine tuning. Where we added code to the recipe below,
-it will be marked with a comment.
 
   * One starts with a self-made header which ensures a complete coverage of the sky by
     stretching the values of the ``CDELT``'s.
-  * Then an object from class :class:`maputils.Annotatedimage.Graticule` is created with explicit limits
+  * Then an object from class :class:`maputils.Annotatedimage.Graticule` is 
+    created with explicit limits
     for the world coordinates in both directions.
   * For these plots we don't have intersections of the graticule with
-    an enclosing rectangle so we cannot plot standard labels for the coordinates.
+    an enclosing rectangle so we cannot plot standard axis labels for the coordinates.
     Instead we use method :meth:`wcsgrat.Graticule.Insidelabels` to plot labels
-    inside the plot. Usually these labels are unformatted.
+    inside the plot. In the plots we show different examples how one can manipulate
+    these labeling.
 
 
 
@@ -57,36 +57,142 @@ All sky plot gallery
 In the title of the plots we refer to the figure numbers in
 Calabretta's article
 `Representations of celestial coordinates in FITS <http://www.atnf.csiro.au/people/mcalabre/WCS/ccs.pdf>`_.
+These references start with the abbreviation **Cal.**. 
 
 Note that the labels along the enclosing plot rectangle only indicate the
 types for the longitude and latitude axes and their main direction.
+
+The code which was used to produce a figure is listed just above the plot.
+If you want to reproduce a plot then you need this source and the
+service module 
+:download:`service.py <EXAMPLES/service.py>`.
+
+For plots where it is possible to plot a marker at position (120 deg, 60 deg)
+we plot a small circle with: ``annim.Marker(pos=markerpos, marker='o', color='red')``
+This code is part of the service module 
+:download:`service.py <EXAMPLES/service.py>`
+
+Note that positions in parameter *pos* in method :meth:`maputils.Annotatedimage.Marker`
+can be entered in different formats. Have a look at :mod:`positions` for examples.
+
+Definitions
+++++++++++++
+
+The definitions in this section are consistent with [Ref2]_ and  [Ref2]_ but simplified.
+For the FITS keywords we ommitted the suffix for the axis number and the alternate
+header description (e.g. as in CRVAL2Z).
+
+   * CTYPE : Type of celestial system and projection system
+   * CRPIX : Pixel coordinate of a coordinate reference point
+   * CRVAL : The world coordinate at the reference point
+   * CDELT : World coordinate increment at the reference point 
+   * CUNIT : Units of the world coordinates. For celestial coordinates the 
+     required units are 'deg'. However for wcs/WCSLIB the following lines
+     are equal, because the units are parsed and converted to degrees if necessary:
+
+     ``'CRVAL1' : 120.0*60, 'CRPIX1' : 50, 'CUNIT1' : 'arcmin', 'CDELT1' : 5.0*60``
+     
+     ``'CRVAL1' : 120.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : 5.0``
+
+   * CROTA : Usually the angle in degrees between the axis for which CROTA is given
+     and the North. Rotations can also be included in the FITS CD and PC matrix. 
+   * The pixel position that corresponds to the values of CRPIX is denoted 
+     with :math:`(r_x, r_y)`.
+   * An arbitrary pixel coordinate is denoted with :math:`(p_x, p_y)`.
+   * If we apply an operation M involving the PC or CD matrix or CDELT and CROTA
+     we get :math:X = M.(p-r)`. The result is a position denoted with :math:`(x, y)` and
+     its coordinates are called *intermediate world coordinates* and in this context 
+     we refer to them as *projection plane coordinates*.
+   * The coordinate reference point is at :math:`(x, y) = (0, 0)`.
+   * Intermediate coordinates are in degrees. 
+   * With the projection information in CTYPE one converts projection plane coordinates
+     :math:`(x, y)` to *native longitude and latitude*, :math:`(\phi, \theta)`.
+     Additional information for this transformation can be given in FITS PV keywords.
+   * Native longitude and latitude :math:`(\phi, \theta)` are transformed 
+     to *celestial coordinates*  :math:`(\alpha, \delta)` using the world coordinates
+     (CRVAL) of the reference point.
+   * The coordinates of the reference point given by CRVAL is denoted with 
+     :math:`(\alpha_0, \delta_0)` If we assume that a longitude axis is associated
+     with axis 1 in in the FITS file and latitude with axis 2 then
+     :math:`(\alpha_0, \delta_0) = (CRVAL1, CRVAL2)`.
+   * :math:`(\alpha_0, \delta_0)` is associated with the native longitude and latitude
+     reference point :math:`(\phi_0, \theta_0)`
+   * This :math:`(\phi_0, \theta_0)` depends on the projection or its values are  
+     given in FITS PV
+     keywords. With the previous assumption of the axis order, these elements will
+     be :math:PV1_1 and PV1_2
+   * For the transformation from native longitude and latitude :math:`(\phi, \theta)` 
+     to *celestial coordinates*
+     we need the **native** longitude and latitude of the **celestial** pole :math:`(\phi_p, \theta_p)`.
+     Either defaults are taken or values are copied from FITS keywords LONPOLE, LATPOLE
+     or PV1_3 and PV1_4.
+     Also we need the **celestial** position of the **native** pole  :math:`(\alpha_p, \delta_p)`.
+     (and :math:`\delta_p = \theta_p` ).
+   
+We summarize what van be varied in the FITS headers we used to plot all aky graticules.
+
+   * :math:`(\alpha_0, \delta_0) \leftrightarrow  (CRVAL1, CRVAL2)`
+   * native longitude and latitude of
+     reference point :math:`(\phi_0, \theta_0)  \leftrightarrow  (PV1\_1, PV1\_2)`
+   * native latitude of the celestial pole 
+     :math:`(\phi_p, \theta_p) \leftrightarrow (LONPOLE, LATPOLE) \leftrightarrow (PV1\_3, PV1\_4)`
 
 
 Standard versus Oblique
 +++++++++++++++++++++++ 
 
-Fig.1: Plate Carree projection (CAR)
-....................................
+Fig.0: Linear equatorial coordinate system
+...........................................
 
-With ``pixel = grat.gmap.topixel((120.0,60))`` we marked
-a world coordinate. We used method :meth:`wcs.Projection.topixel`
-of the :mod:`wcs.Projection` class to convert a world coordinate into a pixel coordinate.
-The Projection object in this code is *grat.gmap*.
+Before the non-linear coordinate transformations, world coordinates were calculated in a
+linear way using the number of pixels from the reference point in CRPIX times the 
+increment in world coordinate and added to that the value of CRVAL. We demonstrate this
+system bu creating a header where we omitted the code in CTYPE that sets the projection system.
 
+WCSLIB does not recognize a valid projection system and defaults to linear transformations.
+The header is a Python dictionary. With method :meth:`maputils.Annotatedimage.Graticule` we draw 
+the graticules. The graticule lines that we want to draw are given by their start position
+*startx=* and *starty=*. The labels inside the plot are set by *lon_world* and *lat_world*.
+To be consistent with fig.2 in {Ref2]_, we inserted a positive CDELT for the longitude. 
+
+.. note:: 
+
+   In most of the figures in this section we plot position :math:`(120^\circ,60^\circ)`
+   as a small solid red circle.
+
+.. plot:: EXAMPLES/allskyf1A.py
+   :align: center
+   :include-source:
+
+
+
+Fig.1: Oblique Plate Carree projection (CAR)
+............................................
+
+In [Ref2]_ we read that only CTYPE needs to be changed to get the next figure.
+For CTYPE the projection code *CAR* is added. For a decent plot we need to draw a border.
+The trick for plotting borders for oblique versions is to change header values
+to the non-oblique version and then to draw only the limiting graticule lines. 
+In method :meth:`maputils.Annotatedimage.Graticule` 
+we use parameters *startx* and *starty* to specify these limits as in:
+``startx=(180-epsilon,-180+epsilon), starty=(-90,90))``
+
+This plot shows an oblique version. A problem with oblique all sky plots
+is drawing a closed border. The trick that we applied a number of times
+is to overlay the border of the non-oblique version. 
 
 .. plot:: EXAMPLES/allskyf1.py
    :align: center
    :include-source:
 
-Fig.2: Oblique Plate Carree projection (CAR)
-............................................
 
-This plot shows an oblique version. A problem with oblique all sky plots
-is drawing a closed border. The trick that we applied a number of times
-is to overlay the border of the non-oblique version. In the constructor
-of the :class:`wcsgrat.Graticule` object we use parameters *startx* and *starty*
-to specify the borders as in:
-``startx=(180-epsilon,-180+epsilon), starty=(-90,90))``
+Fig.2: Plate Carree projection non-oblique (CAR)
+.................................................
+
+To get a non oblique version of the previous system we need to change the 
+value of :math:`\delta_0` (as given in CRVAL2) to 0 because for this projection 
+:math:`\phi_p = 0`.
+In the header we changed CRVAL2 to 0.
 
 .. plot:: EXAMPLES/allskyf2.py
    :align: center
@@ -107,7 +213,7 @@ It uses a formula given in Calabretta's article to get a value for the border:
 
 .. plot:: EXAMPLES/allskyf3.py
    :align: center
-   :include-source:   
+   :include-source:
 
 
 Fig.4: Slant zenithal perspective (SZP)
@@ -129,12 +235,13 @@ enter start positions for the bisection.
 Fig.5: Gnomonic projection (TAN)
 ................................
 
+In a Gnomonic projection all great circles are
+projected as straight lines.
 This is nice example of a projection which diverges at certain latitude.
 We chose to draw the last border at 20 deg. and plotted it with dashes
-using method :meth:`wcsgrat.Graticule.setp_linewcs1` as in 
+using method :meth:`wcsgrat.Graticule.setp_lineswcs1` as in 
 ``grat.setp_lineswcs1(20, color='g', linestyle='--')`` and identified
 the graticule line with its position i.e. latitude 20 deg.
-
 
 .. plot:: EXAMPLES/allskyf5.py
    :align: center
@@ -166,8 +273,10 @@ Fig.8: Zenithal equidistant projection (ARC)
 Fig.9: Zenithal polynomial projection (ZPN)
 ...........................................
 
-Diverges at some latitude depending on selected parameters
-in the PV elements.
+Diverges at some latitude depending on the selected parameters
+in the PV keywords. Note that the inverse of the polynomial 
+cannot be expressed analytically and there is no function that can transform 
+our marker at :math:`(120^\circ,60^\circ)` to pixel coordinates.
 
 .. plot:: EXAMPLES/allskyf9.py
    :align: center
@@ -190,6 +299,9 @@ Fig.11: Airy projection (AIR)
 
 Cylindrical Projections
 +++++++++++++++++++++++
+
+The native coordinate system origin of a Cylindrical projections coincides 
+with the reference point. Therefore we set  :math:`(\phi_0, \theta_0) = (0,0)` 
 
 Fig.12: Gall's stereographic projection (CYP)
 .............................................
@@ -218,6 +330,9 @@ Fig.15: Mercator's projection (MER)
 .. plot:: EXAMPLES/allskyf15.py
    :align: center
    :include-source:
+
+Pseudocylindrical projections
+++++++++++++++++++++++++++++++
 
 Fig.16: Sanson-Flamsteed projection (SFL)
 ..........................................
@@ -419,10 +534,11 @@ These are recognized by WCSlib as longitude and latitude.
 Any other prefix is also valid.
 
 Note the intensive use of methods to set label/tick- and plot properties.
-:meth:`wcsgrat.Graticule.setp_lineswcs0`, 
-:meth:`wcsgrat.Graticule.setp_lineswcs1`, 
-:meth:`wcsgrat.Graticule.setp_tick` and
-:meth:`wcsgrat.Graticule.setp_linespecial`
+
+   * :meth:`wcsgrat.Graticule.setp_lineswcs0`, 
+   * :meth:`wcsgrat.Graticule.setp_lineswcs1`, 
+   * :meth:`wcsgrat.Graticule.setp_tick` and
+   * :meth:`wcsgrat.Graticule.setp_linespecial`
 
 .. plot:: EXAMPLES/allskyf36.py
    :align: center
@@ -459,6 +575,20 @@ See equivalent plot at http://www.atnf.csiro.au/people/mcalabre/WCS/
    :align: center
    :include-source:
 
+
+Projection aliases
++++++++++++++++++++
+
+Table A.1. in [Ref2]_ list many alternative projection. These are either one of the 
+projections listed in previous sections or they have special projection parameters.
+This table lists those parameters and in table 13 of [Ref2]_ one can find the corresponding
+PV keyword.
+
+For example if we want a Peter's projection then in table A.1. we read that this is in fact 
+a Gall's orthographic projection (CEA) with :math:`\lambda = 1/2`. In table 13 we find that for
+projection CEA the parameter :math:`\lambda` corresponds to keyword PVi_1a. This keyword is associated with the
+latitude axis. If this is the second axis in a FITS header and if we don't use an alternate
+header description, then this keyword is PV1_1.
 
 
 Source code of the service module program
