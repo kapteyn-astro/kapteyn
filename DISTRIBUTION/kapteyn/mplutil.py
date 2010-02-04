@@ -381,6 +381,10 @@ Values should be between 0.0 and 1.0.
          ncolors = source.shape[0]
          self.baselut = numpy.ones((ncolors+3,4), numpy.float)
          self.baselut[:ncolors,:3] = source
+         self.N = ncolors                   # may have changed
+         self._i_under = self.N
+         self._i_over  = self.N+1
+         self._i_bad   = self.N+2
       else:
          try:
             colors = tabarray(source)
@@ -389,11 +393,11 @@ Values should be between 0.0 and 1.0.
          ncolors = colors.shape[0]
          self.baselut = numpy.ones((ncolors+3,4), numpy.float)
          self.baselut[:ncolors,:3] = colors
+         self.N = ncolors                   # may have changed
+         self._i_under = self.N
+         self._i_over  = self.N+1
+         self._i_bad   = self.N+2
       self.worklut = self.baselut.copy()
-      self.N = ncolors                      # may be changed
-      self._i_under = self.N
-      self._i_over  = self.N+1
-      self._i_bad   = self.N+2
       self._lut = self.worklut.copy()       # existing may be inadequate
       if self.name is not None:             # existing VariableColormap object?
          self.set_scale(self.scale)
