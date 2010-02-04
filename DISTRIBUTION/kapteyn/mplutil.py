@@ -286,6 +286,7 @@ Values should be between 0.0 and 1.0.
 .. automethod:: modify
 .. automethod:: set_scale
 .. automethod:: set_source
+.. automethod:: set_length
 .. automethod:: add_frame
 .. automethod:: remove_frame
 .. automethod:: update
@@ -319,12 +320,45 @@ Values should be between 0.0 and 1.0.
          X.mask = ma.make_mask(-numpy.isfinite(X))
       return Colormap.__call__(self, X, alpha, bytes)
 
+   def __len__(self):
+      return self.N
+
    def set_bad(self, color='k', alpha = 1.0):
       self.bad_set = True
+      self.bad_val = (color, alpha)
       Colormap.set_bad(self, color, alpha)
       if self.auto:
          self.update()
 
+   def set_length(self, length):
+      """
+      Change the colormap's number of entries. The new set of entries is
+      derived from the current set by linear interpolation. The current
+      length can be obtained with the function :func:`len`.
+      For best results, the new length should be chosen such that the original
+      colormap entries are represented unmodified in the new set.
+      This can be achieved by setting :math:`n_{new} = kn_{old}-k+1`, where
+      :math:`n_i` is the colormap's length and :math:`k` is integer.
+
+      For normal work, the 'standard' length of 256 is usually sufficient,
+      but in special cases increasing
+      the colormap's length can be helpful to eliminate false contours.
+      """
+      ncolors = len(self)
+      lut_tail = self.baselut[ncolors:]
+      newmap = numpy.zeros((length,3), numpy.float)
+      factor = float(ncolors-1)/(length-1)
+      xdest  = numpy.array(range(length), numpy.float)*factor
+      xsrc   = range(ncolors)
+      for primary in [0,1,2]:
+         primap = numpy.interp(xdest, xsrc, self.baselut[:ncolors,primary])
+         newmap[:,primary] = primap
+      self.set_source(newmap)
+      self.baselut[length:] = lut_tail
+      if self.bad_set:
+         badcolor, badalpha = self.bad_val
+         self.set_bad(badcolor, badalpha)
+   
    def set_source(self, source):
       """
       Define an alternative source for the colormap.
@@ -356,6 +390,11 @@ Values should be between 0.0 and 1.0.
          self.baselut = numpy.ones((ncolors+3,4), numpy.float)
          self.baselut[:ncolors,:3] = colors
       self.worklut = self.baselut.copy()
+      self.N = ncolors                      # may be changed
+      self._i_under = self.N
+      self._i_over  = self.N+1
+      self._i_bad   = self.N+2
+      self._lut = self.worklut.copy()       # existing may be inadequate
       if self.name is not None:             # existing VariableColormap object?
          self.set_scale(self.scale)
 
