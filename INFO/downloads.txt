@@ -90,3 +90,7 @@ Special Astrophysical Observatory (sao.ru) @ 194.85.27.3
 ESTEC (ESA) @ 195.169.141.54
 University of Illinois at Urbana-Champaign (Astronomy) @ 128.174.51.183
 Institute of Astronomy, Sofia Bulgaria @ 195.96.237.220
+National Astronomical Observatory of Japan @ 133.40.133.130
+The Astronomy and Astrophysics group at Warwick @ 137.205.125.174
+The Indiana University Astronomy Department @ 129.79.157.58
+Institut d' astrophysique de Paris @ 194.57.221.17

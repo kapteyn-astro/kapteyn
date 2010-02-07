@@ -16,6 +16,8 @@ body {
     padding: 0;
 }
 
+strong.xref {font-weight: normal}
+
 div.document {
     background-image: url("background-b.png");
 /*    background-color: {{ theme_sidebarbgcolor }};*/

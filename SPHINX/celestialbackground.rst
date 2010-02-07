@@ -1219,8 +1219,8 @@ References
 
 .. [Diebel]
    **Diebel**, J, 2006.
-   `Representing Attitude: Euler Angles, Quaternions, and Rotation Vectors <http://ai.stanford.edu/~diebel/attitude/attitude.pdf>`_
-   Stanford University, Palo Alto, CA (web version at: http://ai.stanford.edu/~diebel/attitude/attitude.pdf)
+   :download:`Representing Attitude: Euler Angles, Quaternions, and Rotation Vectors <EXTERNALDOCS/attitude.pdf>`
+   Stanford University, Palo Alto, CA
 
 .. [Hering]
    **Hering**, R.; Walter, H. G., 1998.

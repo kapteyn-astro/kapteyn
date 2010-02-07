@@ -729,6 +729,14 @@ in the source object. These attributes should not be modified.
 
    The native latitude of the celestial pole.
 
+.. attribute:: euler
+
+   A five-element list:
+   Euler angles and associated intermediaries derived from the
+   coordinate reference values.  The first three values are the Z-, X-,
+   and Z'-Euler angles, and the remaining two are the cosine and sine
+   of the X-Euler angle.
+
 .. attribute:: equinox
 
    The equinox (formerly 'epoch') of the projection.
