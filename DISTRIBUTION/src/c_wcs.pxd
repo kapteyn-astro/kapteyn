@@ -14,12 +14,16 @@ cdef extern from "wcslib/wcs.h":
       int m
       char value[72]
 
+   cdef struct celprm:
+      double euler[5]
+
    cdef struct wcsprm:
       int    flag
       int    naxis
       int    lng
       int    lat
       int    spec
+      celprm cel
       double *crpix
       double *pc
       double *cdelt

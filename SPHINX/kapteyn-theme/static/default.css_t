@@ -45,9 +45,9 @@ div.bodywrapper {
 
 div.footer {
     color: {{ theme_footertextcolor }};
-    width: 100%;
-    padding: 9px 0 9px 0;
-    text-align: center;
+/*    width: 100%; */
+    padding: 9px 0 9px 8px;
+    text-align: left;
     font-size: 75%;
 }
 

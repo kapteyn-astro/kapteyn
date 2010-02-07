@@ -141,7 +141,7 @@ WCSinvalid for situations where a partial result may be available.
 """
 
 from c_wcs cimport wcsprm, wcsini, wcsset, wcsfree, wcsp2s, wcss2p, wcsmix, \
-                   wcs_errmsg, wcssub, wcssptr, wcsprt, wcsutrn, \
+                   wcs_errmsg, wcssub, wcssptr, wcsprt, wcsutrn, celprm,\
                    unitfix, celfix, spcfix, wcsfix_errmsg
 from c_numpy cimport import_array, npy_intp, NPY_DOUBLE, PyArray_DATA, \
                      ndarray, PyArray_SimpleNewFromData, NPY_OWNDATA
@@ -1139,6 +1139,13 @@ Example::
          if self.debug:
             wcsprt(param)
             
+
+         #---------------------------------
+         #    Euler angles
+         #---------------------------------
+         self.euler = []
+         for i in range(5):
+            self.euler.append(param.cel.euler[i])
 
          #---------------------------------
          #    Sky system
