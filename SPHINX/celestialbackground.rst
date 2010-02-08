@@ -1215,12 +1215,12 @@ References
    **Cotton**, W. D.; Condon, J. J.; Arbizzani, E. , 1999.
    *Arcsecond Positions of UGC Galaxies*,
    The Astrophysical Journal Supplement Series, Volume 125, Issue 2,  p.409-412
-   `ADS Abstract Service 1999` <http://adsabs.harvard.edu/abs/1999ApJS..125..409C>`_
+   `ADS Abstract Service 1999 <http://adsabs.harvard.edu/abs/1999ApJS..125..409C>`_
 
 .. [Diebel]
    **Diebel**, J, 2006.
-   :download:`Representing Attitude: Euler Angles, Quaternions, and Rotation Vectors <EXTERNALDOCS/attitude.pdf>`
-   Stanford University, Palo Alto, CA
+   *Representing Attitude: Euler Angles, Quaternions, and Rotation Vectors*
+   (:download:`local copy<EXTERNALDOCS/attitude.pdf>`)
 
 .. [Hering]
    **Hering**, R.; Walter, H. G., 1998.
@@ -1316,4 +1316,4 @@ References
    *Mean and apparent place computations in the new IAU system II.
    Transformation of mean star places from FK4 B1950.0 to FK5 J2000.0 using matrices in 6-space*,
    Astron. Journal, 97, Number 1, January 1989,
-   `ADS Abstract Service 1989III <http://adsabs.harvard.edu/abs/1989AJ.....97..274Y>`_
+   `ADS Abstract Service 1989 III <http://adsabs.harvard.edu/abs/1989AJ.....97..274Y>`_
