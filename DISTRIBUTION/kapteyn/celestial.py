@@ -109,7 +109,7 @@ Symbol                  String        Description
                                       coordinate systems should also be qualified
                                       by an Epoch value. This is the *epoch of
                                       observation*.
-*fk4_no_e*              FK4_NO_E ,    The old FK4 (barycentric) equatorial system
+*fk4_no_e*              FK4_NO_E,     The old FK4 (barycentric) equatorial system
                         FK4-NO-E      but without the *E-terms of aberration*.
                                       This coordinate system should also be
                                       qualified by both an Equinox and an Epoch
@@ -156,6 +156,8 @@ Epochs for the equinox and epoch of observation
 An epoch can be set in various ways. The options are distinguished
 by a prefix. Only the 'B' and 'J' epochs can be negative.
 
+.. tabularcolumns:: |p{15mm}|p{135mm}|
+
 ====== ===============================================================
 Prefix Epoch
 ====== ===============================================================
@@ -182,14 +184,12 @@ RJD    The Reduced Julian Day (RJD): Julian date counted from
        Example:  ``'rJD50123.2'``, ``'Rjd 23433'``
 F      Various FITS formats:
 
-       \\* DD/MM/YY  Old FITS format.
-       Example: ``'F29/11/57'``
-
-       \\* YYYY-MM-DD  FITS format.
-       Example: ``'F2000-01-01'``
-
-       \\* YYYY-MM-DDTHH:MM:SS FITS format with date and time.
-       Example: ``'F2002-04-04T09:42:42.1'``
+       * DD/MM/YY  Old FITS format.
+         Example: ``'F29/11/57'``
+       * YYYY-MM-DD  FITS format.
+         Example: ``'F2000-01-01'``
+       * YYYY-MM-DDTHH:MM:SS FITS format with date and time.
+         Example: ``'F2002-04-04T09:42:42.1'``
 
 ====== ===============================================================
 
@@ -206,7 +206,7 @@ galactic coordinates and equatorial, FK5 coordinates because that conversion
 is done in steps and one step involves FK4.
 
 To be able to distinguish an equinox from an epoch of observation, an epoch of
-observation is followed by an underscore character and some arbitray characters
+observation is followed by an underscore character and some arbitrary characters
 to indicate that it is a special epoch (e.q. "B1960_OBS"). Only the underscore is
 obligatory.
 
@@ -223,38 +223,38 @@ obligatory.
 Input Examples
 ..............
 
-========================= ========================== =====================================
-Input string              Description                Remarks
-========================= ========================== =====================================
-"eq"                      Equatorial, ICRS           ICRS because no reference system
-                                                     and no equinox is given. 
-"Eclip"                   Ecliptic, ICRS             Ecliptic coordinates
-"ecl fk5"                 Ecliptic, FK5              Ecliptic coordinates with a non
-                                                     default reference system
-"GALACtic"                Galactic II                Minimal match is case insensitive
-"s"                       Supergalactic              Shortest string to identify system.
-"fk4"                     Equatorial, FK4            Only a reference system is entered.
-                                                     Sky system is assumed to be
-                                                     equatorial
-"B1960"                   Equatorial, FK4            Only an equinox is given. This is
-                                                     a date before 1984 so FK4 is
-                                                     assumed. Therefore the sky system
-                                                     is equatorial
-"EQ, fk4_no_e, B1960"     Equatorial, FK4 no e-terms Sky system, reference system,
-                                                     and an equinox
-"EQ, fk4_no_e, B1960"     Equatorial, FK4 no e-terms Same as above but underscores
-                                                     replaced by hyphens.
-"fk4,J1983.5_OBS"         Equatorial, FK4 + epobs    FK4 with an epoch of observation.
-                                                     Note that only the underscore
-                                                     is important.
-"J1983.5_OBS"             Equatorial, FK4 + epobs    Only a date of observation. Then
-                                                     reference system FK4 is assumed.
-"EQ,fk4,B1960,B1983.5_O"  Equatorial, FK4 + epobs    A complete description of an
-                                                     equatorial system.
-"B1983.5_O fk4 B1960,eq"  Equatorial, FK4 + epobs    The same as above, showing that
-                                                     the order of the elements are
-                                                     unimportant.
-========================= ========================== =====================================
+========================== ========================== =====================================
+Input string               Description                Remarks
+========================== ========================== =====================================
+"eq"                       Equatorial, ICRS           ICRS because no reference system
+                                                      and no equinox is given. 
+"Eclip"                    Ecliptic, ICRS             Ecliptic coordinates
+"ecl fk5"                  Ecliptic, FK5              Ecliptic coordinates with a non
+                                                      default reference system
+"GALACtic"                 Galactic II                Minimal match is case insensitive
+"s"                        Supergalactic              Shortest string to identify system.
+"fk4"                      Equatorial, FK4            Only a reference system is entered.
+                                                      Sky system is assumed to be
+                                                      equatorial
+"B1960"                    Equatorial, FK4            Only an equinox is given. This is
+                                                      a date before 1984 so FK4 is
+                                                      assumed. Therefore the sky system
+                                                      is equatorial
+"EQ, fk4_no_e, B1960"      Equatorial, FK4 no e-terms Sky system, reference system,
+                                                      and an equinox
+"EQ, fk4_no_e, B1960"      Equatorial, FK4 no e-terms Same as above but underscores
+                                                      replaced by hyphens.
+"fk4,J1983.5_OBS"          Equatorial, FK4 + epobs    FK4 with an epoch of observation.
+                                                      Note that only the underscore
+                                                      is important.
+"J1983.5_OBS"              Equatorial, FK4 + epobs    Only a date of observation. Then
+                                                      reference system FK4 is assumed.
+"EQ,fk4,B1960, B1983.5_O"  Equatorial, FK4 + epobs    A complete description of an
+                                                      equatorial system.
+"B1983.5_O fk4 B1960,eq"   Equatorial, FK4 + epobs    The same as above, showing that
+                                                      the order of the elements are
+                                                      unimportant.
+========================== ========================== =====================================
 
 Code examples
 .............
@@ -2028,6 +2028,9 @@ coordinates to ecliptical coordinates
       The old *DATE-OBS* keyword may be used for this purpose.
       However, to provide a more convenient specification we
       here introduce the new keyword MJD-OBS'.
+      
+      So MJD-OBS is the modified Julian Date (JD - 2400000.5) of the
+      start of the observation.
 
    3. Equatorial to ecliptic transformations use the time dependent 
       obliquity of the equator (also known as the obliquity of the ecliptic).
@@ -3024,19 +3027,18 @@ a suffix '_' which may be follwed by arbitrary characters.
       * *Cannot determine the sky system!*
       * *Input contains an element that is not an integer or a string!*
 
-:Examples: From an equatorial sky system with fk4 as reference system
-    to supergalactic coordinates. Note the use of spaces and comma as
-    separator, the arbitrary order of the elements and the suffix
-    for the epoch of observation.:
+:Examples: 
+   
+    >>> print celestial.skyparser("B1983.5_O fk4 B1960,eq")
+    (0, 4, 1960.0, 1983.5)
 
-    >>> celestial.skymatrix("B1983.5_O fk4 B1960,eq", "su")
-        (matrix([[ 0.38140211,  0.33797523,  0.86040989],
-        [-0.89746728, -0.08769387,  0.43227568],
-        [ 0.22155114, -0.93706058,  0.26987508]]),
-        (-1.6240915232269579e-06, -3.2358268275995942e-07, -1.4032511953410516e-07),
-        None)
+    >>> print celestial.skyparser("su")
+    (3, None, None, None)
 
-    Note that the matrix is followed by a vector with e-terms.
+    >>> print celestial.skyparser("supergal")
+    (3, None, None, None)
+
+ 
       
 :Notes:
    This is the parser for a sky definition.
@@ -3119,7 +3121,7 @@ a suffix '_' which may be follwed by arbitrary characters.
          else:
             # Could be obs. epoch if underscore in string or it is the second epoch
             epobs = epochs(element)[0]           # Always in Besselian data
-      else:
+      elif element != None:
          raise ValueError, "Input contains an element that is not an integer or a string!"
    #------------------------------------------------------------
    # At this stage we have
@@ -3297,10 +3299,12 @@ For a description of the sky definitions see :ref:`celestial-skydefinitions`.
       
 :Examples:
    Some examples of transformations between sky systems using either
-   strings or tuples.
-   e.g.: ``M, E1, E2 = skymatrix(celestial.gal,(celestial.eq,"j2000",celestial.fk5))``
+   strings or tuples. We advise to use strings which is more safe
+   then using variables from celestial (which can be accidentally
+   replaced by other values). 
+   Note that for transformations where FK4 is involved,
+   the matrix is followed by a vector with e-terms.
    
-
       >>> from kapteyn import celestial
       >>> print skymatrix(celestial.gal,(celestial.eq,"j2000",celestial.fk5))
       (matrix([[-0.05487554,  0.49410945, -0.86766614],
@@ -3398,7 +3402,7 @@ def dotrans(skytuple, xyz):
 Purpose:  Utility function that performs the rotation and adding or
           removing e-terms
 Input:   -The tuple as produced by skymatrix
-         -one or more positions on Cartesian coordinates (xyz)
+         -one or more positions in Cartesian coordinates (xyz)
 Returns:  The transformed (Cartesian) coordinates
 Notes:    Function skymatrix returns a tuple with the rotation matrix
           and e-terms if necessary. Tuple element 0 is the rotation
@@ -3490,5 +3494,4 @@ Utility function to facilitate command line use of skymatrix.
    xyz2 = dotrans(skymatrix(skyin, skyout), xyz)
    newlonlats = xyz2longlat(xyz2)
    return newlonlats
-
 

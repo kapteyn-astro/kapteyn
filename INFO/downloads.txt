@@ -9,7 +9,7 @@ IAAT Tuebingen @ 134.2.205.65
 Commissariat a l'Energie Atomique @ 132.166.13.167
 Harvard University (Faculty of Arts and Sciences) @ 140.247.232.235
 University of Cambridge @ 131.111.70.59
-University College Dublin @ 137.43.99.33
+University College Dublin Space Science Group @ 137.43.99.33
 Universite de Geneve @ 129.194.8.8
 Astron @ 192.87.1.200
 Lick Observatory @ 128.114.23.182
