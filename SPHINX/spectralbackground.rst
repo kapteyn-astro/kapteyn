@@ -844,9 +844,7 @@ Then with the numbers we find:
 which is the increment in optical velocity earlier given for CDELT3Z.
 
 This is one of the possible conversions between wavelength and velocity. Others are listed 
-in table 3 of
-`E.W. Greisen et al. <http://www.atnf.csiro.au/people/mcalabre/WCS/scs.pdf>`_
-page 750.
+in `scs.pdf <scs.pdf>`_ table 3 of E.W. Greisen et al. page 750.
 
 
 Conclusions
@@ -1194,16 +1192,57 @@ the data in the Nmap/GIPSY FITS header is changed:
      if the velocity is optical and eq. :eq:`eq220` if the velocity is a radio velocity.
    * Calculate the topocentric velocity using eq. :eq:`eq100`
    * Convert frequency increment to an increment in Hz
-   * Calculate the increment in frequency in the selected reference system (HEL, LSR)
+   * Calculate the increment in frequency in the selected reference system (HEL, LSR) using
+     eq. :eq:`eq140`.
    * Change CRVALn and CDELTn to the barycentric values
    * Create a projection object with spectral translation, e.g. **proj.spectra('VOPT-F2W')**
+
+In the following script we show:
+
+   * the (invisible conversion to the heliocentric system)
+   * how to get the same output by applying the appropriate formulas
+   * the approximation that GIPSY uses
+
+.. literalinclude:: EXAMPLES/gipsyspectralheader.py
+
+Output::
+
+   VELR is the reference velocity given in the velocity frame
+   coded in CTYPE (e.g. HEL, LSR)
+   The velocity is either an optical or a radio velocity. This
+   is also coded in CTYPE (e.g. 'O', 'R')
+
+   VOPT-F2W with spectral translation:
+   29     1000.194731
+   30     1016.794655
+   31     1033.396411
+   32     1050.000000
+   33     1066.605422
+   34     1083.212677
+   
+   VOPT calculated:
+   29     1000.194731
+   30     1016.794655
+   31     1033.396411
+   32     1050.000000
+   33     1066.605422
+   34     1083.212677
+   
+   VOPT with native GIPSY formula, which is an approximation:
+   29     1000.191559
+   30     1016.792540
+   31     1033.395354
+   32     1050.000000
+   33     1066.606480
+   34     1083.214793
+
 
 The Python interface allows for an easy implementation for these special exceptions.
 Here is a script that uses the new facility. The conversion here is triggered by the CTYPE
 extension **OHEL**. So as long this is unique to GIPSY spectral axes, you are save to
 use it. Note that we converted the frequencies to optical, radio and radial velocities.
 This is added value to the existing GIPSY implementation where these conversions are not
-possible. These WCSLIB conversions are explained in previous sections ::
+possible. These WCSLIB conversions are explained in previous sections::
 
 
    #!/usr/bin/env python
@@ -1377,135 +1416,106 @@ and the extensions are translated into values for FITS keyword *SPECSYS*::
 AIPS axis type VELO
 -------------------
 
-An AIPS VELO axis (e.g. CTYPE3='VELO-HEL') is an axis that is regularly gridded in velocity.
-It is recognized by WCSLIB and is treated as a radio velocity. The increment in
-velocity is constant.
-It allows spectral translations like:
-*proj.spectra('VOPT-V2W')*, *proj.spectra('VRAD-V2F')* and *proj.spectra('FREQ-V2F')*.
+In this section we want to address the question what WCSLIB does if it
+encounters an AIPS VELO-XXX axis as in *CTYPE1='VELO-HEL'* or *'VELO-LSR'*.
+From the AIPS documentation we learn that VELO is regularly gridded in
+velocity (m/s) in the radio convention, unless overridden by use of 
+the *VELDEF* keyword.
+In other AIPS documents we read:
+   
+   *  veldef: The velocity definition (e.g. *radio*, *optical*). 
+   *  velref: The velocity reference frame (e.g. *LSR*, *HEL*, ,etc.). 
 
-This makes sense because type 'VELO' without extension tells us that the increment in velocity
-is constant::
+So we safely can assume that in AIPS VELO-XXX (with XXX one of the 
+velocity references) without a *VELDEF* keyword defaults to a radio velocity.
+However, in the example script below we demonstrate that WCSLIB processes
+such an axis as if it is a relativistic velocity (FITS standard: VELO). 
+There is no interpretation like with the
+FELO axis. The WCSLIB source confirms this. Also
+Calabretta (private comm.) has confirmed this. It is not sure how later
+versions (>4.4) of WCSLIB will process VELO-XXX (Feb 10, 2010).
 
-   #!/usr/bin/env python
-   from kapteyn import wcs
-   import math
-   
-   V0 = -.24300000000000E+06             # Radio vel in m/s
-   dV = 5000.0                           # Delta in m/s
-   f0 = 0.14204057583700e+10
-   c  = 299792458.0                      # Speed of light in m/s
-   crpix = 32
-   
-   header = { 'NAXIS'  : 1,
-              'CTYPE1' : 'VELO-HEL',
-              'CRVAL1' : V0,
-              'CRPIX1' : crpix,
-              'CUNIT1' : 'm/s',
-              'CDELT1' : dV,
-              'RESTFRQ': f0
-            }
-   
-   proj = wcs.Projection(header)
-   V1 = proj.spectra('VOPT-V2W')
-   
-   pixels = range(30,35)
-   V = proj.toworld1d(pixels)
-   Z = V1.toworld1d(pixels)
-   print "Pixel Vradial (or Vradio) in (km/s)  and Voptical (km/s)"
-   for p,v,z in zip(pixels, V, Z):
-      print "%4d %15f %15f" % (p, v/1000, z/1000)
+ .. note::
 
-   print "\nOptical velocities calculated from radial velocity with constant increment"
-   v0 = V0
-   for i in pixels:
-      v1 = v0 + (i-crpix)*dV
-      beta = v1/c
-      frac = (1-beta)/(1+beta)
-      f = f0 * math.sqrt(frac)
-      Z = c* (f0-f)/f
-      print "%4d %15f" % (i, Z/1000.0)
-   
-   header['CTYPE1'] = 'VELO-F2V'
-   proj = wcs.Projection(header)
-   pixels = range(30,35)
-   V = proj.toworld1d(pixels)
-   print "\nWith CTYPE='VELO-F2V': Pixel Vradio (km/s)"
-   for p,v in zip(pixels, V):
-      print "%4d %15f" % (p, v/1000)
-   
-   header['CTYPE1'] = 'VELO'
-   proj = wcs.Projection(header)
-   pixels = range(30,35)
-   V = proj.toworld1d(pixels)
-   print "\nWith CTYPE='VELO': Pixel Vradio (km/s)"
-   for p,v in zip(pixels, V):
-      print "%4d %15f" % (p, v/1000)
+    An AIPS VELO-XXX axis shows the right velocities with WCSLIB because
+    VELO in AIPS is an axis that is regularly gridded in velocity. But note
+    that conversions with spectral translations assume that VELO is a
+    relativistic velocity.
 
-   # Output:
-   # Pixel Vradial (or Vradio) in (km/s)  and Voptical (km/s)
-   # 30     -253.000000     -252.893335
-   # 31     -248.000000     -247.897507
-   # 32     -243.000000     -242.901597
-   # 33     -238.000000     -237.905603
-   # 34     -233.000000     -232.909526
-   #
-   # Optical velocities calculated from radial velocity with constant increment
-   # 30     -252.893335
-   # 31     -247.897507
-   # 32     -242.901597
-   # 33     -237.905603
-   # 34     -232.909526
-   # 
-   # With CTYPE='VELO-F2V': Pixel , v (km/s)
-   # 30     -252.999833
-   # 31     -247.999958
-   # 32     -243.000000
-   # 33     -237.999958
-   # 34     -232.999833
-   #
-   # With CTYPE='VELO': Pixel , v (km/s)
-   # 30     -253.000000
-   # 31     -248.000000
-   # 32     -243.000000
-   # 33     -238.000000
-   # 34     -233.000000
+
+.. literalinclude:: EXAMPLES/veloaips.py
+
+Output::
+
+   The velocity increment is constant and equal to 5.000000 (km/s):
+   
+   With CTYPE='VELO-HEL' we get the output:
+   Pixel , Velocity (km/s)
+   30     -253.000000
+   31     -248.000000
+   32     -243.000000
+   33     -238.000000
+   
+   With CTYPE='VELO-HEL' and spec.trans 'VOPT-V2W':
+   Pixel,  Velocity (km/s), Voptical (km/s)
+   30     -253.000000     -252.893335
+   31     -248.000000     -247.897507
+   32     -243.000000     -242.901597
+   33     -238.000000     -237.905603
+   
+   With CTYPE='VELO':
+   Pixel,  Vrelativistic (km/s)
+   30     -253.000000
+   31     -248.000000
+   32     -243.000000
+   33     -238.000000
+   
+   With CTYPE='VELO' and spectral translation 'VOPT-V2W':
+   Pixel, Vrelativistic (km/s), Voptical (km/s)
+   30     -253.000000     -252.893335
+   31     -248.000000     -247.897507
+   32     -243.000000     -242.901597
+   33     -238.000000     -237.905603
+   
+   Optical velocities, calculated with the appropriate formulas,
+   from relativistic velocity with constant velocity increment. This should give
+   the same output as the previous conversion.
+   30     -253.000000     -252.893335
+   31     -248.000000     -247.897507
+   32     -243.000000     -242.901597
+   33     -238.000000     -237.905603
+   
+   Now replace VELO-HEL in CTYPE1 by VRAD. Calculate VOPT in two ways.
+   First with spectral VOPT-F2W and then with the appropriate formulas
+   for VRAD -> VOPT-F2W.
+   With CTYPE='VRAD' and spec.trans 'VOPT-F2W'(Z1) and calculated (Z2):
+   Pixel      Vrad(km/s)       Z1 (km/s)       Z2 (km/s)
+   30     -253.000000     -252.786669     -252.786669
+   31     -248.000000     -247.795014     -247.795014
+   32     -243.000000     -242.803193     -242.803193
+   33     -238.000000     -237.811206     -237.811206
+   Obviously the optical velocities are different compared to
+   those calculated from CTYPE1='VELO' or 'VELO-HEL', This also proves
+   that a VELO-XXX axis form a AIPS source is not processed as a radio
+   velocity.
+
 
    
 We used eq. :eq:`eq30` to calculate a frequency for a given radial velocity. This frequency
 is used in eq. :eq:`eq5` to calculate the optical velocity. The script proves:
 
-       * Axis VELO-HEL is processed as if it was a linear axis
-       * Both the spectral translation *proj.spectra('VOPT-V2W')* as
-         the formulas :eq:`eq30` and :eq:`eq5` give the same optical
-         velocities.
-       * A VELO axis followed by a valid code for a conversion algorithm,
-         is a radial velocity where a constant frequency increment is assumed.
-       * A VELO axis without a code for a conversion algorithm is processed
-         as if it was a linear axis.
-
-To summarize: 
-
-  * **without extension** VELO is interpreted by WCSLIB as a radial velocity.
-    The velocity increment is constant.
-  * if the VELO type has extension HEL or LSR then WCSLIB interprets it as
-    a linear transformation. The velocity is (usually) a radio
-    velocity. In the AIPS cookbook we read:
-
-      * 'VELO' - velocity (m/s) (radio convention, unless overridden by use of the VELDEF SHARED keyword) 
-
-    VELDEF can either be 'radio' or 'optical'.
-    
-  * a VELO axis without extension represents a radial velocity with constant velocity
-    increment. The table below shows possible conversions between VELO axes and
-    other spectral axes.
+       * Axis VELO-HEL is processed as if 'VELO-XXX' is a relativistic velocity
+       * This can give wrong results when applying spectral translations, because
+         the meaning of 'VELO-XXX' could be a radio velocity instead of a relativistic.
 
 
-Conversions for type VELO:
+The table below shows possible conversions between VELO axes and
+other spectral axes.
 
 =======================  =====================================================================
 CTYPE                    Can be converted with spectral translations
 =======================  =====================================================================
-VELO-HEL, VELO-LSR       linear transformation, but can be converted as a VELO axis
+VELO-HEL, VELO-LSR       Is processed as a VELO axis
 VELO                     WAVE-V2W  or FREQ-V2F or VOPT-V2F or VRAD-V2F
 VELO-F2V                 WAVE-F2W  or FREQ or VOPT-F2W or VRAD
 VELO-W2V                 WAVE  or FREQ-W2F or VOPT or VRAD-W2F
@@ -1843,7 +1853,7 @@ GIPSY
 ***** 
 
 The formulas used in GIPSY to convert frequencies to velocities are described in section:
-`spectral coordinates <http://www.astro.rug.nl/~gipsy/pguide/coordinates.html>`_
+`spectral coordinates <"http://www.astro.rug.nl/~gipsy/pguide/coordinates.html>`_
 in the GIPSY programmers guide.
 There is a formula for radio velocities and one for optical velocities.
 Both formulas are derived from the standard formulas but the result is 
@@ -1960,7 +1970,7 @@ Inserting this and rearranging the equation gives:
 .. math::
    :label: eq860
 
-   Z_b(N) = -c\bigl(\frac{\nu_e+\Delta \nu-\nu_0}{\nu_e+\Delta \nu}\bigr) +c \nu_0\ (\frac{1}{\nu_e+\Delta +(N-N_{\nu}) \delta_{\nu}} - \frac{1}{\nu_e+\Delta \nu})
+   Z_b(N) = -c\bigl(\frac{\nu_e+\Delta \nu-\nu_0}{\nu_e+\Delta \nu}\bigr) +c \nu_0\ (\frac{1}{\nu_e+\Delta \nu +(N-N_{\nu}) \delta_{\nu}} - \frac{1}{\nu_e+\Delta \nu})
 
 with:
   * :math:`Z_b(N)` is the barycentric optical velocity for pixel :math:`N`,
@@ -2189,7 +2199,7 @@ this task and  *COORDS* are:
         also converts the frequency increment to the barycentric or lsrk system).
 
 Read more about GIPSY tasks written in Python in
-`Python recipes for GIPSY <http://www.astro.rug.nl/~gipsy/python/recipes/pythonrep.php>`_
+`Python recipes for GIPSY <https://www.astro.rug.nl/~gipsy/python/recipes/pythonrep.php>`_
 
 
 
@@ -2198,6 +2208,6 @@ Read more about GIPSY tasks written in Python in
 References
 ----------
 
-.. [Aipsmemo] `AIPS memo 27 <http://www.cv.nrao.edu/fits/wcs/aips27.ps>`_  Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
+.. [Aipsmemo] `AIPS memo 27` `<aips27.ps>`_  Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
 
         
