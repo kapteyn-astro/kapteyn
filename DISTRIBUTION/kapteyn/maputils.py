@@ -40,7 +40,7 @@ Introduction
 One of the goals of the Kapteyn Package is to provide a user/programmer basic
 tools to make plots (with wcs annotation) of image data from FITS files.
 These tools are based on the functionality of PyFITS and Matplotlib.
-The methods from these packages are mofified in *maputils* for an optimal
+The methods from these packages are modified in *maputils* for an optimal
 support of inspection and presentation of astronomical image data with
 easy to write and usually very short Python scripts. To illustrate
 what can be done with this module, we list some steps you need
@@ -141,6 +141,11 @@ Prompt functions
 .. index:: Get clip values for image data
 .. autofunction:: prompt_dataminmax
 
+Utility functions
+-----------------
+
+.. index:: Convert PyFITS header to Python dictionary
+.. autofunction:: fitsheader2dict
 
 Class FITSimage
 ---------------
@@ -205,7 +210,7 @@ Class MovieContainer
 .. autoclass:: MovieContainer
 
 """
-# In case we want to use the plot directive, we have an exampe here
+# In case we want to use the plot directive, we have an example here
 # .. plot:: /Users/users/vogelaar/MAPMAKER/maputils.intro.1.py
 #
 
@@ -260,6 +265,22 @@ def randomlabel(base=''):
    return label
 
 
+def getscale(hdr):
+   # Get relevant scaling keywords from this header
+   # Make sure you use this function before assigning
+   # the data from the header to a variable.
+   bscale = None
+   bzero = None
+   blank = None
+   bitpix = hdr['BITPIX']   # Must exist
+   if hdr.has_key('BSCALE'):
+      bscale = hdr['BSCALE'] 
+   if hdr.has_key('BZERO'):
+      bzero = hdr['BZERO']
+   if hdr.has_key('BLANK'):
+      blank = hdr['BLANK']
+   return bitpix, bzero, bscale, blank
+
 
 class Colmaplist(object):
 #-----------------------------------------------------------
@@ -293,6 +314,40 @@ cmlist = Colmaplist()
 colormaps = cmlist.colormaps
 
 
+def fitsheader2dict(header, comment=True, history=True):
+#-----------------------------------------------------------
+   """
+Transform a FITS header, read with PyFITS into a Python
+dictionary.
+This is useful if one want to iterate over all keys in the
+header. The PyFITS header is not iterable because it has to
+deal with multiple entries of COMMENT and HISTORY.
+Here they are stored as a list. When a dictionary is
+converted back to a PyFITS header, one should iterate
+over these items and 
+   """
+#-----------------------------------------------------------
+   if type(header) is dict:
+      return header
+   
+   result = {}
+   
+   for card in header.ascard:
+      try:
+         key = card.key
+         if (history and key=='HISTORY') or (comment and key=='COMMENT'):
+            try:
+               result[key].append(card.value)
+            except KeyError:
+               result[key] = [card.value]
+         else:
+            result[key] = header[key]
+      except:
+         card.verify()
+   
+   return result
+
+
 
 def prompt_box(pxlim, pylim, axnameX, axnameY):
 #-----------------------------------------------------------
@@ -300,7 +355,7 @@ def prompt_box(pxlim, pylim, axnameX, axnameY):
 External helper function which returns the
 limits in pixels of the x- and y-axis.
 The input syntax is: xlo,xhi, ylo,yhi. For *x* and *y*
-the names of the image axes are subsituted.
+the names of the image axes are substituted.
 Numbers can be separated by comma's and or
 spaces. A number can also be specified
 with an expression e.g. ``0, 10,  10/3, 100*numpy.pi``.
@@ -452,7 +507,7 @@ the alternate header.
    
 :Examples:  
    Besides file names of files on disk, PyFITS allows url's and gzipped 
-   files to retreive FITS files e.g.::
+   files to retrieve FITS files e.g.::
    
       http://www.atnf.csiro.au/people/mcalabre/data/WCS/1904-66_ZPN.fits.gz
    """
@@ -500,7 +555,7 @@ the alternate header.
    # If there is no character given for an alternate header
    # but an alternate header is detected, then the user is
    # prompted to enter a character from a list with allowed
-   # characters. Currently an alternatre header is found if
+   # characters. Currently an alternate header is found if
    # there is a CRPIX1 followed by a character A..Z
    if alter == None:
       alternates = []
@@ -936,7 +991,7 @@ class Image(object):
    The keyword arguments are those for Matplotlib's method *imshow()*.
    Two of them are useful in the context of this class. These parameters
    are *visible* a boolean to set the visibility of the image to on or off,
-   and *alpha*, a number between 0 and 1 which sets the transparancy of
+   and *alpha*, a number between 0 and 1 which sets the transparency of
    the image.
 
    See also: :meth:`Annotatedimage.Image`
@@ -1915,8 +1970,15 @@ this class.
       self.clipmin = clipmin
       self.clipmax = clipmax
       if self.data != None:
-         if self.clipmin == None:                   # Take care of -inf, +inf & NaN
-            self.clipmin = imdata[numpy.isfinite(imdata)].min()  
+         # If the data is copied from the FITSobject then
+         # it does not contain -inf and inf values, because these are
+         # replaced by NaN's. If this class is used with an external image
+         # you should replace these values in that image data before creating an object
+         # otherwise Matplotlib will fail to plot anything (image, contours).
+         # If somehow the inf values still exist, then we still want to see
+         # an image and therefore discard inf, -inf and nan to find the clip values.
+         if self.clipmin == None:
+            self.clipmin = imdata[numpy.isfinite(imdata)].min()
          self.clipmax = clipmax
          if self.clipmax == None:
             self.clipmax = imdata[numpy.isfinite(imdata)].max()
@@ -1932,6 +1994,7 @@ this class.
       else:
          self.basename = basename
 
+      
 
    def set_norm(self, clipmin, clipmax):
       #-----------------------------------------------------------------
@@ -2075,7 +2138,7 @@ this class.
       """
       Set the color of bad pixels.
       If you add the event handler *interact_imagecolors()*, this
-      method steps throug a list of colors for the bad pixels in an
+      method steps through a list of colors for the bad pixels in an
       image.
 
       :param blankcolor:
@@ -2083,7 +2146,7 @@ this class.
       :type blankcolor:
          Matplotlib color
       :param alpha:
-         Make the color of bad pixels transparant with *alpha < 1*
+         Make the color of bad pixels transparent with *alpha < 1*
       :type alpha:
          Float in interval [0,1]
          
@@ -2189,7 +2252,7 @@ this class.
            'hamming', 'hermite', 'kaiser', 'quadric', 'catrom', 'gaussian', 'bessel',
            'mitchell', 'sinc', 'lanczos'
          * *visible* - Switch the visibility of the image
-         * *alpha* - Value between 0 and 1 which sets the transparancy of the image.
+         * *alpha* - Value between 0 and 1 which sets the transparency of the image.
 
       :type kwargs:
          Python keyword parameters
@@ -2278,7 +2341,7 @@ this class.
          
          >>> annim.Contours(colors='w', linewidths=2)
 
-         Set levels and the line style for megative contours:
+         Set levels and the line style for negative contours:
       
          >>> annim.Contours(levels=[-500,-300, 0, 300, 500], negative="dotted")
 
@@ -2288,7 +2351,7 @@ this class.
          >>> cont = annim.Contours(linestyles=('solid', 'dashed', 'dashdot', 'dotted'),
                                    linewidths=(2,3,4), colors=('r','g','b','m'))
 
-         Example of seeting of properties for all and 1 contour with
+         Example of setting of properties for all and 1 contour with
          *setp_contour()*:
       
          >>> cont = annim.Contours(levels=range(10000,16000,1000))
@@ -2776,7 +2839,7 @@ this class.
          :exc:`Exception` 
             *Rulers only suitable for maps with at least one spatial axis!*
             These rulers are only for plotting offsets as distances on
-            a sphere for the current projection system. So we nead at least
+            a sphere for the current projection system. So we need at least
             one spatial axis and if there is only one spatial axis in the plot,
             then we need a matching spatial axis.
          :exc:`Exception`
@@ -2864,7 +2927,7 @@ this class.
             if fp == 0.0 or (b-a)/2.0 < tol:
                # print 'Root is: ', p, fp          # We found a root
                # print "Iterations: ", i
-               break                         # Succes..., leave the while loop
+               break                         # Success..., leave the while loop
             if fa*fp > 0:
                a = p
                fa = fp
@@ -3453,6 +3516,9 @@ this class.
             xi = numpy.round(x) - (self.pxlim[0]-1)
             yi = numpy.round(y) - (self.pylim[0]-1)
             #if not numpy.ma.is_masked(self.boxdat[yi-1, xi-1]):
+            # Note that there is no need to check on -inf and inf values
+            # because they are either already filtered or they exist and
+            # are displayed then as strings '-inf' ans 'inf'.
             if self.data != None and not numpy.isnan(self.data[yi-1, xi-1]):
                z = self.data[yi-1, xi-1]
                if missingspatial == None:
@@ -3758,7 +3824,7 @@ this class.
            version of this data.
          * **m** (or 'M') saves current color**map** lut data to a file.
            The default name of the file is the name of file from which the data
-           was extracted or the name given in the contructor. The name is
+           was extracted or the name given in the constructor. The name is
            appended with '.lut'. This data is written in the
            right format so that it can be be (re)used as input colormap.
            This way you can fix a color setting and reproduce the same setting
@@ -4250,8 +4316,12 @@ to know the properties of the FITS data beforehand.
    the dimension of the FITS data is > 2. This position is either the value
    of CRPIX from the header or 1 if CRPIX is outside the range [1, NAXIS].
 
+   Values -inf and +inf in a dataset are replaced by NaN's (not a number number).
+   We now that Matplotlib methods have problems with these values, but these
+   methods can deal with NaN's.
+
 :Examples:
-   PyFITS allows url's to retreive FITS files. It can also read gzipped files e.g.:
+   PyFITS allows url's to retrieve FITS files. It can also read gzipped files e.g.:
    
       >>> f = 'http://www.atnf.csiro.au/people/mcalabre/data/WCS/1904-66_ZPN.fits.gz'
       >>> fitsobject = maputils.FITSimage(f)
@@ -4305,6 +4375,7 @@ to know the properties of the FITS data beforehand.
       #-----------------------------------------------------
       if externalheader != None:
          self.hdr = externalheader
+         self.bitpix, self.bzero, self.bscale, self.blank = getscale(self.hdr)
          self.filename = "Header dictionary"
          self.dat = externaldata
       else:
@@ -4333,15 +4404,26 @@ to know the properties of the FITS data beforehand.
          hdu = hdulist[hdunr]
          self.filename = filename
          self.hdr = hdu.header
+         self.bitpix, self.bzero, self.bscale, self.blank = getscale(self.hdr)
          if externaldata == None:
             self.dat = hdu.data
          else:
             self.dat = externaldata
          hdulist.close()             # Close the FITS file
 
+      # IMPORTANT
+      # Some FITS writers write their -32 bitpix blanks as -inf,
+      # but there can also be other sources that insert +inf or -inf
+      # values in an data set. Most methods in Matplotlib (e.g. to 
+      # create images or contours) cannot cope with these -inf and inf
+      # values. So to be save, we treat those as NaN and therefore 
+      # replace +/-inf's by NaN's
+      self.dat[-numpy.isfinite(self.dat)] = numpy.nan
+
       # An alternate header can also be specified for an external header
       self.alter = alter.upper()
-
+      
+      
       # Test on the required minimum number of axes (2)
       self.naxis = self.hdr['NAXIS']
       if self.naxis < 2:
@@ -4412,7 +4494,8 @@ to know the properties of the FITS data beforehand.
    #------------------------------------------------------------
       """
       Get minimum and maximum value of data in entire data structure
-      defined by the current FITS header. These values can be important if
+      defined by the current FITS header or in a slice. 
+      These values can be important if
       you want to compare different images from the same source
       (e.g. channel maps in a radio data cube).
 
@@ -4425,6 +4508,11 @@ to know the properties of the FITS data beforehand.
          min, max, two floating point numbers representing the minimum
          and maximum data value in data units of the header (*BUNIT*).
 
+      :Notes:
+         We assume here that the data is read when a FITSobject was created.
+         Then the data is filtered and the -inf, inf values are replaced 
+         by NaN's.
+         
       :Examples:
          Note the difference between the min, max of the entire data or the
          min, max of the slice (limited by a box)::
@@ -4441,14 +4529,11 @@ to know the properties of the FITS data beforehand.
       if box:
          if self.boxdat == None:
             return 0, 1
-         filtr = self.boxdat[numpy.isfinite(self.boxdat)]
-         mi = filtr.min()
-         ma = filtr.max()
-         #av = filtr.mean(); print "AV=", av
-         #rms = filtr.std(); print "std=", rms
+         mi = numpy.nanmin(self.boxdat)
+         ma = numpy.nammax(self.boxdat)
       else:
-         mi = self.dat.min()
-         ma = self.dat.max()
+         mi = numpy.nanmin(self.dat)
+         ma = numpy.nanmax(self.dat)
       return mi, ma
 
 
@@ -4503,7 +4588,7 @@ to know the properties of the FITS data beforehand.
       :param axnum:
          A list with axis numbers for which one wants to print information.
          These axis numbers are FITS numbers i.e. in range [1,NAXIS].
-         To display information about the two image axes one shoulf use
+         To display information about the two image axes one should use
          attribute :attr:`maputils.FITSimage.axperm` as in the second example
          below.
       :type axnum:
@@ -4655,7 +4740,7 @@ to know the properties of the FITS data beforehand.
       are part of the image. For the other axes we need to know a
       pixel position so that we are able to extract a data slice.
 
-      Atribute :attr:`dat` is then always a 2D array.
+      Attribute :attr:`dat` is then always a 2D array.
 
       :param axnr1:
          Axis number of first image axis (X-axis)
@@ -5073,7 +5158,6 @@ to know the properties of the FITS data beforehand.
       # Get the subset from the (already) 2-dim array
       if self.boxdat != None:
          self.boxdat = self.boxdat[npylim[0]-1:npylim[1], npxlim[0]-1:npxlim[1]]       # map is a subset of the original (squeezed into 2d) image
-         # self.boxdat = numpy.ma.masked_where(numpy.isnan(z), z)
          self.imshape = self.boxdat.shape
       self.pxlim = npxlim
       self.pylim = npylim
@@ -5116,7 +5200,7 @@ to know the properties of the FITS data beforehand.
       """
       Usually a user will set the figure size manually
       with Matplotlib's figure(figsize=...) construction.
-      For many plots this is a waste of whithe space around the plot.
+      For many plots this is a waste of white space around the plot.
       This can be improves by taken the aspectratio into account
       and adding some extra space for labels and titles.
       For aspect ratios far from 1.0 the number of pixels in x and y
@@ -5159,7 +5243,7 @@ to know the properties of the FITS data beforehand.
             ysize = 21.0
       if xsize != None:                       # abs(nx*cdeltx) >= abs(ny*cdelty):
          xcm = xsize
-         # The extra space is to accomodate labels and titles
+         # The extra space is to accommodate labels and titles
          ycm = xcm * (ny/nx) * aspectratio + extraspace
       else:
          ycm = ysize
@@ -5167,7 +5251,8 @@ to know the properties of the FITS data beforehand.
       return (xcm/2.54, ycm/2.54)
 
 
-   def writetofits(self, filename=None):
+   def writetofits(self, filename=None, comment=True, history=True, 
+                   bitpix=None, bzero=None, bscale=None, blank=None):
    #---------------------------------------------------------------------
       """
       This method copies current data and current header to a FITS file
@@ -5181,6 +5266,41 @@ to know the properties of the FITS data beforehand.
          'FITS' followed by a date and a time (in hours, minutes seconds).
       :type filename:
          String
+      :param comment: 
+         If you do not want to copy comments, set parameter to False
+      :type comment:
+         Boolean
+      :param history: 
+         If you do not want to copy history, set parameter to False
+      :type history:
+         Boolean
+      :param bitpix:
+         Write FITS data in another format (8, 16, 32, -32, -64).
+         If nor *bitpix* is entered then -32 is assumed. Parameters 
+         *bzero*, *bscale* and *blank* are ignored then.
+      :type bitpix:
+         Integer
+      :param bzero:
+         Offset in scaled data. If bitpix is not equal to -32 and the values
+         for bscale and bzero are None, then the data is scaled between the 
+         minimum and maximum data values. For this scaling the method scale() from
+         PyFITS is used with ``option='minmax'``. However PyFITS 1.3 generates an
+         error due to a bug. 
+      :type bzero:
+         Float
+      :param bscale:
+         Scale factor for scaled data. If bitpix is not equal to -32 and the values
+         for bscale and bzero are None, then the data is scaled between the 
+         minimum and maximum data values. For this scaling the method scale() from
+         PyFITS is used with ``option='minmax'``. However PyFITS 1.3 generates an
+         error due to a bug. 
+      :type bscale:
+         Float
+      :param blank:
+         Value that represents a blank. Usually only for scaled data.
+      :type blank:
+         Float/Integer
+      
       
       :Returns:
          ---
@@ -5192,6 +5312,8 @@ to know the properties of the FITS data beforehand.
 
         ::
       
+            # Example 1. From a Python dictionary header
+            
             header = {'NAXIS' : 2, 'NAXIS1': 800, 'NAXIS2': 800,
                      'CTYPE1' : 'RA---TAN',
                      'CRVAL1' :0.0, 'CRPIX1' : 1, 'CUNIT1' : 'deg', 'CDELT1' : -0.05,
@@ -5203,7 +5325,30 @@ to know the properties of the FITS data beforehand.
             f = maputils.FITSimage(externalheader=header, externaldata=edata)
             f.writetofits()
 
+            # Example 2. From an external header and dataset.
+            # In this example we try to copy the data format from the input file.
+            # PyFITS removes header items BZERO and BSCALE because it reads its
+            # data in a NumPy array that is compatible with BITPIX=-32.
+            # The original values for *bitpix*, *bzero*, *bscale* and *blank*
+            # are retrieved from the object attributes with the same name.
+            
+            from kapteyn import maputils
 
+            fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
+            header = fitsobject.hdr 
+            edata = fitsobject.dat
+            f = maputils.FITSimage(externalheader=header, externaldata=edata)
+            
+            f.writetofits(history=True, comment=True, 
+                          bitpix=fitsobject.bitpix,
+                          bzero=fitsobject.bzero,
+                          bscale=fitsobject.bscale,
+                          blank=fitsobject.blank)
+                          
+            # Example 3. Write a FITS file in the default format, BITPIX=-32
+            # and don't bother about FITS history and comment cards.
+            
+            f.writetofits(history=False, comment=False)
       """
    #---------------------------------------------------------------------
       if filename == None:
@@ -5213,10 +5358,41 @@ to know the properties of the FITS data beforehand.
          d = datetime.today()
          filename = d.strftime("FITS%y%m%d_%Hh%Mm%Ss.fits")
       hdu = pyfits.PrimaryHDU(self.dat)
-      # There is no simple method to copy a dict to a hdu.header object
-      # which is not a dict.
-      for k, v in self.hdr.iteritems():
-         hdu.header.update(k, v)
+      pythondict = fitsheader2dict(self.hdr, comment, history)
+      
+      for key, val in pythondict.iteritems():
+         if key=='HISTORY' or key=='COMMENT':
+            if (history and key=='HISTORY'):
+               for v in val:
+                 hdu.header.add_history(v) 
+            elif (comment and key=='COMMENT'):
+               for v in val:
+                  hdu.header.add_comment(v)
+         else:
+            hdu.header.update(key, val)
+      if bitpix != None:
+         # User wants to scale
+         code = hdu.NumCode[bitpix]   # Undocumented PyFITS function
+         if bzero == None and bscale == None:
+            # Option below does not work for (at least) int16
+            # because PyFITS (1.3) has a bug in its scaling method. 
+            hdu.scale(code, option='minmax')
+         else:
+            if bzero == None:
+               bzero = 0.0
+            if bscale == None:
+               bscale = 1.0
+            hdu.scale(code, bzero=bzero, bscale=bscale)
+         if blank != None:
+            hdu.header['BLANK'] = self.blank
+      else:
+         # The output format is copied from the Numpy array
+         # Default we use a format (to read the data) which
+         # corresponds to BITPIX=-32. Then there should be no 
+         # keyword BLANK in the header, because these numbers
+         # are identified by NaN's.
+         if hdu.header.has_key('BLANK'): 
+            del hdu.header['BLANK']
       hdulist = pyfits.HDUList([hdu])
       hdulist.writeto(filename)
       hdulist.close()
@@ -5241,7 +5417,7 @@ to know the properties of the FITS data beforehand.
       :param kwargs:
          These parameters are keyword arguments for the constructor of
          :class:`Annotatedimage`. All of them get a default value in this
-         routine. The ones for which it can be usefult to change are:
+         routine. The ones for which it can be useful to change are:
 
          * skyout: The sky definition for graticule and world coordinates
          * spectrans: The spectral translation for the spectral axis
@@ -5293,7 +5469,7 @@ to know the properties of the FITS data beforehand.
                                 skyout=self.skyout, spectrans=self.spectrans,
                                 mixpix=self.mixpix, aspect=ar, slicepos=self.slicepos,
                                 basename=basename, **kwargs)
-      # The kwargs are for cmap, blancolor, clipmin, clipmax for which
+      # The kwargs are for cmap, blankcolor, clipmin, clipmax for which
       # a FITSimage object does not need to set defaults because they
       # are used in another context (e.g. image display).
       return mplimage
@@ -5555,4 +5731,3 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
-

@@ -168,7 +168,7 @@ and we have part of a new alternate header::
 So given an optical velocity in a reference system (in our case the barycentric system),
 we can calculate which barycentric frequency we can use as a reference frequency.
 For a conversion between a barycentric frequency and a barycentric velocity we
-also need to know what the baraycentric frequency increment is.
+also need to know what the barycentric frequency increment is.
 
 Barycentric/lsrk frequency increments
 --------------------------------------
@@ -203,14 +203,14 @@ a shift in frequency is given by the formula
    \nu = \nu_0\sqrt{\frac{1-v/c}{1+v/c}} = \nu_0\sqrt{\frac{c-v}{c+v}} = 
    \nu_0 \frac{c-v}{\sqrt{c^2-v^2}}
    
-If we want to express the velocity in terms of frequencies, then this can be written as:
+If we want to express the apparent radial velocity in terms of frequencies, then this can be written as:
 
 .. math::
    :label: eq40
 
    v = c\ \frac{\nu_0^2-\nu^2}{\nu_0^2+\nu^2}
 
-For the radial velocities :math:`v_b` and :math:`v_e` we have:
+For the apparent radial velocities :math:`v_b` and :math:`v_e` we have:
 
 .. math::
    :label: eq50
@@ -251,8 +251,8 @@ the location of the observatory than one can calculate the topocentric correctio
 This information was needed at the observatory to set a frequency for a given barycentric 
 velocity. However many FITS files do not have enough information to calculate the topocentric correction.
 Also it is not needed if one knows the shifted frequencies :math:`\nu_e` and :math:`\nu_b` , then
-we can calculate the topocentric velocity without calculating the radial velocities.
-This can be shown if we insert the expressions voor velocities :math:`v_e` and :math:`v_b` 
+we can calculate the topocentric velocity without calculating the apparent radial velocities.
+This can be shown if we insert the expressions for velocities :math:`v_e` and :math:`v_b` 
 in the expression for :math:`v_t` . Then after some rearranging one finds:
 
 .. math::
@@ -327,7 +327,7 @@ is explained in note 2. Inserting the appropriate numbers:
    \Delta \nu_b = 97656.25\ \frac{\sqrt{299792458.0-26108.1743998}}{\sqrt{299792458.0+26108.1743998}} = 97647.745732\ Hz
 
    
-The increment in frequency therefore becomes 97.64775 khz::
+The increment in frequency therefore becomes 97.64775 kHz::
 
    CDELT3F=  9.764775e+4 / [Hz]
 
@@ -627,7 +627,7 @@ As written before, the relation between a true velocity and a shifted frequency 
 
    v = c\ \frac{\nu_0^2-\nu^2}{\nu_0^2+\nu^2}
 
-Observed from the barycenter the source has a radial velocity:
+Observed from the barycenter the source has a apparent radial velocity:
 
 .. math::
    :label: eq310
@@ -671,7 +671,7 @@ which reveals the value of another keyword from the header in the article's exam
    CDELT3V= -2.1217551e+4  / [m/s]
 
 Sometimes you might encounter an alternative formula that doesn't list the frequency.
-It uses eq. :eq:`eq30` to express the frequency in terms of the radial velocity and the rest
+It uses eq. :eq:`eq30` to express the frequency in terms of the apparent radial velocity and the rest
 frequency.
 
 .. math::
@@ -694,13 +694,13 @@ then after some calculations you end up with the expression:
    dv = \frac{-c}{\nu_0}\  \sqrt{(1-\frac{v}{c})}\ {(1+\frac{v}{c})}^{\frac{3}{2}}\  d\nu 
 
 If you insert v = 8981342.29811 (m/s) in this expression you will get exactly the same
-radial velocity increment (-2.1217551e+4 m/s).
+apparent radial velocity increment (-2.1217551e+4 m/s).
 
 
-We found a true radial velocity and 
+We found a apparent radial velocity and 
 calculated the increment for this radial velocity. With a short script and
 a minimal header we demonstrate how to use WCSLIB to get
-a radial velocity for an arbitrary pixel::
+a apparent radial velocity for an arbitrary pixel::
 
          
    #!/usr/bin/env python
@@ -728,8 +728,8 @@ a radial velocity for an arbitrary pixel::
 
 How can this work?
 From eq. :eq:`eq350` and eq. :eq:`eq360` it is obvious that WCSLIB can calculate the reference frequency from
-the reference radial velocity. For this reference frequency and the increment
-in radial velocity it can calculate the increment in frequency at this reference frequency.
+the reference apparent radial velocity. For this reference frequency and the increment
+in apparent radial velocity it can calculate the increment in frequency at this reference frequency.
 Then we have all the information to use eq. :eq:`eq350` to calculate radial
 velocities for different frequencies (i.e. different pixels). Note that the step in 
 frequency is linear and the step in radial velocity is **not** (which explains the
@@ -737,7 +737,7 @@ extension 'F2V' in the CTYPE keyword).
 
 Next script and header is an alternative to get exactly the same results. The header lists the barycentric 
 frequency and frequency increment. We need a spectral translation with 
-method `spectra()` to tell WCSLIB to calculate radial velocities::
+method `spectra()` to tell WCSLIB to calculate apparent radial velocities::
 
 
    #!/usr/bin/env python
@@ -1119,12 +1119,12 @@ This can be verified with:
 
 Both ratio's are equal to 1.030421045482.
 
-Conversion between radial velocity and optical/radio velocity
----------------------------------------------------------------
+Conversion between apparent radial velocity and optical/radio velocity
+-------------------------------------------------------------------------
 
 It is possible to find a relation between the true velocity and the optical velocity
 using eq. :eq:`eq10` and eq. :eq:`eq50`.
-The radial velocity can be written as:
+The apparent radial velocity can be written as:
 
 .. math::
    :label: eq510
@@ -1145,7 +1145,8 @@ Then:
 
    \frac{v}{c} = \frac{{(1+Z/c)}^2-1}{{(1+Z/c)}^2+1} = \frac{Z^2+2cZ}{Z^2+2cZ+2c^2}
    
-This equation is used in AIPS memo 27 [Aipsmemo]_ to relate an optical velocity to a true radial velocity.
+This equation is used in AIPS memo 27 [Aipsmemo]_ to relate an optical velocity to a 
+apparent radial velocity.
 If we insert :math:`Z_b` = 9120000 (m/s) then we find :math:`v_b` = 8981342.29811 (m/s) as expected
 (eq. :eq:`eq50`, :eq:`eq310`)
 
@@ -1156,7 +1157,7 @@ For radio velocities we find in a similar way:
 
    \frac{\nu_0}{\nu} = \frac{1}{\bigl(1-\frac{V}{c}\bigr)}
    
-which gives the relation between radial velocity and radio velocity:
+which gives the relation between apparent radial velocity and radio velocity:
 
 .. math::
    :label: eq550
@@ -1240,7 +1241,7 @@ Output::
 The Python interface allows for an easy implementation for these special exceptions.
 Here is a script that uses the new facility. The conversion here is triggered by the CTYPE
 extension **OHEL**. So as long this is unique to GIPSY spectral axes, you are save to
-use it. Note that we converted the frequencies to optical, radio and radial velocities.
+use it. Note that we converted the frequencies to optical, radio and apparent radial velocities.
 This is added value to the existing GIPSY implementation where these conversions are not
 possible. These WCSLIB conversions are explained in previous sections::
 
@@ -1429,7 +1430,7 @@ In other AIPS documents we read:
 So we safely can assume that in AIPS VELO-XXX (with XXX one of the 
 velocity references) without a *VELDEF* keyword defaults to a radio velocity.
 However, in the example script below we demonstrate that WCSLIB processes
-such an axis as if it is a relativistic velocity (FITS standard: VELO). 
+such an axis as if it is a apparent radial velocity (FITS standard: VELO). 
 There is no interpretation like with the
 FELO axis. The WCSLIB source confirms this. Also
 Calabretta (private comm.) has confirmed this. It is not sure how later
@@ -1440,7 +1441,7 @@ versions (>4.4) of WCSLIB will process VELO-XXX (Feb 10, 2010).
     An AIPS VELO-XXX axis shows the right velocities with WCSLIB because
     VELO in AIPS is an axis that is regularly gridded in velocity. But note
     that conversions with spectral translations assume that VELO is a
-    relativistic velocity.
+    apparent radial velocity.
 
 
 .. literalinclude:: EXAMPLES/veloaips.py
@@ -1501,12 +1502,13 @@ Output::
 
 
    
-We used eq. :eq:`eq30` to calculate a frequency for a given radial velocity. This frequency
+We used eq. :eq:`eq30` to calculate a frequency for a given apparent radial velocity. This frequency
 is used in eq. :eq:`eq5` to calculate the optical velocity. The script proves:
 
-       * Axis VELO-HEL is processed as if 'VELO-XXX' is a relativistic velocity
+       * Axis VELO-HEL is processed as if 'VELO-XXX' is a apparent radial velocity
        * This can give wrong results when applying spectral translations, because
-         the meaning of 'VELO-XXX' could be a radio velocity instead of a relativistic.
+         the meaning of 'VELO-XXX' could be a radio velocity instead of an apparent radial
+         velocity.
 
 
 The table below shows possible conversions between VELO axes and
@@ -1559,10 +1561,10 @@ where :math:`\nu` is the Doppler shifted rest frequency, given by:
 
    \nu' = \nu_0\sqrt{(\frac{c-v}{c+v})}
    
-Equivalent to the relativistic addition of radial velocities we can derive a relation for 
+Equivalent to the relativistic addition of apparent radial velocities we can derive a relation for 
 radio velocities if the velocities in  given in different reference systems.
  
-The addition of radial velocities is given in
+The addition of apparent radial velocities is given in
 AIPS memo 27 [Aipsmemo]_
 Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO) Greisen, is
 
@@ -1572,11 +1574,11 @@ Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO) Greisen, is
    v = \frac{v_s + v _{obs}}{1 + \frac{v_s v_{obs}}{c^2}}
    
 To stay close to our previous examples and definitions we set :math:`v_s` 
-which is the radial velocity of an object w.r.t. an inertial system, to
+which is the apparent radial velocity of an object w.r.t. an inertial system, to
 be equal to  :math:`v_b` (our inertial system in this case is barycentric).
 
 The other velocity, :math:`v_{obs}` is equal to the topocentric correction: :math:`v_t`
-and the result :math:`v = v_e`, the radial velocity of the object as we would observe
+and the result :math:`v = v_e`, the apparent radial velocity of the object as we would observe
 it on earth.
  
 Then we get the familiar formula (eq. :eq:`eq70`):
@@ -2140,7 +2142,7 @@ the lowest frequency.
    FREQ0          !REST FREQUENCY (HERTZ)
 
 
-WCSlib in a GIPSY task
+WCSLIB in a GIPSY task
 +++++++++++++++++++++++
 
 GIPSY (`Groningen Image Processing SYstem <https://www.astro.rug.nl/~gipsy>`_ )
@@ -2192,9 +2194,9 @@ This little GIPSY task simulates the functionality of GIPSY task *COORDS*
 which lists world coordinates for data slices. The two most important differences between
 this task and  *COORDS* are:
       
-      * With WCSlib it is simple to change the
-        output velocity to radio or radial by changing the spectral translation.
-      * The Python interface to WCSlib prepares
+      * With WCSLIB it is simple to change the
+        output velocity to radio or apparent radial by changing the spectral translation.
+      * The Python interface to WCSLIB prepares
         the GIPSY header information to give correct barycentric or lsrk velocities (i.e. it
         also converts the frequency increment to the barycentric or lsrk system).
 

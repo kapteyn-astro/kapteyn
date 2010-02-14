@@ -1015,7 +1015,28 @@ For both options we show an example.
 .. note::
 
    Manipulated headers and data can be written to a FITS file with method
-   :meth:`maputils.FITSimage.writetofits`.
+   :meth:`maputils.FITSimage.writetofits`. Its documentation shows how
+   to manipulate the format in which the data is written.
+   Also have a look at this example which creates a FITSobject from an external header 
+   and external data. It then writes the object to a FITS file. The first time in the original
+   data format with the original comments and  history cards. The second time it 
+   writes to a file with BITPIX=-32 and it skips all comment and history information::
+   
+      from kapteyn import maputils
+
+      fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
+      header = fitsobject.hdr
+      edata = fitsobject.dat
+      f = maputils.FITSimage(externalheader=header, externaldata=edata)
+      
+      f.writetofits(history=True, comment=True, 
+                    bitpix=fitsobject.bitpix,
+                    bzero=fitsobject.bzero,
+                    bscale=fitsobject.bscale,
+                    blank=fitsobject.blank)
+      
+      f.writetofits("standard.fits", history=False, comment=False)
+
 
 We use the method with external headers also to create all sky maps.
 In the next example we demonstrate how a graticule is created for an all sky map.
@@ -1332,8 +1353,12 @@ An image can contain some 'bad pixels'. A bad pixel is a location where a
 physical value is missing. These pixels are represented by value
 *NaN*. For FITS files where the data are integers (i.e. keyword BITPIX has a
 positive value) one needs to set an integer value for 
-a bad pixel with FITS keyword *BLANK*. For the extraction of data module *PyFITS* is
-used. This module takes care of blanks automatically.
+a bad pixel with FITS keyword *BLANK*. For the extraction of data the package *PyFITS* is
+used. PyFITS takes care of blanks automatically.
+
+Some FITS writers use for BITPIX=-32 a blank value equal to -inf.
+To avoid problems with plotting images and contours we replace these values
+in the data with NaN's first before anything is plotted.
 
 In the next example we inserted some blank values. They appear as a square
 in the middle of the image.
@@ -1344,7 +1369,9 @@ user interaction with :meth:`maputils.Annotatedimage.interact_imagecolors`.
 
 .. literalinclude:: EXAMPLES/mu_imagewithblanks.py
 
-
+If you change the input FITS file from *blanksetmin32.fits* to 
+*blankset16.fits*, then you get the same image and the same blanks, which proves that 
+the blanks can also be read from a FITS file with scaled data.
 
 
 Movies
