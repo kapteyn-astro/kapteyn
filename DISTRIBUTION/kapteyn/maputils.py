@@ -272,7 +272,9 @@ def getscale(hdr):
    bscale = None
    bzero = None
    blank = None
-   bitpix = hdr['BITPIX']   # Must exist
+   bitpix = None
+   if hdr.has_key('BITPIX'):
+      bitpix = hdr['BITPIX']   # Exist always for PyFITS header, but not for dict.
    if hdr.has_key('BSCALE'):
       bscale = hdr['BSCALE'] 
    if hdr.has_key('BZERO'):
@@ -4418,7 +4420,10 @@ to know the properties of the FITS data beforehand.
       # create images or contours) cannot cope with these -inf and inf
       # values. So to be save, we treat those as NaN and therefore 
       # replace +/-inf's by NaN's
-      self.dat[-numpy.isfinite(self.dat)] = numpy.nan
+      try:
+         self.dat[-numpy.isfinite(self.dat)] = numpy.nan
+      except:
+         pass
 
       # An alternate header can also be specified for an external header
       self.alter = alter.upper()
@@ -4530,7 +4535,7 @@ to know the properties of the FITS data beforehand.
          if self.boxdat == None:
             return 0, 1
          mi = numpy.nanmin(self.boxdat)
-         ma = numpy.nammax(self.boxdat)
+         ma = numpy.nanmax(self.boxdat)
       else:
          mi = numpy.nanmin(self.dat)
          ma = numpy.nanmax(self.dat)
