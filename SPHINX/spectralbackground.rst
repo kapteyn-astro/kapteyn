@@ -844,7 +844,8 @@ Then with the numbers we find:
 which is the increment in optical velocity earlier given for CDELT3Z.
 
 This is one of the possible conversions between wavelength and velocity. Others are listed 
-in `scs.pdf <scs.pdf>`_ table 3 of E.W. Greisen et al. page 750.
+in `scs.pdf <http://www.atnf.csiro.au/people/mcalabre/WCS/scs.pdf>`_
+table 3 of E.W. Greisen et al. page 750.
 
 
 Conclusions
@@ -1855,7 +1856,7 @@ GIPSY
 ***** 
 
 The formulas used in GIPSY to convert frequencies to velocities are described in section:
-`spectral coordinates <"http://www.astro.rug.nl/~gipsy/pguide/coordinates.html>`_
+`spectral coordinates <http://www.astro.rug.nl/~gipsy/pguide/coordinates.html>`_
 in the GIPSY programmers guide.
 There is a formula for radio velocities and one for optical velocities.
 Both formulas are derived from the standard formulas but the result is 
@@ -2210,6 +2211,6 @@ Read more about GIPSY tasks written in Python in
 References
 ----------
 
-.. [Aipsmemo] `AIPS memo 27` `<aips27.ps>`_  Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
+.. [Aipsmemo] `AIPS memo 27 <http://www.cv.nrao.edu/fits/wcs/aips27.ps>`_ Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
 
         
