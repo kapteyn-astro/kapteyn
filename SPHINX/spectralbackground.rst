@@ -844,8 +844,7 @@ Then with the numbers we find:
 which is the increment in optical velocity earlier given for CDELT3Z.
 
 This is one of the possible conversions between wavelength and velocity. Others are listed 
-in `scs.pdf <http://www.atnf.csiro.au/people/mcalabre/WCS/scs.pdf>`_
-table 3 of E.W. Greisen et al. page 750.
+in `scs.pdf <scs.pdf>`_ table 3 of E.W. Greisen et al. page 750.
 
 
 Conclusions
@@ -1197,6 +1196,7 @@ the data in the Nmap/GIPSY FITS header is changed:
    * Calculate the increment in frequency in the selected reference system (HEL, LSR) using
      eq. :eq:`eq140`.
    * Change CRVALn and CDELTn to the barycentric values
+   * Change CTYPEn to 'FREQ'
    * Create a projection object with spectral translation, e.g. **proj.spectra('VOPT-F2W')**
 
 In the following script we show:
@@ -1317,86 +1317,93 @@ Next script and output shows that with the optical reference velocity and the co
 increment in velocity (CDELT3Z), we can get velocities without spectral translation. 
 WCSLIB recognizes the axis type 'FELO' which is regularly
 gridded in frequency but expressed in velocity units in the optical convention. It is therefore not a
-surprise that the output is the same as the list with optical velocities in one of the previous
-scripts. 
+surprise that the output is the same as the list with optical velocities derived from
+the spectral translation 'VOPT-F2W'.
+
+We can prove this if we calculate the barycentric reference frequency and its increment. If
+*Zr* is the optical reference velocity then we find the barycentric reference 
+frequency with: 
+
+.. math::
+   :label: eq552
+
+   \nu_r = \frac{\nu_0}{\bigl(1+\frac{Z_r}{c}\bigr)}
+
+and from 
+
+.. math::
+   :label: eq553
+
+   dZ = \frac{-c}{\nu_0}\ {\bigl(1+\frac{Z_r}{c}\bigr)}^2\ d\nu
+
+we derive:
+
+.. math::
+   :label: eq554
+
+   d\nu = \frac{-\nu_0}{{\bigl(1+\frac{Z_r}{c}\bigr)}^2}\ dZ
+
+which we rewrite in:
+
+.. math::
+   :label: eq555
+
+   d\nu = \frac{-\nu_0 c} {{(c+Z_r)}^2}\ dZ
 
 So if we have a barycentric reference velocity and a barycentric velocity increment, then
 according to the formulas above it is easy to retrieve the values for the barycentric 
-reference frequency and the barycentric frequency increment::
+reference frequency and the barycentric frequency increment. The script below proves that 
+indeed with these values the optical velocities are derived from a linear frequency axis
+and not from a linear velocity axis (see the last option in this script):
 
-   #!/usr/bin/env python
-   from kapteyn import wcs
+.. literalinclude:: EXAMPLES/aipsfelo.py
+
+Output::
+
+   Pixel, velocity (km/s) with native header with FELO-HEL
+   30 9163.77150423
+   31 9141.88420167
+   32 9120.0
+   33 9098.11889857
+   34 9076.24089671
    
-   header = { 'NAXIS'  : 1,
-              'CTYPE1' : 'FELO-HEL',
-              'CRVAL1' : 9120,
-              'CRPIX1' : 32,
-              'CUNIT1' : 'km/s',
-              'CDELT1' : -21.882651442,
-              'RESTFRQ': 1.420405752e+9
-            }
-   proj = wcs.Projection(header)
-   pixels = range(30,35)
-   Vwcs = proj.toworld1d(pixels)
-   print "Pixel, velocity (%s)" % "km/s"
-   for p,v in zip(pixels, Vwcs):
-      print p, v/1000.0
+   Calculated a reference frequency:  1378471216.43
+   Calculated a frequency increment:  97647.7457311
+   Pixel, velocity (km/s) with barycentric reference frequency and increment:
+   30 9163.77150423
+   31 9141.88420167
+   32 9120.0
+   33 9098.11889857
+   34 9076.24089671
+   
+   Pixel, velocity (km/s) with spectral translation VOPT-F2W
+   30 9163.77150423
+   31 9141.88420167
+   32 9120.0
+   33 9098.11889857
+   34 9076.24089671
+   
+   Pixel, velocity (km/s) with CUNIT='FELO', which is unrecognized
+   and therefore linear. This deviates from the previous output.
+   The second velocity is calculated manually.
+   30 9163.76530288 9163.76530288
+   31 9141.88265144 9141.88265144
+   32 9120.0 9120.0
+   33 9098.11734856 9098.11734856
+   34 9076.23469712 9076.23469712
 
-   # FELO-HEL is equivalent to VOPT-F2W
-   header['CTYPE1'] = 'VOPT-F2W'
-   proj = wcs.Projection(header)
-   pixels = range(30,35)
-   Vwcs = proj.toworld1d(pixels)
-   print "Pixel, velocity (%s)" % "km/s"
-   for p,v in zip(pixels, Vwcs):
-      print p, v/1000.0
 
-   header['CTYPE1'] = 'FELO'
-   proj = wcs.Projection(header)
-   pixels = range(30,35)
-   Vwcs = proj.toworld1d(pixels)
-   print "Pixel, velocity (%s)" % proj.units
-   Zr = header['CRVAL1']
-   dZr = header['CDELT1']
-   refpix = header['CRPIX1']
-   for p,v in zip(pixels, Vwcs):
-      print p, v/1000.0, Zr + (p-refpix) * dZr
-   #
-   # Output:
-   # With CTYPE='FELO-HEL': Pixel, velocity (km/s)
-   # 30 9163.77150423
-   # 31 9141.88420167
-   # 32 9120.0
-   # 33 9098.11889857
-   # 34 9076.24089671
-   #
-   # With CTYPE='VOPT-F2W': Pixel, velocity (km/s)
-   # 30 9163.77150423
-   # 31 9141.88420167
-   # 32 9120.0
-   # 33 9098.11889857
-   # 34 9076.24089671
-   #
-   # With CTYPE='FELO' (i.e. Linear)
-   # 30 9.16376530288 9163.76530288
-   # 31 9.14188265144 9141.88265144
-   # 32 9.12 9120.0
-   # 33 9.09811734856 9098.11734856
-   # 34 9.07623469712 9076.23469712
-
-Despite the units in the header (km/s) we changed the output from m/s to km/s
-because the output is always
-in m/s (check attribute *proj.units*) so we divide it by 1000 to get km/s.
-
-In this script we demonstrate the use of a special axis type which originates from classic AIPS.
+So in this script we demonstrated the use of a special velocity axis type which 
+originates from a classic AIPS data FITS file.
 It is called 'FELO'. WCSLIB (and not our Python interface) recognizes this type as an
 **optical velocity** and performs
-the necessary internal conversions)::
+the necessary internal conversions as we can see in the source code::
 
    if (strcmp(wcs->ctype[i], "FELO") == 0) {
       strcpy(wcs->ctype[i], "VOPT-F2W");
 
-and the extensions are translated into values for FITS keyword *SPECSYS*::
+The source code also reveals that the extensions in CUNITn are translated into values 
+for FITS keyword *SPECSYS*::
        
    if (strcmp(scode, "-LSR") == 0) {
       strcpy(wcs->specsys, "LSRK");
@@ -1409,10 +1416,12 @@ and the extensions are translated into values for FITS keyword *SPECSYS*::
 **Conclusions**
 
 
-    * The extension HEL or LSR after FELO in *CTYPE1* is not used in the calculations. But when you omit
+    * The extension HEL or LSR after FELO in *CTYPE1* is not used in the calculations. 
+      But when you omit
       a valid extension the axis will be treated as a linear axis.
     * In the example above one can replace *FELO-HEL* in *CTYPE1*
-      by FITS standard *VOPT-F2W* showing that FELO is in fact the same as *VOPT-F2W*.
+      by FITS standard *VOPT-F2W* showing that for WCSLIB *FELO-HEL* 
+      is in fact the same as *VOPT-F2W*.
 
 
 AIPS axis type VELO
@@ -1431,7 +1440,7 @@ In other AIPS documents we read:
 So we safely can assume that in AIPS VELO-XXX (with XXX one of the 
 velocity references) without a *VELDEF* keyword defaults to a radio velocity.
 However, in the example script below we demonstrate that WCSLIB processes
-such an axis as if it is a apparent radial velocity (FITS standard: VELO). 
+such an axis as if it is an apparent radial velocity (FITS standard: VELO). 
 There is no interpretation like with the
 FELO axis. The WCSLIB source confirms this. Also
 Calabretta (private comm.) has confirmed this. It is not sure how later
@@ -1506,7 +1515,7 @@ Output::
 We used eq. :eq:`eq30` to calculate a frequency for a given apparent radial velocity. This frequency
 is used in eq. :eq:`eq5` to calculate the optical velocity. The script proves:
 
-       * Axis VELO-HEL is processed as if 'VELO-XXX' is a apparent radial velocity
+       * Axis VELO-HEL is processed as if 'VELO-XXX' is an apparent radial velocity
        * This can give wrong results when applying spectral translations, because
          the meaning of 'VELO-XXX' could be a radio velocity instead of an apparent radial
          velocity.
@@ -1856,251 +1865,359 @@ GIPSY
 ***** 
 
 The formulas used in GIPSY to convert frequencies to velocities are described in section:
-`spectral coordinates <http://www.astro.rug.nl/~gipsy/pguide/coordinates.html>`_
+`spectral coordinates <"http://www.astro.rug.nl/~gipsy/pguide/coordinates.html>`_
 in the GIPSY programmers guide.
-There is a formula for radio velocities and one for optical velocities.
-Both formulas are derived from the standard formulas but the result is 
-split into the reference velocity and a part that is a function of the increment in 
+There is a formula for optical velocities and one for radio velocities.
+Both formulas are derived from the standard formulas for velocities but the result is
+split into a reference velocity and a part that is a non linear function of the increment in
 frequency.
 
-**Radio:**
 
-.. math::
-   :label: eq800
+Optical
+^^^^^^^^^
 
-   V = -c (\frac{\nu'-\nu_0}{\nu_0})
+For optical velocities we use symbol *Z*.
+The conversion from frequencies to **optical** velocities is not linear. One can try to
+approximate a constant step in velocity, and to apply the standard linear
+transformation  :math:`Z(N) = Z_r + (N-crpix)*dZ`, but this approximation can
+deviate significantly in certain circumstances.
+Therefore most reduction and analysis packages provide
+functionality to calculate velocities also for the non-linear cases. Like Classic AIPS, 
+GIPSY provides a system for these transformations (e.g. function ``velpro.c``), but
+it turns out that these transformations are also approximations because
+where a barycentric or lsrk frequency should be used, GIPSY uses values from the
+FITS header and for FITS files made by Newstar/Nmap for data observed before 2006-07-03, these
+frequencies are topocentric.
+In this section we show how GIPSY transforms frequencies to optical velocities. Also we
+derive formulas for a linear transformation (i.e. for a constant velocity increment)
+which can be used if one wants to compose a modified header for a linear transformation
+:math:`Z(N) = Z_r + (N-crpix)*dZ`
 
-The frequencies in the FITS and GIPSY headers are observed frequencies.
-
-Assume for pixel :math:`N`:  :math:`\nu' = \nu + \Delta \nu + (N-N_{\nu}) \delta \nu`
-
-
-with :math:`\nu` the topocentric reference value and :math:`\Delta \nu` the difference between
-the topocentric and barycentric frequencies. Then we can write for the radio
-velocity:
-
-.. math::
-   :label: eq810
-
-   V(N) = -c\bigl(\frac{\nu+\Delta \nu-\nu_0}{\nu_0}\bigr) -\frac{c}{\nu_0}(N-N_{\nu}) \delta_{\nu}
-
-But the first part of the right hand side of the formula is the definition of
-:math:`V_b` for the Nmap/GIPSY case of a velocity in the inertial system (the inertial system
-for the velocity is coded
-in keyword CTYPE=, e.g. OHEL or OLSR). So the formula becomes:
-
-.. math::
-   :label: eq820
-
-   V_b(N) = V_b(N_\nu) -\frac{c}{\nu_0}(N-N_{\nu}) \delta_{\nu}
-
-which is as expected. The increment in radio velocity was derived before (in eq. :eq:`eq260`) and the increment
-in velocity is linear with the increment in frequency.
-
-We show the comparison between the WCSLIB method and the Nmap/GIPSY method::
-
-
-   #!/usr/bin/env python
-   import numpy as n
-   from kapteyn import wcs
-   
-   c   = 299792458.0           # m/s From literature, not as used in GIPSY
-   f0  = 1.42040575200e+9      # Rest frequency HI (Hz)
-   fR  = 1.37835117405e+9      # Topocentric reference frequency (Hz)
-   dfR = 9.765625e+4           # Increment in topocentric frequency (Hz)
-   fb  = 1.37847121643e+9      # Barycentric reference frequency (Hz)
-   dfb = 97647.745732          # Increment in barycentric frequency (Hz)
-   VR  = 8.85075090419e+6      # Barycentric reference velocity
-   Nf  = 32                    # Reference pixel for frequency
-   
-   header = { 'NAXIS'  : 1,
-              'CTYPE1' : 'FREQ',
-              'CRVAL1' : fb,
-              'CRPIX1' : Nf,
-              'CUNIT1' : 'Hz',
-              'CDELT1' : dfb,
-              'RESTFRQ': f0
-            }
-   line = wcs.Projection(header).spectra('VRAD')
-   pixels = range(30,35)
-   Vwcs = line.toworld1d(pixels)
-   print "\nMethod used in WCSLIB with barycentric reference frequency (km/s):"
-   for p,v in zip(pixels, Vwcs):
-      print p, v/1000
-   
-   
-   print "\nGIPSY formula (km/s):"
-   for n in pixels:
-      Vs = VR - dfR*c*(n-Nf)/f0
-      print n, Vs/1000.0
-   # Output:
-   # Method used in WCSLIB with barycentric reference frequency (km/s):
-   # 30 8891.97019321
-   # 31 8871.36054862
-   # 32 8850.75090404
-   # 33 8830.14125946
-   # 34 8809.53161488
-   #
-   # GIPSY formula (km/s):
-   # 30 8891.9737832
-   # 31 8871.36234369
-   # 32 8850.75090419
-   # 33 8830.13946469
-   # 34 8809.52802518
-
-To be consistent with previous sections we selected the barycentric radio velocity from
-`CRVAL3R= 8.85075090419e+6`. For WCSLIB we used the barycentric increment in frequency.
-If we replace this by the topocentric frequency increment, then the result agree slightly better,
-but are less correct.
-
-**Optical:**
-
-For the optical velocity we get after applying the same procedure:
+Given a barycentric (or lsrk) frequency one calculates an optical velocity *Z*
+in that system with:
 
 .. math::
    :label: eq850
 
-   Z = -c (\frac{\nu'-\nu_0}{\nu'})
+   Z = -c (\frac{\nu_b-\nu_0}{\nu_b})
    
-Again, assume for pixel :math:`N`: 
-:math:`\nu' = \nu_e + \Delta \nu + (N-N_{\nu}) \delta \nu`
-
-with :math:`\nu` the topocentric reference value and :math:`\Delta \nu` the difference between
-the topocentric and barycentric frequencies.
-
-Inserting this and rearranging the equation gives:
+Assume for channel :math:`N`: 
 
 .. math::
-   :label: eq860
+   :label: eq852
 
-   Z_b(N) = -c\bigl(\frac{\nu_e+\Delta \nu-\nu_0}{\nu_e+\Delta \nu}\bigr) +c \nu_0\ (\frac{1}{\nu_e+\Delta \nu +(N-N_{\nu}) \delta_{\nu}} - \frac{1}{\nu_e+\Delta \nu})
+   \nu(N) = \nu_{br} + (N-N_{ref}) \delta_{\nu_b} = \nu_{br} + {\bf n} \delta_{\nu_b}
+
+For :math:`(N-N_{ref})` we wrote :math:`\bf n`.
+The frequencies are related to the barycentric (or lrsk) reference system.
+:math:`N_{ref}` is the reference pixel (*CRPIX*) given in a FITS header,
+:math:`\nu_{br}` is the reference frequency in this barycentric system and
+:math:`\delta_{\nu_b}` is the barycentric frequency increment.
+
+Inserting :eq:`eq852` into :eq:`eq850` gives:
+
+.. math::
+   :label: eq854
+
+   Z(N) = -c\bigl(\frac{\nu_{br}+\bf n\delta_{\nu_b}-\nu_0}{\nu_{br}+\bf n\delta_{\nu_b}}\bigr) = -c \bigl(\frac{\nu_{br}-\nu_0}{\nu_{br}}\bigr) + {\bf n}dZ = Z_r + {\bf n}dZ 
+
+:math:`Z_r` is the given reference velocity in the barycentric/lsrk reference system.
+Solve this equation for :math:`{\bf n}dZ` to get an expression for the increment:
+
+.. math::
+   :label: eq856
+
+   {\bf n}dZ = {\bf n}\ \frac{-c\nu_0 \delta_{\nu_b}}{(\nu_{br}+{\bf n}\delta_{\nu_b})\nu_{br}} = c \nu_0 \bigl(\frac{1}{(\nu_{br}+{\bf n}\delta_{\nu_b})} - \frac{1}{\nu_{br}}\bigr)
+
+The formula to calculate optical velocities then becomes:
+
+.. math::
+   :label: gipsynonlinear
+
+    Z(N) = Z_r + c \nu_0 \bigl(\frac{1}{(\nu_{br}+{\bf n}\delta_{\nu_b})} - \frac{1}{\nu_{br}}\bigr)
+
 
 with:
-  * :math:`Z_b(N)` is the barycentric optical velocity for pixel :math:`N`,
-  * :math:`\nu_e` is the topocentric reference frequency,
-  * :math:`\delta_{\nu}` is the increment in topocentric frequency
-  * :math:`\Delta \nu` is the difference between barycentric and topocentric reference frequency.
+  * :math:`Z(N)` is the barycentric optical velocity for pixel :math:`N`
+  * :math:`\nu_{br}` is the barycentric reference frequency
+  * :math:`\delta_{\nu_b}` is the increment in barycentric frequency
 
-We recognize in the first part of the right side of the equation the optical 
-velocity in our inertial system, then:
 
-.. math::
-   :label: eq870
+**This is the formula that GIPSY uses to calculate optical velocities. However, GIPSY
+uses the topocentric reference frequency and the topocentric frequency increment.**
 
-   Z_b(N) = Z_b(N\nu) + (\frac{1}{\nu'_e+(N-N_\nu) \delta_{\nu}} - \frac{1}{\nu'_e} )\ \nu_0 c
-   
-with :math:`Z_b(N_{\nu)}` the barycentric reference velocity from the (FITS) header.
-
-But for the velocity increment we still have :math:`\nu'_e` in our formula
-so in fact we are dealing with :math:`\nu_e + \Delta \nu` which is the barycentric reference
-frequency. For Nmap/GIPSY data there is no barycentric frequency available but the 
-topocentric frequency is used instead. Later we show why this is a reasonable approximation.
-Next example code shows the actual output of the GIPSY formula with both
-the observed frequency and with the barycentric reference frequency. The differences are small.
-These numbers can be compared with WCSLIB output with barycentric frequency en frequency increment::
-
-   #!/usr/bin/env python
-   import numpy as n
-   from kapteyn import wcs
-   
-   c   = 299792458.0           # m/s From literature, not as used in GIPSY
-   f0  = 1.42040575200e+9      # Rest frequency HI (Hz)
-   fR  = 1.37835117405e+9      # Topocentric reference frequency (Hz)
-   dfR = 9.765625e+4           # Increment in topocentric frequency (Hz)
-   fb  = 1.37847121643e+9      # Barycentric reference frequency (Hz)
-   dfb = 97647.745732          # Increment in barycentric frequency (Hz)
-   ZR  = 9120000               # Barycentric optical reference velocity 
-   Nf  = 32                    # Reference pixel for frequency
-   
-   header = {'NAXIS'  : 1,
-             'CTYPE1' : 'FREQ',
-             'CRVAL1' : fb,
-             'CRPIX1' : Nf,
-             'CUNIT1' : 'Hz',
-             'CDELT1' : dfb,
-             'RESTFRQ': f0
-            }
-   line = wcs.Projection(header).spectra('VOPT-F2W')
-   pixarray = numpy.array(range(30,35))
-   Vwcs = line.toworld1d(pixarray)
-   print "\nMethod used in WCSLIB with barycentric reference frequency (km/s):"
-   for p,v in zip(pixarray, Vwcs):
-      print p, v/1000
-   
-   Zs = ZR + c*f0*(1/(fR+(pixarray-Nf)*dfR)-1/fR)
-   Zsb = ZR + c*f0*(1/(fb+(pixarray-Nf)*dfb)-1/fb)
-   print "\nGIPSY formula with topo and bary data (km/s):"
-   for p, w1, w2 in zip(pixarray, Zs, Zsb):
-      print p, w1/1000.0, w2/1000.0
-   # Output:
-   # Method used in WCSLIB with barycentric reference frequency (km/s):
-   # 30 9163.77150407
-   # 31 9141.88420151
-   # 32 9119.99999984
-   # 33 9098.1188984
-   # 34 9076.24089654
-   #
-   # GIPSY formula with topo and bary data (km/s):
-   # 30 9163.78294266 9163.77150423
-   # 31 9141.88992021 9141.88420167
-   # 32 9120.0 9120.0
-   # 33 9098.11318138 9098.11889856
-   # 34 9076.22946368 9076.24089671
-
-This output proves that the Nmap/GIPSY formula for optical velocities (Zs in script) is a good approximation
-if we have only the observed frequencies available. The formula gives exact results (Zsb in script) 
-if we insert the barycentric frequency and frequency increment. What remains is the question how good
-the approximation is...
-
-If we calculate the derivative of the optical velocity at the reference pixel, we find:
+If we want to express the optical velocity at pixel N as a function
+of the reference velocity and a **constant** velocity increment as in
+:math:`Z(N) = Z_r + {\bf n}dZ`, then we need to find an expression for *dZ* which does not depend
+on *n*. Rewrite *ndZ* into:
 
 .. math::
-   :label: eq880
+   :label: eq862
 
-   \frac{dZ}{d\nu_e} \approx c \nu_0\ \Bigl(\frac{2(N-N_{\nu})\delta_{\nu}}{\nu_e^3}\Bigr)
-   
-So with the difference between topocentric and barycentric frequency this becomes:
+   {\bf n}dZ = {\bf n} \frac{-c \nu_0 \delta _{\nu_b}}{(\nu_{br}+n\delta_{\nu_b}) \nu_{br}}
+
+Then, with the observation that :math:`{\bf n}\delta_{\nu_b} << \nu_{br}`:
 
 .. math::
-   :label: eq890
+   :label: eq864
 
-   {\Delta Z} \approx c \nu_0\ \Bigl(\frac{2(N-N_{\nu})\delta_{\nu}}{\nu_e^3}\Bigr) \Delta \nu
+   {\bf n}dZ \approx {\bf n} \frac{-c \nu_0 \delta_{\nu_b}}{{\nu_{br}}^2}
 
-With:
+and thereby:
 
-   * :math:`\nu_e` = 1.37835117405e9 Hz
-   * :math:`\delta_{\nu}` = 9.765625e4 Hz
-   * :math:`\nu_b` = 1.37847121643e+9 Hz
-   * :math:`c` = 299792458.0 m/s
-   * :math:`\nu_0` = 0.14204057583700e+10 Hz
-   * :math:`\Delta \nu = \nu_b - \nu_e` = 120042.38 Hz
+.. math::
+   :label: eq866
+
+   dZ \approx \frac{-c\nu_0\delta_{\nu_b}}{{\nu_{br}}^2}
    
-we calculate for the pixel next to the reference pixel this becomes 0.0038 km/s
-(in our previous example we find a difference of 0.0057 km/s).
-After 100 pixels the difference is 0.38 km/s which seems acceptable for most radio
-observations.
+This is the formula that is documented in the programmers manual to get a
+value for GIPSY's keyword *DDELT* (on of the alternative keywords from the list
+DRVAL, DDELT, DRPIX, DUNIT which describe an alternative coordinate system with a higher
+priority than the system described by the corresponding keywords that start with 'C'). 
+However the formula is never used in GIPSY to explicitly set the value of DDELT.
+Only when DDELT is given in a header, it is used as an increment.
+
+So the formula to calculate optical velocities, without the use of
+the rest frequency, is:
+
+.. math::
+   :label: gipsylinearwithf0
+      
+    Z(N) = Z_r + {\bf n}\frac{-c\nu_0\delta_{\nu_b}}{{\nu_{br}}^2}
+    
+In the formulas above we included the rest frequency. But it is not necessary to
+know its value because we can express this rest frequency in terms of optical
+velocity:
+
+.. math::
+   :label: eq868a
+
+   Z = -c (\frac{\nu_b-\nu_0}{\nu_b}) \rightarrow \nu_0 = \nu_{br} \bigl(1+\frac{Z_r}{c} \bigr)
+
+Then:
+
+.. math::
+   :label: eq868b
+
+   Z(N) = Z_r + c \nu_{br} \bigl(1+\frac{Z_r}{c}\bigr) \bigl(\frac{1}{(\nu_{br}+{\bf n}\delta_{\nu_b})} - \frac{1}{\nu_{br}}\bigr)
+
+from which we derive in a straightforward way:
+
+.. math::
+   :label: gipsynonlinearwithoutf0
+
+   Z(N) = \frac{Z_r\nu_{br} - c {\bf n}\delta_{\nu_b}}{\nu_{br} + {\bf n} \delta_{\nu_b}}
+
+
+**The formula above is the method used by GIPSY's function velpro.c to get
+velocities if the rest frequency is unknown.**
+
+And again, if we want to express the optical velocity at pixel N as a function
+of the reference velocity and a **constant** velocity increment as in
+:math:`Z(N) = Z_r + {\bf n}dZ` the we need to find an expression for *dZ* which does not depend
+on *n*. Note that :math:`{\bf n}\delta \nu_b << \nu_{br}`, then
+
+.. math::
+   :label: gipsylinearwithoutf0
+
+   Z(N) \approx \frac{Z_r\nu_{br} - {\bf n} c \delta_{\nu_b}}{\nu_{br}}
+   = Z_r + {\bf n} \bigl(-c\frac{\delta_{\nu_b}}{\nu_{br}}\bigr)
+
+
+Next script implements these formulas and show the deviations. The first three columns show the 
+correct result.
+
+.. literalinclude:: EXAMPLES/gipsy2vels.py
+
+Output::
+
+  Topocentric correction (km/s): 9.57140206387
+  Barycentric frequency and increment (Hz): 1418966870.14 -9765.3132202
+       
+       pix         WCSLIB       GIP+bary    GIP+bary-f0       GIP+topo      Linear+f0      Linear-f0
+   61.9940     299.869536     299.869536     299.869536     299.869141     299.869479     299.873664
+   62.9940     301.934754     301.934754     301.934754     301.934556     301.934740     301.936832
+   63.9940     304.000000     304.000000     304.000000     304.000000     304.000000     304.000000
+   64.9940     306.065274     306.065274     306.065274     306.065472     306.065260     306.063168
+   65.9940     308.130577     308.130577     308.130577     308.130973     308.130521     308.126336
+
+The columns in the output are:
+
+   1. *pix*: The (non integer) pixel value at which a velocity is calculated.
+   2. *WCSLIB*: The optical velocity (Km/s) as calculated by WCSLIB. The extension in
+      CTYPE is recognized and the frequencies are replaced by their
+      barycentric counterparts according to the recipe in :ref:`spectral_gipsy`.
+   3. *GIP+bary*: The optical velocity (Km/s) calculated with GIPSY formula in eq. :eq:`gipsynonlinear`
+      using barycentric reference frequency and barycentric frequency increment.
+   4. *GIP+bary-f0*: The optical velocity (Km/s) calculated with GIPSY formula
+      without the rest frequency as in eq. :eq:`gipsynonlinearwithoutf0`
+      using barycentric reference frequency and barycentric frequency increment.
+   5. *GIP+topo*: The optical velocity (Km/s) calculated with GIPSY formula in eq. :eq:`gipsynonlinear`
+      using topocentric/geocentric reference frequency and frequency increment.
+   6. *Linear+f0*: The optical velocity (Km/s) calculated with GIPSY formula in eq. :eq:`gipsylinearwithf0`
+      using a rest frequency.
+   7. *Linear-f0*: The optical velocity (Km/s) calculated with GIPSY formula in eq. :eq:`gipsylinearwithoutf0`
+      without a rest frequency.
+
+
+If you do some experiments with the values in this script,
+you will observe that the GIPSY formula with topocentric instead of the barycentric/lsrk 
+values is not
+a bad approximation although it is sensitive to the channel number (*p*).
+The linear approximations are worse and should be avoided if high precision is required.
+
+
+What remains is the question how good GIPSY's approximation is.
+With :eq:`gipsynonlinear` we write:
+
+.. math::
+   :label: gipsyapprox0
+
+   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) = c \nu_0 \bigl(
+   \frac{1} {\nu_{br}+{\bf n}\delta_{\nu_{b}}} - \frac{1}{\nu_{br}}-
+   \frac{1} {\nu_{tr}+{\bf n}\delta_{\nu_{t}}} + \frac{1}{\nu_{tr}} \bigr)
+
+Rewrite this in:
+
+.. math::
+   :label: gipsyapprox1
+
+   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) = -{\bf n} c \nu_0 \bigl(
+   \frac{\delta_{\nu_{b}}} {\nu_{br}(\nu_{br}+{\bf n}\delta_{\nu_{b}})} -
+   \frac{\delta_{\nu_{t}}} {\nu_{tr}(\nu_{tr}+{\bf n}\delta_{\nu_{t}})} \bigr)
+
+
+Note that :math:`{\bf n}\delta \nu_b << \nu_{br}` and :math:`{\bf n}\delta \nu_t << \nu_{tr}`. Then write
+the difference in increment as function of *N* as:
+
+.. math::
+   :label: gipsyapprox2
+
+   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) \approx -{\bf n} c \nu_0 \bigl( \frac{\delta_{\nu_{b}}} {\nu^2_{br}} -
+   \frac{\delta_{\nu_{t}}} {\nu^2_{tr}} \bigr)
+
+This expression explains the different values in the output of our previous script and it shows
+that the differences depend on **n**.
+
+If one defines :math:`\Delta_1 = \delta_{\nu_b} - \delta_{\nu_t}` and 
+:math:`\Delta_2 = {\nu_b} - {\nu_t}` then:
+
+.. math::
+   :label: gipsyapprox3
+
+   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) \approx -{\bf n} c \nu_0  \frac{(\delta_{\nu_b}+\Delta_1)\nu^2_t - \delta_{\nu_t}{(\nu_t+\Delta_2)}^2} {\nu^2_t{(\nu_t+\Delta_2)}^2}
+
+   = -{\bf n} c \nu_0  \frac{\Delta_1\nu^2_t - 2\nu_t\Delta_2\delta_{\nu_t} -\delta_{\nu_t}\Delta^2_2}{\nu^2_t{(\nu_t+\Delta_2)}^2}
+
+With the observation that the contibution of :math:`\Delta_1\nu^2_t` in the nominator is the biggest and that 
+:math:`\Delta_2 << \nu_t`, we derive the crude approximation:
+
+.. math::
+   :label: gipsyapprox4
+
+   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) \approx -{\bf n} c \nu_0  \frac{\Delta_1}{\nu^2_t} =   -{\bf n} c \nu_0 \frac{\delta_{\nu_b} - \delta_{\nu_t}}{\nu^2_t}
+
+The error using topocentric values is approximately a linear function of the channel number 
+and its value depends on the difference between the frequency increments in the 
+topocentric and barycentric/lsrk system.
+
 
 **Conclusions**
    
   * The GIPSY formulas assume constant frequency increments in different reference systems
     which gives small deviations from the result with WCSLIB.
-  * The formula for the optical velocity is an approximation. The deviations are small but
+  * The formula that GIPSY routines use to calculate optical velocities
+    is an approximation. The deviations are small but
     depend on the pixel i.e. :math:`(N-N_{\nu})`. This approximation is not necessary because
     when the optical velocity in the barycenter is given, then 
     one can calculate the barycentric reference frequency (see eq. :eq:`eq10`)
     and use that frequency in the GIPSY formula to get the exact result.
 
+Radio
+^^^^^^^
 
+Given a frequency, a radio velocity is calculated with the formula:
+
+.. math::
+   :label: gipradio10
+
+   V = -c (\frac{\nu'-\nu_0}{\nu_0})
+
+
+Assume for channel :math:`N`: 
+
+.. math::
+   :label: gipradio20
+
+   \nu(N) = \nu_{br} + (N-N_{ref}) \delta_{\nu_b} = \nu_{br} + {\bf n} \delta_{\nu_b}
+
+For :math:`(N-N_{ref})` we wrote :math:`\bf n`.
+The frequencies are related to the barycentric (or lrsk) reference system.
+:math:`N_{ref}` is the reference pixel (*CRPIX*) given in a FITS header,
+:math:`\nu_{br}` is the reference frequency in this barycentric system and
+:math:`\delta_{\nu_b}` is the barycentric frequency increment.
+
+Inserting :eq:`gipradio10` into :eq:`gipradio20` gives:
+
+.. math::
+   :label: gipradio30
+
+
+   V(N) = -c\bigl( \frac{\nu_{br}+{\bf n} \delta_{\nu_b} - \nu_0}{\nu_0} \bigr) = V_r + {\bf n}\frac{-c\delta_{\nu_b}}{\nu_0}
+
+with:
+  * :math:`V(N)` is the barycentric radio velocity for pixel :math:`N`
+  * :math:`\nu_{br}` is the barycentric reference frequency
+  * :math:`\delta_{\nu_b}` is the increment in barycentric frequency
+
+This increment in radio velocity was also derived in eq. :eq:`eq260`.
+The increment in radio velocity is a linear function of the increment in frequency.
+The frequencies in the FITS and GIPSY headers for pre July, 2006 WSRT/Nmap FITS files
+are the topocentric frequencies.
+
+We show the difference between the velocities derived from the barycentric/lsrk values and
+the velocities derived from the topocentric values.
+
+.. literalinclude:: EXAMPLES/gipsyradiovels.py
+
+Output::
+
+   Topocentric correction (km/s): 9.26313531147
+   Barycentric frequency and increment (Hz): 1418965411.07 -9765.32326156
+   
+         pix         WCSLIB       GIP+bary    GIP+bary-f0       GIP+topo
+      61.9940     299.877839     299.877839     299.877839     299.877712
+      62.9940     301.938920     301.938920     301.938920     301.938856
+      63.9940     304.000000     304.000000     304.000000     304.000000
+      64.9940     306.061080     306.061080     306.061080     306.061144
+      65.9940     308.122161     308.122161     308.122161     308.122288
+
+
+The second, third and fourth column represent :math:`V_b` and the last column is :math:`V_t`.
+The difference between the exact and approximate velocities as function of **n** is given by:
+
+.. math::
+   :label: gipradio40
+
+
+   V_t(N) - V_b(N) = -{\bf n} \frac{c}{\nu_0}(\delta_{\nu_t}-\delta_{\nu_b})
+
+The topocentric correction has a range between -30 Km/s and 30 Km/s.
+This corresponds to a maximum :math:`{\delta_{\nu_b} / \delta_{\nu_t}} = 0.99989993577786473`
+which is equivalent to approximately 2 m/s. Note that the difference is a function of **n**, so
+after 64 channels the deviation is more than 128 m/s.
+In our example, the channel separation is approximately 2 km/s and the deviations
+are therefore small.
 
 
 Header items in a (legacy) WSRT FITS file
 -----------------------------------------
 
-Program *nmap* (part of NEWSTAR which is a package specifically developed
-to reduce WSRT data)
-is/was used to create FITS files with WSRT image data. 
+Program *nmap* (part of NEWSTAR which is a package developed
+to process WSRT and ATCA data)
+is/was used to create FITS files with WSRT line data. 
 We investigated the meaning or interpretation of the various FITS header items. 
-The program generated it own descriptors related to velocities and frequencies.
+The program generates it own descriptors related to velocities and frequencies.
 For example:
    
 
@@ -2211,6 +2328,6 @@ Read more about GIPSY tasks written in Python in
 References
 ----------
 
-.. [Aipsmemo] `AIPS memo 27 <http://www.cv.nrao.edu/fits/wcs/aips27.ps>`_ Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
+.. [Aipsmemo] `AIPS memo 27` `<aips27.ps>`_  Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
 
         
