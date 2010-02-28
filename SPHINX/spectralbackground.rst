@@ -285,9 +285,10 @@ observatory with :eq:`eq100` written as:
    
 .. note::
    
-   1) It is important to realize that the reference frequency at E is always smaller
+   1) It is important to realize that the reference frequency at E is smaller
    than the reference frequency at B because w.r.t. the source E moves faster than B.
-   So if there is a change in the velocity of the source, the frequencies in B and E will change, but
+   So if there is a change in the velocity of the source, the frequencies in B and E will change, 
+   but
    the topocentric correction keeps the same value and therefore the relation between
    the frequencies :math:`\nu_e` and :math:`\nu_b` remains the same (eq. :eq:`eq120`).
 
@@ -318,8 +319,11 @@ and therefore we can write for the frequency bandwidth in B:
 
    \Delta \nu_b =\Delta \nu_e\sqrt{\frac{c-v_t}{c+v_t}}
 
-The reason that this formula does not contradict eq. :eq:`eq120` (where the indices seems to be swapped)
-is explained in note 2. Inserting the appropriate numbers:
+At first it seems that this contradicts eq. :eq:`eq120` 
+(where the indices seems to be swapped), but this is not true 
+because we changed the frame of the observer from Earth to the barycenter.
+The event was in E and it is observed in B.
+
 
 .. math::
    :label: eq150
@@ -844,7 +848,8 @@ Then with the numbers we find:
 which is the increment in optical velocity earlier given for CDELT3Z.
 
 This is one of the possible conversions between wavelength and velocity. Others are listed 
-in `scs.pdf <scs.pdf>`_ table 3 of E.W. Greisen et al. page 750.
+in `scs.pdf <http://www.atnf.csiro.au/people/mcalabre/WCS/scs.pdf>`_  
+table 3 of E.W. Greisen et al. page 750.
 
 
 Conclusions
@@ -1865,7 +1870,7 @@ GIPSY
 ***** 
 
 The formulas used in GIPSY to convert frequencies to velocities are described in section:
-`spectral coordinates <"http://www.astro.rug.nl/~gipsy/pguide/coordinates.html>`_
+`spectral coordinates <http://www.astro.rug.nl/~gipsy/pguide/coordinates.html>`_
 in the GIPSY programmers guide.
 There is a formula for optical velocities and one for radio velocities.
 Both formulas are derived from the standard formulas for velocities but the result is
@@ -2073,9 +2078,15 @@ With :eq:`gipsynonlinear` we write:
 .. math::
    :label: gipsyapprox0
 
-   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) = c \nu_0 \bigl(
+   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) = c \nu_0 \Bigl(
    \frac{1} {\nu_{br}+{\bf n}\delta_{\nu_{b}}} - \frac{1}{\nu_{br}}-
-   \frac{1} {\nu_{tr}+{\bf n}\delta_{\nu_{t}}} + \frac{1}{\nu_{tr}} \bigr)
+   \bigl(\frac{1} {\nu_{tr}+{\bf n}\delta_{\nu_{t}}} - \frac{1}{\nu_{tr}} \bigr)\Bigr)
+
+With the parameters:
+
+   * :math:`Z_{\nu_{t}}(N)` the optical velocity at pixel *N* using topocentric values
+   * :math:`\nu_{tr}` the topocentric frequency at the reference pixel
+   * :math:`\delta_{\nu_{t}}` the topocentric frequency increment 
 
 Rewrite this in:
 
@@ -2099,39 +2110,132 @@ the difference in increment as function of *N* as:
 This expression explains the different values in the output of our previous script and it shows
 that the differences depend on **n**.
 
-If one defines :math:`\Delta_1 = \delta_{\nu_b} - \delta_{\nu_t}` and 
-:math:`\Delta_2 = {\nu_b} - {\nu_t}` then:
+Use :eq:`eq120` to write:
 
 .. math::
-   :label: gipsyapprox3
+   :label: gipsyapprox2a
 
-   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) \approx -{\bf n} c \nu_0  \frac{(\delta_{\nu_b}+\Delta_1)\nu^2_t - \delta_{\nu_t}{(\nu_t+\Delta_2)}^2} {\nu^2_t{(\nu_t+\Delta_2)}^2}
+   \nu_{tr} =  \nu_{br} \sqrt{\frac{c-v_{tc}}{c+v_{tc}}}
 
-   = -{\bf n} c \nu_0  \frac{\Delta_1\nu^2_t - 2\nu_t\Delta_2\delta_{\nu_t} -\delta_{\nu_t}\Delta^2_2}{\nu^2_t{(\nu_t+\Delta_2)}^2}
-
-With the observation that the contibution of :math:`\Delta_1\nu^2_t` in the nominator is the biggest and that 
-:math:`\Delta_2 << \nu_t`, we derive the crude approximation:
+and from :eq:`eq140`
 
 .. math::
-   :label: gipsyapprox4
+   :label: gipsyapprox2b
 
-   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) \approx -{\bf n} c \nu_0  \frac{\Delta_1}{\nu^2_t} =   -{\bf n} c \nu_0 \frac{\delta_{\nu_b} - \delta_{\nu_t}}{\nu^2_t}
+   \delta_{\nu_b} = \delta_{\nu_t}  \sqrt{\frac{c-v_{tc}}{c+v_{tc}}}
 
-The error using topocentric values is approximately a linear function of the channel number 
-and its value depends on the difference between the frequency increments in the 
-topocentric and barycentric/lsrk system.
+Define :math:`q = \sqrt{\frac{c-v_{tc}}{c+v_{tc}}}` then :math:`\nu_{br} = q / \nu_{tr}` 
+and :math:`\delta_{\nu_b} = q * \delta_{\nu_t}`
 
+Insert this in :eq:`gipsyapprox2` to obtain:
+
+.. math::
+   :label: gipsyapprox2c
+
+   Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N) \approx -{\bf n} c \nu_0 \frac{\delta_{\nu_t}}{\nu^2_{tr}} (q^3-1)  
+
+
+The topocentric correction :math:`v_{tc}` has a range between -30 Km/s and 30 Km/s.
+For :math:`v_{tc} = 30000` *m/s* this corresponds to a maximum of q: 
+:math:`q = 0.99989993577786473`. With this maximum for *q* we find for
+:eq:`gipsyapprox2c` approximately 0.62 m/s
+
+
+Note that the difference is a function of **n**, so
+after 64 channels the deviation is almost 40 m/s.
+In our example, the channel separation is approximately 2 km/s and the deviations
+are therefore small (2%).
+
+For the example at the start of this tutorial, the reference velocity was 9120 km/s.
+The channel separation (*CDELT3Z*) is approximately 20 Km/s. For the listed topocentric
+frequency and the calculated barycentric frequency we find with :eq:`gipsyapprox2c` an error 
+of approximately 6.6 m/s. After 64 channels the deviation is approximately 420 m/s
+(2%).
+
+With :eq:`866` we get an relative error:
+
+.. math::
+   :label: gipsyapprox2d
+
+   \frac{ Z_{\nu_{b}}(N) - Z_{\nu_{t}}(N)}{dZ}  = {\bf n} (q^3-1) \frac{\delta_{\nu_t}}{\nu^2_{tr}}  \frac{\nu^2_{br}}{\delta_{\nu_t}} \approx {\bf n}(q^3-1)
+
+With the maximum value of *q* we find a maximum percentage of 0.03% for 1 channel. 
+After 64 channels the
+deviation is almost 2%. After 512 channels it is more than 15%.
 
 **Conclusions**
    
-  * The GIPSY formulas assume constant frequency increments in different reference systems
-    which gives small deviations from the result with WCSLIB.
+  * The GIPSY formulas assume constant frequency increments in the system of the reference
+    system. When these are topocentric, there are small deviations from the result with WCSLIB
+    which assume the frequencies in the same reference system as the given velocity.
   * The formula that GIPSY routines use to calculate optical velocities
     is an approximation. The deviations are small but
     depend on the pixel i.e. :math:`(N-N_{\nu})`. This approximation is not necessary because
     when the optical velocity in the barycenter is given, then 
     one can calculate the barycentric reference frequency (see eq. :eq:`eq10`)
     and use that frequency in the GIPSY formula to get the exact result.
+  * The deviation is more sensitive to the topocentric correction
+    (velocity between observatory on earth and barycenter/lsrk) than the 
+    reference frequency and the frequency increment. Also there is a maximum
+    value for the topocentric velocity which results in a maximum deviation of 
+    0.03% for one channel.
+
+
+For the data in the previous script, we used the code below (which should be added to the previous script)
+to calculate the percentages::
+
+   
+   q = sqrt((c-Vtopo)/(c+Vtopo))
+   delta = -c*f0*df/fr/fr * (q*q*q-1)
+   d = (p-crpix) * delta
+   
+   # Now change the topocentric correction to its maximum.
+   Vtopo = 30000.0
+   qmax = sqrt((c-Vtopo)/(c+Vtopo))
+   deltamax = -c*f0*df/fr/fr * (qmax*qmax*qmax-1)
+   dmax = (p-crpix) * deltamax
+   perc = abs(100*deltamax/dZ)
+   
+   print "dZ, deltamax:", dZ, deltamax
+   print "Percentage deviation for 1 channel: ", perc
+   print "Approximate percentage: ", abs(100 * (qmax*qmax*qmax-1))
+   print "Percentage deviation for 64 channel: ", 64*perc
+   print "Approximate percentage: ", abs(100 * 64*(qmax*qmax*qmax-1))
+   print "Percentage deviation for 64 channel: ", 512*perc
+   print "Approximate percentage: ", abs(100 * 512*(qmax*qmax*qmax-1))
+   
+   print "\nThe approximate difference and the real difference"
+   print "between topocentric nd barycentric increments"
+   for pixel, d1,d2,d3 in zip(pixrange, d, Z2-Z4, dmax):
+      print "%10.4f %14f %14f %14f" % (pixel, d1/1000, d2/1000, d3/1000)
+
+
+Output::
+
+   dZ, deltamax: -21236.6115174 6.57007047211
+   Percentage deviation for 1 channel:  0.0309374707295
+   Approximate percentage:  0.0300162628862
+   Percentage deviation for 64 channel:  1.97999812669
+   Approximate percentage:  1.92104082472
+   Percentage deviation for 64 channel:  15.8399850135
+   Approximate percentage:  15.3683265977
+   
+   The approximate difference and the real difference
+   between topocentric and barycentric increments and
+   the maximum deviation as function of the pixel:
+   61.9940      -0.011436      -0.011438      -0.013140
+   62.9940      -0.005718      -0.005719      -0.006570
+   63.9940       0.000000       0.000000       0.000000
+   64.9940       0.005718       0.005717       0.006570
+   65.9940       0.011436       0.011433       0.013140
+
+
+      61.9940      -0.011436      -0.011438      -0.013140
+      62.9940      -0.005718      -0.005719      -0.006570
+      63.9940       0.000000       0.000000       0.000000
+      64.9940       0.005718       0.005717       0.006570
+      65.9940       0.011436       0.011433       0.013140
+
 
 Radio
 ^^^^^^^
@@ -2163,10 +2267,11 @@ Inserting :eq:`gipradio10` into :eq:`gipradio20` gives:
    :label: gipradio30
 
 
-   V(N) = -c\bigl( \frac{\nu_{br}+{\bf n} \delta_{\nu_b} - \nu_0}{\nu_0} \bigr) = V_r + {\bf n}\frac{-c\delta_{\nu_b}}{\nu_0}
+   V_b(N) = -c\bigl( \frac{\nu_{br}+{\bf n} \delta_{\nu_b} - \nu_0}{\nu_0} \bigr) = V_r + {\bf n}\frac{-c\delta_{\nu_b}}{\nu_0}
 
 with:
-  * :math:`V(N)` is the barycentric radio velocity for pixel :math:`N`
+  * :math:`V_b(N)` is the barycentric radio velocity for pixel *N* using barycentric 
+    frequency increments
   * :math:`\nu_{br}` is the barycentric reference frequency
   * :math:`\delta_{\nu_b}` is the increment in barycentric frequency
 
@@ -2202,10 +2307,31 @@ The difference between the exact and approximate velocities as function of **n**
 
    V_t(N) - V_b(N) = -{\bf n} \frac{c}{\nu_0}(\delta_{\nu_t}-\delta_{\nu_b})
 
-The topocentric correction has a range between -30 Km/s and 30 Km/s.
-This corresponds to a maximum :math:`{\delta_{\nu_b} / \delta_{\nu_t}} = 0.99989993577786473`
-which is equivalent to approximately 2 m/s. Note that the difference is a function of **n**, so
-after 64 channels the deviation is more than 128 m/s.
+With the parameters:
+
+   * :math:`V_t(N)` the barycentric radio velocity at pixel *N* using topocentric 
+     frequency increments
+   * :math:`\delta_{\nu_{t}}` the topocentric frequency increment
+
+The topocentric correction :math:`v_{tc}` has a range between -30 Km/s and 30 Km/s.
+Rewrite :eq:`eq140` into:
+
+.. math::
+   :label: gipradio50
+
+   \frac{\delta_{\nu_b}} {\delta_{\nu_t}} = \sqrt{\frac{c-v_{tc}}{c+v_{tc}}}
+
+For :math:`v_{tc} = 30000` *m/s* this corresponds to a maximum 
+:math:`q = {\delta_{\nu_b} / \delta_{\nu_t}} = 0.99989993577786473`
+which is equivalent to:
+
+.. math::
+   :label: gipradio60
+
+   \frac{c}{\nu_0}(1-q)\delta_{\nu_t} \approx 0.2\ m/s
+
+Note that the difference is a function of **n**, so
+after 64 channels the deviation is more than 12 m/s.
 In our example, the channel separation is approximately 2 km/s and the deviations
 are therefore small.
 
@@ -2328,6 +2454,7 @@ Read more about GIPSY tasks written in Python in
 References
 ----------
 
-.. [Aipsmemo] `AIPS memo 27` `<aips27.ps>`_  Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
+.. [Aipsmemo] `AIPS memo 27 <http://www.cv.nrao.edu/fits/wcs/aips27.ps>`_  
+   Non-Linear Coordinate Systems in AIPS (Eric W. Greisen, NRAO)
 
         

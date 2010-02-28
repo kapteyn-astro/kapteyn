@@ -96,3 +96,5 @@ The Indiana University Astronomy Department @ 129.79.157.58
 Institut d' astrophysique de Paris @ 194.57.221.17
 Universidad de Granada @ 150.214.37.52
 Observatoire de la Cote d'Azur @ 192.134.15.163
+Saint Mary's University @ 140.184.21.146
+University of Utah @ 155.101.24.124
