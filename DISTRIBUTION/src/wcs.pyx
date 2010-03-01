@@ -555,12 +555,25 @@ class WrappedHeader(dict):
          if self.header[key] in (self.optical+self.radio):
             self[key] = 'FREQ'
             break
-   
+
+   def wsrt_topo(self):           # WSRT file with topocentric frequencies?
+      try:
+         if self.header['INSTRUME'] != 'WSRT':
+            return False
+      except:
+         return False
+      try:
+         refjd = epochs('F2006-07-03')[2]
+         obsjd = epochs('F'+self.header['DATE-OBS'])[2]
+         return obsjd<refjd
+      except:
+         return False
+
    def freqvalue(self):           # adjust special frequency values and types
       for i in range(1,self.naxis+1):
          suffix = '%d'%i + self.alter
          ctype = self.header['CTYPE' + suffix]
-         if ctype in (self.optical + self.radio):
+         if self.wsrt_topo() and ctype in (self.optical + self.radio):
             f  = self.header['CRVAL' + suffix]
             df = self.header['CDELT' + suffix]
             try:
