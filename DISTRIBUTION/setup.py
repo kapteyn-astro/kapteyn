@@ -63,6 +63,13 @@ setup(
          "ascarray",
          ["src/ascarray.c"],
          include_dirs=include_dirs
+      ),
+      Extension(
+         "_nd_image",
+         ["src/nd_image.c","src/ni_filters.c", "src/ni_fourier.c",
+          "src/ni_interpolation.c", "src/ni_measure.c", "src/ni_morphology.c",
+          "src/ni_support.c"],
+         include_dirs=include_dirs
       )
    ],
    package_dir={'kapteyn': 'kapteyn'},
