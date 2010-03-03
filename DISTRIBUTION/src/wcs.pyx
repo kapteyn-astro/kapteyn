@@ -277,6 +277,8 @@ def coordmap(proj_src, proj_dst, img_shape, img_offset=None):
 This function returns a coordinate map which can be used as the
 argument coordinates in calls to the function :func:`map_coordinates`
 from the :mod:`scipy.ndimage.interpolation` module.
+(For convenience, this module is also available in
+the Kapteyn Package as :mod:`kapteyn.interpolation`.)
 The resulting coordinate map can be
 used for reprojecting an image into another image with a different
 coordinate system.  Current limitations are that the source- and
