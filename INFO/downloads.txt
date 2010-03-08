@@ -98,3 +98,5 @@ Universidad de Granada @ 150.214.37.52
 Observatoire de la Cote d'Azur @ 192.134.15.163
 Saint Mary's University @ 140.184.21.146
 University of Utah @ 155.101.24.124
+Geologisk Museum - Koebenhavns Universitet @ 130.225.209.166
+University of Western Ontario @ 129.100.41.186

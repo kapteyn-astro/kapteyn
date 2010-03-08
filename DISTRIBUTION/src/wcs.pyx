@@ -62,7 +62,7 @@ Functions
 Function coordmap
 .................
 
-.. autofunction:: coordmap(proj_src, proj_dst, img_shape)
+.. autofunction:: coordmap(proj_src, proj_dst, img_shape[, img_offset=None])
 
 Utility functions
 .................
