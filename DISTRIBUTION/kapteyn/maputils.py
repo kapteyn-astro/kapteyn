@@ -231,6 +231,8 @@ from kapteyn.celestial import skyrefsystems, epochs, skyparser
 from kapteyn.tabarray import tabarray, readColumns
 from kapteyn.mplutil import AxesCallback, VariableColormap, TimeCallback, KeyPressFilter
 from kapteyn.positions import str2pos
+#from scipy.ndimage.interpolation import map_coordinates
+from kapteyn.interpolation import map_coordinates
 import readline
 from types import TupleType as types_TupleType
 from types import ListType as types_ListType
@@ -254,6 +256,16 @@ __version__ = '1.9'
 
 def issequence(obj):
   return isinstance(obj, (list, tuple, numpy.ndarray))
+
+
+def getfilename(pre='mu', post='fits'):
+   # Create filename unique to the microsecond (%f), using
+   # 'pre' as prefix and 'post' as filename extension.
+   # Parameter 'post' should not contain a dot.
+   d = datetime.now()
+   stamp = d.strftime("%Y%m%d_%Hh%Mm%Ss")
+   filename = "%s%s%d.%s" %(pre, stamp, d.microsecond, post)
+   return filename
 
 
 def randomlabel(base=''):
@@ -983,6 +995,7 @@ def blur_image(self, n, ny=None) :
    self.datmax = self.data.max()
    u = {'vmin':self.datmin, 'vmax':self.datmax}
    self.kwargs.update(u)
+
 
 
 class Image(object):
@@ -1840,7 +1853,38 @@ this class.
    be *clipmin*.
 :type clipmax:
    Float
+:param overlay_src:
+   An object from class :class:`FITSimage`. This object must specify data
+   that corresponds to a spatial map and its axes order must be the same
+   as that of the current FITSimage object for which this you want to
+   replace the data with an external source. The data in that source is
+   reprojected to the WCS system described by the current header.
+   With this method we are able to overlay data from a source with a different
+   coordinate system. Its default is 'None'.
+:type overlay_src:
+   maputils.FITSimage instance
+:param overlay_dict:
+   This parameter is a dictionary with parameters for the interpolation routine
+   which is used to reproject data in *overlay_src*. The interpolation routine
+   is based on SciPy's *map_coordinates*. The most important parameters with
+   the local defaults are::
+   
+      order :  int, optional
+               The order of the spline interpolation, default is 1.
+               The order has to be in the range 0-5.
+      mode :   str, optional
+               Points outside the boundaries of the input are filled according
+               to the given mode ('constant', 'nearest', 'reflect' or 'wrap').
+               Default is 'constant'.
+      cval :   scalar, optional
+               Value used for points outside the boundaries of the input if
+               mode='constant'. Default is numpy.NaN
 
+:type overlay_dict:
+   Python dictionary
+
+
+   
 
 :Attributes:
 
@@ -1914,6 +1958,7 @@ this class.
 
 :Methods:
 
+.. automethod:: reproject
 .. automethod:: set_norm
 .. automethod:: set_colormap
 .. automethod:: write_colormap
@@ -1940,19 +1985,29 @@ this class.
 #--------------------------------------------------------------------
    def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, skyout, spectrans,
                 mixpix=None, aspect=1, slicepos=None, basename=None,
-                cmap='jet', blankcolor='w', clipmin=None, clipmax=None):
+                cmap='jet', blankcolor='w', clipmin=None, clipmax=None,
+                overlay_src=None, overlay_dict=None):
       #-----------------------------------------------------------------
       """
       """
       #-----------------------------------------------------------------
       self.ptype = "Annotatedimage"
       self.hdr = header
-      self.data = imdata
-      self.mixpix = mixpix
       self.projection = projection
-      self.axperm = axperm
       self.pxlim = pxlim
       self.pylim = pylim
+      self.origdata = imdata
+      if overlay_src != None:
+         # User/Programmer wants current data to be overwritten with 
+         # data from another FITS file, re-projected so that it corresponds
+         # to the input header.
+         # The reprojection function returns a copy of the data, so the 
+         # original data (in *imdata*) is unaltered.
+         self.data = self.reproject(overlay_src, overlay_dict)
+      else:
+         self.data = imdata
+      self.mixpix = mixpix
+      self.axperm = axperm
       self.skyout = skyout
       self.spectrans = spectrans
       self.box = (self.pxlim[0]-0.5, self.pxlim[1]+0.5, self.pylim[0]-0.5, self.pylim[1]+0.5)
@@ -1980,10 +2035,10 @@ this class.
          # If somehow the inf values still exist, then we still want to see
          # an image and therefore discard inf, -inf and nan to find the clip values.
          if self.clipmin == None:
-            self.clipmin = imdata[numpy.isfinite(imdata)].min()
+            self.clipmin = self.data[numpy.isfinite(self.data)].min()
          self.clipmax = clipmax
          if self.clipmax == None:
-            self.clipmax = imdata[numpy.isfinite(imdata)].max()
+            self.clipmax = self.data[numpy.isfinite(self.data)].max()
       else:
          self.clipmin = 0.0
          self.clipmax = 1.0
@@ -1997,6 +2052,50 @@ this class.
          self.basename = basename
 
       
+   def reproject(self, overlayobj, interpol_dict):
+      #-----------------------------------------------------------------
+      """
+      Overlays are created with this method. It is not advertized as
+      a method that should be used by a user/programmer in a script.
+      It is invoked in the constructor of the Annotatedimage class
+      when a value is given for parameter *overlay_src*. Then several
+      parameters are set like the min. & max. of the data etc. and the clip
+      levels for the color lut.
+
+      This routine first finds coordinates in the overlay map that
+      corresponds to integer pixel positions in the destination map.
+      In this step a position is transformed to a world coordinate
+      and this world coordinate is transformed into a coordinate
+      in the overlay map.
+      Finally the interpolation routine returns an interpolated image
+      value from the overlay map and inserts this in the data that is
+      returned by this method to the calling environment.
+      """
+      #-----------------------------------------------------------------
+      proj_src = overlayobj.convproj
+      data_src = overlayobj.boxdat
+
+      shape_dest = self.pylim[1]-self.pylim[0]+1, self.pxlim[1]-self.pxlim[0]+1
+      offset_dest = self.pylim[0]-1, self.pxlim[0]-1
+      # Let wcs calculate the coordinates
+      coords = wcs.coordmap(overlayobj.convproj, self.projection, shape_dest, offset_dest)
+
+      # Process the dictionary for the interpolation options
+      if interpol_dict != None:
+         if not interpol_dict.has_key('order'):
+            interpol_dict['order'] = 1
+         if not interpol_dict.has_key('cval'):
+            interpol_dict['cval'] = numpy.NaN
+      else:
+         interpol_dict = {}
+         interpol_dict['order'] = 1
+         interpol_dict['cval'] = numpy.NaN
+
+      # Find (interpolate) the data in the source map at the positions
+      # given by the destination map.
+      reprojecteddata = map_coordinates(data_src, coords, **interpol_dict)
+      return reprojecteddata
+
 
    def set_norm(self, clipmin, clipmax):
       #-----------------------------------------------------------------
@@ -4914,7 +5013,6 @@ to know the properties of the FITS data beforehand.
          # Reshape the array, assuming that the other axes have length 1
          # You can reshape with the shape attribute or with NumPy's squeeze method.
          # With shape: dat.shape = (n1,n2)
-         # With squeeze: dat = numpy.squeeze( dat )
          if self.dat != None:
             self.boxdat = self.dat[sl].squeeze()
       else:
@@ -5257,7 +5355,8 @@ to know the properties of the FITS data beforehand.
 
 
    def writetofits(self, filename=None, comment=True, history=True, 
-                   bitpix=None, bzero=None, bscale=None, blank=None):
+                   bitpix=None, bzero=None, bscale=None, blank=None,
+                   boxdat=None):
    #---------------------------------------------------------------------
       """
       This method copies current data and current header to a FITS file
@@ -5305,10 +5404,28 @@ to know the properties of the FITS data beforehand.
          Value that represents a blank. Usually only for scaled data.
       :type blank:
          Float/Integer
-      
+      :param boxdat:
+         An FITSimage object has two attributes pointing to data. The first is
+         attribute *dat* which is always pointing to the entire data structure
+         in the FITS header data unit. If one extracts a slice and sets limits to
+         the data ranges, then a new attribute 'boxdat' points to this data.
+         It is possible to replace it by external data given in parameter *boxdat*.
+         It must have the same shape as the data in attribute *boxdat*.
+         The method can be applied to reprojected data as a result of an
+         overlay.
+         After the insertion of the new data, the old data is copied back. The
+         original *boxdat* data remains unaltered.
+      :type boxdat:
+         Array with floats
       
       :Returns:
          ---
+
+      :Raises:
+         :exc:`ValueError`
+             You will get an exception if the shape of your external data in parameter 'boxdat'
+             is not equal to the current sliced data with limits.
+  
       
       :Notes:
          ---
@@ -5320,10 +5437,10 @@ to know the properties of the FITS data beforehand.
             # Example 1. From a Python dictionary header
             
             header = {'NAXIS' : 2, 'NAXIS1': 800, 'NAXIS2': 800,
-                     'CTYPE1' : 'RA---TAN',
-                     'CRVAL1' :0.0, 'CRPIX1' : 1, 'CUNIT1' : 'deg', 'CDELT1' : -0.05,
-                     'CTYPE2' : 'DEC--TAN',
-                     'CRVAL2' : 0.0, 'CRPIX2' : 1, 'CUNIT2' : 'deg', 'CDELT2' : 0.05,
+                      'CTYPE1' : 'RA---TAN',
+                      'CRVAL1' :0.0, 'CRPIX1' : 1, 'CUNIT1' : 'deg', 'CDELT1' : -0.05,
+                      'CTYPE2' : 'DEC--TAN',
+                      'CRVAL2' : 0.0, 'CRPIX2' : 1, 'CUNIT2' : 'deg', 'CDELT2' : 0.05,
                      }
             x, y = numpy.mgrid[-sizex1:sizex2, -sizey1:sizey2]
             edata = numpy.exp(-(x**2/float(sizex1*10)+y**2/float(sizey1*10)))
@@ -5357,11 +5474,15 @@ to know the properties of the FITS data beforehand.
       """
    #---------------------------------------------------------------------
       if filename == None:
-         # Create filename unique to the second. If more resolution
-         # is needed use %f to get microseconds.
-         from datetime import datetime
-         d = datetime.today()
-         filename = d.strftime("FITS%y%m%d_%Hh%Mm%Ss.fits")
+         filename = getfilename('mu', 'fits')
+
+      if boxdat != None:
+         if self.boxdat.shape != boxdat.shape:
+            mes = "Shape of external data %s in 'boxdat' is not equal to shape of slice (%s)" % (self.boxdat.shape, boxdat.shape)
+            raise ValueError(mes)
+         dum = self.boxdat.copy()
+         self.boxdat[:] = boxdat
+         # Now the new data is part of the total data structure
       hdu = pyfits.PrimaryHDU(self.dat)
       pythondict = fitsheader2dict(self.hdr, comment, history)
       
@@ -5400,7 +5521,11 @@ to know the properties of the FITS data beforehand.
             del hdu.header['BLANK']
       hdulist = pyfits.HDUList([hdu])
       hdulist.writeto(filename)
+      
       hdulist.close()
+      if boxdat != None:
+         # Copy back to restore original situation
+         self.boxdat[:] = dum
       
 
    def Annotatedimage(self, frame=None, **kwargs):

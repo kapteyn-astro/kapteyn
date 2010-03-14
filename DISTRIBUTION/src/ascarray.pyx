@@ -115,9 +115,9 @@ Read an ASCII table file and return its data as a NumPy array.
    cdef char *endptr
    cdef int i, column, ncols=0, lineno=0, lstart=0, lend=0
    cdef npy_intp nvalues=0
-   cdef int filesize, maxitems, badflag
+   cdef int filesize, maxitems=0, badflag
    cdef int *segments=NULL, maxseg=0, nseg=0, segfirst=0, segflag
-   cdef double *data=NULL, badvalue
+   cdef double *data=NULL, badvalue=0.0
    f = fopen(filename, "r")
    if f==NULL:
       raise IOError, 'cannot open %s' % filename

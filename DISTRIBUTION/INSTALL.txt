@@ -28,4 +28,16 @@ There are three installation options:
       python setup.py install --install-lib $gip_exe
 
 
-                                            31-10-2008, JPT
+Known Problem
+=============
+
+An often-encountered problem is that WCSLIB's default installation
+procedure installs its lib/ and include/ directories under /usr/local/
+while the system is not configured for this.  This can be fixed by
+changing the system's configuration, e.g., by changing /etc/ld.so.conf,
+or WCSLIB can be installed under /usr.  See the file INSTALL in WCSLIB's
+distribution. 
+
+
+                                            10-03-2010, JPT
+

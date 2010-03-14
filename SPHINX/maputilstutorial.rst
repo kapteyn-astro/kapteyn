@@ -261,7 +261,7 @@ This is done with the following methods:
      >>> fitsobject.set_imageaxes(axnr1=2, axnr2=1)
      >>> fitsobject.set_imageaxes(2,1)
 
-     **Data slices from data sets with more than two axes**: 
+   * **Data slices from data sets with more than two axes**:
      For an artificial set called 'manyaxes.fits', we want to extract one spatial map.
      The axes order is [frequency, declination, right ascension, stokes].
      We extract a data slice at FREQ=2 and STOKES=1.
@@ -1076,6 +1076,64 @@ in combination with the original FITS header. Note that we used Matplotlib's
 frame has all her axes set to invisible. We can set them to visible but
 besides a label, one also get numbers along the axes and that was what we
 want to avoid.
+
+
+Overlay plot
+-------------
+
+There are several methods to compare data of the same part of the sky but from
+different sources. These different sources often have different world coordinate
+systems. If you want to compare two or more sources in one plot you need to
+define a base world coordinate system (wcs) and adjust the other sources so
+that their data fits the header description of the first. In other words: you need
+to re-project the data of the other sources. Module :mod:`wcs` provides a nice
+reprojection function called :func:`wcs.coordmap` which does the necessary
+coordinate transformations. The transformation of the data is done with an interpolation
+function based Scipy's function ``map_coordinates``. These two functions are combined
+in one re-projection method in class :class:`maputils.FITSimage.Annotatedimage`
+The method is triggered when you use parameter *overlay_src* in its constructor.
+The parameter points to an object from class :class:`maputils.FITSimage`.
+The object should be sliced with
+:meth:`maputils.FITSimage.set_imageaxes` to a two dimensional data structure if the
+dimension of the data structure of the FITS file is greater than 2. You have to take
+care of the fact that the data represents a valid spatial map.
+
+In the script below the base image data is derived from object ``Basefits``. The data
+we want to re-project for an overlay with contours is derived from a second source with
+another wcs called ``Overfits``. These images are shown in the plots in the top row.
+Then a plot is shown with the data of the base plot and the contours for the
+re-projected data of the second source. The last plot shows the difference
+between the base data and the reprojected data, which is noisy data in this case.
+
+The reason that the residuals are small is that the our two sources contain the same data,
+except that it is rotated and has different pixel size. To inspect the quality of the
+reprojection we plotted contours in of the base image in green and contours at the same
+levels of the re-projected data in red in the same plot. If you zoom in then
+you will see small differences between the two contour sets.
+
+Note the special way we reuse the re-projected data of the Annotatedimage object
+to insert the difference between base and re-projected data in the base FITSimage.
+With this modified object we create a new Annotatedimage object for plotting.
+Note that the original data can not be restored, but in this case that will not be necessary.
+
+
+**Example: mu_overlaym101.py - Reprojection test with overlay data**
+
+.. plot:: EXAMPLES/mu_overlaym101.py
+   :include-source:
+   :align: center
+
+
+
+To generalize the concept of overlays, we created a small application which
+allows a user to enter source data and overlay data. It also shows how the overlay
+data is reused to write a modified :class:`maputils.FITSimage` object to file on disk
+with method :meth:`maputils.FITSimage.writetofits`.
+
+**Example: mu_overlay.py - Overlay contours of external data on a base image**
+
+.. literalinclude:: EXAMPLES/mu_overlay.py
+
 
 
 Plotting markers from file

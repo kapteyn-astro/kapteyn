@@ -339,7 +339,7 @@ image with galactic coordinates.
    if len(proj_src.types)!=naxis or len(proj_dst.types)!=naxis:
       raise TypeError, "incompatible projections and shape"
 
-   grids_dst = numpy.zeros(shape=img_shape+(naxis,), dtype=numpy.int32)
+   grids_dst = numpy.zeros(shape=img_shape+(naxis,), dtype=numpy.int)
 
    factors_c[0] = 1
    for i in range(naxis):
@@ -365,8 +365,21 @@ image with galactic coordinates.
       src_perm.append(iax)
    proj_src = proj_src.sub(src_perm)
    proj_src.allow_invalid = True
+########################################################
+###                  NOTICE                          ###
+### the code below has been "patched" for a problem  ###
+### that is not yet understood.                      ###
+########################################################
    if debug: print "     gridmap"
-   grids_src = (proj_src.topixel(proj_dst.toworld(grids_dst))-1.0).T
+   if debug: print 'destination', grids_dst     ###
+   wtmp = proj_dst.toworld(grids_dst) ###
+   if debug: print "world: ", wtmp              ###
+   proj_dst.topixel(wtmp) ### !!! crucial to "correct" wrong world coordinates
+   if debug: print "world: ", wtmp              ###
+   ptmp = proj_src.topixel(wtmp)      ###
+   if debug: print "pixel", ptmp                ###
+   grids_src = (ptmp-1.0).T           ###
+#   grids_src = (proj_src.topixel(proj_dst.toworld(grids_dst))-1.0).T ### original
    if debug: print "end  gridmap"
 
    if debug: print "     reorder"
