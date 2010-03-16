@@ -1482,6 +1482,8 @@ Example::
       self.pixel = None
       self.invalid = False
       param = <wcsprm*>void_ptr(self.wcsprm)
+      if isinstance(source, numpy.ndarray) and self.reverse is not None:
+         source = source.copy()   # prevent overwriting source by world2world()
       coord = Coordinate(source, self.rowvec)
       if param.naxis != coord.ndims:
          raise WCSerror, (-3, "wrong pixel dimensionality: %d instead of %d" % (coord.ndims, param.naxis))
@@ -1493,8 +1495,10 @@ Example::
       if self.reverse is not None:
          world2world(self.reverse, <double*>void_ptr(coord.data),
                      coord.n, coord.ndims, param.lng, param.lat)
-      coordfix(<double*>void_ptr(coord.data),
-                     coord.n, coord.ndims, param.lng, param.lat)
+#
+# disable coordfix: should not be necessary with new WCSLIB.
+#      coordfix(<double*>void_ptr(coord.data),
+#                     coord.n, coord.ndims, param.lng, param.lat)
       status = wcss2p(param, coord.n, coord.ndims,
                       <double*>void_ptr(coord.data),
                       phi, theta, imgcrd, pixel, stat)
