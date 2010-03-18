@@ -62,7 +62,7 @@ Functions
 Function coordmap
 .................
 
-.. autofunction:: coordmap(proj_src, proj_dst, img_shape[, img_offset=None])
+.. autofunction:: coordmap(proj_src, proj_dst, dst_shape[, dst_offset=None, src_offset=None])
 
 Utility functions
 .................
@@ -245,7 +245,8 @@ cdef world2world(skymat, double *world, n, ndims, lonindex, latindex):
 # --------------------------------------------------------------------------
 #                             coordfix
 # --------------------------------------------------------------------------
-#   Frustrate WCSLIB's test for all equal latitude or longitude values.
+#   Frustrate WCSLIB's (version<4.4) test for all equal latitude or
+#   longitude values.
 #   This check can cause problems in case of |latitude| > 90 degrees.
 #   Then the 180 degree adjustment for the longitude is incorrectly
 #   applied to _all_ longitudes, also when |latitude| < 90 degrees.
@@ -263,13 +264,17 @@ cdef coordfix(double *world, n, ndims, lonindex, latindex):
 #   return a coordinate map to be used in calls to the function
 #   scipy.ndimage.interpolation.map_coordinates()
 #
-def coordmap(proj_src, proj_dst, img_shape, img_offset=None):
+def coordmap(proj_src, proj_dst, dst_shape, dst_offset=None, src_offset=None):
    """
 - *proj_src*, *proj_dst* -- the source- and destination projection objects.
-- *img_shape* -- the destination image's shape.  Must be compatible with the
+- *dst_shape* -- the destination image's shape.  Must be compatible with the
   projections' dimensionality. The elements are in Python order, i.e.,
   the first element corresponds to the last FITS axis.
-- *img_offset* -- the destination image's offset. If None, the offset for
+- *dst_offset* -- the destination image's offset. If None, the offset for
+  all axes will be zero. Otherwise it must be compatible with the
+  projections' dimensionality. The elements are in Python order, i.e.,
+  the first element corresponds to the last FITS axis.
+- *src_offset* -- the source image's offset. If None, the offset for
   all axes will be zero. Otherwise it must be compatible with the
   projections' dimensionality. The elements are in Python order, i.e.,
   the first element corresponds to the last FITS axis.
@@ -320,66 +325,37 @@ This example is a complete program and illustrates how a FITS file containing
 a 2-dimensional image with equatorial coordinates can be reprojected into an
 image with galactic coordinates.
 """
-   cdef int *grids_c
-   cdef int offset_c[20], factors_c[20], npixels_c, naxis_c, index_c, i_c, ax_c
-
-   if debug: print "wcs.coordmap"
-   naxis = len(img_shape)
-   naxis_c = naxis
-   if img_offset is None:
-      img_offset = []
-      for i in range(naxis):
-         img_offset.append(0)
-
-   for i in range(naxis):
-      offset_c[i] = img_offset[-i-1]
-
-   npixels_c = reduce(mpy, img_shape)
+   naxis = len(dst_shape)
 
    if len(proj_src.types)!=naxis or len(proj_dst.types)!=naxis:
       raise TypeError, "incompatible projections and shape"
 
-   grids_dst = numpy.zeros(shape=img_shape+(naxis,), dtype=numpy.int32)
+   if dst_offset is None:
+      dst_offset = numpy.zeros((naxis,), dtype=numpy.int)
+   else:
+      dst_offset = numpy.flipud(dst_offset)
 
-   factors_c[0] = 1
-   for i in range(naxis):
-      factors_c[i+1] = factors_c[i]*img_shape[-i-1]
+   if src_offset is None:
+      src_offset = numpy.zeros((naxis,), dtype=numpy.int)
+   else:
+      src_offset = numpy.flipud(src_offset)
 
-   index_c = 0
-   grids_c = <int*>PyArray_DATA(grids_dst)
-   for i_c in range(npixels_c):
-      for ax_c in range(naxis_c):
-         grids_c[index_c] = (i_c%factors_c[ax_c+1])/factors_c[ax_c]+offset_c[ax_c]+1
-         index_c += 1
-   
-   dst_types = proj_dst.types
+   gslices = []
+   for ax in range(naxis):
+      gslices.insert(0, slice(1,dst_shape[ax]+1))
+
+   grids_dst = numpy.mgrid[gslices].T + dst_offset
+
    proj_dst = proj_dst.copy()
    proj_dst.skyout = proj_src.skyout
    proj_dst.allow_invalid = True
    
-   src_types = list(proj_src.types)
-   src_perm = []
-   for axtype in dst_types:
-      iax = src_types.index(axtype)+1
-      src_types[iax-1] = 'seen'       # do not visit a second time
-      src_perm.append(iax)
-   proj_src = proj_src.sub(src_perm)
+   proj_src = proj_src.copy()
    proj_src.allow_invalid = True
-   if debug: print "     gridmap"
-   grids_src = (proj_src.topixel(proj_dst.toworld(grids_dst))-1.0).T
-   if debug: print "end  gridmap"
 
-   if debug: print "     reorder"
-   maplist = []
-   for ax in range(naxis):
-      maplist.append(grids_src[-ax-1].T)
-   if debug: print "end  reorder"
+   grids_src = (proj_src.topixel(proj_dst.toworld(grids_dst))-1.0-src_offset).T
 
-   return numpy.array(maplist)
-
-# helper function, replaces "lambda x,y: x*y"
-def mpy(a,b):
-   return a*b
+   return numpy.transpose(numpy.flipud(grids_src), [0]+range(naxis, 0, -1))
 
 
 # ==========================================================================
@@ -1495,10 +1471,9 @@ Example::
       if self.reverse is not None:
          world2world(self.reverse, <double*>void_ptr(coord.data),
                      coord.n, coord.ndims, param.lng, param.lat)
-#
-# disable coordfix: should not be necessary with new WCSLIB.
-#      coordfix(<double*>void_ptr(coord.data),
-#                     coord.n, coord.ndims, param.lng, param.lat)
+
+      coordfix(<double*>void_ptr(coord.data),
+                     coord.n, coord.ndims, param.lng, param.lat)
       status = wcss2p(param, coord.n, coord.ndims,
                       <double*>void_ptr(coord.data),
                       phi, theta, imgcrd, pixel, stat)

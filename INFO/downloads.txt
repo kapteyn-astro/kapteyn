@@ -101,3 +101,6 @@ University of Utah @ 155.101.24.124
 Geologisk Museum - Koebenhavns Universitet @ 130.225.209.166
 University of Western Ontario @ 129.100.41.186
 National Bank of Ukraine @ 194.44.242.197
+Torun Centre for Astronomy @ 158.75.7.74
+Universitaet zu Koeln @ 134.95.46.84
+Korea Astronomy Observatory @ 210.219.33.212
