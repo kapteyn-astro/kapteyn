@@ -62,7 +62,7 @@ Functions
 Function coordmap
 .................
 
-.. autofunction:: coordmap(proj_src, proj_dst, dst_shape[, dst_offset=None, src_offset=None])
+.. autofunction:: coordmap(proj_src, proj_dst[, dst_shape=None, dst_offset=None, src_offset=None])
 
 Utility functions
 .................
@@ -264,12 +264,15 @@ cdef coordfix(double *world, n, ndims, lonindex, latindex):
 #   return a coordinate map to be used in calls to the function
 #   scipy.ndimage.interpolation.map_coordinates()
 #
-def coordmap(proj_src, proj_dst, dst_shape, dst_offset=None, src_offset=None):
+def coordmap(proj_src, proj_dst, dst_shape=None, dst_offset=None,
+                                                 src_offset=None):
    """
 - *proj_src*, *proj_dst* -- the source- and destination projection objects.
 - *dst_shape* -- the destination image's shape.  Must be compatible with the
   projections' dimensionality. The elements are in Python order, i.e.,
   the first element corresponds to the last FITS axis.
+  If *dst_shape* is None (the default), the shape is derived from
+  the *proj_dst.naxis* attribute.
 - *dst_offset* -- the destination image's offset. If None, the offset for
   all axes will be zero. Otherwise it must be compatible with the
   projections' dimensionality. The elements are in Python order, i.e.,
@@ -311,9 +314,7 @@ Example::
    
    proj2 = wcs.Projection(header)                       # destination projection
    
-   image_shape = header['NAXIS2'], header['NAXIS1']
-   
-   coords = wcs.coordmap(proj1, proj2, image_shape)
+   coords = wcs.coordmap(proj1, proj2)
    
    image_in = hdulist[0].data
    image_out = map_coordinates(image_in, coords, order=1, cval=numpy.NaN)
@@ -322,9 +323,14 @@ Example::
    hdulist.writeto('ngc6946-gal.fits')
 
 This example is a complete program and illustrates how a FITS file containing
-a 2-dimensional image with equatorial coordinates can be reprojected into an
+an image with arbitrary coordinates can be reprojected into an
 image with galactic coordinates.
+The image can have two or more dimensions of
+which the first two must be spatial in the order longitude, latitude.
 """
+   if dst_shape is None:
+      dst_shape = proj_dst.naxis[-1::-1]
+
    naxis = len(dst_shape)
 
    if len(proj_src.types)!=naxis or len(proj_dst.types)!=naxis:
@@ -1732,21 +1738,18 @@ Example::
          dim = param.naxis
          ar = numpy.zeros(shape=(dim*dim,), dtype='d')
          for i in range(dim*dim):
-            ar[i] = param.pc[i]
+            ar[i] = param.cd[i]
          ar.shape = (dim, dim)
          self.cd = numpy.matrix(ar)
       else:
          self.cd = None
 
-      if param.altlin & 1:                              # PCi_j found?
-         dim = param.naxis
-         ar = numpy.zeros(shape=(dim*dim,), dtype='d')
-         for i in range(dim*dim):
-            ar[i] = param.pc[i]
-         ar.shape = (dim, dim)
-         self.pc = numpy.matrix(ar)
-      else:
-         self.pc = None
+      dim = param.naxis                                 # PCi_j
+      ar = numpy.zeros(shape=(dim*dim,), dtype='d')
+      for i in range(dim*dim):
+         ar[i] = param.pc[i]
+      ar.shape = (dim, dim)
+      self.pc = numpy.matrix(ar)
 
       pvlist = []                                       # PVi_m
       for ipv in range(param.npv):
