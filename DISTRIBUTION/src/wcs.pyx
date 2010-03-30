@@ -289,10 +289,8 @@ from the :mod:`scipy.ndimage.interpolation` module.
 the Kapteyn Package as :mod:`kapteyn.interpolation`.)
 The resulting coordinate map can be
 used for reprojecting an image into another image with a different
-coordinate system.  Current limitations are that the source- and
-destination projections must have the same axis type (longitude,
-latitude, spectral) order, so axis permutations are not possible yet,
-and that spectral transformations are not yet supported. 
+coordinate system. A limitation is that spectral transformations
+are not yet supported. 
 
 Example::
 
@@ -350,18 +348,30 @@ which the first two must be spatial in the order longitude, latitude.
    for ax in range(naxis):
       gslices.insert(0, slice(1,dst_shape[ax]+1))
 
-   grids_dst = numpy.mgrid[gslices].T + dst_offset
+   grids_dst = (numpy.mgrid[gslices]).T + dst_offset
 
    proj_dst = proj_dst.copy()
-   proj_dst.skyout = proj_src.skyout
+   if proj_dst.skyout != proj_src.skyout:
+      proj_dst.skyout = proj_src.skyout
    proj_dst.allow_invalid = True
    
-   proj_src = proj_src.copy()
+   src_types = list(proj_src.types)
+   src_perm = []                    # axis permutation relative to destination
+   for axtype in proj_dst.types:
+      iax = src_types.index(axtype)
+      src_types[iax] = 'seen'       # do not visit a second time
+      src_perm.append(iax+1)
+
+   proj_src = proj_src.sub(src_perm)
    proj_src.allow_invalid = True
 
    grids_src = (proj_src.topixel(proj_dst.toworld(grids_dst))-1.0-src_offset).T
 
-   return numpy.transpose(numpy.flipud(grids_src), [0]+range(naxis, 0, -1))
+   result = numpy.zeros(grids_src.shape, dtype=numpy.float32)
+   for iax in range(naxis):
+      result[iax] = grids_src[src_perm[-iax-1]-1]
+
+   return numpy.transpose(result, [0]+range(naxis, 0, -1))
 
 
 # ==========================================================================
