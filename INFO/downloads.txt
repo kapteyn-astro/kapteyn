@@ -106,3 +106,4 @@ Universitaet zu Koeln @ 134.95.46.84
 Korea Astronomy Observatory @ 210.219.33.212
 Universidad de Valparaiso @ 200.14.68.146
 Yonsei University @ 165.132.38.89
+University of Massachusetts Amherst @ 128.119.51.64

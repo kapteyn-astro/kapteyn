@@ -289,8 +289,7 @@ from the :mod:`scipy.ndimage.interpolation` module.
 the Kapteyn Package as :mod:`kapteyn.interpolation`.)
 The resulting coordinate map can be
 used for reprojecting an image into another image with a different
-coordinate system. A limitation is that spectral transformations
-are not yet supported. 
+coordinate system.
 
 Example::
 
@@ -323,8 +322,7 @@ Example::
 This example is a complete program and illustrates how a FITS file containing
 an image with arbitrary coordinates can be reprojected into an
 image with galactic coordinates.
-The image can have two or more dimensions of
-which the first two must be spatial in the order longitude, latitude.
+The image can have two or more dimensions.
 """
    if dst_shape is None:
       dst_shape = proj_dst.naxis[-1::-1]
@@ -350,7 +348,14 @@ which the first two must be spatial in the order longitude, latitude.
 
    grids_dst = (numpy.mgrid[gslices]).T + dst_offset
 
-   proj_dst = proj_dst.copy()
+   if proj_dst.specaxnum is not None and \
+      proj_dst.ctype[proj_dst.specaxnum-1][:4] != \
+      proj_src.ctype[proj_src.specaxnum-1][:4]:
+      proj_dst = \
+         proj_dst.spectra(proj_src.ctype[proj_src.specaxnum-1][:4]+'-???')
+   else:
+      proj_dst = proj_dst.copy()
+
    if proj_dst.skyout != proj_src.skyout:
       proj_dst.skyout = proj_src.skyout
    proj_dst.allow_invalid = True
@@ -1329,8 +1334,8 @@ Example::
       translated.  For example, a 'FREQ' axis may be translated into
       'ZOPT-F2W' and vice versa.  For non-standard frequency types, e.g. 
       FREQ-OHEL as used by GIPSY, corrections are applied first to obtain
-      barycentric frequencies.  For more information, see the document "WCS
-      Spectral coordinates examples and background". 
+      barycentric frequencies.  For more information, see chapter
+      :doc:`spectralbackground`.
 
       - *ctype* -- Required spectral CTYPEi.  Wildcarding may be used,
         i.e.  if the final three characters are specified as '???', or if just
@@ -1886,5 +1891,5 @@ in the same way.
 __all__ = ['equatorial', 'ecliptic', 'galactic', 'supergalactic',
            'fk4', 'fk4_no_e', 'fk5', 'icrs', 'j2000', 'WCSerror',
            'WCSinvalid', 'Projection', 'Transformation',
-           'lontype', 'lattype', 'spectype', coordmap]
+           'lontype', 'lattype', 'spectype', 'coordmap']
 __version__ = '1.3'
