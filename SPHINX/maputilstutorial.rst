@@ -1078,61 +1078,199 @@ besides a label, one also get numbers along the axes and that was what we
 want to avoid.
 
 
-Overlay plot
--------------
+Reprojections and image overlays
+--------------------------------
+
+A simple example
+.................
 
 There are several methods to compare data of the same part of the sky but from
 different sources. These different sources often have different world coordinate
 systems. If you want to compare two or more sources in one plot you need to
 define a base world coordinate system (wcs) and adjust the other sources so
 that their data fits the header description of the first. In other words: you need
-to re-project the data of the other sources. Module :mod:`wcs` provides a nice
-reprojection function called :func:`wcs.coordmap` which does the necessary
-coordinate transformations. The transformation of the data is done with an interpolation
-function based Scipy's function ``map_coordinates``. These two functions are combined
-in one re-projection method in class :class:`maputils.FITSimage.Annotatedimage`
-The method is triggered when you use parameter *overlay_src* in its constructor.
-The parameter points to an object from class :class:`maputils.FITSimage`.
-The object should be sliced with
-:meth:`maputils.FITSimage.set_imageaxes` to a two dimensional data structure if the
-dimension of the data structure of the FITS file is greater than 2. You have to take
-care of the fact that the data represents a valid spatial map.
+to re-project the data of the other sources. Module :mod:`wcs` provides a powerful
+coordinate transformation function called :func:`wcs.coordmap` which does the necessary
+coordinate transformations between two wcs systems.
+The transformation of the data is done with an interpolation
+function based Scipy's function ``map_coordinates``. The two functions are combined
+in method :meth:`maputils.FITSimage.reproject_to`. If you have a FITS data
+structure that contains more than one spatial map (in the same hdu), then
+the method will reproject all these maps to a new spatial structure given in
+a second FITSimage object. This is demonstrated in the next example
 
-In the script below the base image data is derived from object ``Basefits``. The data
-we want to re-project for an overlay with contours is derived from a second source with
-another wcs called ``Overfits``. These images are shown in the plots in the top row.
-Then a plot is shown with the data of the base plot and the contours for the
-re-projected data of the second source. The last plot shows the difference
-between the base data and the reprojected data, which is noisy data in this case.
+.. literalinclude:: EXAMPLES/mu_reproj.py
 
-The reason that the residuals are small is that the our two sources contain the same data,
-except that it is rotated and has different pixel size. To inspect the quality of the
-reprojection we plotted contours in of the base image in green and contours at the same
-levels of the re-projected data in red in the same plot. If you zoom in then
-you will see small differences between the two contour sets.
+Note that the result has the same structure for all non spatial axes,
+while the spatial information is copied from the second object.
 
-Note the special way we reuse the re-projected data of the Annotatedimage object
-to insert the difference between base and re-projected data in the base FITSimage.
-With this modified object we create a new Annotatedimage object for plotting.
-Note that the original data can not be restored, but in this case that will not be necessary.
+If you want only a selection of all the available spatial maps, then
+you can restrict the reprojection with parameters *plimlo* and  *plimhi*.
+These parameters are single pixel coordinates or tuples with pixel
+coordinates and each pixel coordinate represents a position on a
+non-spatial axis (a repeat axis) similar to the definition of a slice.
+Also it is possible to set the pixel limits of the output spatial
+structure with *pxlim* and *pylim*. Note that these correspond to the
+axis order of the spatial map to which we want to reproject.
+With these parameters it is easy to extend a map e.g. so that it contains
+a rotated map without cutting the edges. For all these procedures, the
+appropriate values of CRPIX in the header are adjusted so that the
+output header describes a valid wcs.
 
+Below we show how to decrease the output size for the
+spatial axes. Also we require two maps in the output:
+the first is at POL=1 and FREQ=7 and the second is at
+POL=1 and FREQ=8. Note that *plimlo* and  *plimhi* describe
+contiguous ranges!
+
+>>> Reprojfits = Basefits.reproject_to(Secondfits.hdr,
+                                       pxlim=(3,30), pylim=(3,20),
+                                       plimlo=(1,7), plimhi=(1,8))
+
+You can also expand the output for the spatial maps by entering
+values outside the default ranges [1, NAXIS]. Negative values are
+allowed to expand beyond pixel coordinate 1. The next code fragment
+shows this for all spatial maps at POL=1 (i.e. for all pixels
+coordinates on the FREQ axis).
+
+>>> Reprojfits = Basefits.reproject_to(Secondfits.hdr,
+                                       pxlim=(-10,50), pylim=(-10,50),
+                                       plimlo=1, plimhi=1)
+
+
+Reprojecting to an adjusted header
+....................................
+
+As an alternative to reprojecting to an existing header of a different wcs,
+one can also make a copy of a header and adjust it by making changes to
+existing keywords or to add new keyword, value pairs.
+This is one of the more common applications for reprojection purposes.
+For instance, one can change the header value for CROTA (corresponding
+to the latitude axis of an image) to rotate a map. Or one can reproject
+to another projection e.g. from a Gnomonic projection (TAN) to a
+Mercator projection (MER). This is what we have done in the next script.
+In the familiar M101 FITS file, we increased the pixel sizes with a factor
+of 100 to demonstrate the effect of the re-projection.
+
+There are two practical problems we have to address:
+
+   * The CRVAL's for a Mercator projection must be 0.0. If we don't
+     change them, the projection will be oblique.
+   * We don't know how big the result must be (in terms of pixels)
+     to fit the result. 
+
+These problems are solved by creating an intermediate FITSimage object
+with the new header where CRVAL is set to 0 and where the values
+of CTYPE were changed. Then the corners of the original image are used to
+find world coordinates in the original image and from these world
+coordinates we derive pixel coordinates in the new system.
+Then we know what the pixel limits are which correspond
+to the original area in the sky. We end up with the rectangular system
+that we are used to from a Mercator projection. Note that the image is
+subject to a small rotation.
+
+.. plot:: EXAMPLES/mu_m1012mercator.py
+   :include-source:
+   :align: center
+
+
+Transforming a wcs with CD or PC elements to a classic header
+...............................................................
+
+To facilitate legacy FITS readers which cannot process CD and PC elements
+we wrote a method that converts headers to classic headers, i.e. with
+the familiar header keywords CRVAL, CRPIX, CDELT, CROTA.
+When a CD or PC matrix is encountered, and the non diagonal elements
+are not zero, then skew can be expected. One derives then two
+values for the image rotation. This method averages these values
+as a 'best value' for CROTA. (see also section 6 in paper II by Calabretta & Greisen).
+
+.. literalinclude:: EXAMPLES/mu_reproj2classic.py
+
+
+
+Reprojections for overlay
+..........................
+
+Reprojections are often used to enable the comparison of data of two different sources
+(i.e. with different world coordinate systems) in one plot.
+Then usually contours
+of a second FITS image are used upon an image of a base FITS image.
+The situation is a bit different compared to the examples above.
+We need only one spatial map to be reprojected and this spatial map is
+set by a slice (i.e. pixel positions on the repeat axes). The pixel
+limits (box) of the spatial axes is set by the first FITS image.
+Instead of a header we can use the FITSimage object to which we want to
+reproject as a parameter. Then all appropriate information is passed
+and the :meth:`maputils.FITSimage.reproject_to` method returns a new FITSimage
+object with only one spatial map with sizes that fits the first spatial map.
+The attribute *boxdat* can be used to replace the contents of the
+first image using the *boxdat* parameter in  method :meth:`maputils.FITSimage.Annotatedimage`.
+
+The example script below shows how this is implemented in a script.
+The situation is not very complicated because we deal with two
+2-dim. data structures. Note the use of histogram equalization to enhance
+some details.
+
+
+.. plot:: EXAMPLES/mu_overlayscuba.py
+   :include-source:
+   :align: center
+
+It is also possible to mix two images using an alpha factor smaller than 1.0.
+That is what we did in the next example. The overlay image is smaller than the
+base image. Then the overlay is padded with NaN's which are not transparent.
+We can change the values for pixels that could not be interpolated
+from NaN to another value with parameter *cval* which is part of
+a dictionary with keywords and values to control the interpolation routine
+in :meth:`maputils.FITSimage.reproject_to`. We also set the interpolation order
+to 1 (which is the default set by maputils). This order represents a
+bilinear interpolation.
+
+.. plot:: EXAMPLES/mu_overlayscuba_im.py
+   :include-source:
+   :align: center
+
+The base image has scheduled a function to interactively change its colors while
+the second image remains fixed. This enables you do compare the two images.
+
+
+Improving the quality of the reprojection
+............................................
+
+The interpolation routine in the Kapteyn package is based on SciPy's
+:func:`map_coordinates`. This function has a parameter *order* which
+sets the interpolation mode. In the script below we create a contour overlay
+using a rotated version of a base image (also the pixel size differs).
+This version is reprojected onto the first. The difference map is used to
+calculate a mean and a standard deviation of the residual. In a table we
+show the calculated values as function of the interpolation order:
+
+====== ================== ======== ====== ======
+order  interpolation      mean     std    sum
+====== ================== ======== ====== ======
+0      Nearest int        0.174    194    35337
+1      Linear             0.067    156    13728
+2      Quadratic          0.034    113     6821
+3      Spline order 3     0.032    111     6430
+4      order 4            0.031    108     6238
+5      order 5            0.030    107     6183
+====== ================== ======== ====== ======
+
+So *order=2* or *order=3* seems a reasonable choice. However, interpolations
+of order greater than 1 have problems with NaN's. That is the reason
+why we replace NaN's by zeros in our script just before the interpolation.
+
+If you zoom the third figure, you will see that the red contours closely
+follow the green contours that were drawn first. This is also a measure
+of the precision in the reprojection because the intensities in the two
+images are the same.
 
 **Example: mu_overlaym101.py - Reprojection test with overlay data**
 
 .. plot:: EXAMPLES/mu_overlaym101.py
    :include-source:
    :align: center
-
-
-
-To generalize the concept of overlays, we created a small application which
-allows a user to enter source data and overlay data. It also shows how the overlay
-data is reused to write a modified :class:`maputils.FITSimage` object to file on disk
-with method :meth:`maputils.FITSimage.writetofits`.
-
-**Example: mu_overlay.py - Overlay contours of external data on a base image**
-
-.. literalinclude:: EXAMPLES/mu_overlay.py
 
 
 
