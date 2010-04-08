@@ -137,6 +137,13 @@ Errors are reported through the exception mechanism.  Two exception
 classes have been defined: WCSerror for unrecoverable errors and
 WCSinvalid for situations where a partial result may be available. 
 
+.. rubric:: Footnotes
+
+.. [#interpolation] For convenience, a slightly modified version of this
+   module is also available in the Kapteyn Package as
+   :mod:`kapteyn.interpolation`.  The modification replaces NaN values in
+   the array to a finite value in case order>1, preventing the result
+   becoming all NaN. 
 
 """
 
@@ -284,9 +291,7 @@ def coordmap(proj_src, proj_dst, dst_shape=None, dst_offset=None,
 
 This function returns a coordinate map which can be used as the
 argument coordinates in calls to the function :func:`map_coordinates`
-from the :mod:`scipy.ndimage.interpolation` module.
-(For convenience, this module is also available in
-the Kapteyn Package as :mod:`kapteyn.interpolation`.)
+from the :mod:`scipy.ndimage.interpolation` module. [#interpolation]_
 The resulting coordinate map can be
 used for reprojecting an image into another image with a different
 coordinate system.

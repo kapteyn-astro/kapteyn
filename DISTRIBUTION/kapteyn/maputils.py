@@ -1839,7 +1839,7 @@ class Annotatedimage(object):
 #--------------------------------------------------------------------
    """
 This is one of the core classes of this module. It sets the connection
-between the Matplotlib independent FITS data and the routines that
+between the FITS data (created or read from file) and the routines that
 do the actual plotting with Matplotlib.
 The class is usually used in the context of class :class:`FITSimage` which
 has a method that prepares the parameters for the constructor of
@@ -1940,38 +1940,6 @@ this class.
    input FITSimage object. 
 :type boxdat:
    NumPy array
-:param overlay_src:
-   An object from class :class:`FITSimage`. This object must specify data
-   that corresponds to a spatial map and its axes order must be the same
-   as that of the current FITSimage object for which this you want to
-   replace the data with an external source. The data in that source is
-   reprojected to the WCS system described by the current header.
-   With this method we are able to overlay data from a source with a different
-   coordinate system. Its default is 'None'.
-:type overlay_src:
-   maputils.FITSimage instance
-:param overlay_dict:
-   This parameter is a dictionary with parameters for the interpolation routine
-   which is used to reproject data in *overlay_src*. The interpolation routine
-   is based on SciPy's *map_coordinates*. The most important parameters with
-   the local defaults are::
-   
-      order :  int, optional
-               The order of the spline interpolation, default is 1.
-               The order has to be in the range 0-5.
-      mode :   str, optional
-               Points outside the boundaries of the input are filled according
-               to the given mode ('constant', 'nearest', 'reflect' or 'wrap').
-               Default is 'constant'.
-      cval :   scalar, optional
-               Value used for points outside the boundaries of the input if
-               mode='constant'. Default is numpy.NaN
-
-:type overlay_dict:
-   Python dictionary
-
-
-   
 
 :Attributes:
 
@@ -2045,7 +2013,6 @@ this class.
 
 :Methods:
 
-.. automethod:: reproject
 .. automethod:: set_norm
 .. automethod:: set_colormap
 .. automethod:: write_colormap
@@ -2072,8 +2039,7 @@ this class.
 #--------------------------------------------------------------------
    def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, skyout, spectrans,
                 mixpix=None, aspect=1, slicepos=None, basename=None,
-                cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None,
-                overlay_src=None, overlay_dict=None):
+                cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None):
       #-----------------------------------------------------------------
       """
       """
@@ -2083,23 +2049,14 @@ this class.
       self.projection = projection
       self.pxlim = pxlim
       self.pylim = pylim
-      self.origdata = imdata
-      if overlay_src != None:
-         # User/Programmer wants current data to be overwritten with 
-         # data from another FITS file, re-projected so that it corresponds
-         # to the input header.
-         # The reprojection function returns a copy of the data, so the 
-         # original data (in *imdata*) is unaltered.
-         self.data = self.reproject(overlay_src, overlay_dict)
+      if boxdat != None:
+         # shp = (pylim[1]-pylim[0]+1, pxlim[1]-pxlim[0]+1)
+         #shp = imdata.shape
+         #if boxdat.shape != shp:
+         #   raise ValueError("The shape of 'boxdat' is not (%d,%d)" %(shp[0],shp[1]))
+         self.data = boxdat
       else:
-         if boxdat != None:
-            # shp = (pylim[1]-pylim[0]+1, pxlim[1]-pxlim[0]+1)
-            #shp = imdata.shape
-            #if boxdat.shape != shp:
-            #   raise ValueError("The shape of 'boxdat' is not (%d,%d)" %(shp[0],shp[1]))
-            self.data = boxdat
-         else:
-            self.data = imdata
+         self.data = imdata
       self.mixpix = mixpix
       self.axperm = axperm
       self.skyout = skyout
@@ -2149,66 +2106,6 @@ this class.
          self.basename = "Unknown"               # Default name for file with colormap lut data
       else:
          self.basename = basename
-
-      
-   def reproject(self, overlayobj, interpol_dict):
-      #-----------------------------------------------------------------
-      """
-      Overlays are created with this method. It is not advertized as
-      a method that should be used by a user/programmer in a script.
-      It is invoked in the constructor of the Annotatedimage class
-      when a value is given for parameter *overlay_src*. Then several
-      parameters are set like the min. & max. of the data etc. and the clip
-      levels for the color lut.
-
-      This routine first finds coordinates in the overlay map that
-      corresponds to integer pixel positions in the destination map.
-      In this step a position is transformed to a world coordinate
-      and this world coordinate is transformed into a coordinate
-      in the overlay map.
-      Finally the interpolation routine returns an interpolated image
-      value from the overlay map and inserts this in the data that is
-      returned by this method to the calling environment.
-      """
-      #-----------------------------------------------------------------
-      proj_src = overlayobj.convproj
-      data_src = overlayobj.boxdat
-
-      # Some checking first. Maps need to be spatial and the order
-      # of the axes need to be the same.
-      l1, b1 = overlayobj.convproj.lonaxnum, overlayobj.convproj.lataxnum
-      l2, b2 = self.projection.lonaxnum, self.projection.lataxnum
-      if None in [l1, b1]:
-         raise TypeError("Both axis in overlay are not spatial!")
-      if None in [l2, b2]:
-         raise TypeError("Cannot plot overlay on a map that is not spatial!")
-      if (b1 > l1 and b2 < l2) or (b1 < l1 and b2 > l2):
-         raise TypeError("Axis order longitude, latitude not equal in both maps!")
-
-      shape_dest = self.pylim[1]-self.pylim[0]+1, self.pxlim[1]-self.pxlim[0]+1
-      offset_dest = self.pylim[0]-1, self.pxlim[0]-1
-      offset_src = (overlayobj.pylim[0]-1), (overlayobj.pxlim[0]-1)
-
-      # Let wcs calculate the coordinates
-      coords = wcs.coordmap(overlayobj.convproj, self.projection, shape_dest,
-                            dst_offset=offset_dest, src_offset=offset_src)
-
-      # Process the dictionary for the interpolation options
-      if interpol_dict != None:
-         if not interpol_dict.has_key('order'):
-            interpol_dict['order'] = 1
-         if not interpol_dict.has_key('cval'):
-            interpol_dict['cval'] = numpy.NaN
-      else:
-         interpol_dict = {}
-         interpol_dict['order'] = 1
-         interpol_dict['cval'] = numpy.NaN
-
-      # Find (interpolate) the data in the source map at the positions
-      # given by the destination map.
-      reprojecteddata = map_coordinates(data_src, coords, **interpol_dict)
-      return reprojecteddata
-
 
 
    def set_norm(self, clipmin, clipmax):
@@ -2422,7 +2319,6 @@ this class.
       Create a histogram equalized version of the data.
 
       The histogram equalized data is stored in attribute *data_hist*.
-
       """
       #-----------------------------------------------------------------
       if self.data == None:
@@ -2445,7 +2341,6 @@ this class.
       self.data_hist = im2.reshape(im.shape)
 
 
-      
    def Image(self, **kwargs):
       #-----------------------------------------------------------------
       """
@@ -2475,7 +2370,7 @@ this class.
       :Attributes:
 
          .. attribute:: im
-      
+
          The object generated after a call to Matplotlib's *imshow()*.
 
       :Examples:
@@ -2485,7 +2380,7 @@ this class.
          >>> annim.Image(interpolation="spline36")
 
          or create an image but make it invisible:
-      
+
          >>> annim.Image(visible=False)
       """
       #-----------------------------------------------------------------
@@ -5769,7 +5664,7 @@ to know the properties of the FITS data beforehand.
       return None, 0.0, "Nothing changed"
 
 
-   def reproject_to(self, reprojobj, pxlim=None, pylim=None,
+   def reproject_to(self, reprojobj, pxlim_dst=None, pylim_dst=None,
                     plimlo=None, plimhi=None, interpol_dict = None):
       #---------------------------------------------------------------------
       """
@@ -5796,17 +5691,22 @@ to know the properties of the FITS data beforehand.
       the headers so there is no need to specify the spatial parts of the
       data structures.
 
+      The image that is reprojected kan be limited in pixel coordinates
+      with the :meth:`set_limits()` method. If the input is a FITSimage object than
+      also the output size can be altered by using :meth:`set_limits()` for the
+      pixel coordinate limits of the destination.
+
       :param reprojobj:
           *  The header which provides the new information to reproject to.
              The size of the reprojected map is either copied from
              the NAXIS keywords in the header or entered with parameters
-             *pxlim* and *pylim*. The reprojections are done for all
+             *pxlim_dst* and *pylim_dst*. The reprojections are done for all
              spatial maps in the current FITSimage object or for a selection
              entered with parameters *plimlo* and *plimhi* (see examples).
           *  The FITSimage object from which relevant information is
              extracted like the header and the new sizes of the spatial axes
              which otherwise should have been provided in parameters
-             *pxlim* and *pylim*. The reprojection is restricted to
+             *pxlim_dst* and *pylim_dst*. The reprojection is restricted to
              one spatial map and its slice information is copied
              from the current FITSimage. This option is selected if you
              want to overlay e.g. contours from the current FITSimage
@@ -5814,7 +5714,7 @@ to know the properties of the FITS data beforehand.
       :type reprojobj:
           Python dictionary or PyFITS header. Or a :class:`maputils.FITSimage`
           object
-      :param pxlim:
+      :param pxlim_dst:
           Limits in pixels for the reprojected box
       :param plimlo:
           One or more pixel coordinates corresponding to axes outside
@@ -5827,6 +5727,34 @@ to know the properties of the FITS data beforehand.
           The same as plimhi, but now for the upper limits.
       :type plimhi:
           Integer or tuple of integers
+      :param interpol_dict:
+          This parameter is a dictionary with parameters for the interpolation routine
+          which is used to reproject data. The interpolation routine
+          is based on SciPy's *map_coordinates*. The most important parameters with
+          the maputils defaults are:
+
+	  .. tabularcolumns:: |p{10mm}|p{100mm}|
+
+          =========  ===============================================================        
+            order :  int, optional
+
+                     The order of the spline interpolation, default is 1.
+                     The order has to be in the range 0-5.
+            mode :   str, optional
+
+                     Points outside the boundaries of the input are filled according
+                     to the given mode ('constant', 'nearest', 'reflect' or 'wrap').
+                     Default is 'constant'.
+            cval :   scalar, optional
+
+                     Value used for points outside the boundaries of the input if
+                     mode='constant'. Default is numpy.NaN
+          =========  ===============================================================        
+
+      :type overlay_dict:
+         Python dictionary
+
+
 
       :Examples:
 
@@ -5887,6 +5815,9 @@ to know the properties of the FITS data beforehand.
          reproj:
          CTYPE:  RA - POL - FREQ - DEC
          NAXIS   36   5     16     30
+
+         2) Tested with values for the repeat axes
+         3) Tested with values for the output box
       """
       #---------------------------------------------------------------------
 
@@ -5914,12 +5845,12 @@ to know the properties of the FITS data beforehand.
          return res
 
       plimLO = plimHI = None
-      fromheader = True
+      fromheader = True         # We need to distinguish header and FITSimage objects
       if isinstance(reprojobj, FITSimage):
          # It's a FITSimage object
          # Copy its attributes that are relevant in this context
-         pxlim = reprojobj.pxlim
-         pylim = reprojobj.pylim
+         pxlim_dst = reprojobj.pxlim
+         pylim_dst = reprojobj.pylim
          slicepos = self.slicepos
          plimLO = plimHI = slicepos
          repheader = reprojobj.hdr
@@ -5972,14 +5903,14 @@ to know the properties of the FITS data beforehand.
       lonaxnum2 = p2.lonaxnum; lataxnum2 = p2.lataxnum
       shapenew = [0]*naxis
       # Uitbreiden met meer flexibiliteit
-      if pxlim == None:
-         pxlim = [1]*2
-         pxlim[1] = lenXnew
-      if pylim == None:
-         pylim = [1]*2
-         pylim[1] = lenYnew
-      nx = pxlim[1] - pxlim[0] + 1
-      ny = pylim[1] - pylim[0] + 1
+      if pxlim_dst == None:
+         pxlim_dst = [1]*2
+         pxlim_dst[1] = lenXnew
+      if pylim_dst == None:
+         pylim_dst = [1]*2
+         pylim_dst[1] = lenYnew
+      nx = pxlim_dst[1] - pxlim_dst[0] + 1
+      ny = pylim_dst[1] - pylim_dst[0] + 1
       N = nx * ny
 
       # Next we process the ranges on the repeat axes (i.e. axes
@@ -6033,11 +5964,11 @@ to know the properties of the FITS data beforehand.
       if nx != lenXnew:
          ax = axnum2[0]
          newheader['NAXIS%d'%ax] = nx
-         newheader['CRPIX%d'%ax] += -pxlim[0] + 1
+         newheader['CRPIX%d'%ax] += -pxlim_dst[0] + 1
       if ny != lenYnew:
          ax = axnum2[1]
          newheader['NAXIS%d'%ax] = ny
-         newheader['CRPIX%d'%ax] += -pylim[0] + 1
+         newheader['CRPIX%d'%ax] += -pylim_dst[0] + 1
       if naxisout > 0:
          for axnr, lo, hi in zip(axnum_out, plimLO, plimHI):
             n = hi - lo + 1
@@ -6068,16 +5999,17 @@ to know the properties of the FITS data beforehand.
          interpol_dict['cval'] = numpy.NaN
 
       # Create the coordinate map needed for the interpolation.
-      # Use the limits given in pxlim, pylim to set shape and offset.
-      # Note that pxlim is 1 based and the offsets are 0 based.
-      dst_offset=(pylim[0]-1, pxlim[0]-1)   # Note the order!
+      # Use the limits given in pxlim_dst, pylim_dst to set shape and offset.
+      # Note that pxlim_dst is 1 based and the offsets are 0 based.
+      dst_offset = (pylim_dst[0]-1, pxlim_dst[0]-1)   # Note the order!
+      src_offset = (self.pylim[0]-1, self.pxlim[0]-1)
       coords = numpy.around(wcs.coordmap(p1_spat, p2_spat, dst_shape=(ny,nx),
-                            dst_offset=dst_offset)*512.0)/512.0
+                            dst_offset=dst_offset, src_offset=src_offset)*512.0)/512.0
       # Next we iterate over all possible slices.
       if naxisout == 0:
          # We have a two dimensional data structure and we
          # need to reproject only this one.
-         boxdat = self.dat
+         boxdat = self.dat[self.pylim[0]-1:self.pylim[1], self.pxlim[0]-1:self.pxlim[1]]
          newdata = map_coordinates(boxdat, coords, **interpol_dict)
       else:
          perms = []
@@ -6113,6 +6045,7 @@ to know the properties of the FITS data beforehand.
                   slnew.append(slice(g2-1, g2))
                   nout -= 1
             boxdat = self.dat[sl].squeeze()
+            boxdat = boxdat[self.pylim[0]-1:self.pylim[1], self.pxlim[0]-1:self.pxlim[1]]
             boxdatnew = newdata[slnew].squeeze()
             # Find (interpolate) the data in the source map at the positions
             # given by the destination map and 'insert' it in the
@@ -6265,7 +6198,7 @@ to know the properties of the FITS data beforehand.
 
    def writetofits(self, filename=None, comment=True, history=True,
                    bitpix=None, bzero=None, bscale=None, blank=None,
-                   boxdat=None, clobber=False, append=False, extname=''):
+                   clobber=False, append=False, extname=''):
    #---------------------------------------------------------------------
       """
       This method copies current data and current header to a FITS file
@@ -6313,19 +6246,6 @@ to know the properties of the FITS data beforehand.
          Value that represents a blank. Usually only for scaled data.
       :type blank:
          Float/Integer
-      :param boxdat:
-         An FITSimage object has two attributes pointing to data. The first is
-         attribute *dat* which is always pointing to the entire data structure
-         in the FITS header data unit. If one extracts a slice and sets limits to
-         the data ranges, then a new attribute 'boxdat' points to this data.
-         It is possible to replace it by external data given in parameter *boxdat*.
-         It must have the same shape as the data in attribute *boxdat*.
-         The method can be applied to reprojected data as a result of an
-         overlay.
-         After the insertion of the new data, the old data is copied back. The
-         original *boxdat* data remains unaltered.
-      :type boxdat:
-         Array with floats
       :param clobber:
          If a file on disk already exists then an exception is raised.
          With *clobber=True* an existing file will be overwritten.
@@ -6334,7 +6254,7 @@ to know the properties of the FITS data beforehand.
       :type clobber:
          Boolean
       :param append:
-         Append image data to existing FITS file
+         Append image data in new hdu to existing FITS file
       :type append:
          Boolean
       :param extname:
@@ -6408,13 +6328,6 @@ to know the properties of the FITS data beforehand.
          except:
             append = False
 
-      if boxdat != None:
-         if self.boxdat.shape != boxdat.shape:
-            mes = "Shape of external data %s in 'boxdat' is not equal to shape of slice (%s)" % (self.boxdat.shape, boxdat.shape)
-            raise ValueError(mes)
-         dum = self.boxdat.copy()
-         self.boxdat[:] = boxdat
-         # Now the new data is part of the total data structure
       hdu = pyfits.PrimaryHDU(self.dat)
       pythondict = fitsheader2dict(self.hdr, comment, history)
 
@@ -6466,15 +6379,11 @@ to know the properties of the FITS data beforehand.
          #warnings.resetwarnings()
          #warnings.filterwarnings('always', category=UserWarning, append=True)
          hdulist.close()
-      if boxdat != None:
-         # Copy back to restore original situation
-         self.boxdat[:] = dum
-      
+
 
    def Annotatedimage(self, frame=None, **kwargs):
    #---------------------------------------------------------------------
       """
-      
       This method couples the data slice that represents an image to
       a Matplotlib Axes object (parameter *frame*). It returns an object
       from class :class:`Annotatedimage` which has only attributes relevant for
@@ -6804,4 +6713,3 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
-

@@ -328,6 +328,27 @@ int NI_ArrayToLineBuffer(NI_LineBuffer *buffer,
             PyErr_Format(PyExc_RuntimeError, "array type %d not supported", buffer->array_type);
             return 0;
         }
+#if 1
+/*  Here any non-finite numbers are replaced by the last-known
+ *  value from the current buffer line.
+ *  Modification by J. P. Terlouw, Kapteyn Astronomical Institute,
+ *  April 8, 2010.
+ */
+        {
+            int i;
+            volatile double v;
+            double p=0.0;
+           
+            for (i=0; i<length; i++) {
+                v = pb[i];
+                if (v!=v) {
+                    pb[i] = p;
+                } else {
+                    p = v;
+                }
+            }
+        }    
+#endif
         /* goto next line in the array: */
         NI_ITERATOR_NEXT(buffer->iterator, buffer->array_data);
         /* implement boundary conditions to the line: */
