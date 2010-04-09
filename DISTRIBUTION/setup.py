@@ -40,6 +40,19 @@ Some of the package's features:
       events (module mplutil); tools for parsing and interpreting coordinate
       information entered by the user (module positions)."""
 
+classifiers = [
+   'Development Status :: 5 - Production/Stable',
+   'Programming Language :: Python',
+   'Programming Language :: Cython',
+   'Programming Language :: C',
+   'Intended Audience :: Science/Research',
+   'Topic :: Scientific/Engineering :: Astronomy',
+   'Topic :: Scientific/Engineering :: Visualization',
+   'License :: OSI Approved :: BSD License',
+   'Operating System :: POSIX :: Linux',
+   'Operating System :: MacOS :: MacOS X'
+   ]   
+
 setup(
    name="kapteyn",
    version=version,
@@ -49,8 +62,9 @@ setup(
    url='http://www.astro.rug.nl/software/kapteyn/',
    download_url = "http://www.astro.rug.nl/software/kapteyn/kapteyn.tar.gz",
    long_description=description,
-   platforms = ['Linux'],
+   platforms = ['Linux', 'Mac OSX'],
    license = 'BSD',
+   classifiers = classifiers,
    ext_package='kapteyn',
    ext_modules=[
       Extension(
