@@ -107,3 +107,4 @@ Korea Astronomy Observatory @ 210.219.33.212
 Universidad de Valparaiso @ 200.14.68.146
 Yonsei University @ 165.132.38.89
 University of Massachusetts Amherst @ 128.119.51.64
+Hamburger Sternwarte (Universitaet Hamburg) @ 134.100.120.116
