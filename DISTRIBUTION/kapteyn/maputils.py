@@ -1547,7 +1547,7 @@ class Marker(object):
       frame.plot(self.xp, self.yp, 'o', **self.kwargs)  # Set default marker symbol to prevent connections
 
 
-class Ruler2(object):
+class Ruler(object):
    """
    -------------------------------------------------------------------------------
    Attributes and methods for a ruler object. A ruler is a line piece with
@@ -1577,7 +1577,7 @@ class Ruler2(object):
       self.fmt = None
       self.linekwargs = {'color' : 'k'}
       self.kwargs.update(kwargs)    # These are the kwargs for the labels
-      
+
    def setp_line(self, **kwargs):
       self.linekwargs.update(kwargs)
    
@@ -5733,7 +5733,7 @@ to know the properties of the FITS data beforehand.
           is based on SciPy's *map_coordinates*. The most important parameters with
           the maputils defaults are:
 
-	  .. tabularcolumns:: |p{10mm}|p{100mm}|
+          .. tabularcolumns:: |p{10mm}|p{100mm}|
 
           =========  ===============================================================        
             order :  int, optional
@@ -5749,8 +5749,8 @@ to know the properties of the FITS data beforehand.
 
                      Value used for points outside the boundaries of the input if
                      mode='constant'. Default is numpy.NaN
-          =========  ===============================================================        
-
+          =========  ===============================================================
+          
       :type overlay_dict:
          Python dictionary
 
@@ -6713,3 +6713,4 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
+

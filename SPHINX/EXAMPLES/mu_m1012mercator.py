@@ -27,7 +27,7 @@ px, py = f.proj.topixel((x,y))
 pxlim = [int(min(px))-10, int(max(px))+10]
 pylim = [int(min(py))-10, int(max(py))+10]
 
-Reprojfits = Basefits.reproject_to(hdr, pxlim=pxlim, pylim=pylim)
+Reprojfits = Basefits.reproject_to(hdr, pxlim_dst=pxlim, pylim_dst=pylim)
 #Reprojfits.writetofits("reproj.fits", clobber=True)
 
 fig = plt.figure(figsize=(9,5))
