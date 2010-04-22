@@ -12,7 +12,10 @@ Secondfits = maputils.FITSimage("dec_pol_freq_ra.fits")
 # reproject_to() method of the first FITSimage object
 # (the data object) with the header of the second FITSimage
 # object as parameter. This results in a new FITSimage object
-Reprojfits = Basefits.reproject_to(Secondfits.hdr)
+
+Reprojfits = Basefits.reproject_to(Secondfits.hdr, 
+                                   pxlim=(-10,50), pylim=(-10,50),
+                                   plimlo=1, plimhi=1)
 
 # Write the result to disk
 Reprojfits.writetofits("reproj.fits", clobber=True)

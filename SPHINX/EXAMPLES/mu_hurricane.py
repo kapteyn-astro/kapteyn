@@ -46,9 +46,10 @@ frame = fig.add_subplot(1,1,1)
 annim = f.Annotatedimage(frame, cmap="YlGn")
 annim.Image()
 grat = annim.Graticule()
-grat.setp_tick(wcsaxis=0, fmt="$%g^{\circ}$")
-grat.setp_plotaxis(plotaxis='bottom', label='West - East')
-grat.setp_plotaxis(plotaxis='left', label='South - North')
+grat.setp_ticklabel(wcsaxis=0, fmt="%g^{\circ}")
+grat.setp_ticklabel(wcsaxis=1, fmt='Dms')
+grat.setp_axislabel(plotaxis='bottom', label='West - East')
+grat.setp_axislabel(plotaxis='left', label='South - North')
 annim.plot()
 annim.projection.allow_invalid = True
 

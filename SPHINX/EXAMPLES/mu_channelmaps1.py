@@ -8,7 +8,6 @@ def fx(x):
 # Create an object from the FITSimage class:
 fitsobj = maputils.FITSimage('ngc6946.fits')
 
-
 # We want to plot the image that corresponds to a certain velocity,
 # let's say a radio velocity of 100 km/s
 # Find the axis number that corresponds to the spectral axis:
@@ -26,52 +25,56 @@ fitsobj.set_imageaxes(lonaxnum,lataxnum, slicepos=channel)
 
 fig = plt.figure(figsize=(7,8))
 frame = fig.add_axes([0.3,0.5,0.4,0.4])
-mplim = fitsobj.Annotatedimage(frame)
-mplim.Image()
+annim = fitsobj.Annotatedimage(frame)
+annim.Image()
 
 # The FITSimage object contains all the relevant information 
 # to set the graticule for this image
-grat = mplim.Graticule()
-ruler = grat.Ruler(-51.1916, 59.9283, -51.4877, 60.2821, 0.5, 0.05, fmt="%5.2f", world=True)
+grat = annim.Graticule()
+ruler = annim.Ruler(x1=-51.1916, y1=59.9283, x2=-51.4877, y2=60.2821, 
+                    units='arcmin', step=3, mscale=5.0, 
+                    color='w', world=True, ha='right')
 
 grat.setp_tick(plotaxis="right", color='r')
-pixellabels = grat.Pixellabels(plotaxis=("right","top"), color='r', fontsize=7)
-mplim.plot()
+pixellabels = annim.Pixellabels(plotaxis=("right","top"), color='r', fontsize=7)
 
 # First position-velocity plot at RA=51
 fitsobj.set_imageaxes(lataxnum, specaxnum, slicepos=51)
 frame2 = fig.add_axes([0.1,0.3,0.8,0.1])
-mplim2 = fitsobj.Annotatedimage(frame2)
-mplim2.set_aspectratio(0.15)
-mplim2.Image()
-grat2 = mplim2.Graticule()
-grat2.setp_plotaxis("right", mode="native_ticks", label='Velocity (km/s)',
-                    fontsize=9, visible=False)
-grat2.setp_tick(plotaxis="right", fmt="%5g", fun=fx)
-grat2.setp_plotaxis("bottom", label=r"Offset in latitude (arcmin) at $\alpha$ pixel 51",
+annim2 = fitsobj.Annotatedimage(frame2)
+annim2.set_aspectratio(0.15)
+annim2.Image()
+grat2 = annim2.Graticule()
+grat2.setp_axislabel(plotaxis="right", label='Velocity (km/s)',
+                    fontsize=9, visible=True)
+grat2.set_tickmode(plotaxis="right", mode="native_ticks")
+grat2.setp_ticklabel(plotaxis="right", fmt="%5g", fun=fx)
+grat2.setp_axislabel("bottom", 
+                     label=r"Offset in latitude (arcmin) at $\alpha$ = pixel 51",
                      fontsize=9)
-grat2.setp_plotaxis("left", mode="no_ticks", visible=False)
-mplim2.Pixellabels(plotaxis=("top", "left"))
-mplim2.plot()
+grat2.setp_axislabel(plotaxis="left", visible=False)
+grat2.set_tickmode(plotaxis="left", mode="no_ticks")
+annim2.Pixellabels(plotaxis=("top", "left"))
 
 # Second position-velocity plot at DEC=51
 fitsobj.set_imageaxes(lonaxnum, specaxnum, slicepos=51)
 frame3 = fig.add_axes([0.1,0.1,0.8,0.1])
-mplim3 = fitsobj.Annotatedimage(frame3)
-mplim3.set_aspectratio(0.15)
-mplim3.Image()
+annim3 = fitsobj.Annotatedimage(frame3)
+annim3.set_aspectratio(0.15)
+annim3.Image()
+grat3 = annim3.Graticule()
+grat3.setp_axislabel("right", 
+                     label='Velocity (km/s)', fontsize=9, visible=True)
+grat3.set_tickmode(plotaxis='right', mode="native_ticks")
+grat3.setp_ticklabel(plotaxis="right", fmt="%5g", fun=fx)
+grat3.setp_axislabel(plotaxis="left", visible=False)
+grat3.set_tickmode(plotaxis="left",  mode="no_ticks")
+grat3.setp_axislabel("bottom", 
+                     label=r"Offset in longitude (arcmin) at $\delta$ = pixel 51",
+                     fontsize=9)
+annim3.Pixellabels(plotaxis=("top", "left"))
 
-grat3 = mplim3.Graticule()
-grat3.setp_plotaxis("right", mode="native_ticks", label='Velocity (km/s)', fontsize=9)
-grat3.setp_tick(plotaxis="right", fmt="%5g", fun=fx)
-grat3.setp_plotaxis("left",  mode="no_ticks", visible=False)
-grat3.setp_plotaxis("bottom", label=r"Offset in longitude (arcmin) at $\delta$ pixel=51",
-                    fontsize=9)
-mplim3.Pixellabels(plotaxis=("top", "left"))
-mplim3.plot()
+# Set title and adjust position of title
+frame.set_title('NGC 6946 at %g km/s (channel %d)' % (vel/1000.0, channel), y=1.1)
 
-# Adjust position of title
-t = frame.set_title('NGC 6946 at %g km/s (channel %d)' % (vel/1000.0, channel))
-t.set_y(1.1)
-
-plt.show()
+maputils.showall()

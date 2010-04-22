@@ -13,7 +13,7 @@ clipmin, clipmax = maputils.prompt_dataminmax(fitsobject)
 # Get connected to Matplotlib
 fig = plt.figure()
 frame = fig.add_subplot(1,1,1)
-   
+
 # Create an image to be used in Matplotlib
 annim = fitsobject.Annotatedimage(frame, clipmin=clipmin, clipmax=clipmax)
 annim.Image()

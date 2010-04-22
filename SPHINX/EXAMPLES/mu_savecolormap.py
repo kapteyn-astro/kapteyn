@@ -12,16 +12,16 @@ mycmlist = ["mousse.lut", "ronekers.lut"]
 maputils.cmlist.add(mycmlist)
 print "Colormaps: ", maputils.cmlist.colormaps
 
-mplim = f.Annotatedimage(frame, cmap="m101.lut")
-mplim.cmap.set_bad('w')
-ima = mplim.Image()
-mplim.Pixellabels()
-mplim.Colorbar(label="Unknown unit")
-mplim.plot()
+annim = f.Annotatedimage(frame, cmap="m101.lut")
+annim.cmap.set_bad('w')
+ima = annim.Image()
+annim.Pixellabels()
+annim.Colorbar(label="Unknown unit")
+annim.plot()
 
-mplim.interact_toolbarinfo()
-mplim.interact_imagecolors()
-mplim.interact_writepos()
+annim.interact_toolbarinfo()
+annim.interact_imagecolors()
+annim.interact_writepos()
 
 plt.show()
 

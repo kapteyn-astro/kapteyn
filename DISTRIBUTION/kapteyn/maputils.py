@@ -147,6 +147,8 @@ Utility functions
 .. index:: Convert PyFITS header to Python dictionary
 .. autofunction:: fitsheader2dict
 
+.. autofunction:: showall
+
 Class FITSimage
 ---------------
 
@@ -218,11 +220,12 @@ Class MovieContainer
 #use('qt4agg')
 
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
-from matplotlib.pyplot import figure
+from matplotlib.pyplot import figure, show
 from matplotlib import cm
 from matplotlib.colors import Colormap, Normalize          #, LogNorm, NoNorm
 from matplotlib.colorbar import make_axes, Colorbar, ColorbarBase
 from matplotlib.patches import Polygon
+from matplotlib.ticker import MultipleLocator
 import matplotlib.nxutils as nxutils
 import pyfits
 import warnings
@@ -231,9 +234,10 @@ from kapteyn import wcs, wcsgrat
 from kapteyn.celestial import skyrefsystems, epochs, skyparser
 from kapteyn.tabarray import tabarray, readColumns
 from kapteyn.mplutil import AxesCallback, VariableColormap, TimeCallback, KeyPressFilter
-from kapteyn.positions import str2pos, mysplit
+from kapteyn.positions import str2pos, mysplit, unitfactor
 #from scipy.ndimage.interpolation import map_coordinates
 from kapteyn.interpolation import map_coordinates
+from kapteyn import rulers
 import readline
 from types import TupleType as types_TupleType
 from types import ListType as types_ListType
@@ -247,12 +251,41 @@ from datetime import datetime
 
 KeyPressFilter.allowed = ['f', 'g']
 
-sequencelist = (types_TupleType, types_ListType)
-
 __version__ = '1.9'
 
 (left,bottom,right,top) = (wcsgrat.left, wcsgrat.bottom, wcsgrat.right, wcsgrat.top)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = (wcsgrat.native, wcsgrat.notnative, wcsgrat.bothticks, wcsgrat.noticks) 
+
+# Each object of class Annotatedimage is stored in a list.
+# This list is used by function 'showall()' to plot
+# all the objects in each Annotatedimage object.
+annotatedimage_list = []
+
+
+def showall():
+   #--------------------------------------------------------------------
+   """
+   Usually in a script with only one object of class
+   :class:`maputils.Annotatedimage` one plots this object,
+   and its derived objects, with method :meth:`maputils.Annotatedimage.plot`.
+   Matplotlib must be instructed to do the real plotting with
+   pyplot's function *show()*. This function does this all.
+
+   :Examples:
+
+   
+      >>> im1 = f1.Annotatedimage(frame1)
+      >>> im1.Image()
+      >>> im1.Graticule()
+      >>> im2 = f2.Annotatedimage(frame2)
+      >>> im2.Image()
+      >>> maputils.showall()
+      
+   """
+   #--------------------------------------------------------------------
+   for ai in annotatedimage_list:
+      ai.plot()
+   show()     # For Matplotlib
 
 
 def issequence(obj):
@@ -301,8 +334,7 @@ def getnumbers(prompt):
       except:
          pass
    return X
-      
-   
+
 
 def getscale(hdr):
    # Get relevant scaling keywords from this header
@@ -346,7 +378,7 @@ class Colmaplist(object):
       # The '_r' entries are reversed versions
       self.colormaps = sorted([m for m in cm.datad.keys() if not m.endswith("_r")])
    def add(self, clist):
-      if type(clist) not in sequencelist:
+      if not issequence(clist):
          clist = [clist]
       for c in clist[::-1]:
          self.colormaps.insert(0,c)
@@ -397,41 +429,6 @@ over these items and
             card.verify()
    
    return result
-
-
-def xxxxfitsheader2dict(header, comment=True, history=True):
-#-----------------------------------------------------------
-   """
-Transform a FITS header, read with PyFITS into a Python
-dictionary.
-This is useful if one want to iterate over all keys in the
-header. The PyFITS header is not iterable because it has to
-deal with multiple entries of COMMENT and HISTORY.
-Here they are stored as a list. When a dictionary is
-converted back to a PyFITS header, one should iterate
-over these items and 
-   """
-#-----------------------------------------------------------
-   if type(header) is dict:
-      return header
-   
-   result = {}
-   
-   for card in header.ascard:
-      try:
-         key = card.key
-         if (history and key=='HISTORY') or (comment and key=='COMMENT'):
-            try:
-               result[key].append(card.value)
-            except KeyError:
-               result[key] = [card.value]
-         else:
-            result[key] = header[key]
-      except:
-         card.verify()
-   
-   return result
-
 
 
 def prompt_box(pxlim, pylim, axnameX, axnameY):
@@ -595,6 +592,7 @@ the alternate header.
    files to retrieve FITS files e.g.::
    
       http://www.atnf.csiro.au/people/mcalabre/data/WCS/1904-66_ZPN.fits.gz
+      
    """
 #--------------------------------------------------------------------
 
@@ -1222,7 +1220,7 @@ class Contours(object):
          self.CS = self.frame.contour(self.data, cmap=self.cmap, norm=self.norm, **self.kwargs)
          self.clevels = self.CS.levels
       else:
-         if type(self.clevels) not in sequencelist:
+         if not issequence(self.clevels):
             self.clevels = [self.clevels]
          if self.filled:
             self.frame.contourf(self.data, self.clevels, cmap=self.cmap, norm=self.norm, **self.kwargs)
@@ -1277,7 +1275,7 @@ class Contours(object):
          if self.clevels == None:
             raise Exception, "Contour levels not set so I cannot identify contours"
          # Change only contour properties for levels in parameter 'levels'.
-         if type(levels) not in sequencelist:
+         if not issequence(levels):
             levels = [levels]
          for lev in levels:
             try:
@@ -1306,7 +1304,7 @@ class Contours(object):
          if self.clevels == None:
             raise Exception, "Contour levels not set so I cannot identify contours"
          # Change only contour properties for levels in parameter 'levels'.
-         if type(levels) not in sequencelist:
+         if not issequence(levels):
             levels = [levels]
          for lev in levels:
             try:
@@ -1437,12 +1435,25 @@ class Beam(object):
    we sample the
    ellipse on a sphere with a correct position angle and with the correct
    sizes.
+
    """
    #--------------------------------------------------------------------
-   def __init__(self, xc, yc, fwhm_major, fwhm_minor, pa, projection=None, **kwargs):
+   def __init__(self, xc, yc, fwhm_major, fwhm_minor, pa, projection=None,
+                units=None, **kwargs):
+      self.ptype = "Beam"
+
+      print "Units=", units
+      if units != None:
+         uf, errmes = unitfactor('degree', units)
+         if uf == None:
+            raise ValueError(errmes)
+         else:
+            print 
+            fwhm_major /= uf
+            fwhm_minor /= uf
+
       semimajor = fwhm_major / 2.0
       semiminor = fwhm_minor / 2.0
-      self.ptype = "Beam"
       Pi = numpy.pi
       startang, endang, delta = (0.0, 360.0, 1.0)
       sinP = numpy.sin( pa*Pi/180.0 )
@@ -1453,10 +1464,6 @@ class Beam(object):
       d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
       r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
       lon_new, lat_new = self.dispcoord(xc, yc, r, -1, phi+pa)
-      #Xell = r * cosA
-      #Yell = r * sinA
-      #Xr = Xell * cosP - Yell * sinP + xc
-      #Yr = Xell * sinP + Yell * cosP + yc
       xp, yp = projection.topixel((lon_new, lat_new))
       self.vertices = zip(xp, yp)
       self.kwargs = kwargs
@@ -1547,79 +1554,6 @@ class Marker(object):
       frame.plot(self.xp, self.yp, 'o', **self.kwargs)  # Set default marker symbol to prevent connections
 
 
-class Ruler(object):
-   """
-   -------------------------------------------------------------------------------
-   Attributes and methods for a ruler object. A ruler is a line piece with
-   a start- end endpoint and along this line there are labels which 
-   annotates values of constant offset w.r.t. a selected point on the line.
-   -------------------------------------------------------------------------------
-   """
-   def __init__(self, x1, y1, x2, y2, angle, dx, dy, mscale, **kwargs):
-      self.ptype = "Ruler"
-      self.x1 = x1
-      self.y1 = y1
-      self.x2 = x2
-      self.y2 = y2
-      self.x = []
-      self.y = []
-      self.xw = []
-      self.yw = []
-      self.stepsizeW = None
-      self.label = []
-      self.offsets = []      # Store the offsets in degrees
-      self.angle = angle
-      self.kwargs = {'clip_on' : True}   # clip_on is buggy for plot() in MPL versions <= 0.98.3 change later
-      self.tickdx = dx
-      self.tickdy = dy
-      self.mscale = mscale
-      self.fun = None
-      self.fmt = None
-      self.linekwargs = {'color' : 'k'}
-      self.kwargs.update(kwargs)    # These are the kwargs for the labels
-
-   def setp_line(self, **kwargs):
-      self.linekwargs.update(kwargs)
-   
-   def setp_labels(self, **kwargs):
-      self.kwargs.update(kwargs)
-      
-   def append(self, x, y, offset, label):
-      self.x.append(x)
-      self.y.append(y)
-      self.offsets.append(offset)
-      self.label.append(label)
-
-   def appendW(self, xw, yw):
-      self.xw.append(xw)
-      self.yw.append(yw)
-
-   def plot(self, frame):
-      """
-      Plot one ruler object in the current frame
-      """
-      ruler = self
-      frame.plot((ruler.x1,ruler.x2), (ruler.y1,ruler.y2), '-', **ruler.linekwargs)
-      dx = ruler.tickdx
-      dy = ruler.tickdy
-      #self.frame.plot( [ruler.x1, ruler.x1+dx], [ruler.y1, ruler.y1+dy], '-', **ruler.linekwargs)
-      #self.frame.plot( [ruler.x2, ruler.x2+dx], [ruler.y2, ruler.y2+dy], '-', **ruler.linekwargs)
-      for x, y, label in zip(ruler.x, ruler.y, ruler.label):
-         frame.plot( [x, x+dx], [y, y+dy], '-', color='k')
-         frame.text(x+ruler.mscale*dx, y+ruler.mscale*dy, label, **ruler.kwargs)
-
-      """
-      # Set limits explicitly
-      xlo = ruler.pxlim[0]-0.5
-      ylo = ruler.pylim[0]-0.5
-      xhi = ruler.pxlim[1]+0.5
-      yhi = ruler.pylim[1]+0.5
-      frame.set_xlim((xlo,xhi))
-      frame.set_ylim((ylo,yhi))
-      """
-
-
-
 class Gridframe(object):
    """
    -------------------------------------------------------------------------------
@@ -1627,15 +1561,17 @@ class Gridframe(object):
    when pixel coordinates need to be plotted.
    -------------------------------------------------------------------------------
    """
-   def __init__(self, pxlim, pylim, plotaxis, markersize, gridlines, **kwargs):
+   def __init__(self, pxlim, pylim, plotaxis, gridlines, major, minor, **kwargs):
       self.ptype = "Gridframe"
       self.pxlim = pxlim
       self.pylim = pylim
       self.plotaxis = plotaxis
-      self.markersize = markersize
+      self.markerkwargs = {}
       self.kwargs = kwargs
       self.gridlines = gridlines
-      
+      self.major = major
+      self.minor = minor
+
 
 class Pixellabels(object):
    """
@@ -1664,6 +1600,16 @@ class Pixellabels(object):
    :param gridlines:    Set plotting of grid lines (connected tick marks)
                         on or off (True/False). The default is off.
    :type gridlines:     Boolean
+
+   :param major:        This number overrules the default positions
+                        for the major tick marks. The tick marks and labels
+                        are plotted at a multiple number of *major*.
+   :type major:         Float or Integer (usually the input will be an integer).
+
+   :param minor:        This number sets the plotting of minor tick marks on.
+                        The markers are plotted at a multiple value of
+                        *minor*.
+   :type minor:         Float or Integer (usually the input will be an integer).
    
    :param offset:       The pixels can have an integer offset.
                         If you want the reference pixel to be pixel
@@ -1697,12 +1643,15 @@ class Pixellabels(object):
                            or with separate axes:
    
                            mplim.Pixellabels(plotaxis="bottom", color="r")
+
                            mplim.Pixellabels(plotaxis="right", color="b", markersize=10)
                            mplim.Pixellabels(plotaxis="top", color="g", markersize=-10, gridlines=True)
 
+   .. automethod:: setp_marker
+   .. automethod:: setp_label
    """
    def __init__(self, pxlim, pylim, plotaxis=None, markersize=None,
-                gridlines=False, offset=None, **kwargs):
+                gridlines=False, ticks=None, major=None, minor=None, offset=None, **kwargs):
 
       def nint(x):
          return numpy.floor(x+0.5)
@@ -1722,8 +1671,38 @@ class Pixellabels(object):
          px[0] -= offX; px[1] -= offX;
          py[0] -= offY; py[1] -= offY;
    
-      gridlabs = Gridframe(px, py, plotaxis, markersize, gridlines, **defkwargs)
+      gridlabs = Gridframe(px, py, plotaxis, gridlines, major, minor, **defkwargs)
       self.gridlabs = gridlabs
+
+
+   def setp_marker(self, **kwargs):
+      #--------------------------------------------------------------------
+      """
+      Set properties of the pixel label tick markers
+       
+      :param kwargs:  keyword arguments to change properties of
+                      the tick marks. A tick mark is a Matploltlib
+                      :class:`Line2D` object with attributes like
+                      *markeredgewidth* etc.
+      :type kwargs:   Python keyword arguments.
+      """
+      #--------------------------------------------------------------------
+      self.gridlabs.markerkwargs.update(kwargs)
+
+   
+   def setp_label(self, **kwargs):
+      #--------------------------------------------------------------------
+      """
+      Set properties of the pixel label tick markers
+       
+      :param kwargs:  keyword arguments to change properties of
+                      (all) the tick labels. A tick mark is a Matploltlib
+                      :class:`Text` object with attributes like
+                      *fontsize*, *fontstyle* etc.
+      :type kwargs:   Python keyword arguments.
+      """
+      #--------------------------------------------------------------------
+      self.gridlabs.kwargs.update(kwargs)
 
 
    def plot(self, frame):
@@ -1739,7 +1718,6 @@ class Pixellabels(object):
                        two axes. If you need to label the other axes 
                        too, then add another grid with method Pixellabels().
 
-                       Only one frame is plotted. Needs maintenance
       -----------------------------------------------------------
       """
       fig = frame.figure
@@ -1766,12 +1744,12 @@ class Pixellabels(object):
       aspect = frame.get_aspect()
       adjust = frame.get_adjustable()
       kwargs = pixellabels.kwargs
+      markerkwargs = pixellabels.markerkwargs
       xlo = pixellabels.pxlim[0]-0.5 
       ylo = pixellabels.pylim[0]-0.5
       xhi = pixellabels.pxlim[1]+0.5
       yhi = pixellabels.pylim[1]+0.5
       # Copy frame
-      #framelabel = "G%s%d" % ("Pixframe", globalframeindx)
       framelabel = randomlabel('fr_')
       gframe = fig.add_axes(frame.get_position(),
                                  aspect=aspect,
@@ -1782,7 +1760,14 @@ class Pixellabels(object):
       
       gframe.set_xlim((xlo,xhi))
       gframe.set_ylim((ylo,yhi))
-      #self.frames.append(gframe)
+
+      if 3 in plotaxes or 1 in plotaxes:
+         if pixellabels.major != None:
+            majorLocator = MultipleLocator(pixellabels.major)
+            gframe.xaxis.set_major_locator(majorLocator)
+         if pixellabels.minor:
+            minorLocator = MultipleLocator(pixellabels.minor)
+            gframe.xaxis.set_minor_locator(minorLocator)
 
       if 3 in plotaxes:
          gframe.xaxis.set_label_position('top')
@@ -1794,20 +1779,32 @@ class Pixellabels(object):
          for tick in gframe.xaxis.get_major_ticks():
             tick.label2.set(visible=False)
             tick.label1.set(visible=False)
-           
-      setmarker = pixellabels.markersize != None
+            tick.tick1On = False
+            tick.tick2On = False
+
+      setmarker = (pixellabels.markerkwargs) > 0
       for tick in gframe.xaxis.get_major_ticks():
          if 3 in plotaxes:
             tick.label2.set(**kwargs)
             if setmarker:
-               tick.tick2line.set_markersize(pixellabels.markersize)
+               tick.tick2line.set(**markerkwargs)
             tick.tick1On = False
+            tick.gridOn = pixellabels.gridlines
          elif 1 in plotaxes:
             tick.label1.set(**kwargs)
             if setmarker:
-               tick.tick1line.set_markersize(pixellabels.markersize)
+               tick.tick1line.set(**markerkwargs)
             tick.tick2On = False
-               
+            tick.gridOn = pixellabels.gridlines
+
+      if 2 in plotaxes or 0 in plotaxes:
+         if pixellabels.major != None:
+            majorLocator = MultipleLocator(pixellabels.major)
+            gframe.yaxis.set_major_locator(majorLocator)
+         if pixellabels.minor:
+            minorLocator = MultipleLocator(pixellabels.minor)
+            gframe.yaxis.set_minor_locator(minorLocator)
+            
       if 2 in plotaxes:
          gframe.yaxis.set_label_position('right')
          gframe.yaxis.tick_right()
@@ -1818,20 +1815,24 @@ class Pixellabels(object):
          for tick in gframe.yaxis.get_major_ticks():
             tick.label2.set(visible=False)
             tick.label1.set(visible=False)
+            tick.tick1On = False
+            tick.tick2On = False
          
       for tick in gframe.yaxis.get_major_ticks():
          if 2 in plotaxes:
             tick.label2.set(**kwargs)
             if setmarker:
-               tick.tick2line.set_markersize(pixellabels.markersize)
+               tick.tick2line.set(**markerkwargs)
             tick.tick1line.set_visible(False)
+            tick.gridOn = pixellabels.gridlines
          elif 0 in plotaxes:
             tick.label1.set(**kwargs)
             if setmarker:
-               tick.tick1line.set_markersize(pixellabels.markersize)
+               tick.tick1line.set(**markerkwargs)
             tick.tick2line.set_visible(False)
+            tick.gridOn = pixellabels.gridlines
                
-      gframe.grid(pixellabels.gridlines)
+      # gframe.grid(pixellabels.gridlines)
       fig.sca(frame)    # back to frame from calling environment
 
 
@@ -2106,7 +2107,8 @@ this class.
          self.basename = "Unknown"               # Default name for file with colormap lut data
       else:
          self.basename = basename
-
+      annotatedimage_list.append(self)
+      
 
    def set_norm(self, clipmin, clipmax):
       #-----------------------------------------------------------------
@@ -2293,6 +2295,8 @@ this class.
          >>> annim.set_aspectratio(1.2)
       """
       #-----------------------------------------------------------------
+      if aspect <= 0.0:
+         raise ValueError("Only aspect ratios > 0 are allowed")
       self.aspect = abs(aspect)
       self.frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
 
@@ -2585,14 +2589,15 @@ this class.
          >>> grat = annim.Graticule(wylim=(20.0,90.0), wxlim=(0,360), 
                                     startx=X, starty=Y)
 
-         Add a ruler, based on the current Graticule:
+         Add a ruler, based on the current Annotatedimage object:
          
-         >>> ruler3 = grat.Ruler(23*15,30,22*15,15, 0.5, 1, world=True,
+         >>> ruler3 = annim.Ruler(23*15,30,22*15,15, 0.5, 1, world=True,
                                  fmt=r"$%4.0f^\prime$",
                                  fun=lambda x: x*60.0, addangle=0)
          >>> ruler3.setp_labels(color='r')
 
-         Add world coordinate labels inside the plot:
+         Add world coordinate labels inside the plot. Note that these are
+         derived from the current Graticule object.
          
          >>> grat.Insidelabels(wcsaxis=0, constval=-51, rotation=90, fontsize=10,
                                color='r', ha='right')
@@ -2669,7 +2674,7 @@ this class.
       return pixlabels
 
 
-   def Beam(self, major, minor, pa=0.0, pos=None, xc=None, yc=None, **kwargs):
+   def Beam(self, major, minor, pa=0.0, pos=None, xc=None, yc=None, units=None, **kwargs):
       #-----------------------------------------------------------------
       """
       Objects from class Beam are graphical representations of the resolution
@@ -2736,6 +2741,19 @@ this class.
          pos = '14h03m12.6105s 58' # World coordinate and a pixel coordinate
          beam = annim.Beam(0.04, 0.02, pa=-30, pos=pos, fc='y', fill=True, alpha=0.4)
 
+      :Properties:
+
+         A selection of keyword arguments for the beam (which is a
+         Matplotlib :class:`Polygon`
+         object are:
+
+         * alpha - float (0.0 transparent through 1.0 opaque)
+         * color - matplotlib color arg or sequence of rgba tuples
+         * edgecolor or ec - mpl color spec, or None for default, or 'none' for no color
+         * facecolor or fc - mpl color spec, or None for default, or 'none' for no color
+         * linestyle  or ls - ['solid' | 'dashed' | 'dashdot' | 'dotted']
+         * linewidth or lw - float or None for default
+
       """
       #-----------------------------------------------------------------
       if pos != None:
@@ -2750,7 +2768,8 @@ this class.
       if not spatialmap:
          raise Exception, "Can only plot a beam in a spatial map"
 
-      beam = Beam(world[0], world[1], major, minor, pa, projection=self.projection, **kwargs)
+      beam = Beam(world[0], world[1], major, minor, pa, projection=self.projection,
+                  units=units, **kwargs)
       self.objlist.append(beam)
       return beam
 
@@ -2862,465 +2881,24 @@ this class.
              labelsintex=True, **kwargs):
       #-----------------------------------------------------------------
       """
-      Draw a line between two spatial positions
-      from a start point (x1,y1) to an end point (x2,y2)
-      with labels indicating a constant offset in world
-      coordinates. The positions are either in pixels
-      or in world coordinates. The ruler is a straight
-      line but the ticks are usually not equidistant
-      because projection effects make the offsets non linear
-      (e.g. the TAN projection diverges while the CAR projection
-      shows equidistant ticks).
-      Default, the zero point is exactly in the middle of
-      the ruler but this can be changed by setting a
-      value for *lambda0*.  The step size
-      for the ruler ticks in units of the spatial
-      axes is entered in parameter *step*.
-      At least one of the axes in the plot needs to be
-      a spatial axis.
+      This method prepares arguments for a call to function
+      :func:`rulers.Ruler` in module :mod:`rulers`
 
-      :param pos1:          Position information for the start point. This info overrules
-                            the values in x1 and y1.
-      :type pos1:           String
-
-      :param pos1:          Position information for the end point. This info overrules
-                            the values in x2 and y2.
-      :type pos1:           String
-      
-      :param x1:            X-location of start of ruler either in pixels or world coordinates
-                            Default is lowest pixel coordinate in x.
-      :type x1:             None or Floating point number
-      
-      :param y1:            Y-location of start of ruler either in pixels or world coordinates
-                            Default is lowest pixel coordinate in y.
-      :type y1:             None or Floating point number
-      
-      :param x2:            X-location of end of ruler either in pixels or world coordinates
-                            Default is highest pixel coordinate in x.
-      :type x2:             None or Floating point number
-      
-      :param y2:            Y-location of end of ruler either in pixels or world coordinates
-                            Default is highest pixel coordinate in y.
-      :type y2:             None or Floating point number
-      
-      :param lambda0:       Set the position of label which represents offset 0.0.
-                            Default is lambda=0.5 which represents the middle of the ruler.
-                            If you set lambda=0 then offset 0.0 is located at the start
-                            of the ruler. If you set lambda=1 then offset 0.0 is located at the
-                            end of the ruler.
-      :type lambda0:        Floating point number
-      
-      :param step:          Step size of world coordinates in degrees.
-      :type step:           Floating point number
-      
-      :param world:         Set ruler mode to world coordinates (default is pixels)
-      :type world:          Boolean
-      
-      :param angle:         Set angle of tick marks in degrees. If omitted then a default
-                            is calculated (perpendicular to ruler line) which applies
-                            to all labels.
-      :type angle:          Floating point number
-      
-      :param addangle:      Add a constant angle in degrees to *angle*.
-                            Only useful if *angle* has its default
-                            value. This parameter is used to improve layout.
-      :type adangle:        Floating point number
-      
-      :param fmt:           Format of the labels. See example.
-      :type fmt:            String
-      
-      :param fun:           Format ruler values according to this function (e.g. to convert
-                            degrees into arcminutes). The output is always in degrees.
-      :type fun:            Python function or Lambda expression
-      
-      :param fliplabelside: Choose other side of ruler to draw labels.
-      :type fliplabelside:  Boolean
-      
-      :param mscale:        A scaling factor to create more or less distance between 
-                            the ruler and its labels. If *None* then this method calculates 
-                            defaults. The values are usually less than 5.0.
-      :type mscale:         Floating point number
-         
-      :param `**kwargs`:    Set keyword arguments for the labels.
-                            The attributes for the ruler labels are set with these keyword arguments.
-      :type `**kwargs`:     Matplotlib keyword argument(s)
-      
-      :Raises:
-         :exc:`Exception` 
-            *Rulers only suitable for maps with at least one spatial axis!*
-            These rulers are only for plotting offsets as distances on
-            a sphere for the current projection system. So we need at least
-            one spatial axis and if there is only one spatial axis in the plot,
-            then we need a matching spatial axis.
-         :exc:`Exception`
-            *Cannot make ruler with step size equal to zero!*
-            Either the input of the step size...
-         :exc:`Exception`
-            *Start point of ruler not in pixel limits!*
-         :exc:`Exception`
-            *End point of ruler not in pixel limits!*
-      
-      :Returns:      A ruler object of class ruler which is added to the plot container
-                     with Plotversion's method :meth:`Plotversion.add`.
-                     This ruler object has two methods to change the properties 
-                     of the line and the labels:
-         
-                     * `setp_line(**kwargs)` -- Matplotlib keyword arguments for changing
-                       the line properties.
-                     * `setp_labels(**kwargs)` -- Matplotlib keyword arguments for changing
-                       the label properties.
-      
-      :Notes:        A bisection is used to find a new marker position so that
-                     the distance to a previous position is *step*..
-                     We use a formula of Thaddeus Vincenty, 1975, for the
-                     calculation of a distance on a sphere accurate over the
-                     entire sphere.
-      
-      :Examples:     Create a ruler object and change its properties
-
-                       ::
-      
-                        ruler2 = annim.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=0.5, step=2.0,
-                                             fmt='%3d', mscale=-1.5, fliplabelside=True)
-                        ruler2.setp_labels(ha='left', va='center', color='b')
-   
-                        ruler4 = annim.Ruler(pos1="23h0m 15d0m", pos2="22h0m 30d0m", lambda0=0.0,
-                                             step=1, world=True,
-                                             fmt=r"$%4.0f^\prime$",
-                                             fun=lambda x: x*60.0, addangle=0)
-                        ruler4.setp_line(color='g')
-                        ruler4.setp_labels(color='m')
+      Note that this method sets a number of parameters which
+      cannot be changed like *projection*, *mixpix*, *pxlim*, *pylim*
+      and *aspectratio*, which are all derived from the properties of the current
+      :class:`maputils.Annotatedimage` object.
       """
       #-----------------------------------------------------------------
-      # Recipe
-      # Are the start and endpoint in world coordinates or pixels?
-      # Convert to pixels.
-      # Calculate the central position in pixels
-      # Calculate the central position in world coordinates (Xw,Yw)
-      # Find a lambda in (x,y) = (x1,y1) + lambda*(x2-x1,y2-x1)
-      # so that, if (x,y) <-> (xw,yw), the distance D((Xw,Yw), (xw,yw))
-      # is the step size on the ruler.
-      def bisect(offset, lambda_s, Xw, Yw, x1, y1, x2, y2):
-         """
-         We are looking for a value mu so that mu+lambda_s sets a
-         pixel which corresponds to world coordinates that are
-         'offset' away from the start point set by lambda_s
-         If lambda_s == 0 then we are in x1, x2. If lambda_s == 1
-         we are in x2, y2
-         """
-         mes = ''
-         if offset >= 0.0:
-            a = 0.0; b = 1.1
-         else:
-            a = -1.1; b = 0.0
-   
-         f1 = getdistance(a, lambda_s, Xw, Yw, x1, y1, x2, y2) - abs(offset)
-         f2 = getdistance(b, lambda_s, Xw, Yw, x1, y1, x2, y2) - abs(offset)
-         validconditions = f1*f2 < 0.0
-         if not validconditions:
-            mes = "Found interval without a root for this step size"
-            return  None, mes
-   
-         tol = 1e-12   # Tolerance. Stop iteration if (b-a)/2 < tol
-         N0  = 50      # Stop output with error message if number of iterations
-                        # exceeds this number
-         # Initialize
-         i = 0
-         fa = getdistance(a, lambda_s, Xw, Yw, x1, y1, x2, y2) - abs(offset)
-         # The iteration itself
-         while i <= N0:
-            # The bisection
-            p = a + (b-a)/2.0
-            fp = getdistance(p, lambda_s, Xw, Yw, x1, y1, x2, y2) - abs(offset)
-            # Did we find a root?
-            i += 1
-            if fp == 0.0 or (b-a)/2.0 < tol:
-               # print 'Root is: ', p, fp          # We found a root
-               # print "Iterations: ", i
-               break                         # Success..., leave the while loop
-            if fa*fp > 0:
-               a = p
-               fa = fp
-            else:
-               b = p
-         else:
-            mes = 'Ruler bisection failed after %d iterations!' % N0
-            p = None
-         return p, mes
-   
-   
-      def DV(l1, b1, l2, b2):
-         # Vincenty, Thaddeus, 1975, formula for distance on sphere accurate over entire sphere
-         fac = numpy.pi / 180.0
-         l1 *= fac; b1 *= fac; l2 *= fac; b2 *= fac
-         dlon = l2 - l1
-         a1 = numpy.cos(b2)*numpy.sin(dlon)
-         a2 = numpy.cos(b1)*numpy.sin(b2) - numpy.sin(b1)*numpy.cos(b2)*numpy.cos(dlon)
-         a = numpy.sqrt(a1*a1+a2*a2)
-         b = numpy.sin(b1)*numpy.sin(b2) + numpy.cos(b1)*numpy.cos(b2)*numpy.cos(dlon)
-         d = numpy.arctan2(a,b)
-         return d*180.0/numpy.pi
-   
-   
-      def tolonlat(x, y):
-         # This function also sorts the spatial values in order
-         # longitude, latitude
-         if self.mixpix == None:
-            xw, yw = self.projection.toworld((x,y))
-            xwo = xw     # Store originals
-            ywo = yw
-         else:
-            xw1, xw2, yw1 = self.projection.toworld((x, y, self.mixpix))
-            if self.projection.types[0] == 'longitude':
-               xw = xw1
-               yw = yw1
-               xwo = xw1; ywo = yw1
-            elif self.projection.types[0] == 'latitude':  # First axis must be latitude
-               xw = yw1
-               yw = xw1
-               xwo = xw1; ywo = yw1
-            elif self.projection.types[1] == 'longitude':
-               xw = xw2
-               yw = yw1
-               xwo = xw2; ywo = yw1
-            elif self.projection.types[1] == 'latitude':
-               xw = yw1
-               yw = xw2
-               xwo = xw2; ywo = yw1
-            else:
-               xw = yw = numpy.nan
-   
-         return xw, yw, xwo, ywo
-   
-   
-      def topixel2(xw, yw):
-         # Note that this conversion is only used to convert
-         # start and end position, given in world coordinates,
-         # to pixels.
-         if self.mixpix == None:
-            x, y = self.projection.topixel((xw,yw))
-         else:
-            unknown = numpy.nan
-            wt = (xw, yw, unknown)
-            pixel = (unknown, unknown, self.mixpix)
-            (wt, pixel) = self.projection.mixed(wt, pixel)
-            x = pixel[0]; y = pixel[1]
-         return x, y
-   
-   
-      def getdistance(mu, lambda_s, Xw, Yw, x1, y1, x2, y2):
-         lam = lambda_s + mu
-         x = x1 + lam*(x2-x1)
-         y = y1 + lam*(y2-y1)
-         xw, yw, xw1, yw1 = tolonlat(x,y)
-         return DV(Xw, Yw, xw, yw)
-   
-   
-      def nicestep(x1, y1, x2, y2):
-         # Assume positions in pixels
-         xw1, yw1, dummyx, dummyy = tolonlat(x1,y1)
-         xw2, yw2, dummyx, dummyy = tolonlat(x2,y2)
-         step = None
-         length = DV(xw1, yw1, xw2, yw2)
-         # Nice numbers for dms should also be nice numbers for hms
-         sec = numpy.array([30, 20, 15, 10, 5, 2, 1])
-         minut = sec
-         deg = numpy.array([60, 30, 20, 15, 10, 5, 2, 1])
-         nicenumber = numpy.concatenate((deg*3600.0, minut*60.0, sec))
-         fact = 3600.0
-   
-         d = length * fact
-         step2 = 0.9*d/3.0          # We want at least four offsets on our ruler
-         for p in nicenumber:
-            k = int(step2/p)
-            if k >= 1.0:
-               step2 = k * p
-               step = step2
-               break           # Stop if we have a candidate
-   
-         # d = x2 - x1
-         # If nothing suitable then try something else
-         if step == None:
-            f = int(numpy.log10(d))
-            if d < 1.0:
-               f -= 1
-            D3 = numpy.round(d/(10.0**f),0)
-            if D3 == 3.0:
-               D3 = 2.0
-            elif D3 == 6:
-               D3 = 5.0
-            elif D3 == 7:
-               D3 = 8
-            elif D3 == 9:
-               D3 = 10
-            if D3 in [2,4,8]:
-               k = 4
-            else:
-               k = 5
-            step = (D3*10.0**f)/k
-         return step/fact
-
-
-      spatial = self.projection.types[0] in ['longitude', 'latitude'] or self.projection.types[1] in ['longitude', 'latitude']
-      if not spatial:
-         raise Exception, "Rulers only suitable for maps with at least one spatial axis!"
-   
-      if pos1 != None:
-         poswp = str2pos(pos1, self.projection, mixpix=self.mixpix, maxpos=1) # with implicit maximum of 'maxpos'
-         if poswp[3] != "":
-            raise Exception, poswp[3]
-         # The result of the position parsing of str2pos is stored in 'poswp'
-         # Its second element are the returned pixel coordinates.
-         # (poswp[1]).
-         # Note we required 1 position. Then the pixel coordinate we want is
-         # poswp[1][0]. If we omit the last index then we end up with a sequence (of 1)
-         # which cannot be processed further. Finally the pixel coordinate represents a
-         # position in 2-dim. So the first element represents x (poswp[1][0][0]).
-         pix =  poswp[1][0]
-         x1 = pix[0]
-         y1 = pix[1]
-      else:
-         if x1 == None: x1 = self.pxlim[0]; world = False
-         if y1 == None: y1 = self.pylim[0]; world = False
-         if world:
-            x1, y1 = topixel2(x1, y1)
-   
-      if pos2 != None:
-         poswp = str2pos(pos2, self.projection, mixpix=self.mixpix, maxpos=1) # with implicit maximum of 'maxpos'
-         if poswp[3] != "":
-            raise Exception, poswp[3]
-         pix =  poswp[1][0]
-         x2 = pix[0]
-         y2 = pix[1]
-      else:
-         if x2 == None: x2 = self.pxlim[1]; world = False
-         if y2 == None: y2 = self.pylim[1]; world = False
-         if world:
-            x2, y2 = topixel2(x2, y2)
-
-      #print "DV", DV(23*15,15, 22*15, 30)*60.0
-
-      # Get a step size for nice offsets
-      if step == None:
-         stepsizeW = nicestep(x1, y1, x2, y2)
-      else:
-         stepsizeW = step
-      if step == 0.0:
-         raise Exception, "Cannot make ruler with step size equal to zero!"
-   
-   
-      # Look for suitable units (degrees, arcmin, arcsec) if nothing is
-      # specified in the call. Note that 'stepsizeW' is in degrees.
-      if fun == None and fmt == None:
-         if labelsintex:
-            fmt = r"$%4.0f^{\circ}$"
-         else:
-            fmt = u"%4.0f\u00B0"
-         if abs(stepsizeW) < 1.0:
-            # Write labels in arcmin
-            fun = lambda x: x*60.0
-            if labelsintex:
-               fmt = r"$%4.0f^{\prime}$"
-            else:
-               fmt = r"$%4.0f'"
-         if abs(stepsizeW) < 1.0/60.0:
-            # Write labels in arcmin
-            fun = lambda x: x*3600.0
-            if labelsintex:
-               fmt = r"$%4.0f^{\prime\prime}$"
-            else:
-               fmt = r"$%4.0f''"
-      elif fmt == None:          # Then a default format
-         fmt = '%g'
-
-      # Check whether the start- and end point of the ruler are inside the frame
-      start_in = (self.pxlim[0]-0.5 <= x1 <= self.pxlim[1]+0.5) and (self.pylim[0]-0.5 <= y1 <= self.pylim[1]+0.5)
-      if not start_in:
-         raise Exception, "Start point of ruler not in pixel limits!"
-      end_in = (self.pxlim[0]-0.5 <= x2 <= self.pxlim[1]+0.5) and (self.pylim[0]-0.5 <= y2 <= self.pylim[1]+0.5)
-      if not end_in:
-         raise Exception, "End point of ruler not in pixel limits!"
-   
-      # Ticks perpendicular to ruler line.
-      defangle = 180.0 * numpy.arctan2(y2-y1, x2-x1) / numpy.pi - 90.0
-   
-      l1 = self.pxlim[1] - self.pxlim[0] + 1.0; l1 /= 50.0
-      l2 = self.pylim[1] - self.pylim[0] + 1.0; l2 /= 50.0
-      ll = max(l1,l2)
-      dx = ll*numpy.cos(defangle*numpy.pi/180.0)
-      dy = ll*numpy.sin(defangle*numpy.pi/180.0)
-      if fliplabelside:
-         dx = -dx
-         dy = -dy
-   
-      if angle == None:
-         phi = defangle
-      else:
-         phi = angle
-      phi += addangle
-      defkwargs = {'fontsize':10, 'rotation':phi}
-      if defangle+90.0 in [270.0, 90.0, -90.0, -270.0]:
-         if fliplabelside:
-            defkwargs.update({'va':'center', 'ha':'right'})
-         else:
-            defkwargs.update({'va':'center', 'ha':'left'})
-         if mscale == None:
-            mscale = 1.5
-      elif defangle+90.0 in [0.0, 180.0, -180.0]:
-         if fliplabelside:
-            defkwargs.update({'va':'bottom', 'ha':'center'})
-         else:
-            defkwargs.update({'va':'top', 'ha':'center'})
-         mscale = 1.5
-      else:
-         defkwargs.update({'va':'center', 'ha':'center'})
-         if mscale == None:
-            mscale = 2.5
-      defkwargs.update(kwargs)
-      ruler = Ruler(x1, y1, x2, y2, defangle, dx, dy, mscale, **defkwargs)
-      ruler.fmt = fmt
-      ruler.fun = fun
-   
-      lambda_s = lambda0
-      x0 = x1 + lambda_s*(x2-x1)
-      y0 = y1 + lambda_s*(y2-y1)
-      Xw, Yw, xw1, yw1 = tolonlat(x0, y0)
-      ruler.append(x0, y0, 0.0, fmt%0.0)
-      ruler.appendW(xw1, yw1)         # Store in original order i.e. not sorted
-      ruler.stepsizeW = stepsizeW     # Needed elsewhere so store as an attribute
-   
-   
-      # Find the mu on the straight ruler line for which the distance between
-      # the position defined by mu and the center point (lambda0) is 'offset'
-      # Note that these distances are calculated on a sphere
-      for sign in [+1.0, -1.0]:
-         mu = 0.0
-         offset = 0.0
-         lamplusmu = lambda_s + mu
-         while mu != None and (0.0 <= lamplusmu <= 1.0):
-            offset += sign*stepsizeW
-            mu, mes = bisect(offset, lambda_s, Xw, Yw, x1, y1, x2, y2)
-            if mu != None:
-               lamplusmu = lambda_s + mu
-               if 0.0 <= lamplusmu <= 1.0:
-                  x = x1 + (lamplusmu)*(x2-x1)
-                  y = y1 + (lamplusmu)*(y2-y1)
-                  if fun != None:
-                     off = fun(offset)
-                  else:
-                     off = abs(offset)
-                  ruler.append(x, y, offset, fmt%off)
-                  xw, yw, xw1, yw1 = tolonlat(x, y)
-                  ruler.appendW(xw1, yw1)
-            elif sign == -1.0:
-               break
-               # raise Exception, mes
-      ruler.pxlim = self.pxlim
-      ruler.pylim = self.pylim
+      ruler = rulers.Ruler(self.projection, self.mixpix, self.pxlim, self.pylim,
+                           aspectratio=self.aspect, pos1=pos1, pos2=pos2,
+                           x1=x1, y1=y1, x2=x2, y2=y2, lambda0=lambda0, step=step,
+                           world=world, angle=angle, addangle=addangle,
+                           fmt=fmt, fun=fun, fliplabelside=fliplabelside, mscale=mscale,
+                           labelsintex=labelsintex, **kwargs)
       self.objlist.append(ruler)
       return ruler
 
-      
 
    def plot(self):
       #-----------------------------------------------------------------
@@ -3388,6 +2966,10 @@ this class.
          except:
             raise Exception, "Unknown object. Cannot plot this!"
          if pt in ["Image", "Contour", "Graticule", "Pixellabels", "Beam", "Marker", "Ruler"]:
+            try:
+               visible = obj.visible
+            except:
+               visible = True
             obj.plot(self.frame)
             # If we want to plot derived objects (e.g. ruler) and not the graticule
             # then set visible to False in the constructor.
@@ -4765,7 +4347,7 @@ to know the properties of the FITS data beforehand.
    #------------------------------------------------------------
       if axnum == None:
          axnum = range(1, self.naxis+1)
-      if type(axnum) not in sequencelist:
+      if not issequence(axnum):
          axnum = [axnum]
       s = ''
       l = len(axnum)
@@ -4864,6 +4446,41 @@ to know the properties of the FITS data beforehand.
       return s
 
 
+   def getaxnumberbyname(self, axname):
+      #--------------------------------------------------------------
+      """
+      Given an axis specification 
+      convert to the corresponding axis number. If the input was a number,
+      then return this number. Note that there is no check on
+      multiple matches of the minimal matched string.
+      The string matching is case insensitive.
+
+      :param axname:   The name of one of the axis in the header of this
+                       object.
+      :type axname:    String or Integer
+      """
+      #--------------------------------------------------------------
+      if type(axname) != types_StringType:
+         # Probably an integer
+         return axname
+
+      n = self.naxis
+      # Get the axis number
+      axnumber = None
+      for i in range(n):
+         ax = i + 1
+         str2 = self.axisinfo[ax].axname
+         if str2.find(string_upper(axname), 0, len(axname)) > -1:
+             axnumber = ax
+             break
+
+      # Check on validity
+      if axnumber == None:
+         raise ValueError("Axis name [%s] is not found in the header"%axname)
+      return axnumber
+
+
+
    def set_imageaxes(self, axnr1=None, axnr2=None, slicepos=None, promptfie=None):
    #--------------------------------------------------------------
       """
@@ -4877,13 +4494,17 @@ to know the properties of the FITS data beforehand.
       Attribute :attr:`dat` is then always a 2D array.
 
       :param axnr1:
-         Axis number of first image axis (X-axis)
+         Axis number of first image axis (X-axis). If it is a string, then
+         the number of the first axis which matches is returned. The string match
+         is minimal and case insensitive. 
       :type axnr1:
-         Integer
+         Integer or String
       :param axnr2:
-         Axis number of second image axis (Y-axis)
+         Axis number of second image axis (Y-axis). If it is a string, then
+         the number of the first axis which matches is returned. The string match
+         is minimal and case insensitive.
       :type axnr2:
-         Integer
+         Integer or String
       :param slicepos:
          list with pixel positions on axes outside the image at which
          an image is extracted from the data set. Applies only to data sets with
@@ -4983,8 +4604,15 @@ to know the properties of the FITS data beforehand.
          >>> fitsobject = maputils.FITSimage('rense.fits')
          >>> fitsobject.set_imageaxes(promptfie=maputils.prompt_imageaxes)
 
+         Enter (part of) the axis names. Note the minimal matching and
+         case insensitivity.
+                   
+         >>> fitsobject = maputils.FITSimage('rense.fits')
+         >>> fitsobject.set_imageaxes('ra','d', slicepos=30)
       """
       #-----------------------------------------------------------------
+      axnr1 = self.getaxnumberbyname(axnr1)
+      axnr2 = self.getaxnumberbyname(axnr2)
       n = self.naxis
       if n >= 2:
          if (axnr1 == None or axnr2 == None) and promptfie == None:
@@ -5004,11 +4632,11 @@ to know the properties of the FITS data beforehand.
          axnr1, axnr2, self.slicepos = promptfie(self, axnr1, axnr2)
       else:
          if slicepos != None and n > 2:
-            if type(slicepos) in sequencelist:
+            if issequence(slicepos):
                self.slicepos = slicepos
             else:
                self.slicepos = [slicepos]
-         
+
       axperm = [axnr1, axnr2]
       wcsaxperm = [axnr1, axnr2]
       # User could have changed the order of which these axes appear 
@@ -5267,14 +4895,14 @@ to know the properties of the FITS data beforehand.
       if pxlim == None:
          npxlim = [1, n1]
       else:
-         if type(pxlim) not in sequencelist:
+         if not issequence(pxlim):
             raise Exception, "pxlim must be tuple or list!"
          npxlim[0] = pxlim[0]
          npxlim[1] = pxlim[1]
       if pylim == None:
          npylim = [1, n2]
       else:
-         if type(pylim) not in sequencelist:
+         if not issequence(pylim):
             raise Exception, "pylim must be tuple or list!"
          npylim[0] = pylim[0]
          npylim[1] = pylim[1]
@@ -5356,7 +4984,7 @@ to know the properties of the FITS data beforehand.
       if ysize != None and not cm:
          ysize *= 2.54
       if xsize != None and ysize != None:
-         return (xcm/2.54, ycm/2.54)
+         return (xsize/2.54, ysize/2.54)
 
       a1 = self.axperm[0]; a2 = self.axperm[1];
       cdeltx = self.axisinfo[a1].cdelt
@@ -6713,4 +6341,3 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
-

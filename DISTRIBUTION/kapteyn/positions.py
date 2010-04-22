@@ -133,7 +133,7 @@ World coordinates can be distinguished from pixel coordinates. A world
 coordinate is:
 
    * a coordinate followed by a (compatible) unit. Note that the
-     units of the world coordinate is given in the (FITS) header.in keyword *CUNIT*.
+     units of the world coordinate is given in the (FITS) header in keyword *CUNIT*.
    * a coordinate prepended by a definition for a sky system or a spectral system.
    * a coordinate entered in sexagisimal notation. (hms/dms)
 
@@ -238,8 +238,8 @@ Here are some examples:
    >>> pos = "11h55m07.008s 53d39m18.0s"
    >>> pos = "{B1983.5} 11h55m07.008s {} -53d39m18.0s"
 
-Methods
--------
+Functions
+---------
 
 .. autofunction:: str2pos
 .. autofunction:: parsehmsdms
@@ -440,7 +440,7 @@ def parseskysystem(skydef):
       return None, errmes
 
 
-def parsehmsdms(hmsdms, axtyp):
+def parsehmsdms(hmsdms, axtyp=None):
    #--------------------------------------------------------------------
    """
    Given a string, this routine tries to parse its contents
@@ -489,7 +489,7 @@ def parsehmsdms(hmsdms, axtyp):
         need not to be integer.
    """
    #-----------------------------------------------------------------------
-   if ('h' in hmsdms or 'H' in hmsdms) and axtyp != 'longitude':
+   if ('h' in hmsdms or 'H' in hmsdms) and axtyp != None and axtyp != 'longitude':
       return None, "'H' not allowed for this axis"
    parts = re_split('([hdmsHDMS])', hmsdms.strip())  # All these characters can split the string
    number = 0.0
@@ -632,9 +632,8 @@ class Coordparser(object):
    ---------------------------------------------------------------------"""
    def __init__(self, tokenstr, ncoords, siunits, types, crpix, naxis, translations, maxpos=100000):
       """--------------------------------------------------------------------
-      Purpose:    Initialize the coordinate parser. It parses strings entered
-                  in methods wcspos() or wcsbox()
-
+      Purpose:    Initialize the coordinate parser.
+      
       Inputs:
         tokenstr- String with coordinate information, to be parsed by this
                   routine.
@@ -713,8 +712,8 @@ class Coordparser(object):
          self.strans = []
          self.sunits = []
       self.goal()
-     
-      
+
+
    def goal(self):
       #-------------------------------------------------------------------
       # The final goal is to find a number of positions which each

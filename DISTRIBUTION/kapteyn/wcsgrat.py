@@ -92,10 +92,13 @@ Module level data
    noticks   Do not allow any tick to be plotted.
    ========= =============================================
 
-Class Plotversion
------------------
+Functions
+---------
 
-.. autoclass:: Plotversion
+.. index:: Convert degrees to separate field of the hms/dms format
+.. autofunction:: gethmsdms
+.. index:: Convert hms or dms values to text or LaTeX representation
+.. autofunction:: makelabel
 
 
 Class Graticule
@@ -104,24 +107,28 @@ Class Graticule
 .. autoclass:: Graticule
 .. autoclass:: WCStick
 
-Class Pixellabels
------------------
+Class Insidelabels
+--------------------
 
-.. autoclass:: Pixellabels
+.. autoclass:: Insidelabels
 
 """
 
-# TODO sequencetype uitbreiden met numpy
-
 from kapteyn import wcs        # The Kapteyn Python binding to WCSlib, including celestial transformations
+from kapteyn.positions import parsehmsdms, unitfactor
+from kapteyn import rulers
 from types import TupleType, ListType, StringType
+from string import join, letters
+from random import choice
 import numpy
 
 
 __version__ = '1.0'
 (left,bottom,right,top) = range(4)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = range(4)
-sequencelist = (TupleType, ListType)   # Tuple with sequence types
+
+def issequence(obj):
+  return isinstance(obj, (list, tuple, numpy.ndarray))
 
 
 def parseplotaxes(plotaxes):
@@ -144,7 +151,7 @@ def parseplotaxes(plotaxes):
                  - The result has only unique numbers
    -----------------------------------------------------------
    """
-   if type(plotaxes) not in sequencelist:
+   if not issequence(plotaxes):
       plotaxes = [plotaxes,]
    if type(plotaxes) == TupleType:
       plotaxes = list(plotaxes)
@@ -198,428 +205,221 @@ def parsetickmode(tickmode):
    if tickmode < 0 or tickmode > 3:
       raise ValueError, "%d does not correspond to a supported tick mode!" % tickmode
    return tickmode
+
+
+
+
+def gethmsdms(a, prec, axtype, skysys):
+   #---------------------------------------------------------------------------
+   """
+   Given a number in degrees and an axis type in *axtype*
+   equal to 'longitude' or 'latitude',
+   calculate and return the parts of its sexagisimal representation, i.e.
+   hours or degrees, minutes and seconds. Also return the fractional seconds
+   and the sign if the input was a value at negative latitude.
+   The value for *skysys* sets the formatting to hours/minutes/seconds
+   if it represents an equatorial system.
+    
+
+   :param a:
+      The longitude or latitude in degrees.
+   :type a:
+      Floating point
+   :param prec:
+      The number of decimals in the seconds
+   :type prec:
+      Integer
+   :param axtype:
+      One of 'longitude' or 'latitude'
+   :type axtype:
+      String
+   :param skysys:
+      The sky system
+   :type skysys:
+      Integer
+
+   :Returns:
       
+      Ihours, Ideg, Imin, Isec, Fsec, sign
+      which represent Integer values for the hours, degrees, minutes
+      and seconds. *Fsec* is the fractional part of the seconds.
+      Variable *sign* can be -1 for negative latitudes.
 
-class Gridframe(object):
-   """
-   -------------------------------------------------------------------------------
-   Helper class which defines objects with properties which are read
-   when pixel coordinates need to be plotted.
-   -------------------------------------------------------------------------------
-   """
-   def __init__(self, pxlim, pylim, plotaxis, markersize, gridlines, **kwargs):
-      self.ptype = "Gridframe"
-      self.pxlim = pxlim
-      self.pylim = pylim
-      self.plotaxis = plotaxis
-      self.markersize = markersize
-      self.kwargs = kwargs
-      self.gridlines = gridlines
       
-
-
-class Plotversion(object):
    """
-Return an object which serves as a container for plot objects.
-These plot objects are all related to the World Coordinate System (WCS)
-provided by Mark R. Calabretta's library WCSLIB
-(http://www.atnf.csiro.au/people/mcalabre/WCS).
+   #---------------------------------------------------------------------------
+   if not axtype in ['longitude', 'latitude']:
+      return None
+   sign = 1
+   if not issequence(skysys): # Usually a number, sometimes a tuple
+      skysys = [skysys]
+   eqlon = (axtype == 'longitude') and (wcs.equatorial in skysys)
+   if axtype == 'longitude':
+      degs = numpy.fmod(a, 360.0)  # Now in range -360, 360
+      if degs < 0.0:
+         degs += 360.0
+   else:
+      if a > 90.0 or a < -90.0:
+         return None
+      if a < 0.0:
+         sign = -1
+      degs = sign * a  # Make positive
 
-The contents of the container is plotted with method plot().
-The classes are designed with the idea that other libraries than Matplotlib
-could be added in the future.
+   if prec < 0:
+      prec = 0
+   # How many seconds is this. Round to 'prec'
+   if eqlon:
+      sec = numpy.round(degs*240.0, prec)
+      sec = numpy.fmod(sec, 360.0*240.0)     # Rounding can result in 360 deg. again, so correct
+   else:
+      sec = numpy.round(degs*3600.0, prec)
+   AIsec = numpy.int(sec)     # Integer seconds
+   Fsec = sec - AIsec     # Fractional remainder
+   X = AIsec / 3600.0     # Either hours or degrees
+   IX = numpy.int(X)
+   secleft = AIsec - IX*3600.0
+   Imin = int(secleft/60.0)
+   Isec = secleft - Imin*60.0
+   if eqlon:
+      Ihours = IX; Ideg = None
+   else:
+      Ideg = IX; Ihours = None
+   return Ihours, Ideg, Imin, Isec, Fsec, sign
 
-:param interface:
-   A string that sets the plot package that will
-   be used to plot the graticule.
-   Currently only Matplotlib (i.e. string: 'matplotlib')
-   is supported.
-:type interface: String
-:param fig:
-   An object made with Matplotlib's *figure function*.
-:type fig: Matplotlib *Figure* instance
-:param frame:
-   We prefere to call the Axes instance a *frame* to avoid confusion
-   with the plural of axis.
-:type frame: Matplotlib *Axes* instance
-:param tex:
-   If set to True, the labels are converted to TeX
-   strings in the functions that convert degrees to hms/dms notation.
-:type tex: Boolean
-:raises:
-   :exc:`ValueError`
-      *Matplotlib expects an figure and axes instance!*
-      Matplotlib expects an figure and axes instance!
-      This exception is generated if the plot package
-      Matplotlib was selected, but no figure instance
-      or an Matplotlib Axes object was given.
-   :exc:`NotImplementedError`
-      *Cannot initialize. Currently only Maplotlib is supported!*
 
-:Example:
-   The next example demonstrates the outline of the procedure
-   which plots graticule lines and wcs labels with Matplotlib.
-   We assume that a header object (see documentation of the *wcs* module)
-   is available::
-
-         from matplotlib import pyplot
-
-         # Assume you have a header object
-         fig = pyplot.figure()
-         frame = fig.add_subplot(111)
-         gratplot = wcsgrat.Plotversion('matplotlib', fig, frame)
-         grat = wcsgrat.Graticule(header)
-         gratplot.add(grat)
-
-   One can also put objects from other sources in the same container
-   as long as the corresponding axis limits are the same.
-
-:Notes:
-   It should not be too difficult to support 
-   other plot software (e.g. ppgplot) but it will be a lot of
-   work to translate plot attributes to properties known
-   by the other package/module. Matplotlib offers a
-   nice plot canvas which allows for user interaction like panning and
-   zooming. It rescales a plot when the size of the plot window is changed.
-   This enables a user to modify the default layout which is
-   not always optimal.
-
-**Methods:**
-
-.. automethod:: add
-
+def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
+   #-------------------------------------------------------------------------------
    """
-   
-   def __init__(self, interface='matplotlib', fig=None, frame=None):
-      if interface == 'matplotlib':
-         if frame == None or fig == None:
-            raise ValueError, "Matplotlib expects an figure and axes instance!"
+   From the output of function *gethmsdms* and some Booleans, this function
+   creates a label in plain text or TeX. The Booleans set a flag whether
+   a field (hours, degrees, minutes or seconds) should be printed or not.
+   The *fmt* parameter is used if it does not contain the percentage character (%)
+   but instead contains characters from the set HDMS. A capital overules the
+   corresponding Boolean value, so if *fmt='HMS'*, the values for *Hlab*, *Mlab* and
+   *Slab* are all set to True.
+
+   :param hmsdms:
+      The output of function :func:`wcsgrat.gethmsdms`
+   :type hmsdms:
+      Tuple with integer and floating point numbers
+   :param Hlab:
+      If False, there is no need to print the hours
+   :param Dlab:
+      If False, there is no need to print the degrees
+   :param Mlab:
+      If False, there is no need to print the minutes
+   :param Slab:
+      If False, there is no need to print the seconds
+   :param fmt:
+      String containing a combination of the characters
+      ['H', 'D', 'M', 'S', '.', 'h', 'd', 'm', 's'] 
+      A capital sets the corresponding input Boolean (Hlab, Dlab, etc.)
+      to True. A dot starts to set the precision. The number of characters
+      after the dot set the precision itself.
+      A character that is not a capital sets the corresponding input
+      Boolean (Hlab, Dlab, etc.) to False. This is a bit dangerous because
+      with this option one can suppress field to be printed that contain
+      a value unequal to zero. It is applied if you want to suppress
+      e.g. seconds if all the seconds in your label are 0.0.
+      The suppression of printing minutes is overruled if hours (or degrees)
+      and seconds are required. Otherwise we could end up with non
+      standard labels (e.g. 2h30s).
+   :type fmt:
+      String
+   :param tex:
+      If True, then format the labels in LaTeX.
+   :type tex:
+      Boolean
+
+   :Returns:
+      *lab*, a label in either hms or dms in plain text or in LaTeX format.
+
+
+   :Examples:
+
+      >>> # Set the format in Hours, minutes and seconds with a precision
+      >>> # of three. The suppression of minutes will not work here:
+      >>> grat.setp_tick(wcsaxis=0, fmt="HmS.SSS")
+
+      >>> # The same effect is obtained with:
+      >>> grat.setp_tick(wcsaxis=0, fmt="HmS.###")
+
+      >>> # Let the system determine whether seconds are printed
+      >>> # but make sure that degrees and minutes are included:
+      >>> grat.setp_tick(wcsaxis=1, fmt="DM")
+
+      >>> # If we know that all minutes and seconds in our labels are 0.0
+      >>> # and we want only the hours to be printed, then use:
+      >>> grat.setp_tick(wcsaxis=0, fmt="Hms")
+   """
+   #-------------------------------------------------------------------------------
+   Ihours, Ideg, Imin, Isec, Fsec, sign = hmsdms
+   hms = False
+   if Ihours != None:
+      hms = True
+   if fmt != None:
+      if fmt.find('%') == -1:   # Not a common format, must be a HMS/DMS format
+         if fmt.find('H') != -1:
+            Hlab = True
+         if fmt.find('D') != -1:
+            Dlab = True
+         if fmt.find('M') != -1:
+            Mlab = True
+         if fmt.find('S') != -1:
+            Slab = True
+         if fmt.find('h') != -1:
+            Hlab = False
+         if fmt.find('d') != -1:
+            Dlab = False
+         if fmt.find('m') != -1:
+            Mlab = False
+         if fmt.find('s') != -1:
+            Slab = False
+         s2 = fmt.split('.')
+         if len(s2) > 1:
+            prec = len(s2[1])
+   lab = ""
+
+   # Minutes must be printed if hours and seconds are required
+   # otherwise one can end up with a minimal label with hours/degs and
+   # no minuts in between
+   if hms:
+      if Hlab:
+         if tex:
+            lab += r"%.2d^h"%Ihours
+         else:
+            lab += "%.2dh"%Ihours
+         if Slab:
+            Mlab = True
+   else:
+      if Dlab:
+         si = ' '
+         if sign == -1:
+            si = '-'
+         if tex:
+            lab += r"%c%.2d^{\circ}"%(si,Ideg)
+         else:
+            lab += "%c%.2dd"%(si,Ideg)
+         if Slab:
+            Mlab = True
+   if Mlab:
+      if tex:
+         lab += r"%.2d^{\prime}"%Imin
       else:
-         raise NotImplementedError, "Cannot initialize. Currently only Maplotlib is supported!"
-
-      self.plotrectangle = True
-      if interface == 'matplotlib':
-         self.fig = fig
-         self.frame = frame
-         self.frames = []
-         self.graticules = []
-         self.gridframes = []
-         self.images = []
-         self.insidelabs = []
-         from string import join, letters
-         from random import choice
-         self.baselabel = join([choice(letters) for i in range(8)], "")
-         self.frameindx = 0
-         self.frames.append(frame)
-         frame.xaxis.set_visible(False)
-         frame.yaxis.set_visible(False)
-
-
-   def add(self, objlist):
-      """
-      Add object to plot container. These objects can be related to different
-      world coordinate systems as long as the dimensions in pixels correspond.
-      See the graticules tutorial for an example).
-
-      :parameter obj:
-         Object of class :class:`Graticule`, or Insidelabels.
-         Objects from class Insidelabels
-         are created with Graticule's method :meth:`Graticule.Insidelabels`
-      """
-      if type(objlist) not in sequencelist:
-         objlist = [objlist]
-      for obj in objlist:
-         # Do not use isinstance() here because we don't have the types available in other modules
-         # Protect against unknown objects:
-         try:
-            t = obj.ptype
-         except:
-            raise Exception("Unknown object. Cannot plot this!")
-         if obj.ptype == "Graticule":
-            #self.graticules.append(obj)
-            self.__plot1graticule(obj)
-         elif obj.ptype == "Insidelabels":
-            #self.insidelabs.append(obj)
-            self.__plotinsidelabels(obj)
-
-
-   def __plot1graticule(self, graticule):
-      """
-      -----------------------------------------------------------
-      Purpose:      Plot the graticule lines and labels
-                    Labels are either along the plot axes or 
-                    inside the plot.
-      Parameters:
-        graticule - An object from class Graticule
-      Returns:      --
-      Notes:        --
-      -----------------------------------------------------------
-      """
-      # We need to sort and format the ticks for the 4 plot axes
-      tex = graticule.labelsintex
-      pos, lab, kwargs, size = graticule.sortticks(tex=tex)
-      aspect = self.frame.get_aspect()
-      adjust = self.frame.get_adjustable()
-      framelabel = "F%s%d" % (self.baselabel, self.frameindx)
-      self.frameindx += 1
-      frame = self.fig.add_axes(self.frame.get_position(),
-                                 aspect=aspect,
-                                 adjustable=adjust,
-                                 autoscale_on=False,
-                                 frameon=False,
-                                 label=framelabel)
-      self.frames.append(frame)
-      graticule.frame = frame  # !!!! DOCUMENTEREN
-      xlo = graticule.pxlim[0]-0.5; ylo = graticule.pylim[0]-0.5; 
-      xhi = graticule.pxlim[1]+0.5; yhi = graticule.pylim[1]+0.5  
-      frame.set_yticks(pos[left])
-      frame.set_yticklabels(lab[left])
-      for tick, kw, msize in zip(frame.yaxis.get_major_ticks(), kwargs[left], size[left]):
-         tick.label1.set(**kw)
-         if msize != None:
-            tick.tick1line.set_markersize(msize)
-         tick.tick2on = False
-         tick.tick2line.set_visible(False)
-
-      frame.set_xticks(pos[bottom])
-      frame.set_xticklabels(lab[bottom])
-
-      for tick, kw, msize in zip(frame.xaxis.get_major_ticks(), kwargs[bottom], size[bottom]):
-         tick.label1.set(**kw)
-         if msize != None:
-            tick.tick1line.set_markersize(msize)
-         tick.tick2on = False
-         tick.tick2line.set_visible(False) 
-
-      framelabel = "S%s%d" % (self.baselabel, self.frameindx)
-      self.frameindx += 1
-      frame2 = self.fig.add_axes(frame.get_position(), frameon=False, label=framelabel)
-      self.frames.append(frame2)
-      # axis sharing is not an option because then also the ticks are
-      # shared and we want independent ticks along all 4 axes. For most 
-      # projections the axes are not related.
-      frame2.yaxis.set_label_position('right')
-      frame2.xaxis.set_label_position("top")
-      frame2.yaxis.tick_right()
-      frame2.xaxis.tick_top()
-      frame2.set_xlim(xlo,xhi)
-      frame2.set_ylim(ylo,yhi)
-      frame2.set_aspect(aspect=aspect, adjustable=adjust)
-
-      frame2.set_xticks(pos[top])
-      frame2.set_xticklabels(lab[top])
-      for tick, kw, msize in zip(frame2.xaxis.get_major_ticks(),kwargs[top], size[top]):
-         tick.label2.set(**kw)
-         if msize != None:
-            tick.tick2line.set_markersize(msize)
-         tick.tick1line.set_visible(False)
-      
-      frame2.set_yticks(pos[right])
-      frame2.set_yticklabels(lab[right])
-      for tick, kw, msize in zip(frame2.yaxis.get_major_ticks(),kwargs[right], size[right]):
-         tick.label2.set(**kw)
-         if msize != None:
-            tick.tick2line.set_markersize(msize)
-         tick.tick1line.set_visible(False)
-      
-      frame.set_ylabel( graticule.axes[left].label,   **graticule.axes[left].kwargs)
-      frame.set_xlabel( graticule.axes[bottom].label, **graticule.axes[bottom].kwargs)
-      frame2.set_ylabel(graticule.axes[right].label,  **graticule.axes[right].kwargs)
-      frame2.set_xlabel(graticule.axes[top].label,    **graticule.axes[top].kwargs)
-
-      # Plot the line pieces
-      for gridline in graticule.graticule:
-         for line in gridline.linepieces:
-            #ppx = numpy.ma.masked_where(numpy.isfinite(line[0]), line[0])
-            #ppy = numpy.ma.masked_where(numpy.isfinite(line[1]), line[1])
-            frame.plot(line[0], line[1], **gridline.kwargs)
-            #frame.plot(ppx, ppy, **gridline.kwargs)
-      # set the limits of the plot axes
-      # this setting can be overwritten in the calling environment
-      frame.set_xlim((xlo,xhi))
-      frame.set_ylim((ylo,yhi))
-      frame.set_aspect(aspect=aspect, adjustable=adjust)
-
-      self.frame.figure.sca(self.frame)    # back to frame from calling environment
-
-
-   def __plotinsidelabels(self, insidelabels):
-      """
-      -----------------------------------------------------------
-      Purpose:         Plot world coordinate labels inside a plot
-      Parameters:
-         insidelabels - Object from class Insidelabels created with 
-                       method Graticule.Insidelabels
-      Returns:         --
-      Notes:
-      -----------------------------------------------------------
-      """
-      for inlabel in insidelabels.labels:
-         self.frame.text(inlabel.x, inlabel.y, inlabel.label,
-                         clip_on=True, **inlabel.kwargs)
-
-      # Set limits
-      xlo = insidelabels.pxlim[0]-0.5
-      ylo = insidelabels.pylim[0]-0.5
-      xhi = insidelabels.pxlim[1]+0.5
-      yhi = insidelabels.pylim[1]+0.5
-      self.frame.set_xlim((xlo,xhi))
-      self.frame.set_ylim((ylo,yhi))
-
-
-   def __plot1grid(self, pixellabels):
-      """
-      -----------------------------------------------------------
-      Purpose:         Plot labels that annotate the pixels
-                       (or another system if an offset is given)
-      Parameters:
-         pixellabels - Object from class Gridframe made with 
-                       method Graticule.Pixellabels
-      Returns:         --
-      Notes:           This method can only plot the grid labels along
-                       two axes. If you need to label the other axes 
-                       too, then add another grid with method Pixellabels().
-
-                       Only one frame is plotted. Needs maintenance
-      -----------------------------------------------------------
-      """
-      plotaxes = parseplotaxes(pixellabels.plotaxis)  # Is always a list with integers now!
-      # What are the combinations:
-      # Only one axis 0, 1, 2, 3
-      # Two axes 0,1 - 0,2 - 0,3
-      #          1,2 - 1,3
-      #          2,3
-      #
-      # The combinations 0,1 - 0,3 - 1,2 - 2,3 can be plotted in 1 frame
-      # For 0,2 - 1,3 we need two frames. Then we raise an exception
-      # and suggest a user to plot it in two steps
-      # If there are more than two plot axes then raise also
-      # an exception.
-
-      if len(plotaxes) > 2:
-         raise Exception, "Can plot labels for a maximum of 2 axes. Please split up!"
-
-      if (0 in plotaxes and 2 in plotaxes) or (1 in plotaxes and 3 in plotaxes):
-         raise Exception, "Cannot plot labels for this combination. Please split up!"
-      
-      aspect = self.frame.get_aspect()
-      adjust = self.frame.get_adjustable()
-      kwargs = pixellabels.kwargs
-      xlo = pixellabels.pxlim[0]-0.5 
-      ylo = pixellabels.pylim[0]-0.5
-      xhi = pixellabels.pxlim[1]+0.5
-      yhi = pixellabels.pylim[1]+0.5
-      # Copy frame
-      framelabel = "G%s%d" % (self.baselabel, self.frameindx)
-      self.frameindx += 1
-      gframe = self.fig.add_axes(self.frame.get_position(),
-                                 aspect=aspect,
-                                 adjustable=adjust,
-                                 autoscale_on=False,
-                                 frameon=False,
-                                 label=framelabel)
-      
-      gframe.set_xlim((xlo,xhi))
-      gframe.set_ylim((ylo,yhi))
-      self.frames.append(gframe)
-
-      if 3 in plotaxes:
-         gframe.xaxis.set_label_position('top')
-         gframe.xaxis.tick_top()
-      elif 1 in plotaxes:
-         gframe.xaxis.set_label_position('bottom')
-         gframe.xaxis.tick_bottom()
-      else:  # both not available -> make invisible
-         for tick in gframe.xaxis.get_major_ticks():
-            tick.label2.set(visible=False)
-            tick.label1.set(visible=False)
-           
-      setmarker = pixellabels.markersize != None
-      for tick in gframe.xaxis.get_major_ticks():
-         if 3 in plotaxes:
-            tick.label2.set(**kwargs)
-            if setmarker:
-               tick.tick2line.set_markersize(pixellabels.markersize)
-            tick.tick1On = False
-         elif 1 in plotaxes:
-            tick.label1.set(**kwargs)
-            if setmarker:
-               tick.tick1line.set_markersize(pixellabels.markersize)
-            tick.tick2On = False
-               
-      if 2 in plotaxes:
-         gframe.yaxis.set_label_position('right')
-         gframe.yaxis.tick_right()
-      elif 0 in plotaxes:
-         gframe.yaxis.set_label_position('left')
-         gframe.yaxis.tick_left()
+         lab += "%.2dm"%Imin
+   if Slab:
+      if tex:
+         lab += r"%.2d^{\prime\prime}"%Isec
       else:
-         for tick in gframe.yaxis.get_major_ticks():
-            tick.label2.set(visible=False)
-            tick.label1.set(visible=False)
-         
-      for tick in gframe.yaxis.get_major_ticks():
-         if 2 in plotaxes:
-            tick.label2.set(**kwargs)
-            if setmarker:
-               tick.tick2line.set_markersize(pixellabels.markersize)
-            tick.tick1line.set_visible(False)
-         elif 0 in plotaxes:
-            tick.label1.set(**kwargs)
-            if setmarker:
-               tick.tick1line.set_markersize(pixellabels.markersize)
-            tick.tick2line.set_visible(False)
-               
-      gframe.grid(pixellabels.gridlines)
-      self.fig.sca(self.frame)    # back to frame from calling environment
-
-
-class Ruler(object):
-   """
-   -------------------------------------------------------------------------------
-   Attributes and methods for a ruler object. A ruler is a line piece with
-   a start- end endpoint and along this line there are labels which 
-   annotates values of constant offset w.r.t. a selected point on the line.
-   -------------------------------------------------------------------------------
-   """
-   def __init__(self, x1, y1, x2, y2, angle, dx, dy, mscale, **kwargs):
-      self.ptype = "Ruler"
-      self.x1 = x1
-      self.y1 = y1
-      self.x2 = x2
-      self.y2 = y2
-      self.x = []
-      self.y = []
-      self.xw = []
-      self.yw = []
-      self.stepsizeW = None
-      self.label = []
-      self.offsets = []      # Store the offsets in degrees
-      self.angle = angle
-      self.kwargs = {'clip_on' : True}   # clip_on is buggy for plot() in MPL versions <= 0.98.3 change later
-      self.tickdx = dx
-      self.tickdy = dy
-      self.mscale = mscale
-      self.fun = None
-      self.fmt = None
-      self.linekwargs = {'color' : 'k'}
-      self.kwargs.update(kwargs)    # These are the kwargs for the labels
-      
-   def setp_line(self, **kwargs):
-      self.linekwargs.update(kwargs)
-   
-   def setp_labels(self, **kwargs):
-      self.kwargs.update(kwargs)
-      
-   def append(self, x, y, offset, label):
-      self.x.append(x)
-      self.y.append(y)
-      self.offsets.append(offset)
-      self.label.append(label)
-
-   def appendW(self, xw, yw):
-      self.xw.append(xw)
-      self.yw.append(yw)
+         lab += "%.2d"%Isec
+      if prec > 0:
+         fsec = ".%*.*d" % (prec, prec, int(round(Fsec*10.0**prec,0)))
+         lab += fsec
+      if not tex:
+         lab += 's'
+   #if tex:
+   #   lab = r"$" + lab + "$"
+   return lab
 
 
 class WCStick(object):
@@ -667,30 +467,84 @@ class WCStick(object):
       self.wcsaxis = wcsaxis  # To which (wcs) type of axis does it belong?
       self.fmt = fmt          # Python format string for conversion number to strings
       self.fun = fun          # Convert a tick (wcs) value with this function
-      self.markersize = None  # Length of the tick lines 
+      self.axtype = None      # Is it a long. or lat. axis?
+      self.skysys = None      # And does it belong to an equatorial system?
+      self.label = ""         # The text as it will appear in a plot
+      self.prec = None        # The precision of the seconds in a hms/dms format
+      self.delta = None       # The step between two ticks for this wcs axis
+      self.tex = None         # Format label in TeX?
       self.kwargs = {}        # Keyword arguments to set plot attributes
+      self.markkwargs = {}    # Keyword arguments to set plot attributes for the markers
+
+
+def createlabels(Tlist):
+   """
+   -------------------------------------------------------------------------------
+   This function creates the text labels for a list of tick which belong to
+   the same axis and the same wcs axis.
+   -------------------------------------------------------------------------------
+   """
+   Hprev = Dprev = Mprev = Sprev = None
+   dirprev = None; Labprev = None
+   H = D = M = S = True
+   first = True
+   for t in Tlist:
+      # There are some conditions for plotting labels in hms/dms:
+      if t.axtype in ['longitude', 'latitude'] and t.offset == False and t.fun == None and\
+         (t.fmt == None or t.fmt.find('%') == -1):
+         hmsdms = gethmsdms(t.labval, t.prec, t.axtype, t.skysys)
+         Ihours, Ideg, Imin, Isec, Fsec, sign = hmsdms
+         if first:
+            hmsdms1 = hmsdms
+            first = False
+         # Take care of the fact that the first label is not at the end
+         # so possibly the direction of labeling can be switched.
+         if Labprev != None:
+            direction = t.labval > Labprev
+            if direction != dirprev and dirprev != None:
+               Hprev, Dprev, Mpriv, Sprev, Fsecprev, sign = hmsdms1
+               Sprev += Fsecprev
+            dirprev = direction
+         H = (Ihours != Hprev); D = (Ideg != Dprev); M = (Imin != Mprev); S = (Isec+Fsec != Sprev)
+         Hprev = Ihours; Dprev = Ideg; Mprev = Imin; Sprev = Isec+Fsec
+         Labprev = t.labval
+         lab = makelabel(hmsdms, H, D, M, S, t.prec, t.fmt, t.tex)
+      else:
+         if t.fun == None:
+            val = t.labval
+         else:
+            val = t.fun(t.labval)
+         if t.fmt == None:
+            lab = "%g" % val
+         else:
+            try:
+               lab = t.fmt % val
+            except:
+               raise TypeError("Wrong format (%s) for numbers"%t.fmt)
+      if t.tex:
+         lab = r"$%s$" % lab
+      t.label = lab
 
 
 class Gratline(object):
+   #-----------------------------------------------------------------
    """
-   -------------------------------------------------------------------------------
    This class is used to find a set of coordinates that defines 
    (part of) a graticule line for which one of the world coordinates
    is a constant. It stores the coordinates of the intersections
    with the box and a corresponding label for annotating purposes.
-   -------------------------------------------------------------------------------
    """
+   #-----------------------------------------------------------------
    def __init__(self, wcsaxis, constval, gmap, pxlims, pylims, wxlims, wylims, 
                 linesamples, mixgrid, skysys, addx=None, addy=None, addpixels=False, offsetlabel=None,
                 fun=None, fmt=None):
-
+      #-----------------------------------------------------------------
       """
-      -----------------------------------------------------------
       Purpose:     Initialize a 'grid line' which is part of a 
                    graticule. The method should be called within the 
                    context of the Graticule class only.
 
-      Parameters:  
+      Parameters:
        wcsaxis:    One of the values 0 or 1 for the first and second
                    world coordinate type. Or a number > 1 which is 
                    the id of a graticule line representing a border.
@@ -735,6 +589,9 @@ class Gratline(object):
        addpixels:  True or False.
                    The values in addx and addy are either pixel
                    coordinates or world coordinates.
+       offsetlabel:Text label for an offset axis
+       fun:        Change the offset values using a function.
+       fmt:        Format the offset using a Python format.
 
       Returns:     A graticule line which consists of one or more
                    line pieces with default (plot) attributes,
@@ -751,9 +608,8 @@ class Gratline(object):
                    method to find boundaries in pixels. To avoid
                    jumps and to apply clipping at the edges we
                    process these pixels like other graticule lines.
-      -----------------------------------------------------------
       """
-
+      #-----------------------------------------------------------------
       # Helper functions
       def __inbox(x, y, box):
          """
@@ -867,6 +723,14 @@ class Gratline(object):
          
       self.skysys = skysys
       self.wcsaxis = wcsaxis
+
+      if wcsaxis in [0,1]:
+         if gmap.types[wcsaxis] == 'longitude':
+            # This must be a longitude axis. We want the range to be limited to [0,360>
+            while constval < 0.0:
+               constval += 360.0
+            while constval >= 360.0:
+               constval -= 360.0
       self.constval = constval
       self.linepieces = []
       # For each plot axis we store the ticks that belong to that axis.
@@ -928,10 +792,11 @@ class Gratline(object):
                      labelvalue = constval
                      offs = False
                   tick = WCStick(xlab, ylab, axisnr, labelvalue, wcsaxis, offs, fun=fun, fmt=fmt)
+                  # Set a new default for the font size for the tick labels
                   if wcsaxis == 0:
-                     tick.kwargs.update({'fontsize':'11'})
+                     tick.kwargs.update({'fontsize':'10'})
                   else:
-                     tick.kwargs.update({'fontsize':'11'})
+                     tick.kwargs.update({'fontsize':'10'})
                   self.ticks.append(tick)
                x.append(xlab); y.append(ylab)  # Add this intersection as element of the graticule line
             if crossing2out:
@@ -943,7 +808,7 @@ class Gratline(object):
          self.linepieces.append( (x,y) )
 
 
-class WCSaxis(object):
+class PLOTaxis(object):
    """
    -------------------------------------------------------------------------------
    Each (plot) axis can have different properties related to the ticks,
@@ -970,7 +835,7 @@ class WCSaxis(object):
        label -      An annotation of the current axis
       Returns:      Object with attributes 'axisnr', 'mode',
                     'label' and 'kwargs'
-      Notes:        Each plot axis is associated with a WCSaxis 
+      Notes:        Each plot axis is associated with a PLOTaxis
                     instance.
       -----------------------------------------------------------
       """
@@ -978,30 +843,195 @@ class WCSaxis(object):
       self.mode = mode             # Set which (native/not native) labels should be stored for this axis 
       self.label = label           # Default title for this axis
       self.kwargs = kwargs         # Keyword aguments for the axis labels
+      self.xpos = None             # Position of label (normalized dev. coords)
+      self.ypos = None
 
 
 
 class Insidelabels(object):
    """
    A small utility class for wcs labels inside a plot with a graticule
+
+   .. automethod:: setp_label
    """
    class Ilabel(object):
-      def __init__(self, Xp, Yp, lab, rots, **kwargs):
+      def __init__(self, Xp, Yp, Xw, Yw, labval, rots, axtype,
+                   skysys=None, fun=None, fmt=None,
+                   offset=False, prec=0, tex=True, **kwargs):
          self.x = Xp
          self.y = Yp
-         self.label = lab
+         self.xw = Xw
+         self.yw = Yw
+         self.label = ""
+         self.labval = labval
          self.rotation = rots
+         self.axtype = axtype
+         self.skysys = skysys
+         self.offset = offset
+         self.fmt = fmt
+         self.fun = fun
+         self.prec = prec
+         self.tex = tex
          self.kwargs = kwargs
 
-   def __init__(self):
+
+   def __init__(self, wcsaxis):
       self.labels = []
       self.ptype = "Insidelabels"
-   def append(self, Xp, Yp, lab, rots, **kwargs):
-      ilab = self.Ilabel(Xp, Yp, lab, rots, **kwargs)
+      self.pxlim = None
+      self.pylim = None
+      self.wcsaxis = wcsaxis
+
+
+   def append(self, Xp, Yp, Xw, Yw, labval, rots, axtype, skysys=None,
+              fun=None, fmt=None, offset=False, prec=0, tex=True, **kwargs):
+      #-----------------------------------------------------------------
+      """
+      Append a new 'Ilabel' object to the list
+      """
+      #-----------------------------------------------------------------
+      ilab = self.Ilabel(Xp, Yp, Xw, Yw, labval, rots, axtype,
+                         skysys=skysys, fun=fun, fmt=fmt,
+                         offset=offset, prec=prec, tex=tex, **kwargs)
       self.labels.append(ilab)
 
 
+   def setp_label(self, position=None,
+                  tol=1e-12, fmt=None, fun=None, tex=None, **kwargs):
+      #-----------------------------------------------------------------
+      """
+      This method handles the
+      properties of the 'inside' labels, which are :class:`Text` objects
+      in Matplotlib. The most useful properties are *color*, *fontsize*
+      and *fontstyle*. One can change the label values using an external
+      function and/or change the format of the label.
+      
+      :param position:
+            Accepted are None, or one or more values representing
+            the constant value of the graticule line in
+            world coordinates. These positions are used to identify
+            individual graticule lines so that each line can have its
+            own properties. If no position is entered, then the changes
+            are applied to all the labels in the current object.
+            The input can also be a string that represents a sexagisimal number.
+      :type position: *None* or one or a sequence of floating point numbers
+      
+      :param tol:
+            If a value > 0 is given, the gridline with the
+            constant value closest to a given position within
+            distance 'tol' gets updated attributes.
+      :type tol: Floating point number
+      
+      :param fmt:
+            A string that formats the tick value
+            e.g. ``fmt="%10.5f"`` in the Python way, or a string
+            that contains no percentage character (%) but a format
+            to set the output of sexagisimal numbers e.g.
+            fmt='HMs'. The characters in the format either force
+            (uppercase) a field to be printed, or it suppresses
+            (lowercase) a field to be printed.
+            Se also the examples at :func:`wcsgrat.makelabel`.
+      :type fmt: String
+      
+      :param fun:
+            An external function which will be used to
+            convert the tick value e.g. to convert
+            velocities from m/s to Km/s. See also
+            example 2_ below.
+      :type fun: Python function or Lambda expression
+
+      :param tex:
+            If True then format the tick label in LaTeX. This is the
+            default. If False then standard text will applies.
+            Some text properties cannot be changed if LaTeX is
+            in use.
+      :type tex: Boolean
+
+      :param `**kwargs`:
+            Keyword arguments for plot properties like *color*,
+            *visible*, *rotation* etc. The plot attributes are standard
+            Matplotlib attributes which can be found in the
+            Matplotlib documentation.
+      :type `**kwargs`: Matplotlib keyword arguments
+      
+
+      :note:
+            Some projections generate labels that are very close
+            to each other. If you want to skip labels then you can
+            use keyword/value *visible=False*. There is not a documented
+            keyword *visible* in this method because *visible* is a
+            valid keyword argument in Matplotlib.
+
+      """
+      #-----------------------------------------------------------------
+      if position != None:
+         if not issequence(position):
+            posn = [position]
+         else:
+            posn = position
+
+      for label in self.labels:
+         if position == None:
+            if fmt != None:
+               label.fmt = fmt
+            if fun != None:
+               label.fun = fun
+            if tex != None:
+               label.tex = tex
+            label.kwargs.update(kwargs)
+         else:      # One or more positions are given. Find the right index.
+            for pos in posn:
+               if type(pos) == StringType:
+                  C = pos.upper()
+                  if 'H' in C or 'D' in C or 'M' in C or 'S' in C:
+                     pos, err = parsehmsdms(pos)
+                     if err != '':
+                        raise Exception, err
+                     else:
+                        pos = pos[0]
+                  else:
+                     raise ValueError("[%s] is entered as a string but does not represent valid HMS or DMS"%pos)
+               if self.wcsaxis == 0:
+                  d = abs(label.xw - pos)
+               else:
+                  d = abs(label.yw - pos)
+               if d <= tol:
+                  if fmt != None:
+                     label.fmt = fmt
+                  if fun != None:
+                     label.fun = fun
+                  if tex != None:
+                     label.tex = tex
+                  label.kwargs.update(kwargs)
+
+
+   def plot(self, frame):
+      """
+      -----------------------------------------------------------
+      Purpose:         Plot world coordinate labels inside a plot
+      Parameters:      'frame', a Matplotlib Axes object
+
+      Returns:         --
+      Notes:
+      -----------------------------------------------------------
+      """
+      createlabels(self.labels)
+      for inlabel in self.labels:
+         frame.text(inlabel.x, inlabel.y, inlabel.label,
+                    clip_on=True, **inlabel.kwargs)
+
+      # Set limits
+      xlo = self.pxlim[0]-0.5
+      ylo = self.pylim[0]-0.5
+      xhi = self.pxlim[1]+0.5
+      yhi = self.pylim[1]+0.5
+      frame.set_xlim((xlo,xhi))
+      frame.set_ylim((ylo,yhi))
+
+
+
 class Graticule(object):
+   #-----------------------------------------------------------------
    """
 Creates an object that defines a graticule
 A (spatial) graticule consists of parallels and  meridians. We extend this to
@@ -1034,7 +1064,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 :param axnum:     This parameter sets which FITS axis corresponds
                   to the x-axis of your graticule plot rectangle
                   and which one corresponds to the y-axis
-                  (see also description at *pxlim and *pylim*).
+                  (see also description at *pxlim* and *pylim*).
                   The first axis in a FITS file is axis 1.
                   If *axnum* set to *None* then the default
                   FITS axes will be 1 and 2.
@@ -1166,13 +1196,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 :type wylim:      *None* or exactly two Floating point numbers
 
 :param boxsamples: Number of random pixel positions within a box
-                  with limits *pxlim* and *pylim* for which world
-                  coordinates are calculated to get an estimate of
-                  the range in world coordinates (see description
-                  at wxlim). The default is listed in the argument list
-                  of this method. If speed is essential one can try smaller
-                  numbers than the default.
-:type boxsamples: Integer
+                   with limits *pxlim* and *pylim* for which world
+                   coordinates are calculated to get an estimate of
+                   the range in world coordinates (see description
+                   at wxlim). The default is listed in the argument list
+                   of this method. If speed is essential one can try smaller
+                   numbers than the default.
+:type boxsamples:  Integer
 
 :param startx:    If one value given then this is the
                   first graticule line that has a constant
@@ -1183,15 +1213,18 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   with a default distance calculated by this method.
                   If *None* is set, then a suitable value will be
                   calculated.
+                  For longitudes and latitudes the parameter can also be
+                  a string representing a sexagisimal number.
+                  The syntax is explained in :func:`positions.parsehmsdms`.
 :type startx:     *None* or 1 Floating point number or a sequence
-                  of Floating point numbers
+                  of Floating point numbers or a string.
 
 :param starty:    [None, one value, sequence]
                   Same for the graticule line with constant
                   y world coordinate equal to starty.
-:type startx:     *None* or 1 Floating point number or a sequence
-                  of Floating point numbers
-                  
+:type starty:     *None* or 1 Floating point number or a sequence
+                  of Floating point numbers or a string.
+
 :param deltax:    Step in **world coordinates** along the x-axis
                   between two subsequent graticule lines.
 :type deltax:     *None* or a floating point number
@@ -1214,7 +1247,18 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                     default is used (see the argument list of this method).
 :type gridsamples:  Integer
 
-:param labelsintex: The default is that all labels are formatted for LaTeX.
+:param labelsintex: The default is that all tick labels are formatted for LaTeX.
+                    These are not the axes labels. If you want to format these in
+                    LaTeX then you need to set them explicitly as in:
+   
+                    >>> grat.setp_axislabel("bottom",
+                        label=r"$\mathrm{Right\ Ascension\ (2000)}$",
+                        fontsize=14)``
+
+                    Printing your axis labels in LaTeX
+                    limits the number of Matplotlib properties that one
+                    can set.
+
 :type labelsintex:  Boolean
 
 :param offsetx:     Change the default mode which sets either plotting
@@ -1319,8 +1363,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                         
 .. attribute::    axes
                         
-                  Read also docstring for WCSaxis class.
-                  Four WCSaxis instances, one for each axis of the 
+                  Read also docstring for PLOTaxis class.
+                  Four PLOTaxis instances, one for each axis of the
                   rectangular frame in pixels set by *xplim* and *pylim*
                   If your graticule object is called **grat** then
                   the four axes are accessed with:
@@ -1343,7 +1387,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
                   ::
                         
-                     WCSaxis modes are:
+                     PLOTaxis modes are:
                          
                      0: ticks native to axis type only
                      1: Only the tick that is not native to axis type
@@ -1421,18 +1465,18 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
                      #1. A minimal header for an all sky plot
                      header = {'NAXIS' : 2, 'NAXIS1': 100, 'NAXIS2': 80,
-                              'CTYPE1' : 'RA---AZP', 'CRVAL1' :0, 
-                              'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : -5.0,
-                              'CTYPE2' : 'DEC--AZP',
-                              'CRVAL2' : dec0, 'CRPIX2' : 40, 'CUNIT2' : 'deg',
-                              'CDELT2' : 5.0,
-                              'PV2_1'  : mu, 'PV2_2'  : gamma,
+                               'CTYPE1' : 'RA---AZP', 'CRVAL1' :0, 
+                               'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : -5.0,
+                               'CTYPE2' : 'DEC--AZP',
+                               'CRVAL2' : dec0, 'CRPIX2' : 40, 'CUNIT2' : 'deg',
+                               'CDELT2' : 5.0,
+                               'PV2_1'  : mu, 'PV2_2'  : gamma,
                               }
                      grat = wcsgrat.Graticule(header)
 
                   Use module `PyFITS <http://www.stsci.edu/resources/software_hardware/pyfits>`_
                   to read a header from a FITS file::
-                        
+
                      #2. A header from a FITS file 'test.fits'
                      import pyfits
                      hdulist = pyfits.open('test.fits')
@@ -1444,19 +1488,22 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   the image where you want to plot the graticule. If necessary
                   one can swap the graticule plat axes with input parameter
                   *axnum*::
-                        
+
                      #3. Swap x and y- axis in a FITS file
                      grat = wcsgrat.Graticule(header, axnum= (2,1))
 
                   For data with more than two axes, one can select the axes
                   with input parameter *axnum*::
-                        
+
                      #4. For a FITS file with axes (RA,DEC,FREQ) 
                      #  create a graticule for the FREQ,RA axes:
                      grat = wcsgrat.Graticule(header, axnum=(3,1))
 
-                  See also example in description of class :class:`Plotversion`
-                  
+                  Use sexagisimal numbers for *startx*/*starty*::
+
+                     #5. Sexagisimal input
+                     grat = wcsgrat.Graticule(...., startx="7h59m30s", starty="-10d0m30s')
+
 **Methods which set (plot) attributes:**
 
 .. automethod::   setp_tick
@@ -1464,6 +1511,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 .. automethod::   setp_lineswcs0
 .. automethod::   setp_lineswcs1
 .. automethod::   setp_gratline
+.. automethod::   setp_axislabel
+.. automethod::   setp_tickmark
+.. automethod::   setp_ticklabel
+.. automethod::   set_tickmode
 
 **Methods that deal with special curves like borders:**
 
@@ -1471,16 +1522,16 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 .. automethod::   addgratline
 .. automethod::   setp_linespecial
 
-**Methods related to storing and plotting elements:**
+**Methods related to plotting derived elements:**
 
 .. automethod::   Insidelabels
-.. automethod::   plot
+.. automethod::   Insidelabels.setp_label
 
 **Utility methods:**
 
 .. automethod::   get_aspectratio
-
    """
+   #-----------------------------------------------------------------
 
    @staticmethod
    def __bisect(direct, const, var1, var2, gmap, tol):
@@ -1572,10 +1623,11 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   to one axis.
       -----------------------------------------------------------
       """
-      tickpos = [[],[],[],[]]
-      ticklab = [[],[],[],[]]
-      tickkwa = [[],[],[],[]]
-      ticksize = [[],[],[],[]]
+      ticks    = [[],[],[],[]]
+      tickpos  = [[],[],[],[]]
+      ticklab  = [[],[],[],[]]
+      tickkwa  = [[],[],[],[]]
+      tickMkwa = [[],[],[],[]]
       for gridline in self.graticule:
           wcsaxis = gridline.wcsaxis
           for t in gridline.ticks:
@@ -1600,38 +1652,46 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                 skip = True
 
              if not skip:
-                # There are some conditions for plotting labels in hms/dms:
-                if gridline.axtype in ['longitude', 'latitude'] and t.offset == False and t.fmt == None and t.fun == None:
-                  if gridline.axtype == 'longitude':
-                     if (gridline.skysys == wcs.equatorial):
-                        lab = wcs.lon2hms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
-                     else:
-                        lab = wcs.lon2dms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
-                  else:    # must be latitude
-                     lab = wcs.lat2dms(t.labval, prec=self.prec[wcsaxis], delta=self.delta[wcsaxis], tex=tex)
-                else:
-                   if t.fun == None:
-                      val = t.labval
-                   else:
-                      val = t.fun(t.labval)
-                   if t.fmt == None:
-                      # No format given. Format default in LaTeX.
-                      lab = r"$%g$" % val
-                   else:
-                      lab = t.fmt % val
-                      if tex:
-                         lab = r"%s" % lab
-                      #if tex and not t.fmt.startswith('$'):
-                      #   lab = r"$%s$"% lab
-                ticklab[anr].append(lab)
                 if anr in [left,right]:
                    tickpos[anr].append(t.y)
                 else:
                    tickpos[anr].append(t.x)
                 tickkwa[anr].append(t.kwargs)
-                ticksize[anr].append(t.markersize)
+                tickMkwa[anr].append(t.markkwargs)
+                #ticklab[anr].append(t.label)
+                # Give this tick some extra attributes necessary for formatting its label
+                t.axtype = gridline.axtype
+                t.skysys = gridline.skysys
+                t.prec = self.prec[wcsaxis]
+                t.delta = self.delta[wcsaxis]
+                # Tex mode could have been changed by a set properties method
+                if t.tex == None:
+                   t.tex = tex
+                ticks[anr].append(t)
 
-      return tickpos, ticklab, tickkwa, ticksize
+      # We reached the stage that we assembled all ticks that belong
+      # to an axis. This implies that the ticks can belong to different
+      # wcs axes. For the formatting of the labels one needs to distinguish
+      # those.
+       
+      for anr in range(0,4):
+         for wcsaxis in [0,1]:
+            Tlist = []
+            for t in ticks[anr]:
+               if t.wcsaxis == wcsaxis:
+                  Tlist.append(t)
+            # Modify the labels. Note that the ticklab list points to the
+            # label attribute of a WCStick object. The createlabels() function
+            # returns a list so in fact if this function changes a label for
+            # a tick object, then
+            # it the label will automatically be updated in the list also.
+            createlabels(Tlist)
+
+      for anr in range(0,4):
+         for t in ticks[anr]:
+            ticklab[anr].append(t.label)
+
+      return tickpos, ticklab, tickkwa, tickMkwa
 
 
    @staticmethod
@@ -1760,7 +1820,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       x1orig = x1; x2orig = x2
       dedge = (x2-x1) / 80.0     # 80 is a 'magic' number that prevents 
                                  # graticule lines too close to the borders
-
+      if not issequence(skysys):
+         skysys = [skysys]
       if delta == None:
          if axtype in ['longitude', 'latitude']:
             # Nice numbers for dms should also be nice numbers for hms 
@@ -1768,7 +1829,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             minut = sec
             deg = numpy.array([60, 30, 20, 15, 10, 5, 2, 1])
             nicenumber = numpy.concatenate((deg*3600.0, minut*60.0, sec))
-            if skysys == wcs.equatorial and axtype == 'longitude':
+            if wcs.equatorial in skysys and axtype == 'longitude':
                fact = 240.0
             else:
                fact = 3600.0
@@ -1931,7 +1992,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                 skipx=False, skipy=False,
                 gridsamples=1000,
                 labelsintex=True,
-                offsetx=None, offsety=None):
+                offsetx=None, offsety=None,
+                unitsx=None, unitsy=None):
       """
      -----------------------------------------------------------
       Purpose:    Creates an object that defines a graticule
@@ -1968,13 +2030,30 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
            self.yaxnum = axnum[1]
       if (self.xaxnum == self.yaxnum):
          raise Exception, "Need two different axis numbers"
+
+      # Start values could be strings with hms or dms
+      #!!!!!  TODO startxy kan meerdere posities bvatten - loopen dus
+      #!!!!!!!!
+      if type(startx) == StringType:
+         wor, err = parsehmsdms(startx)
+         if err != '':
+            raise Exception, err
+         else:
+            startx = wor[0]
+      if type(starty) == StringType:
+         wor, err = parsehmsdms(starty)
+         if err != '':
+            raise Exception, err
+         else:
+            starty = wor[0]
+            
       # Get the axes limits in pixels. The default is copied from
       # the values of NAXISn in the header. Note that there are no alternative
       # keywords for NAXIS.
       if pxlim == None:
          self.pxlim = (1, header['NAXIS' +str(self.xaxnum)])
       else:
-         if type(pxlim) not in sequencelist:
+         if not issequence(pxlim):
             raise Exception, "pxlim needs to be of type tuple or list"
          elif len(pxlim) != 2:
             raise Exception,"pxlim must have two elements"
@@ -1983,7 +2062,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       if pylim == None:
          self.pylim = (1, header['NAXIS' +str(self.yaxnum)])
       else:
-         if type(pylim) not in sequencelist:
+         if not issequence(pylim):
             raise Exception, "pylim needs to be of type tuple or list"
          elif len(pylim) != 2:
             raise Exception, "pylim must have two elements"
@@ -2035,7 +2114,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          self.gmap = gmap.spectra(spectrans)
       else:
          self.gmap = gmap
-
       self.gmap.allow_invalid = True
       
       # For the labeling format (hms/dms) we need to know the sky system.
@@ -2057,14 +2135,14 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # world coordinates. If nothing is specified for the constructor, we have
       # to calculate estimates of these ranges.
       if wxlim != None:
-         if type(wxlim) not in sequencelist:
+         if not issequence(wxlim):
             raise Exception, "wxlim needs to be of type tuple or list"
          elif len(wxlim) != 2:
             raise Exception, "wxlim must have two elements"
          else: 
             self.wxlim = wxlim
       if wylim != None:
-         if type(wylim) not in sequencelist:
+         if not issequence(wylim):
             raise Exception, "wylim needs to be of type tuple or list"
          elif len(wylim) != 2:
             raise Exception, "wylim must have two elements"
@@ -2130,7 +2208,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          xmin = self.pxlim[0] - 0.5
          ymin = self.pylim[0] - 0.5
          x1 = xmin; x2 = xmax; y1 = y2 = ymin
-         ruler = self.Ruler(x1, y1, x2, y2, lambda0=0.5, step=deltax)
+         ruler = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=0.5, step=deltax)
          self.xstarts = ruler.xw
          self.prec[0] = 0
          self.delta[0] = ruler.stepsizeW
@@ -2138,7 +2216,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          self.funx = ruler.fun
          self.fmtx = ruler.fmt
          self.radoffsetx = True
-      elif type(startx) in sequencelist or type(startx) == numpy.ndarray:
+      elif issequence(startx):
          self.xstarts = startx
          if len(startx) >= 2:
             self.delta[0] = startx[1] - startx[0]  # Assume this delta also for not equidistant values in startx
@@ -2157,16 +2235,16 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          ymax = self.pylim[1] + 0.5
          xmin = self.pxlim[0] - 0.5
          ymin = self.pylim[0] - 0.5
-         x1 = xmin; x2 = xmin; y1 = ymin; y2 = ymax
-         ruler = self.Ruler(x1, y1, x2, y2, lambda0=0.5, step=deltay)
-         self.ystarts = ruler.xw
+         x1 = xmin; x2 = xmin; y1 = ymin; y2 = ymax 
+         ruler = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=0.5, step=deltay)
+         self.ystarts = ruler.xw    # NOTE: do not change in yw!
          self.prec[1] = 0
          self.delta[1] = ruler.stepsizeW
          self.offsetvaluesy = ruler.offsets
          self.funy = ruler.fun
          self.fmty = ruler.fmt
          self.radoffsety = True
-      elif type(starty) in sequencelist or type(starty) == numpy.ndarray:
+      elif issequence(starty):
          self.ystarts = starty
          if len(starty) >= 2:
             self.delta[1] = starty[1] - starty[0]  # Assume this delta also for not equidistant values in startx
@@ -2191,16 +2269,31 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # for the left and bottom axis and omit ticks along right and top axis.
       epoch = str(self.gmap.equinox)
       annot = ['']*2
+
       for aa in [0,1]:
+         units = self.gmap.units[aa]
+         if aa == 0 and unitsx != None:
+            units = unitsx
+         if aa == 1 and unitsy != None:
+            units = unitsy
          if (aa == 0 and self.offsetx) or (aa == 1 and self.offsety):
             annot[aa] = "Offset " 
          if self.gmap.types[aa] in [None, 'spectral']:
-            annot[aa] += self.gmap.ctype[aa].split('-')[0] + ' (' + self.gmap.units[aa] + ')'
+            annot[aa] += self.gmap.ctype[aa].split('-')[0] + ' (' + units + ')'
          else:        # Must be spatial
-            if (aa == 0 and self.radoffsetx):
-               annot[aa] = 'Radial offset lon.'
-            elif (aa == 1 and self.radoffsety):
-               annot[aa] = 'Radial offset lat.'
+            if self.radoffsetx or self.radoffsety:
+               if self.gmap.types[aa] == 'longitude':
+                  olab = 'Radial offset lon.'
+               else:
+                  olab = 'Radial offset lat.'
+               if self.radoffsetx and unitsx:
+                  olab += '('+unitsx+')'
+               if self.radoffsety and unitsy:
+                     olab += '('+unitsy+')'
+               if (aa == 0 and self.radoffsetx):
+                     annot[aa] = olab
+               elif (aa == 1 and self.radoffsety):
+                     annot[aa] = olab
             else:
                if self.gmap.types[aa] == 'longitude':
                   if self.__skysys == wcs.equatorial:
@@ -2220,12 +2313,21 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      annot[aa] = 'Galactic latitude'
                   elif self.__skysys == wcs.supergalactic:
                      annot[aa] = 'Supergalactic latitude'
-               
-               # annot[aa] = self.gmap.ctype[aa].split('-')[0] 
 
 
       self.graticule = []   # Initialize the list with graticule lines
       if not skipx:
+         axisunits = self.gmap.units[0]
+         if (self.radoffsetx or offsetx) and unitsx != None:
+            units = unitsx
+            uf, errmes = unitfactor(axisunits, units)
+            if uf == None:
+               raise ValueError(errmes)
+            fie = lambda x: x*uf
+            fmt = "%g"
+            self.funx = fie
+            self.fmtx = fmt
+
          for i, x in enumerate(self.xstarts):
             offsetlabel = None
             fie = fmt = None
@@ -2235,7 +2337,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                fmt = self.fmtx
             elif self.offsetx:
                offsetlabel = self.offsetvaluesx[i]
-               fmt = "%g"
+               if self.gmap.types[0] in ['longitude', 'latitude'] and self.labelsintex:
+                  fmt = r"%g^{\circ}"
+               else:
+                  fmt = "%g"
+               if unitsx != None:
+                  fie = self.funx
+                  fmt = self.fmtx
             gridl = Gratline(0, x, self.gmap,
                              self.pxlim, self.pylim, 
                              self.wxlim, self.wylim, 
@@ -2254,7 +2362,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                fmt = self.fmty
             elif self.offsety:
                offsetlabel = self.offsetvaluesy[i]
-               fmt = "%g"
+               if self.gmap.types[1] in ['longitude', 'latitude'] and self.labelsintex:
+                  fmt = r"%g^{\circ}"
+               else:
+                  fmt = "%g"
             gridl = Gratline(1, y, self.gmap,
                              self.pxlim, self.pylim, 
                              self.wxlim, self.wylim, 
@@ -2292,83 +2403,231 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       kwargs2 = {'fontsize':11}
       kwargs3 = {'fontsize':11, 'rotation':'270', 'visible':False}
       kwargs4 = {'fontsize':11, 'visible':False}
-      axes.append( WCSaxis(left,   y1mode, annot[1], **kwargs1) )
-      axes.append( WCSaxis(bottom, x1mode, annot[0], **kwargs2) )
-      axes.append( WCSaxis(right,  y2mode, annot[1], **kwargs3) )
-      axes.append( WCSaxis(top,    x2mode, annot[0], **kwargs4) )
+      axes.append( PLOTaxis(left,   y1mode, annot[1], **kwargs1) )
+      axes.append( PLOTaxis(bottom, x1mode, annot[0], **kwargs2) )
+      axes.append( PLOTaxis(right,  y2mode, annot[1], **kwargs3) )
+      axes.append( PLOTaxis(top,    x2mode, annot[0], **kwargs4) )
       self.axes = axes
 
-      # Finally set default values for aspect ratio
-      dummy = self.get_aspectratio()
-      self.objlist = []
+      dummy = self.get_aspectratio() # Set default values for aspect ratio
+      self.objlist = []              # Initialize list with Graticules & derived objects
+
+
+   def plot(self, framebase):
+      """
+      -----------------------------------------------------------
+      Purpose:      Plot the graticule lines and labels
+                    Labels are either along the plot axes or 
+                    inside the plot.
+      Parameters:
+        graticule - An object from class Graticule
+      Returns:      --
+      Notes:        --
+      -----------------------------------------------------------
+      """
+      # We need to sort and format the ticks for the 4 plot axes
+      graticule = self
+      tex = graticule.labelsintex
+      pos, lab, kwargs, Mkwargs = graticule.sortticks(tex=tex)
+      aspect = framebase.get_aspect()
+      adjust = framebase.get_adjustable()
+      framelabel= 'FR'+join([choice(letters) for i in range(8)], "")
+      # Each graticule holds two frames for two times two axes
+      frame = framebase.figure.add_axes(framebase.get_position(),
+                                  aspect=aspect,
+                                  adjustable=adjust,
+                                  autoscale_on=False,
+                                  frameon=False,
+                                  label=framelabel)
+
+      graticule.frame = frame  # Store frame so that frame can be identified with events
+      xlo = graticule.pxlim[0]-0.5; ylo = graticule.pylim[0]-0.5 
+      xhi = graticule.pxlim[1]+0.5; yhi = graticule.pylim[1]+0.5  
+      frame.set_yticks(pos[left])
+      frame.set_yticklabels(lab[left])
+      for tick, kw, mkw in zip(frame.yaxis.get_major_ticks(), kwargs[left], Mkwargs[left]):
+         tick.label1.set(**kw)
+         if len(mkw) != 0:
+            tick.tick1line.set(**mkw)
+         tick.tick2on = False
+         tick.tick2line.set_visible(False)
+
+      frame.set_xticks(pos[bottom])
+      frame.set_xticklabels(lab[bottom])
+
+      for tick, kw, mkw in zip(frame.xaxis.get_major_ticks(), kwargs[bottom], Mkwargs[bottom]):
+         tick.label1.set(**kw)
+         if len(mkw) != 0:
+            tick.tick1line.set(**mkw)
+         tick.tick2on = False
+         tick.tick2line.set_visible(False) 
+
+      framelabel= 'SFR'+join([choice(letters) for i in range(8)], "")
+      frame2 = framebase.figure.add_axes(frame.get_position(), frameon=False, label=framelabel)
+      graticule.frame2 = frame2  # Add new attribute
+      # axis sharing is not an option because then also the ticks are
+      # shared and we want independent ticks along all 4 axes. For most 
+      # projections the axes are not related.
+      frame2.yaxis.set_label_position('right')
+      frame2.xaxis.set_label_position("top")
+      frame2.yaxis.tick_right()
+      frame2.xaxis.tick_top()
+      frame2.set_xlim(xlo,xhi)
+      frame2.set_ylim(ylo,yhi)
+      frame2.set_aspect(aspect=aspect, adjustable=adjust)
+
+      frame2.set_xticks(pos[top])
+      frame2.set_xticklabels(lab[top])
+      for tick, kw, mkw in zip(frame2.xaxis.get_major_ticks(),kwargs[top], Mkwargs[top]):
+         tick.label2.set(**kw)
+         if len(mkw) != 0:
+            tick.tick2line.set(**mkw)
+         tick.tick1line.set_visible(False)
+      
+      frame2.set_yticks(pos[right])
+      frame2.set_yticklabels(lab[right])
+      for tick, kw, mkw in zip(frame2.yaxis.get_major_ticks(),kwargs[right], Mkwargs[right]):
+         tick.label2.set(**kw)
+         if len(mkw) != 0:
+            tick.tick2line.set(**mkw)
+         tick.tick1line.set_visible(False)
+      
+
+
+      # Adjust label position if one is given
+      for anr in [left, right]:
+         xpos = graticule.axes[anr].xpos
+         ypos = graticule.axes[anr].ypos
+         if xpos != None or ypos != None:
+            if xpos == None and ypos != None:
+               graticule.axes[anr].kwargs.update({'y':ypos})
+            else:
+               if ypos == None: ypos = 0.5
+               # xpos is not None then use method
+               if anr == left:
+                  fr = frame
+               else:
+                  fr = frame2
+               fr.yaxis.set_label_coords(xpos, ypos)
+
+      for anr in [bottom, top]:
+         xpos = graticule.axes[anr].xpos
+         ypos = graticule.axes[anr].ypos
+         if xpos != None or ypos != None:
+            if ypos == None and xpos != None:
+               graticule.axes[anr].kwargs.update({'x':xpos})
+            else:
+               if xpos == None: xpos = 0.5
+               # ypos is not None then use method set_label_coords
+               # because setting y as attribute has no effect.
+               if anr == bottom:
+                  fr = frame
+               else:
+                  fr = frame2
+               fr.xaxis.set_label_coords(xpos, ypos)
+
+      frame.set_ylabel( graticule.axes[left].label,   **graticule.axes[left].kwargs)
+      frame.set_xlabel( graticule.axes[bottom].label, **graticule.axes[bottom].kwargs)
+      frame2.set_ylabel(graticule.axes[right].label,  **graticule.axes[right].kwargs)
+      frame2.set_xlabel(graticule.axes[top].label,    **graticule.axes[top].kwargs)
+
+      # Plot the line pieces
+      for gridline in graticule.graticule:
+         for line in gridline.linepieces:
+            #ppx = numpy.ma.masked_where(numpy.isfinite(line[0]), line[0])
+            #ppy = numpy.ma.masked_where(numpy.isfinite(line[1]), line[1])
+            frame.plot(line[0], line[1], **gridline.kwargs)
+            #frame.plot(ppx, ppy, **gridline.kwargs)
+      # set the limits of the plot axes
+      # this setting can be overwritten in the calling environment
+      frame.set_xlim((xlo,xhi))
+      frame.set_ylim((ylo,yhi))
+      frame.set_aspect(aspect=aspect, adjustable=adjust)
+
+      # Plot the objects derived from this graticule
+      if len(graticule.objlist) > 0:
+         for obj in graticule.objlist:
+            try:
+               pt = obj.ptype
+            except:
+               raise Exception, "Unknown object. Cannot plot this!"
+            if pt in ["Insidelabels"]:
+               try:
+                  visible = obj.visible
+               except:
+                  visible = True
+               obj.plot(framebase)
+      framebase.figure.sca(framebase)    # back to frame from calling environment
 
 
    def scanborder(self, xstart, ystart, deltax=None, deltay=None, nxy=1000, tol=None):
+      #-----------------------------------------------------------------
       """
-For the slanted azimuthal projections, it is
-not trivial to draw a border because these
-borders are not graticule lines with a constant
-longitude or constant latitude. Nor it is
-easy or even possible to find mathematical
-expressions for this type of projection.
-Also, the mathematical expressions return
-world coordinates which can suffer from loss
-of precision.
-This method tracks the border from a starting
-point by scanning in x- and -direction and
-tries to find the position of a limb with a
-standard bisection technique. This method has been applied
-to a number of all-sky plots with slanted projections.
+      For the slanted azimuthal projections, it is
+      not trivial to draw a border because these
+      borders are not graticule lines with a constant
+      longitude or constant latitude. Nor it is
+      easy or even possible to find mathematical
+      expressions for this type of projection.
+      Also, the mathematical expressions return
+      world coordinates which can suffer from loss
+      of precision.
+      This method tracks the border from a starting
+      point by scanning in x- and -direction and
+      tries to find the position of a limb with a
+      standard bisection technique. This method has been applied
+      to a number of all-sky plots with slanted projections.
 
-:param xstart: X-coordinate in pixels of position where to
-               start the scan to find border.
-               The parameter has no default.
-:type xstart:  Floating point 
+      :param xstart: X-coordinate in pixels of position where to
+                     start the scan to find border.
+                     The parameter has no default.
+      :type xstart:  Floating point 
 
-:param ystart: Y-coordinate in pixels of position where to
-               start the scan to find border.
-               The parameter has no default.
-:type ystart:  Floating point
+      :param ystart: Y-coordinate in pixels of position where to
+                     start the scan to find border.
+                     The parameter has no default.
+      :type ystart:  Floating point
 
-:param deltax: Set range in pixels to look for border in
-               scan direction. The default value is 10 percent
-               of the total pixel range in x- or y-direction.
-:type deltax:  Floating point
+      :param deltax: Set range in pixels to look for border in
+                     scan direction. The default value is 10 percent
+                     of the total pixel range in x- or y-direction.
+      :type deltax:  Floating point
 
-:param deltay: See *deltayx*.
-:type deltay:  Floating point
+      :param deltay: See *deltayx*.
+      :type deltay:  Floating point
 
-:param nxy:    Number of scan lines in x and y direction.
-               Default is 1000.
-:type nxy:     Integer
+      :param nxy:    Number of scan lines in x and y direction.
+                     Default is 1000.
+      :type nxy:     Integer
 
-:param tol:    See note below.
-:type tol:     Floating point
+      :param tol:    See note below.
+      :type tol:     Floating point
 
-:returns:   Identifier to set attributes of this
-            graticule line with method :meth:`setp_linespecial()`.
+      :returns:   Identifier to set attributes of this
+                  graticule line with method :meth:`setp_linespecial()`.
 
-:note:      This method uses an algorithm to find
-            positions along the border of a projection.
-            It scans along both x- and y-axis for
-            a NaN (Not a Number number) transition as a result
-            of an invalid coordinate transformation,
-            and repeats this for a number of scan lines
-            along the x-axis and y-axis.
-            ::
-      
-               A position on a border off an all-sky plot is the position at
-               which a transition occurs from a valid coordinate to a NaN.
-            
-            Its accuracy depends on the the tolerance
-            given in argument *tol*.
-            The start coordinates to find the next border
-            position on the next scan line is the
-            position of the previous border point.
-            If you have missing line pieces, then add more
-            borders by calling this method with different
-            starting points.
+      :note:      This method uses an algorithm to find
+                  positions along the border of a projection.
+                  It scans along both x- and y-axis for
+                  a NaN (Not a Number number) transition as a result
+                  of an invalid coordinate transformation,
+                  and repeats this for a number of scan lines
+                  along the x-axis and y-axis.
+                  ::
+
+                     A position on a border off an all-sky plot is the position at
+                     which a transition occurs from a valid coordinate to a NaN.
+
+                  Its accuracy depends on the the tolerance
+                  given in argument *tol*.
+                  The start coordinates to find the next border
+                  position on the next scan line is the
+                  position of the previous border point.
+                  If you have missing line pieces, then add more
+                  borders by calling this method with different
+                  starting points.
       """
+      #-----------------------------------------------------------------
       xp = []; yp = []
       if deltax == None:
          deltax = (self.pxlim[1] - self.pxlim[0])/ 10.0
@@ -2407,40 +2666,42 @@ to a number of all-sky plots with slanted projections.
 
 
    def addgratline(self, x, y, pixels=False):
+      #-----------------------------------------------------------------
       """
-For any path given by a set world coordinates
-of which none is a constant value (e.g. borders
-in slanted projections where the positions are calculated by an
-external routine),
-one can create a line that is processed as a graticule
-line, i.e. intersections and jumps are addressed.
-Instead of world coordinates, this method
-can also process pixel positions. The type of input is set by the
-*pixels* parameter.
-
-
-:param x:      A sequence of world coordinates or pixels
-               that correspond to horizontal axis in a graticule plot..
-:type x:       Floating point numbers
-
-:param y:      The same for the second axis
-:type x:       Floating point numbers
-
-:param pixels: False or True
-               If False the coordinates in x and y are world-
-               coordinates. Else they are pixel coordinates.
-:type pixels:  Boolean
-
-:Returns:      A **Identification number** *id* which can be used
-               to set properties for this special path with
-               method :meth:`setp_linespecial`.
-               Return *None* if no line piece could be found
-               inside the pixel limits of the graticule.
-
-:note:         This method can be used to plot a border
-               around an all-sky plot e.g. for slanted
-               projections. See code at :meth:`scanborder`.
+      For any path given by a set world coordinates
+      of which none is a constant value (e.g. borders
+      in slanted projections where the positions are calculated by an
+      external routine),
+      one can create a line that is processed as a graticule
+      line, i.e. intersections and jumps are addressed.
+      Instead of world coordinates, this method
+      can also process pixel positions. The type of input is set by the
+      *pixels* parameter.
+      
+      
+      :param x:      A sequence of world coordinates or pixels
+                     that correspond to horizontal axis in a graticule plot..
+      :type x:       Floating point numbers
+      
+      :param y:      The same for the second axis
+      :type x:       Floating point numbers
+      
+      :param pixels: False or True
+                     If False the coordinates in x and y are world-
+                     coordinates. Else they are pixel coordinates.
+      :type pixels:  Boolean
+      
+      :Returns:      A **Identification number** *id* which can be used
+                     to set properties for this special path with
+                     method :meth:`setp_linespecial`.
+                     Return *None* if no line piece could be found
+                     inside the pixel limits of the graticule.
+      
+      :note:         This method can be used to plot a border
+                     around an all-sky plot e.g. for slanted
+                     projections. See code at :meth:`scanborder`.
       """
+      #-----------------------------------------------------------------
       if len(x) > 0:
          samples = len(x)
          # Create an unique id for this line
@@ -2488,30 +2749,32 @@ can also process pixel positions. The type of input is set by the
 
 
    def get_aspectratio(self, xcm=None, ycm=None):
+      #-----------------------------------------------------------------
       """
-Calculate and set, the aspect ratio for the current
-pixels. Also set default values for figure
-size and axes lengths (i.e. size of canvas depends
-on the size of plot window with this aspect ratio).
-
-:param xcm: Given a value for xcm or ycm (or omit both),
-            then suggest a figure size in inches and a viewport in
-            normalized device coordinates of a plot which has
-            an axes rectangle that corrects the figure for an
-            aspect ratio (i.e. CDELTy/CDELTx) unequal to 1 while
-            the length of the x-axis is xcm OR the length of the
-            y-axis is ycm. See note for non-spatial maps.
-:type xcm:  Floating point number
-
-:param ycm: See description at *xcm*.
-:type ycm:  Floating point number
-
-:Returns:   The aspect ratio defined as: ``AR = CDELTy/CDELTx``.
-
-:Note:      (i.e. AR > 10 or AR < 0.1), an aspect ratio of 1
-            is returned. This method sets the attributes:
-            'axesrect', 'figsize', 'aspectratio'
+      Calculate and set, the aspect ratio for the current
+      pixels. Also set default values for figure
+      size and axes lengths (i.e. size of canvas depends
+      on the size of plot window with this aspect ratio).
+      
+      :param xcm: Given a value for xcm or ycm (or omit both),
+                  then suggest a figure size in inches and a viewport in
+                  normalized device coordinates of a plot which has
+                  an axes rectangle that corrects the figure for an
+                  aspect ratio (i.e. CDELTy/CDELTx) unequal to 1 while
+                  the length of the x-axis is xcm OR the length of the
+                  y-axis is ycm. See note for non-spatial maps.
+      :type xcm:  Floating point number
+      
+      :param ycm: See description at *xcm*.
+      :type ycm:  Floating point number
+      
+      :Returns:   The aspect ratio defined as: ``AR = CDELTy/CDELTx``.
+      
+      :Note:      (i.e. AR > 10 or AR < 0.1), an aspect ratio of 1
+                  is returned. This method sets the attributes:
+                  'axesrect', 'figsize', 'aspectratio'
       """
+      #-----------------------------------------------------------------
       cdeltx = self.gmap.cdelt[0]
       cdelty = self.gmap.cdelt[1]
       nx = float(self.pxlim[1] - self.pxlim[0] + 1)
@@ -2536,118 +2799,138 @@ on the size of plot window with this aspect ratio).
       return aspectratio
 
 
-   def setp_tick(self, wcsaxis=None, plotaxis=None, position=None, tol=0.0, fmt=None, fun=None, markersize=None, **kwargs):
+   def setp_tick(self, wcsaxis=None, plotaxis=None, position=None,
+                 tol=1e-12, fmt=None, fun=None, tex=None,
+                 markerdict={}, **kwargs):
+      #-----------------------------------------------------------------
       """
-Set (plot) attributes for a wcs tick label.
-A tick is identified by the type of grid line
-it belongs to, and/or the plot axis for which
-it defined an intersection and/or a position which
-corresponds to the constant value of the graticule
-line.
-All these parameters are valid with none, one or
-a sequence of values.
-
-.. warning:: If no value for *wcsaxis*, *plotaxis* or *position* is entered
-      then this method does nothing (and without a warning or raising an exception).
-
-:param wcsaxis:
-      Values are 0 or 1, corresponding to the
-      first and second world coordinate types.
-      Note that *wcsaxis=0* corresponds to the
-      first element in the axis permutation array given in
-      parameter *axnum*.
-:type wcsaxis: *None*, 0, 1 or tuple with both
-
-:param plotaxis:
-      Accepted values are 'None', 0, 1, 2, 3 or a
-      combination, to represent the left, bottom, right
-      and top axis of the enclosing rectangle that
-      represents the limits in pixel coordinates.
-:type plotaxis: One or more integers between 0 and 3.
-
-:param position:
-      Accepted are None, or one or more values representing
-      the constant value of the graticule line in
-      world coordinates. These positions are used to identify
-      individual graticule lines so that each line can have its
-      own properties.
-:type position: *None* or one or a sequence of floating point numbers
-
-:param tol:
-      If a value > 0 is given, the gridline with the
-      constant value closest to a given position within
-      distance 'tol' gets updated attributes.
-:type tol: Floating point number
-
-:param fmt:
-      A string that formats the tick value
-      e.g. ``fmt="%10.5f"``
-:type fmt: String
-
-:param fun:
-      An external function which will be used to
-      convert the tick value e.g. to convert
-      velocities from m/s to Km/s. See also
-      example 2_ below.
-:type fun: Python function or Lambda expression
+      Set (plot) attributes for a wcs tick label.
+      A tick is identified by the type of grid line
+      it belongs to, and/or the plot axis for which
+      it defined an intersection and/or a position which
+      corresponds to the constant value of the graticule
+      line.
+      All these parameters are valid with none, one or
+      a sequence of values.
       
-:param markersize:
-      Size of tick line. Use negative number (e.g. -4) to
-      get tick lines that point outside the plot instead
-      of the default which is inside.
-:type markersize: Integer
-
-:param `**kwargs`:
-      Keyword arguments for plot properties like *color*,
-      *visible*, *rotation* etc. The plot attributes are standard
-      Matplotlib attributes which can be found in the
-      Matplotlib documentation.
-:type `**kwargs`: Matplotlib keyword arguments
-
-:note:
-      Some projections generate labels that are very close
-      to each other. If you want to skip labels then you can
-      use keyword/value *visible=False*. There is not a documented
-      keyword *visible* in this method because *visible* is a
-      valid keyword argument in Matplotlib.
-
-
-:Examples:
-   1. Set tick properties with :meth:`setp_tick`. The last line makes the
-   label at a declination of -10 degrees (we assume a spatial map) invisible::
-
-         grat.setp_tick(wcsaxis=0, color='g')
-         grat.setp_tick(wcsaxis=1, color='m')
-         grat.setp_tick(wcsaxis=1, plotaxis=wcsgrat.bottom,
-            color='c', rotation=-30, ha='left')
-         grat.setp_tick(plotaxis=wcsgrat.right, backgroundcolor='yellow')
-         grat.setp_tick(plotaxis=wcsgrat.left, position=-10, visible=False)
-
-
-   .. _2:
-
-   2. Example of an external function to change the values of the tick
-   labels for the horizontal axis only::
-
-         def fx(x):
-            return x/1000.0
-
-         setp_tick(wcsaxis=0, fun=fx)
-
-   Or use the lambda operator as in: ``fun=lambda x: x/1000``
+      .. warning:: If no value for *wcsaxis*, *plotaxis* or *position* is entered
+            then this method applies the parameter setting on all the wcs axes.
+      
+      :param wcsaxis:
+            Values are 0 or 1, corresponding to the
+            first and second world coordinate types.
+            Note that *wcsaxis=0* corresponds to the
+            first element in the axis permutation array given in
+            parameter *axnum*.
+      :type wcsaxis: *None*, 0, 1 or tuple with both
+      
+      :param plotaxis:
+            Accepted values are 'None', 0, 1, 2, 3 or a
+            combination, to represent the left, bottom, right
+            and top axis of the enclosing rectangle that
+            represents the limits in pixel coordinates.
+      :type plotaxis: One or more integers between 0 and 3.
+      
+      :param position:
+            Accepted are None, or one or more values representing
+            the constant value of the graticule line in
+            world coordinates. These positions are used to identify
+            individual graticule lines so that each line can have its
+            own properties.
+            The input can also be a string that represents a sexagisimal number.
+      :type position: *None* or one or a sequence of floating point numbers
+      
+      :param tol:
+            If a value > 0 is given, the gridline with the
+            constant value closest to a given position within
+            distance 'tol' gets updated attributes.
+      :type tol: Floating point number
+      
+      :param fmt:
+            A string that formats the tick value
+            e.g. ``fmt="%10.5f"`` in the Python way, or a string
+            that contains no percentage character (%) but a format
+            to set the output of sexagisimal numbers e.g.
+            fmt='HMs'. The characters in the format either force
+            (uppercase) a field to be printed, or it suppresses
+            (lowercase) a field to be printed.
+            Se also the examples at :func:`wcsgrat.makelabel`.
+      :type fmt: String
+      
+      :param fun:
+            An external function which will be used to
+            convert the tick value e.g. to convert
+            velocities from m/s to Km/s. See also
+            example 2_ below.
+      :type fun: Python function or Lambda expression
+      
+      :param markerdict:
+            Properties for the tick marker. Amongst others:
+      
+               * markersize:
+                 Size of tick line. Use negative number (e.g. -4) to
+                 get tick lines that point outside the plot instead
+                 of the default which is inside.
+               * markeredgewidth:
+                 The width of the marker
+               * color: Color of the marker (not the label)
+      
+      :type markerdict:
+            Python dictionary
+            
+      :param `**kwargs`:
+            Keyword arguments for plot properties like *color*,
+            *visible*, *rotation* etc. The plot attributes are standard
+            Matplotlib attributes which can be found in the
+            Matplotlib documentation.
+      :type `**kwargs`: Matplotlib keyword arguments
+      
+      :note:
+            Some projections generate labels that are very close
+            to each other. If you want to skip labels then you can
+            use keyword/value *visible=False*. There is not a documented
+            keyword *visible* in this method because *visible* is a
+            valid keyword argument in Matplotlib.
+      
+      
+      :Examples:
+         1. Set tick properties with :meth:`setp_tick`. The last line makes the
+         label at a declination of -10 degrees (we assume a spatial map) invisible::
+      
+               grat.setp_tick(wcsaxis=0, color='g')
+               grat.setp_tick(wcsaxis=1, color='m')
+               grat.setp_tick(wcsaxis=1, plotaxis=wcsgrat.bottom,
+                  color='c', rotation=-30, ha='left')
+               grat.setp_tick(plotaxis=wcsgrat.right, backgroundcolor='yellow')
+               grat.setp_tick(plotaxis=wcsgrat.left, position=-10, visible=False)
+      
+      
+         .. _2:
+      
+         2. Example of an external function to change the values of the tick
+         labels for the horizontal axis only::
+      
+               def fx(x):
+                  return x/1000.0
+      
+               setp_tick(wcsaxis=0, fun=fx)
+      
+         Or use the lambda operator as in: ``fun=lambda x: x/1000``
       """
+      #-----------------------------------------------------------------
       if wcsaxis == None and plotaxis == None and position == None:
-         # Nothing to do
-         return
+         ## Nothing to do
+         #return
+         wcsaxis = [0,1]
       if wcsaxis != None:
-         if type(wcsaxis) not in sequencelist:
+         if not issequence(wcsaxis):
             wcsa = [wcsaxis]
          else:
             wcsa = wcsaxis
       if plotaxis != None:
          plta = parseplotaxes(plotaxis)
       if position != None:
-         if type(position) not in sequencelist:
+         if not issequence(position):
             posn = [position]
          else:
             posn = position
@@ -2664,14 +2947,26 @@ a sequence of values.
                     skip = not (t.axisnr in plta)
                  if not skip:
                     t.kwargs.update(kwargs)
+                    t.markkwargs.update(markerdict)
                     # The attributes fmt and fun to format tick labels could have
                     # been initialized when the object was created. If values are
                     # given then they override the defaults.
                     if fmt != None: t.fmt = fmt
                     if fun != None: t.fun = fun
-                    t.markersize = markersize
+                    if tex != None: t.tex = tex
            else:      # One or more positions are given. Find the right index.
               for pos in posn:
+                 if type(pos) == StringType:
+                    C = pos.upper()
+                    if 'H' in C or 'D' in C or 'M' in C or 'S' in C:
+                       pos, err = parsehmsdms(pos)
+                       if err != '':
+                          raise Exception, err
+                       else:
+                          pos = pos[0]
+                    else:
+                       raise ValueError("[%s] is entered as a string but does not represent valid HMS or DMS"%pos)
+                    #print "Converted to", pos
                  d0 = None
                  for i, t in enumerate(gridline.ticks):
                     skip = False
@@ -2688,59 +2983,166 @@ a sequence of values.
                              indx = i
                  if d0 != None:
                     gridline.ticks[indx].kwargs.update(kwargs)
-                    gridline.ticks[indx].fmt = fmt
-                    gridline.ticks[indx].fun = fun
-                    gridline.ticks[indx].markersize = markersize
+                    gridline.ticks[indx].markkwargs.update(markerdict)
+                    if len(markerdict) == 0 or fmt != None:
+                        gridline.ticks[indx].fmt = fmt
+                    if len(markerdict) == 0 or fun != None:
+                        gridline.ticks[indx].fun = fun
+                    if tex != None:
+                        gridline.ticks[indx].tex = tex
 
 
-   def setp_gratline(self, wcsaxis=None, position=None, tol=0.0, **kwargs):
+   def setp_tickmark(self, wcsaxis=None, plotaxis=None, position=None,
+                     tol=1e-12, **mkwargs):
+      #-----------------------------------------------------------------
       """
-Set (plot) attributes for one or more graticule
-lines.
-These graticule lines are identified by the wcs
-number (*wcsaxis=0* or *wcsaxis=1*) and by their constant
-world coordinate in *position*.
-
-:param wcsaxis:    If omitted, then for both types of graticule lines
-                   the attributes are set.
-                   If one value is given then only for that axis
-                   the attributes will be set.
-:type wcsaxis:     *None* or Integer(s) from set 0, 1. 
-
-:param position:   None, one value or a sequence of
-                   values representing the constant value of a graticule
-                   line in world coordinates. For the graticule line(s)
-                   that match a position in this sequence, the attributes
-                   are updated.
-:type position:    *None*, one or a sequence of floating point numbers
-
-:param tol:        If a value > 0 is given, the graticule line with the
-                   constant value closest to a given position within
-                   distance *tol* gets updated attributes.
-:type tol:         Floating point number
-
-:param `**kwargs`: Keyword arguments for plot properties like *color*,
-                   *rotation* or *visible* etc.
-:type  `**kwargs`: Matplotlib keyword argument(s)
-
-:Returns:          --
-
-:Notes:            For each value in *position* find the index of
-                   the graticule line that belongs to *wcsaxis* so that
-                   the distance between that value and the constant
-                   value of the graticule line is the smallest of all
-                   the graticule lines. If *position=None* then
-                   apply change of properties to ALL graticule lines.
-                   The (plot) properties are stored in `**kwargs`
-                   Note that graticule lines are initialized with
-                   default properties. These kwargs only update
-                   the existing kwargs i.e. appending new keywords
-                   and update existing keywords.
+      Utility function for :meth:`setp_tick`. It handles the
+      properties of the tick marks, which are :class:`Line2D` objects
+      in Matplotlib. The most useful properties are *color*, *markeredgewidth*
+      and *markersize*.
       """
+      #-----------------------------------------------------------------
+      self.setp_tick(wcsaxis=wcsaxis, plotaxis=plotaxis, position=position,
+                     tol=tol, markerdict=mkwargs)
+
+
+   def setp_ticklabel(self, wcsaxis=None, plotaxis=None, position=None,
+                      tol=1e-12, fmt=None, fun=None, tex=None, **kwargs):
+      #-----------------------------------------------------------------
+      """
+      Utility function for :meth:`setp_tick`. It handles the
+      properties of the tick labels, which are :class:`Text` objects
+      in Matplotlib. The most useful properties are *color*, *fontsize*
+      and *fontstyle*.
+      
+      :param wcsaxis:
+            Values are 0 or 1, corresponding to the
+            first and second world coordinate types.
+            Note that *wcsaxis=0* corresponds to the
+            first element in the axis permutation array given in
+            parameter *axnum*.
+      :type wcsaxis: *None*, 0, 1 or tuple with both
+      
+      :param plotaxis:
+            Accepted values are 'None', 0, 1, 2, 3 or a
+            combination, to represent the left, bottom, right
+            and top axis of the enclosing rectangle that
+            represents the limits in pixel coordinates.
+      :type plotaxis: One or more integers between 0 and 3.
+      
+      :param position:
+            Accepted are None, or one or more values representing
+            the constant value of the graticule line in
+            world coordinates. These positions are used to identify
+            individual graticule lines so that each line can have its
+            own properties.
+            The input can also be a string that represents a sexagisimal number.
+      :type position: *None* or one or a sequence of floating point numbers
+      
+      :param tol:
+            If a value > 0 is given, the gridline with the
+            constant value closest to a given position within
+            distance 'tol' gets updated attributes.
+      :type tol: Floating point number
+      
+      :param fmt:
+            A string that formats the tick value
+            e.g. ``fmt="%10.5f"`` in the Python way, or a string
+            that contains no percentage character (%) but a format
+            to set the output of sexagisimal numbers e.g.
+            fmt='HMs'. The characters in the format either force
+            (uppercase) a field to be printed, or it suppresses
+            (lowercase) a field to be printed.
+            Se also the examples at :func:`wcsgrat.makelabel`.
+      :type fmt: String
+      
+      :param fun:
+            An external function which will be used to
+            convert the tick value e.g. to convert
+            velocities from m/s to Km/s. See also
+            example 2_ below.
+      :type fun: Python function or Lambda expression
+
+      :param tex:
+            If True then format the tick label in LaTeX. This is the
+            default. If False then standard text will applies.
+            Some text properties cannot be changed if LaTeX is
+            in use.
+      :type tex: Boolean
+
+      :param `**kwargs`:
+            Keyword arguments for plot properties like *color*,
+            *visible*, *rotation* etc. The plot attributes are standard
+            Matplotlib attributes which can be found in the
+            Matplotlib documentation.
+      :type `**kwargs`: Matplotlib keyword arguments
+      
+
+      :note:
+            Some projections generate labels that are very close
+            to each other. If you want to skip labels then you can
+            use keyword/value *visible=False*. There is not a documented
+            keyword *visible* in this method because *visible* is a
+            valid keyword argument in Matplotlib.
+
+      """
+      #-----------------------------------------------------------------
+      self.setp_tick(wcsaxis=wcsaxis, plotaxis=plotaxis, position=position,
+                     tol=tol, fmt=fmt, fun=fun, tex=tex, **kwargs)
+
+
+
+
+   def setp_gratline(self, wcsaxis=None, position=None, tol=1e-12, **kwargs):
+      #-----------------------------------------------------------------
+      """
+      Set (plot) attributes for one or more graticule
+      lines.
+      These graticule lines are identified by the wcs
+      number (*wcsaxis=0* or *wcsaxis=1*) and by their constant
+      world coordinate in *position*.
+      
+      :param wcsaxis:    If omitted, then for both types of graticule lines
+                         the attributes are set.
+                         If one value is given then only for that axis
+                         the attributes will be set.
+      :type wcsaxis:     *None* or Integer(s) from set 0, 1. 
+      
+      :param position:   None, one value or a sequence of
+                         values representing the constant value of a graticule
+                         line in world coordinates. For the graticule line(s)
+                         that match a position in this sequence, the attributes
+                         are updated.
+      :type position:    *None*, one or a sequence of floating point numbers
+      
+      :param tol:        If a value > 0 is given, the graticule line with the
+                         constant value closest to a given position within
+                         distance *tol* gets updated attributes.
+      :type tol:         Floating point number
+      
+      :param `**kwargs`: Keyword arguments for plot properties like *color*,
+                         *rotation* or *visible*, *linestyle* etc.
+      :type  `**kwargs`: Matplotlib keyword argument(s)
+      
+      :Returns:          --
+      
+      :Notes:            For each value in *position* find the index of
+                         the graticule line that belongs to *wcsaxis* so that
+                         the distance between that value and the constant
+                         value of the graticule line is the smallest of all
+                         the graticule lines. If *position=None* then
+                         apply change of properties to ALL graticule lines.
+                         The (plot) properties are stored in `**kwargs`
+                         Note that graticule lines are initialized with
+                         default properties. These kwargs only update
+                         the existing kwargs i.e. appending new keywords
+                         and update existing keywords.
+      """
+      #-----------------------------------------------------------------
       # Upgrade 'wcsaxis' to a sequence
       if wcsaxis == None:
          wcsaxislist = [0,1]
-      elif type(wcsaxis) not in sequencelist:
+      elif not issequence(wcsaxis):
          wcsaxislist = [wcsaxis]
       else:
          wcsaxislist = wcsaxis
@@ -2749,11 +3151,21 @@ world coordinate in *position*.
             if gridline.wcsaxis in wcsaxislist:
                gridline.kwargs.update(kwargs)
       else: # Upgrade 'position' to a sequence
-         if type(position) not in sequencelist:
+         if not issequence(position):
             S = [position]
          else:
             S = position
          for constval in S:
+            if type(constval) == StringType:
+               C = constval.upper()
+               if 'H' in C or 'D' in C or 'M' in C or 'S' in C:
+                  constval, err = parsehmsdms(constval)
+                  if err != '':
+                     raise Exception, err
+                  else:
+                     constval = constval[0]
+               else:
+                  raise ValueError("[%s] is entered as a string but does not represent valid HMS or DMS"%constval)
             d0 = None
             for i, gridline in enumerate(self.graticule):
                if gridline.wcsaxis in wcsaxislist:
@@ -2770,140 +3182,164 @@ world coordinate in *position*.
                self.graticule[indx].kwargs.update(kwargs)
 
 
-   def setp_lineswcs0(self, position=None, tol=0.0, **kwargs):
+   def setp_lineswcs0(self, position=None, tol=1e-12, **kwargs):
+      #-----------------------------------------------------------------
       """
-Helper method for :meth:`setp_gratline`.
-It pre-selects the grid line that
-corresponds to the first world coordinate.
+      Helper method for :meth:`setp_gratline`.
+      It pre-selects the grid line that
+      corresponds to the first world coordinate.
+      
+      :Parameters:  See description at :meth:`setp_gratline`
+      
+      :Returns:     --
+      
+      :Notes:       --
+      
+      :Examples:  Make lines of constant latitude magenta and
+                  lines of constant longitude green. The line that
+                  corresponds to a latitude of 30 degrees and
+                  the line that corresponds to a longitude of 0
+                  degrees are plotted in red with a line width of 2:: 
+      
+                     grat.setp_lineswcs1(color='m')
+                     grat.setp_lineswcs0(color='g')
+                     grat.setp_lineswcs1(30, color='r', lw=2)
+                     grat.setp_lineswcs0(0, color='r', lw=2)
 
-:Parameters:  See description at :meth:`setp_gratline`
-
-:Returns:     --
-
-:Notes:       --
-
-:Examples:  Make lines of constant latitude magenta and
-            lines of constant longitude green. The line that
-            corresponds to a latitude of 30 degrees and
-            the line that corresponds to a longitude of 0
-            degrees are plotted in red with a line width of 2:: 
-
-               grat.setp_lineswcs1(color='m')
-               grat.setp_lineswcs0(color='g')
-               grat.setp_lineswcs1(30, color='r', lw=2)
-               grat.setp_lineswcs0(0, color='r', lw=2)
       """
+      #-----------------------------------------------------------------
       axis = 0
       self.setp_gratline(axis, position, tol, **kwargs)
 
 
-   def setp_lineswcs1(self, position=None, tol=0.0, **kwargs):
+   def setp_lineswcs1(self, position=None, tol=1e-12, **kwargs):
+      #-----------------------------------------------------------------
       """
-Helper method for :meth:`setp_gratline`.
-It pre-selects the grid line that
-corresponds to the second world coordinate.
-
-:Parameters:  See description at :meth:`setp_gratline`
-
-:Returns:       --
-
-:Notes:         --
-:Examples:     See example at :meth:`setp_lineswcs0`.
-
+      Helper method for :meth:`setp_gratline`.
+      It pre-selects the grid line that
+      corresponds to the second world coordinate.
+      
+      :Parameters:  See description at :meth:`setp_gratline`
+      
+      :Returns:       --
+      
+      :Notes:         --
+      :Examples:     See example at :meth:`setp_lineswcs0`.
       """
+      #-----------------------------------------------------------------
       axis = 1
       self.setp_gratline(axis, position, tol, **kwargs)
 
 
 
    def setp_linespecial(self, id, **kwargs):
+      #-----------------------------------------------------------------
       """
-Set (plot) attributes for a special type
-of graticule line made with method :meth:`addgratline`
-or method :meth:`scanborder`.
-This graticule line has no constant x- or y- value.
-It is identified by an id returned by method
-:meth:`addgratline`.
-
-:param id:          id from :meth:`addgratline`
-:type id:           Integer
-:param `**kwargs`:  keywords for (plot) attributes
-:type `**kwargs`:   Matplotlib keyword argument(s)
-
-:Returns:           --
-
-:Notes:             --
-
-:Examples:          Create a special graticule line
-                    which follows the positions in two
-                    given arrays *x* and *y*. and set
-                    the line width for this line to 2::
-
-                        id = grat.addgratline(x, y)
-                        grat.setp_linespecial(id, lw=2)
+      Set (plot) attributes for a special type
+      of graticule line made with method :meth:`addgratline`
+      or method :meth:`scanborder`.
+      This graticule line has no constant x- or y- value.
+      It is identified by an id returned by method
+      :meth:`addgratline`.
+      
+      :param id:         id from :meth:`addgratline`
+      :type id:          Integer
+      :param `**kwargs`: keywords for (plot) attributes
+      :type `**kwargs`:  Matplotlib keyword argument(s)
+      
+      :Returns:           --
+      
+      :Notes:             --
+      
+      :Examples:         Create a special graticule line
+                         which follows the positions in two
+                         given arrays *x* and *y*. and set
+                         the line width for this line to 2::
+      
+                              id = grat.addgratline(x, y)
+                              grat.setp_linespecial(id, lw=2)
       """
+      #-----------------------------------------------------------------
       # Set properties for an added gridline
       for gridline in self.graticule:
          if gridline.wcsaxis == id and id > 1:
             gridline.kwargs.update(kwargs)
 
 
-   def setp_plotaxis(self, plotaxis, mode=None, label=None, **kwargs):
+   def switchdefaults(self):
+      self.setp_axislabel(plotaxis=("right","top"), visible=True)
+      self.setp_axislabel(plotaxis=("left","bottom"), visible=False)
+      self.set_tickmode(plotaxis=("right","top"), mode="NATIVE")
+      self.set_tickmode(plotaxis=("left","bottom"), mode="NO")
+
+
+   def setp_plotaxis(self, plotaxis, mode=None, label=None, xpos=None,
+                     ypos=None, **kwargs):
+      #-----------------------------------------------------------------
       """
-Set (plot) attributes for titles along a plot axis and set the ticks mode.
-The ticks mode sets the relation between the ticks and the plot axis.
-For example a rotated map will show a rotated graticule, so ticks for both
-axes can appear along a plot axis. With parameter *mode* one can influence this
-behaviour.
-
-.. Note::
-   This method addresses the four axes of a plot seperately. Therefore
-   its functionality cannot be incorporated in :meth:`setp_tick`!
-
-:param plotaxis:   The axis number of one of the axes of the
-                   plot rectangle:
-
-                     * wcsgrat.left (== 0)
-                     * wcsgrat.bottom (==1)
-                     * wcsgrat.right (==2)
-                     * wcsgrat.top (==3)
-
-                   or (part of) a string which can be (case insensitive)
-                   matched by one from "left', 'bottom', 'right', 'top'. 
-                   
-:type plotaxis:    Integer or String
-
-:param mode:       What should this axis do with the tick
-                   marks and labels?
-
-                     * 0 = ticks native to axis type only
-                     * 1 = only the tick that is not native to axis type
-                     * 2 = both types of ticks (map could be rotated)
-                     * 3 = no ticks
-:type mode:        Integer
-
-:param label:      An annotation of the current axis
-:type label:       String
-
-:param `**kwargs`: Keywords for (plot) attributes
-:type  `**kwargs`: Matplotlib keyword argument(s)
-
-:Returns:          --
-
-:Note:             --
-
-:Examples:         Change the font size of the tick labels along
-                   the bottom axis in 11::
-
-                     grat = Graticule(...)
-                     grat.setp_plotaxis(wcsgrat.bottom, fontsize=11)
+      Set (plot) attributes for titles along a plot axis and set the ticks mode.
+      The ticks mode sets the relation between the ticks and the plot axis.
+      For example a rotated map will show a rotated graticule, so ticks for both
+      axes can appear along a plot axis. With parameter *mode* one can influence this
+      behaviour.
+      
+      .. Note::
+         This method addresses the four axes of a plot seperately. Therefore
+         its functionality cannot be incorporated in :meth:`setp_tick`!
+      
+      :param plotaxis:   The axis number of one of the axes of the
+                         plot rectangle:
+      
+                           * wcsgrat.left (== 0)
+                           * wcsgrat.bottom (==1)
+                           * wcsgrat.right (==2)
+                           * wcsgrat.top (==3)
+      
+                         or (part of) a string which can be (case insensitive)
+                         matched by one from 'left', 'bottom', 'right', 'top'.
+                        
+      :type plotaxis:    Integer or String
+      
+      :param mode:       What should this axis do with the tick
+                         marks and labels?
+      
+                           * 0 = ticks native to axis type only
+                           * 1 = only the tick that is not native to axis type
+                           * 2 = both types of ticks (map could be rotated)
+                           * 3 = no ticks
+      
+                         Or use a text that can match one of:
+      
+                           * "NATIVE_TICKS"
+                           * "SWITCHED_TICKS"
+                           * "ALL_TICKS"
+                           * "NO_TICKS"
+            
+      :type mode:        Integer or String
+      
+      :param label:      An annotation of the current axis
+      :type label:       String
+      
+      :param `**kwargs`: Keywords for (plot) attributes
+      :type  `**kwargs`: Matplotlib keyword argument(s)
+      
+      :Returns:          --
+      
+      :Note:             --
+      
+      :Examples:         Change the font size of the tick labels along
+                         the bottom axis in 11::
+      
+                           grat = Graticule(...)
+                           grat.setp_plotaxis(wcsgrat.bottom, fontsize=11)
       """
+      #-----------------------------------------------------------------
       plotaxis = parseplotaxes(plotaxis)
       for ax in plotaxis:
          # User wants to make something visible, but right and top
          # axis labels are default invisible. Keyword 'visible' in the
          # kwargs list can overrule this default
-         self.axes[ax].kwargs.update({'visible':True})
+         #self.axes[ax].kwargs.update({'visible':True})
          if len(kwargs):
             self.axes[ax].kwargs.update(kwargs)
          if mode != None:
@@ -2911,120 +3347,219 @@ behaviour.
             self.axes[ax].mode = mode
          if label != None:
             self.axes[ax].label = label
+         if xpos != None:
+            self.axes[ax].xpos = xpos
+         if ypos != None:
+            self.axes[ax].ypos = ypos
 
 
-   def Insidelabels(self, wcsaxis=0, world=None, constval=None, deltapx=0.0, deltapy=0.0, angle=None, addangle=0.0, fmt=None, **kwargs):
+   def setp_axislabel(self, plotaxis=None, label=None, xpos=None, ypos=None, **kwargs):
+      #-----------------------------------------------------------------
       """
-Annotate positions in world coordinates
-within the boundaries of the plot.
-This method can be used to plot positions
-on all-sky maps where there are usually no
-intersections with the enclosing axes rectangle.
+      Utility function that calls method setp_plotaxis but
+      the parameters are restricted to the axis labels.
+      These labels belong to one of the 4 plot axes.
+      See the documentation at setp_plotaxis for the input
+      of the *plotaxis* parameter. The *kwargs* are Matplotlib
+      attributes.
+       
 
+      Possible useful Matplotlib attributes:
 
-:param wcsaxis:    Values are 0 or 1, corresponding to the
-                   first and second world coordinate types.
-                   The accepted values are 0 and 1. The default
-                   is 0.
-:type wcsaxis:     Integer 
+      * backgroundcolor
+      * color
+      * rotation
+      * style or fontstyle 	[ 'normal' | 'italic' | 'oblique']
+      * weight or fontweight
 
-:param world:      One or more world coordinates on the axis given
-                   by *wcsaxis*. The positions are completed
-                   with one value for *constval*.
-                   If world=None (the default) then the world
-                   coordinates are copied from graticule
-                   world coordinates.
-:type world:       Floating point number(s) or None
+      :param plotaxis: The axis number of one of the axes of the plot rectangle:
 
-:param constval:   A constant world coordinate to complete the positions
-                   at which a label is plotted.
-:type constval:    Floating point number
+            * wcsgrat.left (== 0)
+            * wcsgrat.bottom (==1)
+            * wcsgrat.right (==2)
+            * wcsgrat.top (==3)
 
-:param deltapx:    Small shift in pixels in x-direction of text. This enables
-                   us to improve the layout of the plot by preventing that
-                   labels are intersected by lines.
-:type deltapx:     Floating point number.
+         or (part of) a string which can be (case insensitive)
+         matched by one from 'left', 'bottom', 'right', 'top'.
+                   
+      :type plotaxis:    Integer or String
 
-:param deltapy:    See description at *deltapx*.
-:type deltapy:     Floating point number.
+      :param label:      The label text.
+      :type label:       String
 
-:param angle:      Use this angle (in degrees) instead of
-                   calculated defaults. It is the angle at which
-                   then **all**
-                   position labels are plotted.
-:type angle:       Floating point number
-
-:param addangle:   Add this angle (in degrees) to the calculated
-                   default angles.
-:type addangle:    Floating point number
-
-:param fmt:        String to format the numbers. If omitted the
-                   format '%g' is used.
-:type fmt:         String
-
-:param `**kwargs`: Keywords for (plot) attributes.
-:type  `**kwargs`: Matplotlib keyword argument(s)
-
-:returns:   A list with *insidelabel* objects. These objects
-            have attributes: X-position, Y-position, a label that represents
-            a world coordinate, a
-            rotation angle and a dictionary with keyword
-            arguments for plot attributes.
-            The attribute names of an *insidelabel* object are:
-
-            * *Xp*   - The X-positions in pixels, corrected for *deltapx*
-            * *Yp*   - The Y-positions in pixels, corrected for *deltapy*
-            * *lab*  - List with labels for each position (Xp, Yp)
-            * *rots* - List with angles, one for each label and all in degrees
-            * *kwargs* - Matplotlib keyword argument(s)
-
-:Notes:     For a map with only one spatial axis, the value of
-            'mixpix' is used as pixel value for the
-            matching spatial axis. The *mixed()* method
-            from module *wcs* is used to calculate the right
-            positions.
-
-:Examples:  Annotate a plot with labels at positions from a list
-            with longitudes at given fixed latitude:: 
-
-               grat = Graticule(...)
-               lon_world = [0,30,60,90,120,150,180]
-               lat_constval = 30
-               inlabs = grat.Insidelabels(wcsaxis=0,
-                                          world=lon_world,
-                                          constval=lat_constval,
-                                          color='r')
+      :param xpos:       The x position of the label in normalized device coordinates
+      :type xpos:        Floating point number
+        
+      :param `**kwargs`: Keywords for (plot) attributes
+      :type  `**kwargs`: Matplotlib keyword argument(s)
       """
-         
+      #-----------------------------------------------------------------
+      if plotaxis == None:
+         plotaxis = [0,1,2,3]
+      self.setp_plotaxis(plotaxis, mode=None, label=label, xpos=xpos, ypos=ypos, **kwargs)
+
+
+   def set_tickmode(self, plotaxis=None, mode=None):
+      #-----------------------------------------------------------------
+      """
+      Utility function that calls method setp_plotaxis but
+      the parameters are restricted to the tick mode.
+
+      Each plot axis has a tick mode.
+
+      :param plotaxis:   The axis number of one of the axes of the
+                         plot rectangle:
+
+                           * wcsgrat.left (== 0)
+                           * wcsgrat.bottom (==1)
+                           * wcsgrat.right (==2)
+                           * wcsgrat.top (==3)
+
+                         or (part of) a string which can be (case insensitive)
+                         matched by one from 'left', 'bottom', 'right', 'top'.
+
+      :type plotaxis:    Integer or String
+
+      :param mode:       What should this axis do with the tick
+                         marks and labels?
+
+                           * 0 = ticks native to axis type only
+                           * 1 = only the tick that is not native to axis type
+                           * 2 = both types of ticks (map could be rotated)
+                           * 3 = no ticks
+
+                         Or use a text that can (minimal) match one of:
+
+                           * "NATIVE_TICKS"
+                           * "SWITCHED_TICKS"
+                           * "ALL_TICKS"
+                           * "NO_TICKS"
+                           
+      :type mode:        Integer or String
+      
+      """
+      #-----------------------------------------------------------------
+      if plotaxis == None:
+         plotaxis = [0,1,2,3]
+      self.setp_plotaxis(plotaxis, mode=mode)
+
+
+
+
+   def Insidelabels(self, wcsaxis=0, world=None, constval=None,
+                    deltapx=0.0, deltapy=0.0, angle=None, addangle=0.0,
+                    fun=None, fmt=None, tex=True, **kwargs):
+      #-----------------------------------------------------------------
+      """
+      Annotate positions in world coordinates
+      within the boundaries of the plot.
+      This method can be used to plot positions
+      on all-sky maps where there are usually no
+      intersections with the enclosing axes rectangle.
+      
+      
+      :param wcsaxis:    Values are 0 or 1, corresponding to the
+                         first and second world coordinate types.
+                         The accepted values are 0 and 1. The default
+                         is 0.
+      :type wcsaxis:     Integer 
+      
+      :param world:      One or more world coordinates on the axis given
+                         by *wcsaxis*. The positions are completed
+                         with one value for *constval*.
+                         If world=None (the default) then the world
+                         coordinates are copied from graticule
+                         world coordinates.
+      :type world:       Floating point number(s) or None
+      
+      :param constval:   A constant world coordinate to complete the positions
+                         at which a label is plotted. The value can also be a
+                         string representing a sexagisimal number.
+      :type constval:    Floating point number or String
+      
+      :param deltapx:    Small shift in pixels in x-direction of text. This enables
+                         us to improve the layout of the plot by preventing that
+                         labels are intersected by lines.
+      :type deltapx:     Floating point number.
+      
+      :param deltapy:    See description at *deltapx*.
+      :type deltapy:     Floating point number.
+      
+      :param angle:      Use this angle (in degrees) instead of
+                         calculated defaults. It is the angle at which
+                         then **all**
+                         position labels are plotted.
+      :type angle:       Floating point number
+      
+      :param addangle:   Add this angle (in degrees) to the calculated
+                         default angles.
+      :type addangle:    Floating point number
+
+      :param fun:        unction or lambda expression to convert the
+                         label value.
+      :type func:        Python function or lambda expression
+      
+      :param fmt:        String to format the numbers. If omitted the
+                         format '%g' is used.
+      :type fmt:         String
+
+      :param tex:        Format these 'inside' labels in LaTeX if this
+                         parameter is set to True (which is the default).
+      :type param:       Boolean
+      
+      :param `**kwargs`: Keywords for (plot) attributes.
+      :type  `**kwargs`: Matplotlib keyword argument(s)
+      
+      :returns:   An Insidelabel object with a series of derived label objects.
+                  These label objects
+                  have a number of attributes, see :class:`Insidelabels`
+      
+      :Notes:     For a map with only one spatial axis, the value of
+                  'mixpix' is used as pixel value for the
+                  matching spatial axis. The *mixed()* method
+                  from module *wcs* is used to calculate the right
+                  positions.
+      
+      :Examples:  Annotate a plot with labels at positions from a list
+                  with longitudes at given fixed latitude:: 
+      
+                     grat = Graticule(...)
+                     lon_world = [0,30,60,90,120,150,180]
+                     lat_constval = 30
+                     inlabs = grat.Insidelabels(wcsaxis=0,
+                                                world=lon_world,
+                                                constval=lat_constval,
+                                                color='r')
+      """
+      #-----------------------------------------------------------------
       if world == None:
          if wcsaxis == 0:
             world = self.xstarts
          if wcsaxis == 1:
             world = self.ystarts
-      if type(world) not in sequencelist and not isinstance(world, numpy.ndarray):
+      if not issequence(world):
          world = [world,]
 
       if constval == None:
          if wcsaxis == 0:
-            if self.wylim[0] <= 0.0 <= self.wylim[1]:
-               constval = 0.0
-            else:
-               constval = (self.wylim[1] + self.wylim[0]) / 2.0
-         if wcsaxis == 1:
-            if self.wxlim[0] <= 0.0 <= self.wxlim[1]:
-               constval = 0.0
-            else:
-               constval = (self.wxlim[1] + self.wxlim[0]) / 2.0
+            constval = self.ystarts[0]
+         else:
+            constval = self.xstarts[0]
 
-      if fmt == None:
-         fmt = '%g'
+      if type(constval) == StringType:
+         pos, err = parsehmsdms(constval)
+         if err != '':
+            raise Exception, err
+         else:
+            constval = pos[0]
+
       unknown = numpy.nan
       wxlim0 = self.wxlim[0]
       wxlim1 = self.wxlim[1]
       #if self.wxlim[0] < 0.0:
       #   wxlim0 += 180.0
       #   wxlim1 += 180.0
-      insidelabels = Insidelabels()                       # Initialize the result
+      insidelabels = Insidelabels(wcsaxis)                       # Initialize the result
       if len(world) > 0 and wcsaxis in [0,1]:
          if wcsaxis == 0:
             defkwargs = {'ha':'center', 'va':'center', 'fontsize':10}
@@ -3043,7 +3578,6 @@ intersections with the enclosing axes rectangle.
                labval = xw
                if xw < 0.0 and self.gmap.types[wcsaxis] == 'longitude':
                   labval += 360.0
-               s =  fmt%labval
                if not numpy.isnan(xp):
                   #if wxlim0 <= xw < wxlim1 and self.pxlim[0] < xp < self.pxlim[1]:
                   if self.pxlim[0]-0.5 < xp < self.pxlim[1]+0.5 and self.pylim[0]-0.5 < yp < self.pylim[1]+0.5:
@@ -3060,12 +3594,21 @@ intersections with the enclosing axes rectangle.
                         phi = angle
                      defkwargs.update({'rotation':phi+addangle})
                      defkwargs.update(kwargs)
-                     insidelabels.append(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
+                     insidelabels.append(xp+deltapx, yp+deltapy,
+                                         xw, constval,
+                                         labval,
+                                         phi+addangle,
+                                         self.gmap.types[wcsaxis],
+                                         skysys=self.gmap.skyout,
+                                         fun=fun,
+                                         fmt=fmt,
+                                         offset=False,
+                                         prec=self.prec[wcsaxis],
+                                         tex=tex,
+                                         **defkwargs)
 
          if wcsaxis == 1:
-            defkwargs = {'ha':'right', 'va':'bottom', 'fontsize':10}
-            ha = 'right'
-            va = 'bottom'
+            defkwargs = {'ha':'center', 'va':'center', 'fontsize':10}
             for yw in world:
                phi = 0.0
                if self.mixpix == None:
@@ -3079,7 +3622,6 @@ intersections with the enclosing axes rectangle.
                labval = yw 
                if yw < 0.0 and self.gmap.types[wcsaxis] == 'longitude':
                   labval += 360.0
-               s =  fmt%labval
                if not numpy.isnan(xp):
                   if self.wylim[0] <= yw < self.wylim[1] and self.pylim[0] < yp < self.pylim[1] and self.pxlim[0] < xp < self.pxlim[1]:
                      # Delta's make minus sign more visible on graticule lines
@@ -3096,564 +3638,41 @@ intersections with the enclosing axes rectangle.
                         phi = angle
                      defkwargs.update({'rotation':phi+addangle})
                      defkwargs.update(kwargs)
-                     insidelabels.append(xp+deltapx, yp+deltapy, s, phi+addangle, **defkwargs)
+                     insidelabels.append(xp+deltapx, yp+deltapy,
+                                         constval, yw,
+                                         labval,
+                                         phi+addangle,
+                                         self.gmap.types[wcsaxis],
+                                         skysys=self.gmap.skyout,
+                                         fun=fun,
+                                         fmt=fmt,
+                                         offset=False,
+                                         prec=self.prec[wcsaxis],
+                                         tex=tex,
+                                         **defkwargs)
          insidelabels.pxlim = self.pxlim
          insidelabels.pylim = self.pylim
-         self.objlist.append(insidelabels)
-         return insidelabels
+      self.objlist.append(insidelabels)   # This graticule stores a list of derived objects
+      return insidelabels
 
 
-   def Ruler(self, x1=None, y1=None, x2=None, y2=None, lambda0=0.5, step=None,
-             world=False, angle=None, addangle=0.0, 
-             fmt=None, fun=None, fliplabelside=False, mscale=None, **kwargs):
+   def Ruler(self, pos1=None, pos2=None,
+             x1=None, y1=None, x2=None, y2=None, lambda0=0.5, step=None,
+             world=False, angle=None, addangle=0.0,
+             fmt=None, fun=None, fliplabelside=False, mscale=None,
+             labelsintex=True, **kwargs):
+      #-----------------------------------------------------------------
       """
-Draw a line between two spatial positions
-from a start point (x1,y1) to an end point (x2,y2)
-with labels indicating a constant offset in world
-coordinates. The positions are either in pixels
-or in world coordinates. The ruler is a straight
-line but the ticks are usually not equidistant
-because projection effects make the offsets non linear.
-Default, the zero point is exactly in the middle of
-the ruler but this can be changed by setting a
-value for *lambda0*.  The step size
-for the ruler ticks in units of the spatial
-axes is entered in parameter *step*.
-At least one of the axes in the plot needs to be
-a spatial axis.
-
-:param x1:            X-location of start of ruler either in pixels or world coordinates
-                      Default is lowest pixel coordinate in x.
-:type x1:             None or Floating point number
-
-:param y1:            Y-location of start of ruler either in pixels or world coordinates
-                      Default is lowest pixel coordinate in y.
-:type y1:             None or Floating point number
-
-:param x2:            X-location of end of ruler either in pixels or world coordinates
-                      Default is highest pixel coordinate in x.
-:type x2:             None or Floating point number
-
-:param y2:            Y-location of end of ruler either in pixels or world coordinates
-                      Default is highest pixel coordinate in y.
-:type y2:             None or Floating point number
-
-:param lambda0:       Set the position of label which represents offset 0.0.
-                      Default is lambda=0.5 which represents the middle of the ruler.
-                      If you set lambda=0 then offset 0.0 is located at the start
-                      of the ruler. If you set lambda=1 then offset 0.0 is located at the
-                      end of the ruler.
-:type lambda0:        Floating point number
-
-:param step:          Step size in units of world coordinates that corresponds to
-                      the spatial axis (i.e. degrees).
-:type step:           Floating point number
-
-:param world:         Set ruler mode to world coordinates (default is pixels)
-:type world:          Boolean
-
-:param angle:         Set angle of tick marks in degrees. If omitted then a default
-                      is calculated (perpendicular to ruler line) which applies
-                      to all labels.
-:type angle:          Floating point number
-
-:param addangle:      Add a constant angle in degrees to *angle*.
-                      Only useful if *angle* has its default
-                      value. This parameter is used to improve layout.
-:type adangle:        Floating point number
-
-:param fmt:           Format of the labels. See example.
-:type fmt:            String
-
-:param fun:           Format ruler values according to this function (e.g. to convert
-                      degrees into arcminutes). The output is always in degrees.
-:type fun:            Python function or Lambda expression
-
-:param fliplabelside: Choose other side of ruler to draw labels.
-:type fliplabelside:  Boolean
-
-:param mscale:        A scaling factor to create more or less distance between 
-                      the ruler and its labels. If *None* then this method calculates 
-                      defaults. The values are usually less than 5.0.
-:type mscale:         Floating point number
-   
-:param `**kwargs`:    Set keyword arguments for the labels.
-                      The attributes for the ruler labels are set with these keyword arguments.
-:type `**kwargs`:     Matplotlib keyword argument(s)
-
-:Raises:
-   :exc:`Exception` 
-      *Rulers only suitable for maps with at least one spatial axis!*
-      These rulers are only for plotting offsets as distances on
-      a sphere for the current projection system. So we nead at least
-      one spatial axis and if there is only one spatial axis in the plot,
-      then we need a matching spatial axis.
-   :exc:`Exception`
-      *Cannot make ruler with step size equal to zero!*
-      Either the input of the step size...
-   :exc:`Exception`
-      *Start point of ruler not in pixel limits!*
-   :exc:`Exception`
-      *End point of ruler not in pixel limits!*
-
-:Returns:      A ruler object of class ruler which is added to the plot container
-               with Plotversion's method :meth:`Plotversion.add`.
-               This ruler object has two methods to change the properties 
-               of the line and the labels:
-   
-               * `setp_line(**kwargs)` -- Matplotlib keyword arguments for changing
-                 the line properties.
-               * `setp_labels(**kwargs)` -- Matplotlib keyword arguments for changing
-                 the label properties.
-
-:Notes:        A bisection is used to find a new marker position so that
-               the distance to a previous position is *step*..
-               We use a formula of Thaddeus Vincenty, 1975, for the
-               calculation of a distance on a sphere accurate over the
-               entire sphere.
-
-:Examples:     Create a ruler object and add it to plot container::
-
-                  ruler = grat.Ruler(x1,y1,x2,y2)
-                  gratplot.add(grat)
-                  gratplot.add(pixellabels)
-                  gratplot.add(ruler)
-                  gratplot.plot()
-
-               Practical example of a vertical ruler positioned
-               at the right side of a plot. Note that position 0.5
-               is a plot boundary. It corresponds with the
-               lower or left side of the first pixel::
-
-                  xmax = grat.pxlim[1]+0.5; ymax = grat.pylim[1]+0.5
-                  ruler = grat.Ruler(xmax,0.5, xmax, ymax, lambda0=0.5, step=5.0/60.0,
-                                     fun=lambda x: x*60.0, fmt=r"$%4.0f^\prime$",
-                                     fliplabelside=True, color='r')
-                  ruler.setp_line(lw='2', color='g')
-                  ruler.setp_labels(color='y')
-                  gratplot.add(ruler)
-
+      Look at documentation of same method of class Annotatedimage.
+      This is a version that is needed to calculate offsets along
+      the plot axes.
       """
-      # Recipe
-      # Are the start and endpoint in world coordinates or pixels?
-      # Convert to pixels.
-      # Calculate the central position in pixels
-      # Calculate the central position in world coordinates (Xw,Yw)
-      # Find a lambda in (x,y) = (x1,y1) + lambda*(x2-x1,y2-x1)
-      # so that, if (x,y) <-> (xw,yw), the distance D((Xw,Yw), (xw,yw))
-      # is the step size on the ruler.
-      def bisect(offset, lambda_s, Xw, Yw, x1, y1, x2, y2):
-         """
-         We are looking for a value mu so that mu+lambda_s sets a 
-         pixel which corresponds to world coordinates that are 
-         'offset' away from the start point set by lambda_s
-         If lambda_s == 0 then we are in x1, x2. If lambda_s == 1 
-         we are in x2, y2 
-         """
-         mes = ''
-         if offset >= 0.0:
-            a = 0.0; b = 1.1
-         else:
-            a = -1.1; b = 0.0
-         
-         f1 = getdistance(a, lambda_s, Xw, Yw, x1, y1, x2, y2) - abs(offset)
-         f2 = getdistance(b, lambda_s, Xw, Yw, x1, y1, x2, y2) - abs(offset)
-         validconditions = f1*f2 < 0.0
-         if not validconditions:
-            mes = "Found interval without a root for this step size"
-            return  None, mes
-         
-         tol = 1e-12   # Tolerance. Stop iteration if (b-a)/2 < tol
-         N0  = 50      # Stop output with error message if number of iterations
-                       # exceeds this number
-         # Initialize
-         i = 0
-         fa = getdistance(a, lambda_s, Xw, Yw, x1, y1, x2, y2) - abs(offset)
-         # The iteration itself
-         while i <= N0:
-            # The bisection
-            p = a + (b-a)/2.0
-            fp = getdistance(p, lambda_s, Xw, Yw, x1, y1, x2, y2) - abs(offset)
-            # Did we find a root?
-            i += 1
-            if fp == 0.0 or (b-a)/2.0 < tol:
-               # print 'Root is: ', p, fp          # We found a root
-               # print "Iterations: ", i
-               break                         # Succes..., leave the while loop
-            if fa*fp > 0:
-               a = p
-               fa = fp
-            else:
-               b = p
-         else:
-            mes = 'Ruler bisection failed after %d iterations!' % N0
-            p = None
-         return p, mes
-      
-               
-      def DV(l1, b1, l2, b2):
-         # Vincenty, Thaddeus, 1975, formula for distance on sphere accurate over entire sphere
-         fac = numpy.pi / 180.0
-         l1 *= fac; b1 *= fac; l2 *= fac; b2 *= fac
-         dlon = l2 - l1
-         a1 = numpy.cos(b2)*numpy.sin(dlon)
-         a2 = numpy.cos(b1)*numpy.sin(b2) - numpy.sin(b1)*numpy.cos(b2)*numpy.cos(dlon)
-         a = numpy.sqrt(a1*a1+a2*a2)
-         b = numpy.sin(b1)*numpy.sin(b2) + numpy.cos(b1)*numpy.cos(b2)*numpy.cos(dlon)
-         d = numpy.arctan2(a,b)
-         return d*180.0/numpy.pi
-      
-      
-      def tolonlat(x, y):
-         # This function also sorts the spatial values in order
-         # longitude, latitude
-         if self.mixpix == None:
-            xw, yw = self.gmap.toworld((x,y))
-            xwo = xw     # Store originals
-            ywo = yw
-         else:
-            xw1, xw2, yw1 = self.gmap.toworld((x, y, self.mixpix))
-            if self.gmap.types[0] == 'longitude':
-               xw = xw1
-               yw = yw1
-               xwo = xw1; ywo = yw1
-            elif self.gmap.types[0] == 'latitude':  # First axis must be latitude
-               xw = yw1
-               yw = xw1
-               xwo = xw1; ywo = yw1
-            elif self.gmap.types[1] == 'longitude':
-               xw = xw2
-               yw = yw1
-               xwo = xw2; ywo = yw1
-            elif self.gmap.types[1] == 'latitude':
-               xw = yw1
-               yw = xw2
-               xwo = xw2; ywo = yw1
-            else:
-               xw = yw = numpy.nan
-
-         return xw, yw, xwo, ywo
-
-
-      def topixel2(xw, yw):
-         # Note that this conversion is only used to convert 
-         # start and end position, given in world coordinates,
-         # to pixels.
-         if self.mixpix == None:
-            x, y = self.gmap.topixel((xw,yw))
-         else:
-            unknown = numpy.nan
-            wt = (xw, yw, unknown)
-            pixel = (unknown, unknown, self.mixpix)
-            (wt, pixel) = self.gmap.mixed(wt, pixel)
-            x = pixel[0]; y = pixel[1]
-         return x, y
-
-
-      def getdistance(mu, lambda_s, Xw, Yw, x1, y1, x2, y2):
-         lam = lambda_s + mu
-         x = x1 + lam*(x2-x1)
-         y = y1 + lam*(y2-y1)
-         xw, yw, xw1, yw1 = tolonlat(x,y)
-         return DV(Xw, Yw, xw, yw)
-      
-
-      def nicestep(x1, y1, x2, y2):
-         # Assume positions in pixels
-         xw1, yw1, dummyx, dummyy = tolonlat(x1,y1)
-         xw2, yw2, dummyx, dummyy = tolonlat(x2,y2)
-         step = None
-         length = DV(xw1, yw1, xw2, yw2)
-         # Nice numbers for dms should also be nice numbers for hms
-         sec = numpy.array([30, 20, 15, 10, 5, 2, 1])
-         minut = sec
-         deg = numpy.array([60, 30, 20, 15, 10, 5, 2, 1])
-         nicenumber = numpy.concatenate((deg*3600.0, minut*60.0, sec))
-         fact = 3600.0
-
-         d = length * fact
-         step2 = 0.9*d/3.0          # We want at least four offsets on our ruler
-         for p in nicenumber:
-            k = int(step2/p)
-            if k >= 1.0:
-               step2 = k * p
-               step = step2
-               break           # Stop if we have a candidate
-
-         # d = x2 - x1
-         # If nothing suitable then try something else
-         if step == None:
-            f = int(numpy.log10(d))
-            if d < 1.0:
-               f -= 1
-            D3 = numpy.round(d/(10.0**f),0)
-            if D3 == 3.0:
-               D3 = 2.0
-            elif D3 == 6:
-               D3 = 5.0
-            elif D3 == 7:
-               D3 = 8
-            elif D3 == 9:
-               D3 = 10
-            if D3 in [2,4,8]:
-               k = 4
-            else:
-               k = 5
-            step = (D3*10.0**f)/k
-         return step/fact
-
-      # Set defaults for missing pixel coordinates
-      if x1 == None: x1 = self.pxlim[0]
-      if x2 == None: x2 = self.pxlim[1]
-      if y1 == None: y1 = self.pylim[0]
-      if y2 == None: y2 = self.pylim[1]
-
-      spatial = self.gmap.types[0] in ['longitude', 'latitude'] or self.gmap.types[1] in ['longitude', 'latitude']
-      if not spatial:
-         raise Exception, "Rulers only suitable for maps with at least one spatial axis!"
-
-      if world:
-         x1, y1 = topixel2(x1, y1)
-         x2, y2 = topixel2(x2, y2)
-      # Check whether the start- and end point of the ruler are inside the frame
-
-      # Get a step size for nice offsets
-      if step == None:
-         stepsizeW = nicestep(x1, y1, x2, y2)
-      else:
-         stepsizeW = step
-      if step == 0.0:
-         raise Exception, "Cannot make ruler with step size equal to zero!"
-
-
-      # Look for suitable units (degrees, arcmin, arcsec) if nothing is
-      # specified in the call. Note that 'stepsizeW' is in degrees.
-      if fun == None and fmt == None:
-         if self.labelsintex:
-            fmt = r"$%4.0f^{\circ}$"
-         else:
-            fmt = u"%4.0f\u00B0"
-         if abs(stepsizeW) < 1.0:
-            # Write labels in arcmin
-            fun = lambda x: x*60.0
-            if self.labelsintex:
-               fmt = r"$%4.0f^{\prime}$"
-            else:
-               fmt = r"$%4.0f'"
-         if abs(stepsizeW) < 1.0/60.0:
-            # Write labels in arcmin
-            fun = lambda x: x*3600.0
-            if self.labelsintex:
-               fmt = r"$%4.0f^{\prime\prime}$"
-            else:
-               fmt = r"$%4.0f''"
-      elif fmt == None:          # Then a default format
-         fmt = '%g'
-      
-      start_in = (self.pxlim[0]-0.5 <= x1 <= self.pxlim[1]+0.5) and (self.pylim[0]-0.5 <= y1 <= self.pylim[1]+0.5)
-      if not start_in:
-         raise Exception, "Start point of ruler not in pixel limits!"
-      end_in = (self.pxlim[0]-0.5 <= x2 <= self.pxlim[1]+0.5) and (self.pylim[0]-0.5 <= y2 <= self.pylim[1]+0.5)
-      if not end_in:
-         raise Exception, "End point of ruler not in pixel limits!"
-
-      # Ticks perpendicular to ruler line.
-      defangle = 180.0 * numpy.arctan2(y2-y1, x2-x1) / numpy.pi - 90.0
-
-      l1 = self.pxlim[1] - self.pxlim[0] + 1.0; l1 /= 50.0
-      l2 = self.pylim[1] - self.pylim[0] + 1.0; l2 /= 50.0
-      ll = max(l1,l2)
-      dx = ll*numpy.cos(defangle*numpy.pi/180.0)
-      dy = ll*numpy.sin(defangle*numpy.pi/180.0)
-      if fliplabelside:
-         dx = -dx
-         dy = -dy
-      
-      if angle == None:
-         phi = defangle
-      else:
-         phi = angle
-      phi += addangle
-      defkwargs = {'fontsize':10, 'rotation':phi}
-      if defangle+90.0 in [270.0, 90.0, -90.0, -270.0]:
-         if fliplabelside:
-            defkwargs.update({'va':'center', 'ha':'right'})
-         else:
-            defkwargs.update({'va':'center', 'ha':'left'})
-         if mscale == None:
-            mscale = 1.5
-      elif defangle+90.0 in [0.0, 180.0, -180.0]:
-         if fliplabelside:
-            defkwargs.update({'va':'bottom', 'ha':'center'})
-         else:
-            defkwargs.update({'va':'top', 'ha':'center'})
-         mscale = 1.5
-      else:
-         defkwargs.update({'va':'center', 'ha':'center'})
-         if mscale == None:
-            mscale = 2.5
-      defkwargs.update(kwargs)
-      ruler = Ruler(x1, y1, x2, y2, defangle, dx, dy, mscale, **defkwargs)
-      ruler.fmt = fmt
-      ruler.fun = fun
-      
-      lambda_s = lambda0
-      x0 = x1 + lambda_s*(x2-x1)
-      y0 = y1 + lambda_s*(y2-y1)
-      Xw, Yw, xw1, yw1 = tolonlat(x0, y0)
-      ruler.append(x0, y0, 0.0, fmt%0.0)
-      ruler.appendW(xw1, yw1)         # Store in original order i.e. not sorted
-      ruler.stepsizeW = stepsizeW     # Needed elsewhere so store as an attribute
-
-
-      # Find the mu on the straight ruler line for which the distance between 
-      # the position defined by mu and the center point (lambda0) is 'offset'
-      # Note that these distances are calculated on a sphere
-      for sign in [+1.0, -1.0]:
-         mu = 0.0
-         offset = 0.0
-         lamplusmu = lambda_s + mu
-         while mu != None and (0.0 <= lamplusmu <= 1.0):
-            offset += sign*stepsizeW
-            mu, mes = bisect(offset, lambda_s, Xw, Yw, x1, y1, x2, y2)
-            if mu != None:
-               lamplusmu = lambda_s + mu
-               if 0.0 <= lamplusmu <= 1.0:
-                  x = x1 + (lamplusmu)*(x2-x1)
-                  y = y1 + (lamplusmu)*(y2-y1)
-                  if fun != None:
-                     off = fun(offset)
-                  else:
-                     off = abs(offset)
-                  ruler.append(x, y, offset, fmt%off)
-                  xw, yw, xw1, yw1 = tolonlat(x, y)
-                  ruler.appendW(xw1, yw1)
-            elif sign == -1.0:
-               break
-               # raise Exception, mes
-      ruler.pxlim = self.pxlim
-      ruler.pylim = self.pylim
-      try:
-         self.objlist.append(ruler)
-      except:
-         pass
+      #-----------------------------------------------------------------
+      ruler = rulers.Ruler(self.gmap, self.mixpix, self.pxlim, self.pylim,
+                           pos1=pos1, pos2=pos2,
+                           x1=x1, y1=y1, x2=x2, y2=y2, lambda0=lambda0, step=step,
+                           world=world, angle=angle, addangle=addangle,
+                           fmt=fmt, fun=fun, fliplabelside=fliplabelside, mscale=mscale,
+                           labelsintex=labelsintex, **kwargs)
       return ruler
 
-
-   def Pixellabels(self, plotaxis=None, markersize=None, gridlines=False, offset=None, **kwargs):
-      """
-      Plot pixel coordinates
-      """
-      pixobj = Pixellabels(self.pxlim, self.pylim,
-                           plotaxis, markersize, gridlines,
-                           offset, **kwargs)
-      self.objlist.append(pixobj)
-      return pixobj
-   
-      
-   def plot(self, frame):
-      """
-      Plot all objects stored in attribute *objlist*.
-      """
-      container = Plotversion("matplotlib", frame.figure, frame)
-      #try:
-      visible = self.visible
-      #except:
-         #visible = True
-      if visible:
-         container.add(self)
-      if len(self.objlist) > 0:
-         container.add(self.objlist)
-
-
-class Pixellabels(object):
-   """
-   Draw positions in pixels along one or more
-   plot axes. Nice numbers and step size are
-   calculated by Matplotlib's own plot methods.
-   
-   
-   :param plotaxis:     The axis number of one or two of the axes of the
-                        plot rectangle:
-   
-                        * wcsgrat.left
-                        * wcsgrat.bottom
-                        * wcsgrat.right
-                        * wcsgrat.top
-
-                        or 'left', 'bottom', 'right', 'top'
-                        
-   :type  plotaxis:     Integer
-   
-   :param markersize:   Set size of ticks at pixel positions.
-                        The size can be negative to get tick
-                        marks that point outwards.
-   :type  markersize:   Integer
-   
-   :param gridlines:    Set plotting of grid lines (connected tick marks)
-                        on or off (True/False). The default is off.
-   :type gridlines:     Boolean
-   
-   :param offset:       The pixels can have an integer offset.
-                        If you want the reference pixel to be pixel
-                        0 then supply offset=(crpixX, crpixY).
-                        These crpix values are usually read from then
-                        header. In this routine the nearest integer of
-                        the input is calculated to ensure that the
-                        offset is an integer value.
-   :type offset:        *None* or a floating point number
-   
-   :param `**kwargs`:   Keyword arguments to set attributes for
-                        the labels.
-   :type `**kwargs`:    Matplotlib keyword argument(s)
-   
-   :Returns:            An object from class *Gridframe* which
-                        is added to the plot container with Plotversion's
-                        method :meth:`Plotversion.add`.
-   
-   :Notes:              --
-   
-   :Examples:           Annotate the pixels in a plot along the right and top axis
-                        of a plot. Change the color of the labels to red::
-   
-                           mplim = f.Annotatedimage(frame)
-                           mplim.Pixellabels(plotaxis=("bottom", "right"), color="r")
-
-                           or with separate axes:
-   
-                           mplim.Pixellabels(plotaxis="bottom", color="r")
-                           mplim.Pixellabels(plotaxis="right", color="b", markersize=10)
-                           mplim.Pixellabels(plotaxis="top", color="g", markersize=-10)
-
-   """
-   def __init__(self, pxlim, pylim, plotaxis=None, markersize=None,
-                gridlines=False, offset=None, **kwargs):
-
-      def nint(x):
-         return numpy.floor(x+0.5)
-   
-      self.ptype = "Pixellabels"       # not a gridframe object
-      defkwargs = {'fontsize':7}
-      defkwargs.update(kwargs)
-      if plotaxis == None:
-         plotaxis = [2,3]
-
-      px = [0,0]; py = [0,0]
-      px[0] = pxlim[0]; py[0] = pylim[0]    # Do not copy directly because new values must be temporary
-      px[1] = pxlim[1]; py[1] = pylim[1]
-      if offset != None:
-         offX = nint(offset[0])
-         offY = nint(offset[1])
-         px[0] -= offX; px[1] -= offX;
-         py[0] -= offY; py[1] -= offY;
-   
-      gridlabs = Gridframe(px, py, plotaxis, markersize, gridlines, **defkwargs)
-      self.gridlabs = gridlabs
-
-   def plot(self, frame):
-      container = Plotversion("matplotlib", frame.figure, frame)
-      container.add(self.gridlabs)
-   
-
-      
-#--------End of file--------

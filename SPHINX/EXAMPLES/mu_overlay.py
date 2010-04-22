@@ -11,35 +11,34 @@ Basefits.set_limits(promptfie=maputils.prompt_box)
 # should be reprojected to fit the header of Basefits.
 Reprojfits = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
 Reprojfits.set_imageaxes(promptfie=maputils.prompt_imageaxes)
-# Do not ask here for limits. An overlay is required
+Reprojfits.set_limits(promptfie=maputils.prompt_box)
 
 fig = plt.figure()
 frame = fig.add_subplot(1,1,1)
 
-levels = input("Enter contour levels: ") 
-if not maputils.issequence(levels):
-   levels = [levels]
-
 baseim = Basefits.Annotatedimage(frame)
 baseim.Image()
-baseim.Contours(levels=levels, colors='g')
 
 # Set parameters for the interpolation routine
 pars = dict(cval=numpy.nan, order=1)
 overlayim = Basefits.Annotatedimage(frame, 
-                              overlay_src=Reprojfits, 
-                              overlay_dict=pars)
-overlayim.Image()
+                                    overlay_src=Reprojfits, 
+                                    overlay_dict=pars)
+
+mi, ma = overlayim.clipmin, overlayim.clipmax
+levels = input("Enter contour levels between %g and %g: " % (mi, ma)) 
+if not maputils.issequence(levels):
+   levels = [levels]
 overlayim.Contours(levels=levels, colors='r')
 
 # Write overlay data to FITS file with same structure as 
 # the base FITS file
 Basefits.writetofits(boxdat=overlayim.data)
-x = overlayim.data[numpy.isfinite(overlayim.data)]
+#x = overlayim.data[numpy.isfinite(overlayim.data)]
 
 baseim.plot()
 overlayim.plot()
 baseim.interact_toolbarinfo()
-overlayim.interact_toolbarinfo()
 
 plt.show()
+
