@@ -7,6 +7,7 @@ DISTRIBUTION/doc/kapteyn.pdf
 SPHINX/EXAMPLES/fig1_axnumdemo.png
 SPHINX/EXAMPLES/fig2_axnumdemo.png
 SPHINX/EXAMPLES/FITS*.fits
+SPHINX/EXAMPLES/mu*.fits
 SPHINX/HTML
 SPHINX/LATEX
 SPHINX/examples.tar.gz
