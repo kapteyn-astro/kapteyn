@@ -108,3 +108,10 @@ Universidad de Valparaiso @ 200.14.68.146
 Yonsei University @ 165.132.38.89
 University of Massachusetts Amherst @ 128.119.51.64
 Hamburger Sternwarte (Universitaet Hamburg) @ 134.100.120.116
+Radboud Universiteit Nijmegen @ 131.174.192.92
+University of Miami @ 129.171.61.172
+United Space Alliance @ 161.40.12.17
+Universite de Strasbourg @ 130.79.129.111
+Hamburger Sternwarte (Universitaet Hamburg) @ 134.100.120.116
+Cardiff University School of Physics and Astronomy @ 131.251.143.121
+

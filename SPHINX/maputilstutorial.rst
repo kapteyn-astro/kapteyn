@@ -1584,7 +1584,7 @@ Toggle y axis scale (log/linear) l
 
 Three methods from :class:`maputils.Annotatedimage` add mouse and keyboard interaction.
 These methods are described in the next sections:
-   
+
 Changing colors in an image
 ...........................
 
@@ -1593,22 +1593,22 @@ adds keys and mouse interaction for color editing i.e.
 change color scheme and settings for image and colorbar.
 The active keys are:
 
-================================================== =============================
-Command                                            Keyboard Shortcut(s)
-================================================== =============================
-Colormap scaling linear                            1
-Colormap scaling logarithmic                       2
-Colormap scaling exponential                       3
-Colormap scaling square root                       4
-Colormap scaling square                            5
-Toggle between data and histgram equalized version h
-Loop forward through list with colormaps           page-up
-Loop backwards through list with colormaps         page-down
-Save current colormap to disk                      m
-Toggle between inverse and normal scaling          9 (nine)
-reset the colors to start values                   0 (zero)
-Change color of bad pixels (blanks)                b
-================================================== =============================
+=================================================== =============================
+Command                                             Keyboard Shortcut(s)
+=================================================== =============================
+Colormap scaling linear                             1
+Colormap scaling logarithmic                        2
+Colormap scaling exponential                        3
+Colormap scaling square root                        4
+Colormap scaling square                             5
+Toggle between data and histogram equalized version h
+Loop forward through list with colormaps            page-up
+Loop backwards through list with colormaps          page-down
+Save current colormap to disk                       m
+Toggle between inverse and normal scaling           9 (nine)
+reset the colors to start values                    0 (zero)
+Change color of bad pixels (blanks)                 b
+=================================================== =============================
 
 The **right mouse button** must be pressed to change slope and offset of the
 function that maps image values to colors in the current color map.
@@ -1656,19 +1656,20 @@ Here is a minimalistic example how to add user interaction:
 .. literalinclude:: EXAMPLES/mu_interactive2.py
 
 
-Adding and using external colormaps
-...................................
+Adding and using external color maps
+......................................
 
-In the constructor of :class:`maputils.Annotatedimage` one can set a colormap
-with keyword *cmap*. There are three options here:
+In the constructor of :class:`maputils.Annotatedimage` one can set a color map
+with keyword *cmap*. There are four options here:
 
 
 ===================================================== ===============================================
 Option                                                         Example
 ===================================================== ===============================================
-Matplotlib colormap (string)                                   cmap='jet'
-Path and filename of colormap on disk                          cmap='/home/user/myluts/rainbow4.lut'
-Instance of class :class:`mplutil.VariableColormap`            cmap=myimage.cmap
+Matplotlib color map (string)                              cmap='jet'
+Path and filename of color map on disk                     cmap='/home/user/myluts/rainbow4.lut'
+A Color map from the Kapteyn Package                       cmap='ronekers.lut'
+Instance of class :class:`mplutil.VariableColormap`        cmap=myimage.cmap
 ===================================================== ===============================================
 
 Module :mod:`maputils` has a global list called *cmlist* which contains
@@ -1677,15 +1678,40 @@ the colormaps provided by Matplotlib. You can add an external colormap
 >>> maputils.cmlist.add('/home/user/luts/rainbow4.lut')
 
 It will be prepended to the existing list. One can also prepend multiple
-external colormaps assembled in a list.
-If you have a number of luts then use Python's glob function to read them all
+external colormaps assembled in a list. This list can also be compiled from
+the color maps available in the Kapteyn Package.
+If you have a number of local color maps then use Python's glob function to read them all
 (or a selection) as in the next example:
-      
-.. literalinclude:: EXAMPLES/mu_interactive3.py
+
+.. plot:: EXAMPLES/mu_luttest.py
+   :include-source:
+   :align: center
 
 The format of a colormap on disk (also called a color LookUp Table or *lut*) is simple.
 There should be 256 lines with three floating point numbers between 0 and 1 which
 represent Red, Green and Blue.
+
+
+More color resolution
+.......................
+
+.. plot:: EXAMPLES/mu_longcmap.py
+   :include-source:
+   :align: center
+
+In this plot we demonstrate the difference between a small color map (64 color entries)
+and a big color map (1021 entries). The plot on the left uses the small color map.
+What you should observe are the false contours because that color map does not have the
+enough resolution to show smooth transitions between colors. The plot on the right
+has a big color map and there you don't see these transitions.
+
+
+.. note::
+
+   The default length of a color map is 256. With this length the effect of
+   steps in the color gradient is less obvious but still there. You should only
+   extend your color map if a high resolution is required. 
+ 
 
 Reuse of modified colormap
 ..........................

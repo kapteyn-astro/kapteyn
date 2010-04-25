@@ -377,6 +377,7 @@ Values should be between 0.0 and 1.0.
          if not source._isinit:
             source._init()
          self.baselut = source._lut
+         self.N = source.N
       elif isinstance(source, numpy.ndarray):
          ncolors = source.shape[0]
          self.baselut = numpy.ones((ncolors+3,4), numpy.float)
