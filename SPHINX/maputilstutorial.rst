@@ -637,7 +637,12 @@ Free graticule line                :meth:`wcsgrat.Graticule.setp_linespecial`
 *-Table-* Objects related to graticules and their methods to set properties.
 
 In the following sections we show some examples for changing the
-graticule properties.
+graticule properties. Note that for some methods we can identify objects either with
+the graticule line type (i.e. 0 or 1), the number or name of the
+plot axis ([0..4] or one of 'left', 'bottom', 'right', 'top' (or a minimal
+match of these strings). Some objects (e.g. tick labels) can also be identified
+by a position in world coordinates. Often also a combination of these
+identifiers can be used.
 
 Graticule axis labels
 .......................
@@ -1654,6 +1659,58 @@ For spectral axes, the units depend on the selected spectral translation.
 Here is a minimalistic example how to add user interaction:
 
 .. literalinclude:: EXAMPLES/mu_interactive2.py
+
+
+
+Interactive plotting of shapes for flux etc.
+.............................................
+
+Another powerful tool of the :mod:`maputils` module is (together with
+module :mod:`shapes`) the option to propagate geometric shapes plotted
+in one image to other images from a list with images.
+A user selects a shape from the list Polygon, Ellipse, Circle, Rectangle
+and Spline, and interactively changes the geometry of a shape in
+an arbitray image in a mosaic of images. Then this shape duplicates itself
+in pixel coordinates or world coordinates on the other images.
+If we use the default setting then the duplication is in world coordinates,
+meaning that for different projections the geometry is different, but
+both represent the same area in the sky.
+
+.. note::
+      If we change the image for interaction with circles or
+      ellipses then their shape will change to the best approach of
+      a circle or an ellipse for the new image and the deviation
+      in geometry appears in the other image(s).
+      This does not apply to the situation where we duplicate
+      shapes in pixel coordinates. 
+
+For these areas the flux can be calculated.
+Default the flux is given by the (lambda) expression *s/a* where
+*s* represents the sum of the intensities of all the pixels enclosed
+by area *a*. One can supply a user defined function or
+lambda expression using Annotatedimage attribute *fluxfie*.
+Sometimes more precision is required. Then one can subdivide pixels
+using Annotatedimage attribute *pixelstep*.
+
+.. literalinclude:: EXAMPLES/mu_shapesdemo.py
+
+
+Your Matplotlib figure with one or more images gets a number of buttons
+at the top of your figure. You should anticipate on this when
+setting the figure size. Ofcourse one can also resize the plot window
+to make space for the buttons. The gui is simple. Here is an example.
+It corresponds to the example script above. A reprojection (to Mercator)
+of M101 is displayed together with the original image. One ellipse is plotted
+to demonstrate that the same area in the reprojection looks different.
+If enough resolution (pixelstep=0.2) is used, then the flux in both
+shapes is comparable.
+
+.. image:: EXAMPLES/fluxpanel.png
+   :align: center
+   :width: 600
+
+.. centered:: Fig. -- Calculate flux in user defined shapes in images with
+              different world coordinate systems.
 
 
 Adding and using external color maps

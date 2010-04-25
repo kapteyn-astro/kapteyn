@@ -29,21 +29,12 @@ annim.interact_toolbarinfo()
 annim.interact_imagecolors()
 annim.interact_writepos()
 
-tdict = dict(color='g', fontsize=10, va='bottom', ha='left')
-
 units = 'unknown'
 if f.hdr.has_key('BUNIT'):
    units = hdr['BUNIT']
-
-template  = "File: [%s]  Data units:  [%s]\n" % (f.filename, units)
-template += "Use pgUp and pgDown keys to browse through color maps\n"
-template += "Color map scaling keys: 0=reset 1=linear 2=logarithmic "
-template += "3=exponential 4=square-root 5=square 9=inverse toggle\n"
-template += "Histogram equalization: h\n"
-template += "Save current color map to disk: m\n"
-template += "Change color of bad pixels: b\n"
-template += "Change slope and offset: Right mouse button"
-
-fig.text(0.01,0.01, template, tdict)
+helptext  = "File: [%s]  Data units:  [%s]\n" % (f.filename, units)
+helptext += annim.get_colornavigation_info()
+tdict = dict(color='g', fontsize=10, va='bottom', ha='left')
+fig.text(0.01,0.01, helptext, tdict)
 
 plt.show()

@@ -1,4 +1,42 @@
 #!/usr/bin/env python
+#----------------------------------------------------------------------
+# FILE:    shapes.py
+# PURPOSE: Provide methods to plot polygons, ellipses, circles
+#          rectangles and splines. For the area enclused by these shapes
+#          the flux can be calculated, plotted and/or saved to disk.
+# AUTHOR:  M.G.R. Vogelaar, University of Groningen, The Netherlands
+# DATE:    April 25, 2010
+# UPDATE:  April 25, 2010
+#
+# VERSION: 1.0
+#
+# (C) University of Groningen
+# Kapteyn Astronomical Institute
+# Groningen, The Netherlands
+# E: gipsy@astro.rug.nl
+#
+#----------------------------------------------------------------------
+"""
+.. highlight:: python
+   :linenothreshold: 10
+
+Module shapes
+===============
+This module defines a class for drawing shapes that define an area in your
+image. The drawing is interactive using mouse- and keyboard buttons.
+For each defined area the module :mod:`maputils` calculates the sum of the intensities,
+the area and some other properties of the data. The shapes are one of
+polygon, ellipse, circle, rectangle or spline.
+
+The strength of this module is that it duplcicates a shape in different
+images using transformations to world coordinates. This enables one to compare
+flux in two images with different WCS systems.
+ 
+.. autoclass:: Shapecollection
+
+"""
+
+#!/usr/bin/env python
 from matplotlib.patches import Polygon
 from matplotlib.lines import Line2D
 from matplotlib.pyplot import show, figure, get_current_fig_manager
@@ -10,7 +48,7 @@ from kapteyn import tabarray
 import matplotlib.nxutils as nxutils
 import numpy
 from kapteyn.maputils import AxesCallback
-from sys import stdout
+from sys import stdout, exit
 from kapteyn.mplutil import KeyPressFilter
 
 KeyPressFilter.allowed = ['f', 'g']
@@ -590,9 +628,130 @@ class Spline(Poly):
 
       
 class Shapecollection(object):
-   """Administration class for a collection of shapes (also called flux objects in this context)"""
+   #-----------------------------------------------------------------
+   """
+   Administration class for a collection of shapes.
+   The figure 
+
+   :param images:  In each image a shape can be drawn using mouse-
+                   and keyboard buttons. This shape is duplicated
+                   either in pixel coordinates or world coordinates in
+                   the other images of the list with images.
+                   These images have two attributes that are relevant for
+                   this module. These are *fluxfie* to define how the
+                   flux should be calculated using fixed variables
+                   *s* for the sum of the intensities of the pixels
+                   in an area and *a* which represents the area.
+   :type images:   A list of objects from class :class:`maputils.Annotatedimage`
+
+   :param ifigure: The Matplotlib figure where the images are.
+   :type ifigure:  Matplotlib :class:`Figure` object
    
-   def __init__(self, images, ifigure, wcs=False, inputfilename=None, inputwcs=False):
+   :param wcs:     The default is *True* which implies that in case of
+                   multiple images shapes propagate through world
+                   coordinates. If you have images with the same
+                   size and WCS, then set *wcs=False* to
+                   duplicate shapes in pixel coordinates which is
+                   much faster.
+   :type wcs:      Boolean
+   
+   :param inputfilename:
+                   Name of file on disk which stores shape information.
+                   The objects are read from this file and plotted on
+                   all the images in the image list. The coordinates
+                   in the file can be either pixel- or world coordinates.
+                   You should specify that with parameter *inputwcs*
+   :type inputfilename:
+                   String
+
+   :param inputwcs: 
+                   Set the shape mode for shapes from file to
+                   either pixels coordinates (*inputwcs=False*)
+                   or to world coordinates (*inputwcs=True*).
+   :type inputwcs: Boolean
+
+
+   This shape interactor reacts on the following keyboard and mouse buttons::
+
+      mouse - left  :  Drag a polygon point to a new position or
+                       change the radius of a circle or
+                       change the minor axis of an ellipse or
+                       change the major axis and position angle of an ellipse
+      mouse - middle:  Select an existing object in any frame
+      key   - a     :  Add a point to a polygon or spline
+      key   - c     :  Copy current object at mouse cursor
+      key   - d     :  Delete a point in a polygon or spline
+      key   - e     :  Erase active object and associated objects in other images
+      key   - i     :  Insert a point in a polygon or spline
+      key   - n     :  Start with a new object
+      key   - w     :  Write object data in current image to file on disk
+      key   - r     :  Read objects from file for current image
+      key   - [     :  Next active object in current shape selection
+      key   - ]     :  Previous active object in current shape selection
+      
+      Interactive navigation defined by canvas
+      Amongst others:
+      key   - f     :  Toggle fullscreen
+      key   - g     :  Toggle grid
+
+
+      Gui buttons:
+      'Quit'         :  Abort program
+      'plot result'  :  Plot calculated flux as function of shape and image
+      'Save result'  :  Save flux information to disk
+                        The file names are generated and contain date
+                        and time stamp (e.g flux_24042010_212029.dat)
+      'Pol.'         :  Select shape polygon. Start with key 'n' for
+                        new polygon. Add new points with key 'a'.
+      'Ell.'         :  Select shape ellipse. Start with key 'n' for
+                        new ellipse. With left mouse button Drag major axis to change
+                        size and rotation or, using a point near the
+                        center, drag entire ellipse to a new position.
+      'Cir.:'        :  Select shape circle. Start with key 'n' for
+                        new circle. The radius can be changed by dragging
+                        an arbitrary point on the border to a new position.
+      'Rec.'         :  Select shape rectangle. Start with key 'n' for
+                        new rectangle. Drag any of the four edges to resize
+                        the rectangle.
+      'Spl.'         :  Like the polygon but the points between two knots
+                        follow a spline curve.
+
+   :Notes:
+
+      All the shapes are derived from a polygon class. There is one method
+      that generates coordinates for all the shapes and :meth:`maputils.getflux`
+      uses the same routine to calculate whether a pixel in an enclosing
+      bos is within or outside the shape. For circles and ellipses the
+      number of polygon points is 360 and this slows down the calculation
+      significantly. Methods which assume a perfect circle or ellipse can
+      handle the inside/outside problem much faster, but note that due to different
+      WCS's, ellipses and circles don't keep their shape in other images.
+      So in fact only a polygon is the common shape. A spline is a polygon
+      with an artificial increased number of points.
+
+   :Example:
+   
+     ::
+
+      fig = plt.figure(figsize=(12,10))
+      frame1 = fig.add_axes([0.07,0.1,0.35, 0.8])
+      frame2 = fig.add_axes([0.5,0.1,0.43, 0.8])
+      im1 = f1.Annotatedimage(frame1)
+      im2 = f2.Annotatedimage(frame2)
+      im1.Image(); im1.Graticule()
+      im2.Image(); im2.Graticule()
+      im1.interact_imagecolors(); im1.interact_toolbarinfo()
+      im2.interact_imagecolors(); im2.interact_toolbarinfo()
+      im1.plot(); im2.plot()
+      im1.fluxfie = lambda s, a: s/a
+      im2.fluxfie = lambda s, a: s/a
+      im1.pixelstep = 0.5; im2.pixelstep = 0.5
+      images = [im1, im2]
+      shapes = shapes.Shapecollection(images, fig, wcs=True, inputwcs=True)
+
+   """
+   #-----------------------------------------------------------------
+   def __init__(self, images, ifigure, wcs=True, inputfilename=None, inputwcs=False):
       self.frames = []
       self.images = images
       self.numberofimages = len(images)
@@ -628,50 +787,92 @@ class Shapecollection(object):
       self.shapedict = {'pol':self.polygon, 'ell':self.ellipse, 'cir':self.circle, 'rec':self.rectangle, 'spl':self.spline}
       # Define some buttons
       #axcolor = 'lightgoldenrodyellow'
-      shaps = self.figure.add_axes([0.93, 0.85, 0.06, 0.14])
-      radio = RadioButtons(shaps, ('pol', 'ell', 'cir', 'rec', 'spl'))
-      radio.on_clicked(self.setshape)
-      self.figresult = figure()
+      #shaps = self.figure.add_axes([0.93, 0.85, 0.06, 0.14])
+      #radio = RadioButtons(shaps, ('pol', 'ell', 'cir', 'rec', 'spl'))
+      #radio.on_clicked(self.setshape)
+      self.figresult = figure(figsize=(6,5))
       self.frameresult = self.figresult.add_subplot(1,1,1)
       self.frameresult.set_title("Flux as function of shape and image")
       self.results = False
-      
-      result_button = self.figure.add_axes([0.01, 0.94, 0.11, 0.05])
+
+      self.graycol = 'chartreuse'
+      quit_button = self.figure.add_axes([0.01, 0.94, 0.11, 0.05])
+      b0 = Button(quit_button, 'Quit')
+      b0.on_clicked(self.doquit)
+
+      result_button = self.figure.add_axes([0.13, 0.94, 0.11, 0.05])
       b1 = Button(result_button, 'Plot results')
-      b1.label.set_fontsize(10)
       b1.on_clicked(self.plotresults)
-      
-      save_button = self.figure.add_axes([0.14, 0.94, 0.11, 0.05])
+
+      save_button = self.figure.add_axes([0.25, 0.94, 0.11, 0.05])
       b2 = Button(save_button, 'Save results')
-      b2.label.set_fontsize(10)
       b2.on_clicked(self.saveresults)
 
-      helptxt = """
-      This shape interactor reacts on key and mouse button events.
+      pol_button = self.figure.add_axes([0.40, 0.94, 0.05, 0.05])
+      b3 = Button(pol_button, 'Pol.')
+      b3.on_clicked(self.setpoly)
 
-      mouse - left  :  Drag a polygon point to a new position or
-                       change the radius of a circle or
-                       change the minor axis of an ellipse or
-                       change the major axis and position angle of an ellipse
-      mouse - middle:  Select an existing object in any frame
-      key   - a     :  Add a point to a polygon or spline
-      key   - c     :  Copy current object at mouse cursor
-      key   - d     :  Delete a point in a polygon or spline
-      key   - e     :  Erase active object and associated objects in other images
-      key   - i     :  Insert a point in a polygon or spline
-      key   - n     :  Start with a new object
-      key   - w     :  Write object data in current image to file on disk
-      key   - r     :  Read objects from file for current image
-      key   - [     :  Next active object in current shape selection
-      key   - ]     :  Previous active object in current shape selection
+      ell_button = self.figure.add_axes([0.45, 0.94, 0.05, 0.05])
+      b4 = Button(ell_button, 'Ell.')
+      b4.on_clicked(self.setellipse)
+
+      cir_button = self.figure.add_axes([0.50, 0.94, 0.05, 0.05])
+      b5 = Button(cir_button, 'Cir.')
+      b5.on_clicked(self.setcircle)
+
+      rec_button = self.figure.add_axes([0.55, 0.94, 0.05, 0.05])
+      b6 = Button(rec_button, 'Rec.')
+      b6.on_clicked(self.setrectangle)
+
+      spl_button = self.figure.add_axes([0.60, 0.94, 0.05, 0.05])
+      b7 = Button(spl_button, 'Spl.')
+      b7.on_clicked(self.setspline)
+
+      self.buttons = [b0, b1, b2, b3, b4, b5, b6, b7]
+      for i, b in enumerate(self.buttons):
+         if i > 3:
+            b.color = self.graycol
+         if i == 3:
+            b.color = 'r'
+         b.label.set_fontsize(10)
+         
+      tdict = dict(color='g', fontsize=10, va='bottom', ha='left')
+      helptxt  = "n=start new object -- a=add point -- d=delete point -- i=insert point\n"
+      helptxt += "c=copy object -- e=erase object -- [=next shape in group -- ]=prev in gr.\n"
+      helptxt += "w=write shapes to disk -- r=read shapes from disk\n"
+      helptxt += "Mouse-left=drag and/or change shape --- Mouse-middle=select shape"
       
-      Interactive navigation defined by canvas
-      Amongst others:
-      key   - f     :  Toggle fullscreen
-      key   - g     :  Toggle grid
+      ifigure.text(0.01,0.01, helptxt, tdict)
       """
       print helptxt
       stdout.flush()
+      """
+
+   def setpoly(self, event):
+      for i in range(3,len(self.buttons)):
+         self.buttons[i].color = self.graycol
+      self.buttons[3].color = 'r'
+      self.setshape('pol')
+   def setellipse(self, event):
+      for i in range(3,len(self.buttons)):
+         self.buttons[i].color = self.graycol
+      self.buttons[4].color = 'r'
+      self.setshape('ell')
+   def setcircle(self, event):
+      for i in range(3,len(self.buttons)):
+         self.buttons[i].color = self.graycol
+      self.buttons[5].color = 'r'
+      self.setshape('cir')
+   def setrectangle(self, event):
+      for i in range(3,len(self.buttons)):
+         self.buttons[i].color = self.graycol
+      self.buttons[6].color = 'r'
+      self.setshape('rec')
+   def setspline(self, event):
+      for i in range(3,len(self.buttons)):
+         self.buttons[i].color = self.graycol
+      self.buttons[7].color = 'r'
+      self.setshape('spl')
 
       
    def setshape(self, label):
@@ -1006,7 +1207,6 @@ class Shapecollection(object):
                self.activeobject.set_markers(True)
          self.currentobj[self.currenttype] = newgroup
          self.canvas.draw()
-
       
       elif event.key == 'a':
          """
@@ -1337,19 +1537,19 @@ class Shapecollection(object):
             for ol, objlist in enumerate(sh):
                for obj in objlist:
                   if self.framesequal(obj.frame, im.frame):
-                     print "obj is in frame"
                      if obj.allinsideframe():
-                        print "obj all inside"
                         if obj.spline:
                            xy = obj.spline.xy
                         else:
                            xy = obj.xy
                         obj.area, obj.sum = im.getflux(xy)
                         obj.flux = im.fluxfie(obj.sum, obj.area)
-                        print "Object %d with shape %d in image %d has area=%f, sum=%f, flux=%f" % (ol, obj.shapetype, i, obj.area, obj.sum, obj.flux)
+                        print "Object %d with shape %d in image %d has area=%g, sum=%g, flux=%g" % (ol, obj.shapetype, i, obj.area, obj.sum, obj.flux)
                         fluxlist.append(obj.flux)
                      else:
+                        print "Object %d with shape %d in image %d has pixels outside frame" % (ol, obj.shapetype, i)
                         obj.area = obj.sum = obj.flux = None
+
 
       # Next we have the freedom to sort the data as we want. For a plot we want
       # to show the properties of each object as function of the image.
@@ -1386,6 +1586,9 @@ class Shapecollection(object):
       frameresult.legend()
       self.results = True
       self.figresult.canvas.draw()
+
+   def doquit(self, event):
+      exit()     # Exit program
 
    def saveresults(self, event):
       # Save the flux results to file on disk

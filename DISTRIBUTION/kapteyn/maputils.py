@@ -247,7 +247,7 @@ from string import letters
 from random import choice
 from re import split as re_split
 from datetime import datetime
-
+import time
 
 KeyPressFilter.allowed = ['f', 'g']
 
@@ -2019,6 +2019,7 @@ this class.
 .. automethod:: write_colormap
 .. automethod:: set_blankcolor
 .. automethod:: set_aspectratio
+.. automethod:: get_colornavigation_info
 .. automethod:: Image
 .. automethod:: Contours
 .. automethod:: Colorbar
@@ -2107,6 +2108,8 @@ this class.
          self.basename = "Unknown"               # Default name for file with colormap lut data
       else:
          self.basename = basename
+      self.pixelstep = 1.0                       # Sub divide pixel for flux
+      self.fluxfie = lambda s, a: s/a
       annotatedimage_list.append(self)
       
 
@@ -2316,7 +2319,25 @@ this class.
       frame.set_ylim((self.box[2], self.box[3]))   # then we still can navigate with the mouse
       return frame
 
-      
+
+   def get_colornavigation_info(self):
+      #-----------------------------------------------------------------
+      """
+      This method compiles and returns a help text for
+      color map interaction.
+      """
+      #-----------------------------------------------------------------
+      helptext  = "Use pgUp and pgDown keys to browse through color maps\n"
+      helptext += "Color map scaling keys: 0=reset 1=linear 2=logarithmic "
+      helptext += "3=exponential 4=square-root 5=square 9=inverse toggle\n"
+      helptext += "Histogram equalization: h\n"
+      helptext += "Save current color map to disk: m\n"
+      helptext += "Change color of bad pixels: b\n"
+      helptext += "Change slope and offset: Right mouse button"
+      return helptext
+
+
+       
    def histeq(self, nbr_bins=256):
       #-----------------------------------------------------------------
       """
@@ -3663,10 +3684,11 @@ this class.
       return xp, yp
 
 
-   def getflux(self, xy, pixelstep=0.2):
+   def getflux(self, xy):
       # Return Area in pixels and sum of image values in
       # polygon defined by xy
 
+      pixelstep = self.pixelstep
       poly = numpy.asarray(xy)
       mm = poly.min(0)
       xmin = mm[0]; ymin = mm[1]
@@ -3680,13 +3702,36 @@ this class.
       numpoints = len(X)*len(Y)
       x, y = numpy.meshgrid(X, Y)
       pos = zip(x.flatten(), y.flatten())
+      pos = numpy.asarray(pos)
       mask = nxutils.points_inside_poly(pos, poly)
-      # Correction consists of three elements:
+
+      # Get indices for positions inside shape using mask
+      i = numpy.arange(len(pos), dtype='int')
+      # Get a filtered array
+      posm = pos[i[numpy.where(mask)]]
+
+      xy = posm.T
+      x = xy[0]
+      y = xy[1]
+      # Check inside pixels:
+      # self.frame.plot(x, y, 'r')
+      # Correction of array index consists of three elements:
       # 1) The start position of the box must map on the start position of the array
       # 2) Positions all > 0.5 so add 0.5 and take int to avoid the need of a round function
-      # 3) The start index of the array is not ...
+      # 3) The data could be a limited part of the total, but the mouse positions
+      #    are relative to (1,1).
       xcor = self.pxlim[0] - 0.5
       ycor = self.pylim[0] - 0.5
+      x = numpy.asarray(x-xcor, dtype='int')
+      y = numpy.asarray(y-ycor, dtype='int')
+
+      # Compose the array with the intensities at positions inside the polygon
+      z = self.data[y,x]
+      area = len(posm)*pixelstep*pixelstep
+      sum = z.sum()*(pixelstep*pixelstep)
+
+      """
+      # Old algorithm
       count = 0
       sum = 0.0
       for i, xy in enumerate(pos):
@@ -3696,8 +3741,11 @@ this class.
             z = self.data[yp,xp]
             sum += z
             count += 1
-      return count*(pixelstep*pixelstep), sum*(pixelstep*pixelstep)
-
+      c1 = time.clock()
+      print "2: Calculated in %f cpu seconds" % ((c1-c0))
+      print count*(pixelstep*pixelstep), sum*(pixelstep*pixelstep)
+      """
+      return area, sum
 
 
 class FITSaxis(object):
