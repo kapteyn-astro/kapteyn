@@ -53,6 +53,13 @@ from kapteyn.mplutil import KeyPressFilter
 
 KeyPressFilter.allowed = ['f', 'g']
 
+def button_setcolor(btnobj, c):
+   btnobj.color = c
+   btnobj._lastcolor = c
+   btnobj.ax.set_axis_bgcolor(c)
+   if btnobj.drawon:
+      btnobj.ax.figure.canvas.draw()
+Button.setcolor = button_setcolor
 
 def cubicspline(xyu, nsamples):
    """
@@ -831,9 +838,9 @@ class Shapecollection(object):
       self.buttons = [b0, b1, b2, b3, b4, b5, b6, b7]
       for i, b in enumerate(self.buttons):
          if i > 3:
-            b.color = self.graycol
+            b.setcolor(self.graycol)
          if i == 3:
-            b.color = 'r'
+            b.setcolor('r')
          b.label.set_fontsize(10)
          
       tdict = dict(color='g', fontsize=10, va='bottom', ha='left')
@@ -850,28 +857,28 @@ class Shapecollection(object):
 
    def setpoly(self, event):
       for i in range(3,len(self.buttons)):
-         self.buttons[i].color = self.graycol
-      self.buttons[3].color = 'r'
+         self.buttons[i].setcolor(self.graycol)
+      self.buttons[3].setcolor('r')
       self.setshape('pol')
    def setellipse(self, event):
       for i in range(3,len(self.buttons)):
-         self.buttons[i].color = self.graycol
-      self.buttons[4].color = 'r'
+         self.buttons[i].setcolor(self.graycol)
+      self.buttons[4].setcolor('r')
       self.setshape('ell')
    def setcircle(self, event):
       for i in range(3,len(self.buttons)):
-         self.buttons[i].color = self.graycol
-      self.buttons[5].color = 'r'
+         self.buttons[i].setcolor(self.graycol)
+      self.buttons[5].setcolor('r')
       self.setshape('cir')
    def setrectangle(self, event):
       for i in range(3,len(self.buttons)):
-         self.buttons[i].color = self.graycol
-      self.buttons[6].color = 'r'
+         self.buttons[i].setcolor(self.graycol)
+      self.buttons[6].setcolor('r')
       self.setshape('rec')
    def setspline(self, event):
       for i in range(3,len(self.buttons)):
-         self.buttons[i].color = self.graycol
-      self.buttons[7].color = 'r'
+         self.buttons[i].setcolor(self.graycol)
+      self.buttons[7].setcolor('r')
       self.setshape('spl')
 
       
