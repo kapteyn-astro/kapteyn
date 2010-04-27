@@ -3,6 +3,7 @@ LICENSE.txt
 MANIFEST
 MANIFEST.in
 README.txt
+SciPy-LICENSE.txt
 setup.py
 doc/kapteyn.pdf
 doc/notes.txt
@@ -10,12 +11,14 @@ kapteyn/__init__.py
 kapteyn/__init__.pyc
 kapteyn/_ni_support.py
 kapteyn/celestial.py
-kapteyn/ellinteract.py
+kapteyn/doccer.py
+kapteyn/filters.py
 kapteyn/interpolation.py
 kapteyn/maputils.py
 kapteyn/mplutil.py
-kapteyn/mplutil.py.sav
 kapteyn/positions.py
+kapteyn/rulers.py
+kapteyn/shapes.py
 kapteyn/tabarray.py
 kapteyn/wcsgrat.py
 kapteyn/lut/aips.lut
