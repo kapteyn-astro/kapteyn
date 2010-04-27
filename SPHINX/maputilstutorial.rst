@@ -1620,6 +1620,22 @@ function that maps image values to colors in the current color map.
        
 
 
+**Example: mu_smooth.py - Apply Gaussian filter**
+
+Smoothing of images is a technique that is often used to
+enhance the contrast of extended emission. Maputils provides a method
+for smoothing using a gaussian kernel. The method expects values
+for the dispersion of the Gauss in both directions x and y.
+To show how this can be used interactively, we give a small script where
+a Matplotlib Slider object changes the value of sigma (which is copied
+for both the x and y direction).
+
+.. plot:: EXAMPLES/mu_smooth.py
+   :include-source:
+   :align: center
+
+
+
 Adding messages with position information
 .........................................
 

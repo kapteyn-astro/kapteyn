@@ -237,6 +237,7 @@ from kapteyn.mplutil import AxesCallback, VariableColormap, TimeCallback, KeyPre
 from kapteyn.positions import str2pos, mysplit, unitfactor
 #from scipy.ndimage.interpolation import map_coordinates
 from kapteyn.interpolation import map_coordinates
+from kapteyn.filters import gaussian_filter 
 from kapteyn import rulers
 import readline
 from types import TupleType as types_TupleType
@@ -1045,35 +1046,6 @@ def prompt_dataminmax(fitsobj):
       clipmin = mi
       clipmax = ma
    return clipmin, clipmax
-
-
-
-def gauss_kern(size, sizey=None):
-     """ Returns a normalized 2D gauss kernel array for convolutions """
-     size = int(size)
-     if not sizey:
-         sizey = size
-     else:
-         sizey = int(sizey)
-     x, y = numpy.mgrid[-size:size+1, -sizey:sizey+1]
-     g = numpy.exp(-(x**2/float(size)+y**2/float(sizey)))
-     return g / g.sum()
-
-
-def blur_image(self, n, ny=None) :
-   """ blurs the image by convolving with a gaussian kernel of typical
-         size n. The optional keyword argument ny allows for a different
-         size in the y direction.
-   """
-   if self.data == None:
-      raise Exception, "Cannot plot image because image data is not available!"
-   g = gauss_kern(n, sizey=ny)
-   self.data = numpy.convolve(self.data, g, mode='valid')
-   self.datmin = self.data.min()
-   self.datmax = self.data.max()
-   u = {'vmin':self.datmin, 'vmax':self.datmax}
-   self.kwargs.update(u)
-
 
 
 class Image(object):
@@ -2103,6 +2075,8 @@ this class.
       self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax, clip=True)
       self.histogram = False                     # Is current image equalized?
       self.data_hist = None                      # There is not yet a hist. eq. version of the data
+      self.blurred = False
+      self.data_blur = None
       self.data_orig = self.data                 # So we can toggle between image versions
       if basename == None:
          self.basename = "Unknown"               # Default name for file with colormap lut data
@@ -2336,6 +2310,26 @@ this class.
       helptext += "Change slope and offset: Right mouse button"
       return helptext
 
+   def blur(self, nx, ny=None) :
+      """ blurs the image by convolving with a gaussian kernel of typical
+            size n. The optional keyword argument ny allows for a different
+            size in the y direction.
+      """
+      if ny == None:
+         ny = nx
+      if self.data == None:
+         raise Exception, "Cannot plot image because image data is not available!"
+      #if self.data_orig == None:
+      #   self.data_orig = self.data
+      if self.data_blur == None:
+         self.data_blur = self.data.copy()
+      #g = gauss_kern(nx, sizey=ny)
+      #self.data_blur = convolve2d(self.data, g, mode='valid')
+      gaussian_filter(self.data_orig, sigma=(nx,ny), order=0, output=self.data_blur, mode='reflect', cval=0.0)
+      #self.min = self.data.min()
+      #self.datmax = self.data.max()
+      #u = {'vmin':self.datmin, 'vmax':self.datmax}
+      #self.kwargs.update(u)
 
        
    def histeq(self, nbr_bins=256):
@@ -3468,7 +3462,18 @@ this class.
                self.figmanager.toolbar.set_message('Calculating histogram')
             self.set_histogrameq()
             self.figmanager.toolbar.set_message('Histogram eq. image displayed')
-
+      elif axesevent.event.key.upper() == 'A':
+         # Set data to blurred version
+         if self.blurred:
+            # Back to normal
+            self.set_blur(False)
+            self.figmanager.toolbar.set_message('Original image displayed')
+         else:
+            if self.data_blur == None:
+               self.figmanager.toolbar.set_message('Calculating smoothed version')
+            self.set_blur()
+            self.figmanager.toolbar.set_message('Smoothed eq. image displayed')
+      
 
    def set_histogrameq(self, on=True):
       if not on:
@@ -3481,6 +3486,27 @@ this class.
             self.histeq()         # It sets attribute data_hist to new image
          self.data = self.data_hist
          self.histogram = True
+      #self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax)
+      if self.image.im != None:
+         self.image.im.set_data(self.data)
+      else:
+         # An image was not yet 'plotted'. Then we adjust some
+         # parameters first to prepare for the new image.
+         self.image.data = self.data
+      self.cmap.update()
+
+
+   def set_blur(self, on=True, nx=15, ny=None, new=False):
+      if not on:
+         # Back to normal
+         self.data = self.data_orig
+         self.blurred = False
+      else:
+         if self.data_blur == None or new:
+            #self.data_hist = self.histeq()
+            self.blur(nx, ny)
+         self.data = self.data_blur
+         self.blurred = True
       #self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax)
       if self.image.im != None:
          self.image.im.set_data(self.data)
