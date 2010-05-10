@@ -115,3 +115,5 @@ Universite de Strasbourg @ 130.79.129.111
 Hamburger Sternwarte (Universitaet Hamburg) @ 134.100.120.116
 Cardiff University School of Physics and Astronomy @ 131.251.143.121
 Nanjing University @ 219.219.127.2
+
+tot: [03/May/2010:10:45:12 +0200]
