@@ -67,9 +67,9 @@ Function coordmap
 Utility functions
 .................
 
-The following functions from the module :mod:`celestial` which have been made
-available within the namespace of this :mod:`wcs` module:
-For detailed information, refer to celestial's docstrings.
+The following are functions from the module :mod:`celestial` which have been
+made available within the namespace of this :mod:`wcs` module:
+For detailed information, refer to celestial's documentation.
 
 .. function:: epochs(spec)
 
@@ -78,8 +78,8 @@ For detailed information, refer to celestial's docstrings.
 .. function:: lat2dms(a[, prec=1])
 
    Convert an angle in degrees into the degrees, minutes, seconds format
-   assuming it was a latitude which value should be in the range -90 to 90
-   degrees. 
+   assuming it was a latitude of which the value should be in the range
+   -90 to 90 degrees. 
 
 .. function:: lon2dms(a[, prec=1])
 
@@ -301,7 +301,7 @@ Example::
    #!/bin/env python
    from kapteyn import wcs
    import numpy, pyfits
-   from scipy.ndimage.interpolation import map_coordinates
+   from kapteyn.interpolation import map_coordinates
    
    hdulist = pyfits.open('ngc6946.fits')
    header = hdulist[0].header
@@ -660,7 +660,7 @@ class Projection(object):
       matrices, will be row vectors instead of the standard column vectors.
       True or False.
 :param skyout:
-      can be used to specify an output sky system different from the sky
+      can be used to specify a system different from the sky
       system specified by the projection. This can be given as a string e.g.,
       ``"equatorial fk4_no_e B1950.0"`` or as a tuple:
       ``(equatorial fk4_no_e 'B1950.0')``.
@@ -786,7 +786,7 @@ The others are read-only.
 
 .. attribute:: skyout
 
-   Alternative output sky system.  Can be specified according to
+   Alternative sky system.  Can be specified according to
    the rules of the module :mod:`celestial`.
    See: :ref:`celestial-skydefinitions`.
    For pixel-to-world
@@ -828,13 +828,14 @@ The others are read-only.
 .. attribute:: allow_invalid
 
    If set to True, no exception will be raised for invalid coordinates.
-   Invalid coordinates will be indicated by NaN ('not a number') values.
+   Invalid coordinates will be indicated by ``numpy.NaN`` ('not a number')
+   values.
 
 .. attribute:: invalid
 
    True or False, indicating whether invalid coordinates were detected
    in the last transformation.  In the output, invalid coordinates are
-   indicated by NaN ('not a number') values. 
+   indicated by ``numpy.NaN`` ('not a number') values. 
 
 .. attribute:: rowvec
 
@@ -907,9 +908,9 @@ Example::
    print world
    
    proj2.skyout = (wcs.equatorial, wcs.fk5,
-                   'J2008')                  # specify output sky system
+                   'J2008')                  # specify alternative sky system
    
-   world = proj2.toworld(pixel)              # transform to output sky system
+   world = proj2.toworld(pixel)              # transform to that sky system
    print world
    print proj2.topixel(world)                # back to pixel coordinates
 """
@@ -1410,15 +1411,16 @@ Example::
    def toworld(self, source=None):
       """
       Pixel-to-world transformation.
-      *pixel* is an object containing one or more pixel coordinates and world
-      will receive a similar object with the corresponding world coordinates.
+      *pixel* is an object containing one or more pixel coordinates and
+      a similar object with the corresponding world coordinates will be
+      returned.
       Note that FITS images are indexed from (1,1), not from (0,0) like Python
       arrays.
       Coordinates can be specified in a number of different ways.
       See section :ref:`wcs-coordinates`.
       When an exception due to invalid coordinates has occurred, this method
-      can be called without arguments to retrieve the result in which the
-      invalid positions are flagged."""
+      can be called again without arguments to retrieve the result in which the
+      invalid positions will have the value ``numpy.NaN`` ("not a number")."""
 
       cdef wcsprm *param
       cdef double *imgcrd, *phi, *theta, *world, *c_xyz

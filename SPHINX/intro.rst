@@ -61,12 +61,21 @@ The the following modules are included:
 - :mod:`positions`, enabling a user/programmer to specify positions in
   either pixel- or world coordinates.
 
+- :mod:`rulers`, defining a class for drawing rulers.
+
+- :mod:`shapes`, defining a class for interactively drawing shapes that
+  define an area in an image. For each area a number of properties of the data
+  is calculated. This module can duplicate a shape in different
+  images using transformations to world coordinates.
+  This enables one for instance to compare flux in two images with
+  different WCS systems.
+
 - :mod:`mplutil`, utilities for use with matplotlib.
   Classes AxesCallback, providing a more powerful
   mechanism for handling events from LocationEvent and derived classes
   than matplotlib provides itself; TimeCallback for handling timer events
   and VariableColormap which implements a matplotlib Colormap subclass
-  with special methods that allow the colormap to be modified..
+  with special methods that allow the colormap to be modified.
 
 - :mod:`tabarray`, providing a class for the efficient reading, writing and
   manipulating simple table-like structures in text files. 

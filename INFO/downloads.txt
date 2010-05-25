@@ -115,5 +115,9 @@ Universite de Strasbourg @ 130.79.129.111
 Hamburger Sternwarte (Universitaet Hamburg) @ 134.100.120.116
 Cardiff University School of Physics and Astronomy @ 131.251.143.121
 Nanjing University @ 219.219.127.2
+Ecole Nationale Superieure de Chimie de Paris @ 193.51.253.150
+Observatoire de Marseille @ 195.221.212.242
+Laboratoire d' Astrophysique de Bordeaux @ 147.210.44.106
+Argelander-Institut fuer Astronomie (Univ. Bonn) @ 131.220.98.103
 
-tot: [03/May/2010:10:45:12 +0200]
+tot:  21/May/2010 13:15
