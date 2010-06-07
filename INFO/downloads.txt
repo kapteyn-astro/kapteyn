@@ -119,5 +119,6 @@ Ecole Nationale Superieure de Chimie de Paris @ 193.51.253.150
 Observatoire de Marseille @ 195.221.212.242
 Laboratoire d' Astrophysique de Bordeaux @ 147.210.44.106
 Argelander-Institut fuer Astronomie (Univ. Bonn) @ 131.220.98.103
+Fysikum (Stockholms Universitet) @ 130.242.128.230
 
-tot:  21/May/2010 13:15
+tot:  Mon Jun  7 10:25:22 CEST 2010
