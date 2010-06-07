@@ -48,7 +48,7 @@ Functions
 .. autofunction:: writeColumns
 """
 
-import numpy, string
+import numpy, string, operator
 from ascarray import ascarray
 
 class tabarray(numpy.ndarray):
@@ -228,7 +228,7 @@ Write the contents of a tabarray to a file.
          f.write(outline)
       f.close()
 
-def readColumns(filename, comment, cols='all', sepchar=', \t',
+def readColumns(filename, comment='!#', cols='all', sepchar=', \t',
                 rows=None, lines=None, bad=0.0,
                 rowslice=(None,), colslice=(None,)):
    """
@@ -242,7 +242,7 @@ TableIO-compatible function for directly extracting table data from a file.
    the rest of the line to be ignored.  Empty lines and lines containing
    only a comment are also ignored. 
 :param cols:
-   a tuple or list with the column numbers.
+   a tuple or list with the column numbers or a scalar with one column number.
 :param sepchar:
    a string containing the column separation characters to be used. 
    Columns are separated by any combination of these characters. 
@@ -274,6 +274,8 @@ TableIO-compatible function for directly extracting table data from a file.
 """
    if cols=='all':
       cols = None
+   if cols is not None and not operator.isSequenceType(cols):
+      cols = [cols]
    return tabarray(filename, comment, sepchar=sepchar, lines=lines, bad=bad
                   )[slice(*rowslice),slice(*colslice)].rows(rows).columns(cols)
 
@@ -291,5 +293,5 @@ TableIO-compatible function for directly writing table data to a file.
 """
    tabarray(list).writeto(filename, comment=comment)
 
-__version__ = '1.2'
+__version__ = '1.3'
 __docformat__ = 'restructuredtext'

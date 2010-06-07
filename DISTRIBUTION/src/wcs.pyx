@@ -550,6 +550,8 @@ class WrappedHeader(dict):
 
    def __init__(self, header, alter):
       self.header = header
+      if alter in [' ', None]:
+         alter = ''
       self.alter = alter
       self.naxis = header['NAXIS']
 
@@ -931,6 +933,8 @@ Example::
       self.mjdobs  = None
       self.allow_invalid = False
       self.rowvec = rowvec
+      if alter in [' ', None]:
+         alter = ''
       self.alter = alter
       self.__dict__['usedate'] = False
       self.__dict__['epobs'] = None
