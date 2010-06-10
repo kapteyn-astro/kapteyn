@@ -155,7 +155,7 @@ from c_numpy cimport import_array, npy_intp, NPY_DOUBLE, PyArray_DATA, \
 
 import numpy, math, operator, types
 
-from celestial import skymatrix, \
+from celestial import skymatrix, skyparser, \
                       eq, equatorial, ecl, ecliptic, gal, galactic, \
                       sgal, supergalactic, \
                       fk4, fk4_no_e, fk5, icrs, epochs, dynj2000, j2000, \
@@ -1226,7 +1226,9 @@ Example::
             else:
                epobs = None
             skysys = self.skysys
-            if epobs is not None and len(skysys)==3:
+            if epobs is not None and \
+               len(skysys)==3 and \
+               skyparser(self.skyout)[3] is not None:
                skysys += (epobs,)
             self.forward = skymatrix(skysys, self.skyout)
             self.reverse = skymatrix(self.skyout, skysys)
