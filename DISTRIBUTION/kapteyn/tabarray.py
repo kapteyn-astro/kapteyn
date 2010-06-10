@@ -194,7 +194,7 @@ last row.  Default: return whole tabarray.
 Write the contents of a tabarray to a file.
 
 :param filename:
-   the name of the file to be written;
+   the name of the file to be written.
 :param rows:
    a tuple or list with a selection of the rows te be written.
    Default: all rows. 
