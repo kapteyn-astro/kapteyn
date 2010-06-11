@@ -1228,7 +1228,7 @@ Example::
             skysys = self.skysys
             if epobs is not None and \
                len(skysys)==3 and \
-               skyparser(self.skyout)[3] is not None:
+               skyparser(self.skyout)[3] is None:
                skysys += (epobs,)
             self.forward = skymatrix(skysys, self.skyout)
             self.reverse = skymatrix(self.skyout, skysys)
