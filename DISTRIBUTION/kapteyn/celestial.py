@@ -2612,16 +2612,13 @@ For convenience we assume the epoch of observation is 1950
    r1 = [-0.238565, -0.002667, +0.012254]
    r2 = [+0.435739, -0.008541,  +0.002117]
    M = n.matrix( (r0,r1,r2) )
-#   print "Matrix M=", M
 
    for i in range(xyz.shape[1]):            # Loop over all vectors
       p = n.array([xyz[0,i], xyz[1,i], xyz[2,i]]).T
-#      print "p=",p, p[0], p[1],p[2]
       v = p.copy()
       v[0] = r0[0]*p[0]+r0[1]*p[1]+r0[2]*p[2]
       v[1] = r1[0]*p[0]+r1[1]*p[1]+r1[2]*p[2]
       v[2] = r2[0]*p[0]+r2[1]*p[1]+r2[2]*p[2]
-#      print "v=", v
       for j in range(2):
          xyzpm[j,i] = p[j] + w * v[j]
    return xyzpm
@@ -3081,7 +3078,7 @@ a suffix '_' which may be follwed by arbitrary characters.
          raise ValueError, "Sky definition is not a string nor a tuple or a scalar!"
    if type(skyin) == types.StringType:
       skyin = parseskydef(skyin)
-   
+
    epochin    = None
    epochinset = None
    refin = None
@@ -3091,7 +3088,7 @@ a suffix '_' which may be follwed by arbitrary characters.
    if skyin == None:
       return sysin, refin, epochin, epobs
    if type(skyin) != types.TupleType:
-      # Promote to tuple then:
+      # Promote to tuple:
       skyin = tuple([skyin])
    if len(skyin) > 4:
       raise ValueError, "Too many elements in sky definition (max. 4)!"
@@ -3205,22 +3202,38 @@ a suffix '_' which may be follwed by arbitrary characters.
 
 
 
-def parseskydef(skydef):
+def parseskydef(skydef_in):
 #----------------------------------------------------------------------
    """
 Parse a string that represents a sky definition.
 See documentation at function skyparser()
+A tuple with values is returned. If the sky system was empty as
+in {}, then return None
    """
 #----------------------------------------------------------------------
-   if skydef == '':
+   if skydef_in == '':
       raise Exception,  'Empty string!'
 
-   tokens = re_split('[,\s]+', skydef)             # Split on whitespace and comma
-   if len(tokens) > 4:                             # sky, ref, equinox, dateobs
+   bs = skydef_in.startswith('{')
+   be = skydef_in.endswith('}')
+   if bs and not be:
+      raise ValueError,  "Definition starts with '{' but does not end with '}'"
+   if be and not bs:
+      raise ValueError,  "Definition ends with '}' but does not start with '{'"
+   if bs and be:
+      skydef = skydef_in[1:-1]     # Remove braces
+      if len(skydef.strip()) == 0: # Empty sky def. {}
+         return None 
+   else:
+      skydef = skydef_in
+
+   tokens = re_split('[,\s]+', skydef.strip())           # Split on whitespace and comma
+   if len(tokens) > 4:                                   # sky, ref, equinox, dateobs
       raise ValueError,  "Too many items for sky definition!"
 
    sky = []
    for t in tokens:
+      t.strip()
       errmes = ''
       s, found = skyrefsystems.minmatch2skyref(t)        # 'skyrefs' is global list
       if s != None:
@@ -3238,6 +3251,22 @@ See documentation at function skyparser()
             raise ValueError,  errmes
    return tuple(sky)
 
+
+def isparsed(skytuple):
+   #----------------------------------------------------------------------
+   """
+   A sky definition after parsing is a tuple with 4 elements.
+   None of these is a string. The first one is a number and
+   the others are either a number or are equal to None.
+   """
+   #----------------------------------------------------------------------
+   if type(skytuple) == types.TupleType and len(skytuple) == 4 and\
+      type(skytuple[0]) == types.IntType and\
+      type(skytuple[1]) != types.StringType and\
+      type(skytuple[2]) != types.StringType and\
+      type(skytuple[3]) != types.StringType:
+      return True
+   return False
 
 
 def skymatrix(skyin, skyout):
@@ -3349,19 +3378,17 @@ For a description of the sky definitions see :ref:`celestial-skydefinitions`.
             None)
 
 
-
    See :ref:`celestial-epochs` for the possible epoch formats.
    """
 #---------------------------------------------------------------------
-   sysin, refin, epochin, epobsin = skyparser(skyin)
-   sysout, refout, epochout, epobsout = skyparser(skyout)
-
-   #epobs = None
-   #if epobsin != None:
-   #   epobs = epobsin
-   #elif epobsout != None:
-   #   epobs = epobsout
-   #print "--->Epobs, in, out", epobs, epobsin, epobsout
+   if isparsed(skyin):                           # Then no need to parse again
+      sysin, refin, epochin, epobsin = skyin
+   else:
+      sysin, refin, epochin, epobsin = skyparser(skyin)
+   if isparsed(skyout):
+      sysout, refout, epochout, epobsout = skyout
+   else:
+      sysout, refout, epochout, epobsout = skyparser(skyout)
 
    # Take care of the e-terms
    Aep1 = None; Aep2 = None
@@ -3377,7 +3404,7 @@ For a description of the sky definitions see :ref:`celestial-skydefinitions`.
       if refout == fk4_no_e:
          refout = fk4
    # No e-terms for ecliptic coordinates in fk4
-   # Nakijken. Ik vertrouw dit nog niet, VOG
+   # If fk4-no-e was selected then use fk4
    if sysin == ecl:
       if refin == fk4_no_e:
          refin = fk4
@@ -3390,7 +3417,6 @@ For a description of the sky definitions see :ref:`celestial-skydefinitions`.
       epobs = epobsin
    if refout == fk4 and epobsout != None:
       epobs = epobsout
-   #print "--->Epobs, in, out", epobs, epobsin, epobsout
 
    return rotmatrix(sysin, sysout, epochin, epochout, refin, refout, epobs), Aep1, Aep2
 
@@ -3494,4 +3520,3 @@ Utility function to facilitate command line use of skymatrix.
    xyz2 = dotrans(skymatrix(skyin, skyout), xyz)
    newlonlats = xyz2longlat(xyz2)
    return newlonlats
-

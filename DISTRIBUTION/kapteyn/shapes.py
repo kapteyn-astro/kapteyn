@@ -50,16 +50,31 @@ import numpy
 from kapteyn.maputils import AxesCallback
 from sys import stdout, exit
 from kapteyn.mplutil import KeyPressFilter
+try:
+   from gipsy import finis, anyout
+   gipsymod = True
+except:
+   gipsymod = False
+
 
 KeyPressFilter.allowed = ['f', 'g']
 
 def button_setcolor(btnobj, c):
+   """
+   -----------------------------------------------------------
+   Purpose:    Change color of button
+   Parameters:
+    btnobj     The button
+    c          A color
+   -----------------------------------------------------------
+   """
    btnobj.color = c
    btnobj._lastcolor = c
    btnobj.ax.set_axis_bgcolor(c)
    if btnobj.drawon:
       btnobj.ax.figure.canvas.draw()
 Button.setcolor = button_setcolor
+
 
 def cubicspline(xyu, nsamples):
    """
@@ -758,12 +773,14 @@ class Shapecollection(object):
 
    """
    #-----------------------------------------------------------------
-   def __init__(self, images, ifigure, wcs=True, inputfilename=None, inputwcs=False):
+   def __init__(self, images, ifigure, wcs=True,
+                inputfilename=None, inputwcs=False, gipsy=False):
       self.frames = []
       self.images = images
       self.numberofimages = len(images)
       self.inputfilename = inputfilename
       self.inputwcs = inputwcs
+      self.gipsy = gipsy
       self.wcs = wcs
       self.activeobject = None
       self.currenttype = 0
@@ -808,30 +825,30 @@ class Shapecollection(object):
       b0.on_clicked(self.doquit)
 
       result_button = self.figure.add_axes([0.13, 0.94, 0.11, 0.05])
-      b1 = Button(result_button, 'Plot results')
+      b1 = Button(result_button, 'Plot Flux')
       b1.on_clicked(self.plotresults)
 
       save_button = self.figure.add_axes([0.25, 0.94, 0.11, 0.05])
-      b2 = Button(save_button, 'Save results')
+      b2 = Button(save_button, 'Save Flux')
       b2.on_clicked(self.saveresults)
 
-      pol_button = self.figure.add_axes([0.40, 0.94, 0.05, 0.05])
+      pol_button = self.figure.add_axes([0.74, 0.94, 0.05, 0.05])
       b3 = Button(pol_button, 'Pol.')
       b3.on_clicked(self.setpoly)
 
-      ell_button = self.figure.add_axes([0.45, 0.94, 0.05, 0.05])
+      ell_button = self.figure.add_axes([0.79, 0.94, 0.05, 0.05])
       b4 = Button(ell_button, 'Ell.')
       b4.on_clicked(self.setellipse)
 
-      cir_button = self.figure.add_axes([0.50, 0.94, 0.05, 0.05])
+      cir_button = self.figure.add_axes([0.84, 0.94, 0.05, 0.05])
       b5 = Button(cir_button, 'Cir.')
       b5.on_clicked(self.setcircle)
 
-      rec_button = self.figure.add_axes([0.55, 0.94, 0.05, 0.05])
+      rec_button = self.figure.add_axes([0.89, 0.94, 0.05, 0.05])
       b6 = Button(rec_button, 'Rec.')
       b6.on_clicked(self.setrectangle)
 
-      spl_button = self.figure.add_axes([0.60, 0.94, 0.05, 0.05])
+      spl_button = self.figure.add_axes([0.94, 0.94, 0.05, 0.05])
       b7 = Button(spl_button, 'Spl.')
       b7.on_clicked(self.setspline)
 
@@ -844,12 +861,22 @@ class Shapecollection(object):
          b.label.set_fontsize(10)
          
       tdict = dict(color='g', fontsize=10, va='bottom', ha='left')
-      helptxt  = "n=start new object -- a=add point -- d=delete point -- i=insert point\n"
+      helptxt = "SHAPES:\n"
+      helptxt += "n=start new object -- a=add point -- d=delete point -- i=insert point\n"
       helptxt += "c=copy object -- e=erase object -- [=next shape in group -- ]=prev in gr.\n"
       helptxt += "w=write shapes to disk -- r=read shapes from disk\n"
       helptxt += "Mouse-left=drag and/or change shape --- Mouse-middle=select shape"
       
       ifigure.text(0.01,0.01, helptxt, tdict)
+      helptxt  = "COLOURS:\n"
+      """helptxt += "Page-up=change colour map -- page-down=change colour map\n"
+      helptxt += "Key 1=linear, 2=log, 3=exp, 4=sqrt, 5=square 9=inverse, 0=reset\n"
+      helptxt += "b=change colour bad pixels -- m=save colour map to disk\n"
+      helptxt += "Toggle keys h=histogram equalization -- z=smooth"
+      """
+      helptxt += self.images[0].get_colornavigation_info()
+      ifigure.text(0.5,0.01, helptxt, tdict)
+      
       """
       print helptxt
       stdout.flush()
@@ -1537,7 +1564,11 @@ class Shapecollection(object):
       markerlist = ['+' , ',' , '.' , '1' , '2' , '3' , '4', '<' , '>' , 'D' , 'H' , '^' , 'd', 'h' , 'o', 'p' , 's' , 'v' , 'x' , '|']
       # For efficiency we need to calculate properties for all objects in one image
       # and repeat this for all images
-      print "\nObject properties:"
+      mes = "\nObject properties:"
+      if self.gipsy and gipsymod:
+         anyout(mes)
+      else:
+         print mes
       fluxlist = []
       for i, im in enumerate(self.images):
          for sh in self.shapes:
@@ -1551,10 +1582,18 @@ class Shapecollection(object):
                            xy = obj.xy
                         obj.area, obj.sum = im.getflux(xy)
                         obj.flux = im.fluxfie(obj.sum, obj.area)
-                        print "Object %d with shape %d in image %d has area=%g, sum=%g, flux=%g" % (ol, obj.shapetype, i, obj.area, obj.sum, obj.flux)
+                        mes = "Object %d with shape %d in image %d has area=%g, sum=%g, flux=%g" % (ol, obj.shapetype, i, obj.area, obj.sum, obj.flux)
+                        if self.gipsy and gipsymod:
+                           anyout(mes)
+                        else:
+                           print mes
                         fluxlist.append(obj.flux)
                      else:
-                        print "Object %d with shape %d in image %d has pixels outside frame" % (ol, obj.shapetype, i)
+                        mes = "Object %d with shape %d in image %d has pixels outside frame" % (ol, obj.shapetype, i)
+                        if self.gipsy and gipsymod:
+                           anyout(mes)
+                        else:
+                           print mes
                         obj.area = obj.sum = obj.flux = None
 
 
@@ -1595,7 +1634,10 @@ class Shapecollection(object):
       self.figresult.canvas.draw()
 
    def doquit(self, event):
-      exit()     # Exit program
+      if self.gipsy and gipsymod:
+         finis()
+      else:
+         exit()     # Exit program
 
    def saveresults(self, event):
       # Save the flux results to file on disk
@@ -1625,7 +1667,8 @@ class Shapecollection(object):
       f.close()
       mes = "Wrote flux results to file: %s" % filename
       self.toolbar.set_message(mes)
-
+      if self.gipsy and gipsymod:
+         anyout(mes)
 
 
 # Adding areas for which we want to calculate flux:

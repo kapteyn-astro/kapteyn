@@ -2301,20 +2301,25 @@ this class.
       color map interaction.
       """
       #-----------------------------------------------------------------
-      helptext  = "Use pgUp and pgDown keys to browse through color maps\n"
-      helptext += "Color map scaling keys: 0=reset 1=linear 2=logarithmic "
-      helptext += "3=exponential 4=square-root 5=square 9=inverse toggle\n"
-      helptext += "Histogram equalization: h\n"
-      helptext += "Save current color map to disk: m\n"
-      helptext += "Change color of bad pixels: b\n"
-      helptext += "Change slope and offset: Right mouse button"
+      helptext  = "pgUp and pgDown: browse through colour maps -- MB right: Change slope and offset\n"
+      helptext += "Colour scales: 0=reset 1=linear 2=logarithmic"
+      helptext += "3=exponential 4=square-root 5=square 9=inverse\n"
+      helptext += "h: Toggle histogram equalization & raw image -- "
+      helptext += "z: Toggle smooth & raw image\n"
+      helptext += "m: Save current colour map to disk -- "
+      helptext += "b: Change colour of bad pixels"   # Last line has no line feed (bottom aligned)
       return helptext
 
-   def blur(self, nx, ny=None) :
-      """ blurs the image by convolving with a gaussian kernel of typical
-            size n. The optional keyword argument ny allows for a different
-            size in the y direction.
+
+   def blur(self, nx, ny=None):
+      #-----------------------------------------------------------------
       """
+      Blur the image by convolving with a gaussian kernel of typical
+      size nx (pixels). The optional keyword argument ny allows for a different
+      size in the y direction.
+      nx, ny are the sigma's for the gaussian kernel.
+      """
+      #-----------------------------------------------------------------
       if ny == None:
          ny = nx
       if self.data == None:
@@ -2336,7 +2341,6 @@ this class.
       #-----------------------------------------------------------------
       """
       Create a histogram equalized version of the data.
-
       The histogram equalized data is stored in attribute *data_hist*.
       """
       #-----------------------------------------------------------------
@@ -3462,7 +3466,7 @@ this class.
                self.figmanager.toolbar.set_message('Calculating histogram')
             self.set_histogrameq()
             self.figmanager.toolbar.set_message('Histogram eq. image displayed')
-      elif axesevent.event.key.upper() == 'A':
+      elif axesevent.event.key.upper() == 'Z':
          # Set data to blurred version
          if self.blurred:
             # Back to normal
@@ -3496,7 +3500,7 @@ this class.
       self.cmap.update()
 
 
-   def set_blur(self, on=True, nx=15, ny=None, new=False):
+   def set_blur(self, on=True, nx=10, ny=None, new=False):
       if not on:
          # Back to normal
          self.data = self.data_orig
