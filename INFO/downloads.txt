@@ -120,5 +120,7 @@ Observatoire de Marseille @ 195.221.212.242
 Laboratoire d' Astrophysique de Bordeaux @ 147.210.44.106
 Argelander-Institut fuer Astronomie (Univ. Bonn) @ 131.220.98.103
 Fysikum (Stockholms Universitet) @ 130.242.128.230
+NASA Jet Propulsion Laboratory @ 137.78.30.100
+Astronomisches Rechen-Institut (ARI) Heidelberg @ 129.206.110.59
 
-tot:  Mon Jun  7 10:25:22 CEST 2010
+tot:  Wed Jun 16 16:12:45 CEST 2010
