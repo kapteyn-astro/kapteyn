@@ -887,6 +887,10 @@ The others are read-only.
    ('BETA-F2V', '')]``. If there is no spectral axis, the attribute will
    have the value None.
 
+.. attribute:: altspecarg
+
+   If the object was created with a call to :meth:`spectra`, the argument
+   `ctype` as specified in that call. Otherwise None.
 
 Example::
 
@@ -931,6 +935,7 @@ Example::
       self.pixel   = None
       self.dateobs = None
       self.mjdobs  = None
+      self.altspecarg = None
       self.allow_invalid = False
       self.rowvec = rowvec
       if alter in [' ', None]:
@@ -1354,6 +1359,8 @@ Example::
         the eighth character is specified as '?', the correct algorithm code
         will be substituted and returned. The attribute :attr:`altspec`
         provides a list of acceptable spectral types.
+        For later reference, the value of *ctype* is stored in the attribute
+        :attr:`altspecarg` of the new Projection object.
       - *axindex* -- Index of the spectral axis (0-relative).  If not
         specified, the first spectral axis identified by the CTYPE values of the
         object is assumed. 
@@ -1393,7 +1400,8 @@ Example::
          free(newpar)
          raise WCSerror, (status, wcs_errmsg[status])
       c_axindex[0] = axindex
-      status = wcssptr(newpar, c_axindex, ctype)
+      ctype_tmp = (ctype+' ')[:len(ctype)]  #  wcssptr modifies this argument!
+      status = wcssptr(newpar, c_axindex, ctype_tmp)
       if status:
          wcsfree(newpar)
          free(newpar)
@@ -1409,6 +1417,7 @@ Example::
          projection.__dict__[key] = self.__dict__[key]
       projection.source = header       # restore possibly changed attribute
       projection.wcsprm = <long>newpar
+      projection.altspecarg = ctype
       projection.__setaxtypes()
       if self.debug:
          wcsprt(newpar)
