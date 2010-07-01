@@ -25,7 +25,7 @@ Radboud Universiteit (sociale wetenschappen!) @ 131.174.203.90
 The Royal Observatory, Edinburgh @ 195.194.120.48
 Pontificia Universidad Catolica de Chile @ 146.155.21.228
 Stanford University (XOC) @ 171.64.109.188
-University of Oxford @ 129.67.116.121
+University of Oxford @ 129.67.116.121 163.1.19.30
 Royal Military College of Canada @ 137.94.166.97
 Johns Hopkins University @ 128.220.147.57
 Indian Institute of Astrophysics @ 124.30.128.132
@@ -122,5 +122,8 @@ Argelander-Institut fuer Astronomie (Univ. Bonn) @ 131.220.98.103
 Fysikum (Stockholms Universitet) @ 130.242.128.230
 NASA Jet Propulsion Laboratory @ 137.78.30.100
 Astronomisches Rechen-Institut (ARI) Heidelberg @ 129.206.110.59
+ISIS - Radio Astronomy (University of Calgary) @ 136.159.55.40
+Cornell University - Center for Advanced Computing @ 128.84.31.60
+SLAC National Accelerator Laboratory @ 198.129.217.118
 
-tot:  Wed Jun 16 16:12:45 CEST 2010
+tot:  Wed Jun 30 10:44:53 CEST 2010
