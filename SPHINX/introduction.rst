@@ -7,4 +7,6 @@ Introduction
 
    How to get started <intro>
 
+   gettingstarted
+
    license

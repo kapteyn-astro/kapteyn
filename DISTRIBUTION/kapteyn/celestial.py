@@ -26,13 +26,13 @@ routines to transform a world coordinate in a given sky system
 into a world coordinate of another system assuming
 zero proper motion, parallax, and recessional velocity.
 
-The most important function is a function that 
+The most important function
 builds a matrix for conversions of positions between sky systems,
 celestial reference systems and epochs of the equinox.
 This function is called :func:`skymatrix` and it can be used in the following
 contexts:
 
-   * Explicit, in module *wcs*, using the *Transformation* class as in::
+   * Implicit, in module *wcs*, using the *Transformation* class as in::
 
        world_eq = (192.25, 27.4)   # FK4 coordinates of galactic pole
        tran = wcs.Transformation("equatorial fk4_no_e B1950.0", "galactic")
@@ -46,8 +46,9 @@ contexts:
                               (0,0,1.0), (10,20,20) )
 
    * Hidden in the *topixel()* and *toworld()* methods in module *wcs*.
-     There the input sky system is read from a (FITS) header and the output
-     sky system is set with attribute *skyout* of the projection object. 
+     There the sky system is read from a (FITS) header and the 
+     sky system for which we want the transformed coordinates
+     is set with attribute *skyout* of the projection object. 
    
 .. index::
    single: Tutorial; Celestial
@@ -95,7 +96,8 @@ Symbol                  String        Description
 .. _celestial-refsystems:
    
 Reference systems
-.................
+
+.. tabularcolumns:: |p{20mm}|p{20mm}|p{110mm}|
 
 ======================= ============= =============================================
 Symbol                  String        Description
@@ -147,7 +149,10 @@ Symbol                  String        Description
    EQUINOX defaults to 2000 unless RADESYS is FK4, in which case it defaults
    to 1950.
 
-
+.. note::
+   In routines dealing with sky definitions tne names are minimal matched against
+   a list with full names.
+   
 .. _celestial-epochs:
    
 Epochs for the equinox and epoch of observation
@@ -198,7 +203,7 @@ F      Various FITS formats:
 Reference system FK4 is not an inertial system. It is slowly rotating
 and positions are further away from the true mean places if the date of observation
 is greater than B1950. FK5 is an inertial system. If we convert coordinates
-from FK4 to FK5 the accuracy of the FK5 position can be improved
+from FK4 to FK5, the accuracy of the FK5 position can be improved
 if we know the date of the observation. So in all transformations where
 a conversion between FK4 and  FK5 is involved, an epoch of observation can
 be part of the sky definition. Note that this also involves a conversion between
@@ -217,11 +222,13 @@ obligatory.
 
 .. note::
    An *epoch of observation* is either the second epoch in your input or
-   or the epoch string has a suffix '_' which may be follwed by arbitrary
+   or the epoch string has a suffix '_' which may be followed by arbitrary
    characters (e.g. "B1963.5_OBS").
 
 Input Examples
 ..............
+
+.. tabularcolumns:: |p{35mm}|p{25mm}|p{90mm}|
 
 ========================== ========================== =====================================
 Input string               Description                Remarks
@@ -242,7 +249,7 @@ Input string               Description                Remarks
                                                       is equatorial
 "EQ, fk4_no_e, B1960"      Equatorial, FK4 no e-terms Sky system, reference system,
                                                       and an equinox
-"EQ, fk4_no_e, B1960"      Equatorial, FK4 no e-terms Same as above but underscores
+"EQ, fk4-no-e, B1960"      Equatorial, FK4 no e-terms Same as above but underscores
                                                       replaced by hyphens.
 "fk4,J1983.5_OBS"          Equatorial, FK4 + epobs    FK4 with an epoch of observation.
                                                       Note that only the underscore
@@ -273,9 +280,6 @@ The result should be 0 for both coordinates.
 Module level data
 -----------------
 
-The id's of a system are stored in Python variables. They are listed in the
-tables with sky- and reference systems.
-Besides these there is also:
 
 :data:`skyrefsystems`
    An object from class :class:`skyrefset` which is a container
@@ -284,6 +288,7 @@ Besides these there is also:
    >>> for s in skyrefsystems.skyrefs_list:
    >>>    print s.fullname, s.description, s.idnum
 
+For programmers who need to access the id's of the sky and reference systems: 
 External modules can set their own variables.
 Here are some examples how one can do this.
 
@@ -861,11 +866,11 @@ def lon2hms(a, prec=1, delta=None, tex=False):
 Convert an angle in degrees to **hours, minutes, seconds** format.
 
 :param a:
-   Angle (in degrees) for which we want to create a formatted text label
+   Angle (in degrees) for which we want to create a formatted text label.
 :type a:
    Floating point number
 :param prec:
-   The required number of decimals in the seconds part of output
+   The required number of decimals in the seconds part of output.
    If a value is omitted, then the default is 1.
 :type prec:
    Integer
@@ -874,7 +879,7 @@ Convert an angle in degrees to **hours, minutes, seconds** format.
    are in hours, minutes and seconds with some decimal number. This is probably
    not want you want if the step size between subsequent positions is
    for example an integer number of degrees or minutes.
-   Then you want labels showing only degrees or degrees and minutes.
+   Then you want labels showing only hours or hours and minutes.
    This function tries to find out whether this is the case (given a value
    for *delta*) or not. If so, a minimum length label is returned.
 :type delta:
@@ -955,17 +960,17 @@ the range -90 to 90 degrees
 
 
 :param a:
-   Angle (in degrees) for which we want to create a formatted text label
+   Angle (in degrees) for which we want to create a formatted text label.
 :type a:
    Floating point number
 :param prec:
-   The required number of decimals in the seconds part of output
+   The required number of decimals in the seconds part of output.
    If a value is omitted, then the default is 1.
 :type prec:
    Integer
 :param delta:
    If one labels world coordinates along an axis then the default labels
-   are in hours, minutes and seconds with some decimal number. This is probably
+   are in degrees, minutes and seconds with some decimal number. This is probably
    not want you want if the step size between subsequent positions is
    for example an integer number of degrees or minutes.
    Then you want labels showing only degrees or degrees and minutes.
@@ -1340,7 +1345,7 @@ Calculate IAU 2000 precession angles for precession from
 input epoch to J2000.
 
 :param epoch:
-   Julian epoch of observation in format nnnn.nn
+   Julian epoch of observation.
 :type epoch:
    Floating point number
    
@@ -1480,7 +1485,7 @@ def Newcombprecangles(epoch1, epoch2):
 #----------------------------------------------------------------------
    u"""
 Calculate precession angles for a precession in FK4, using
-Newcombs method (Woolard and Clemence angles)
+Newcomb's method (Woolard and Clemence angles)
 
 :param epoch1:
    Besselian start epoch
@@ -1926,7 +1931,7 @@ Transform galactic to supergalactic coordinates
    Mon. Not. R. Astron. Soc. 312, 166-176 (2000)
 
 :Notes:      
-   Supergalactic equator is conceptually defined by the 
+   The Supergalactic equator is conceptually defined by the 
    plane of the local (Virgo-Hydra-Centaurus) supercluster,
    and the origin of supergalactic longitude is at the
    intersection of the supergalactic and galactic planes. 
@@ -1944,7 +1949,7 @@ Transform galactic to supergalactic coordinates
    set the pole to the right declination.
    The new plane intersects the old one at two positions.
    One of them is l=137.37, b=0 (in galactic coordinates).
-   If we want this to be sgl=0 we have rotate this plane along
+   If we want this to be sgl=0 we have to rotate this plane along
    the new Z-axis about an angle of 90 degrees. So the composed
    rotation matrix is::
    
@@ -2005,7 +2010,7 @@ coordinates to ecliptical coordinates
       so-called e-terms which amount to max. 343 milliarcsec. 
       FITS paper: *'Strictly speaking, therefore, a map obtained from, 
       say, a radio synthesis telescope, should be regarded
-      as FK4-NO-E unless it has been appropriately resare-sampled
+      as FK4-NO-E unless it has been appropriately re-sampled
       or a distortion correction provided.
       In common usage, however, CRVALia for such maps is usually 
       given in FK4 coordinates. In doing so, the e-terms are effectively
@@ -2013,21 +2018,24 @@ coordinates to ecliptical coordinates
    
       -Keyword EQUINOX sets the epoch of the mean equator and equinox.
    
-      -Keyword EPOCH refers to the time of observation.
+      -Keyword EPOCH is often used in older FITS files. It is a deprecated keyword
+      and should be replaced by EQUINOX.
+      It does not require keyword RADESYS. From its value we derive
+      whether the reference system is FK4 or FK5 (the marker value is 1984.0)
    
       -Ecliptic coordinates require the epoch of the equator and equinox
       of date.
-      This will be taken as the time of observation (EPOCH=) rather than
-      EQUINOXa. 
+      This will be taken as the time of observation rather than
+      EQUINOX. 
       
-      FITS paper: 'The time of observation may also be required for
+      FITS paper: *'The time of observation may also be required for
       other astrometric purposes in addition to the usual astrophysical
       uses, for example, to specify when the mean place was
       correct in accounting for proper motion, including "fictitious"
       proper motions in the conversion between the FK4 and FK5 systems.
       The old *DATE-OBS* keyword may be used for this purpose.
       However, to provide a more convenient specification we
-      here introduce the new keyword MJD-OBS'.
+      here introduce the new keyword MJD-OBS'.*
       
       So MJD-OBS is the modified Julian Date (JD - 2400000.5) of the
       start of the observation.
@@ -2156,23 +2164,8 @@ result must be a catalogue fk4 position.
    Find a value for lambda so that the current vector is
    adjusted in length so that adding the e-term vector gives a new
    vector with length 1. This is by definition the new vector
-   with the right angle. 
-   
-   The conditions are:
-   ``r' = L.r + A  with ||r|| = ||r'|| = 1``
-   where L = lambda, a number
-   Then:
-   ``L.(x^2+y^2+z^2) + 2.L.(a0.x+a1.y+a2.z) + a0^2+a1^2+a2^2 = 1``
-   and note that ``x^2+y^2+z^2 = 1``
-   Set ``w = 2.(a0.x+a1.y+a2.z)`` and ``p = a0^2+a1^2+a2^2 - 1``
-   Then ``L^2 + w.L + p = 0``
-   which has solutions:
-   ``L1,2 = 0.5 * (-w +- sqrt(w^2-4p))``
-   We observe that ``p ~ -1 so sqrt(w^2-4p) > w``
-   The positive value of *L1* then is:
-   ``L1 =  0.5 * (-w + sqrt(w^2-4p))``
-   Note that the other value for L is negative which results in
-   the solution that has an offset of nearly 180 deg.
+   with the right angle. For more information, see the background
+   information in :doc:`celestialbackground`.
    """
 #----------------------------------------------------------------------
 

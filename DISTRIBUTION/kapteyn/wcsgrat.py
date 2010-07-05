@@ -18,7 +18,7 @@
 """
 Module wcsgrat
 ==============
-A graticule is a system of crossing lines on a map representing.
+A graticule is a system of crossing lines on a map representing
 positions of which one coordinate is constant.
 For a spatial map it consists of parallels of latitude and
 meridians of longitude as defined by a given projection.
@@ -32,20 +32,18 @@ Besides spatial axes, it supports also spectral axes and a mix of both
 (e.g. position-velocity diagrams). It deals with data dimensions > 2
 by allowing arbitrary selections of two axes.
 The transformations between pixel coordinates and world coordinates
-are based module *wcs* which is also part of the Kapteyn Package.
-Module :mod:`wcs` is a Python binding for Mark R. Calabretta's library
+are based on module 
+:mod:`wcs` which is a Python binding for Mark R. Calabretta's library
 `WCSLIB <http://www.atnf.csiro.au/people/mcalabre/WCS>`_.
 >From *WCSLIB* we use only the core transformation routines.
 Header parsing is done with module :mod:`wcs`.
 
 Axes types that are not recognized by this software is treated as being linear.
-The axes type correspond with keyword *CTYPEn* in a FITS file.
+The axes types correspond with keywords *CTYPEn* in a FITS file.
 The information from a FITS file is retrieved by module
 `PyFITS <http://www.stsci.edu/resources/software_hardware/pyfits>`_
 
-Below you will find a reference to a tutorial with working examples. 
-
-.. seealso:: Tutorial material:
+.. seealso:: Tutorial material with code examples:
    
      * Tutorial maputils module
        which contains many examples with source code,
@@ -57,7 +55,6 @@ Below you will find a reference to a tutorial with working examples.
    
 .. moduleauthor:: Martin Vogelaar <gipsy@astro.rug.nl>
 
-.. versionadded:: 1.0 Support for offset labels
 
 
 Module level data
@@ -73,7 +70,9 @@ Module level data
    to make ticks along an axis visible or invisible. Ticks along an axis
    can represent both world coordinate types (e.g. when a map is rotated). Sometimes
    one wants to allow this and sometimes not.
-   
+
+   .. tabularcolumns:: |p{25mm}|p{125mm}|
+
    ========= =============================================
    Tick mode Description
    ========= =============================================
@@ -214,7 +213,7 @@ def gethmsdms(a, prec, axtype, skysys):
    """
    Given a number in degrees and an axis type in *axtype*
    equal to 'longitude' or 'latitude',
-   calculate and return the parts of its sexagisimal representation, i.e.
+   calculate and return the parts of its sexagesimal representation, i.e.
    hours or degrees, minutes and seconds. Also return the fractional seconds
    and the sign if the input was a value at negative latitude.
    The value for *skysys* sets the formatting to hours/minutes/seconds
@@ -240,10 +239,11 @@ def gethmsdms(a, prec, axtype, skysys):
 
    :Returns:
       
-      Ihours, Ideg, Imin, Isec, Fsec, sign
+      tuple: (Ihours, Ideg, Imin, Isec, Fsec, sign)
       which represent Integer values for the hours, degrees, minutes
       and seconds. *Fsec* is the fractional part of the seconds.
-      Variable *sign* can be -1 for negative latitudes.
+      Element *sign* is -1 for negative latitudes and +1 for positive
+      latitudes.
 
       
    """
@@ -291,7 +291,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
    #-------------------------------------------------------------------------------
    """
    From the output of function *gethmsdms* and some Booleans, this function
-   creates a label in plain text or TeX. The Booleans set a flag whether
+   creates a label in plain text or in TeX. The Booleans set a flag whether
    a field (hours, degrees, minutes or seconds) should be printed or not.
    The *fmt* parameter is used if it does not contain the percentage character (%)
    but instead contains characters from the set HDMS. A capital overules the
@@ -913,7 +913,7 @@ class Insidelabels(object):
             individual graticule lines so that each line can have its
             own properties. If no position is entered, then the changes
             are applied to all the labels in the current object.
-            The input can also be a string that represents a sexagisimal number.
+            The input can also be a string that represents a sexagesimal number.
       :type position: *None* or one or a sequence of floating point numbers
       
       :param tol:
@@ -926,23 +926,23 @@ class Insidelabels(object):
             A string that formats the tick value
             e.g. ``fmt="%10.5f"`` in the Python way, or a string
             that contains no percentage character (%) but a format
-            to set the output of sexagisimal numbers e.g.
+            to set the output of sexagesimal numbers e.g.
             fmt='HMs'. The characters in the format either force
             (uppercase) a field to be printed, or it suppresses
             (lowercase) a field to be printed.
-            Se also the examples at :func:`wcsgrat.makelabel`.
+            See also the examples at :func:`wcsgrat.makelabel`.
       :type fmt: String
       
       :param fun:
             An external function which will be used to
             convert the tick value e.g. to convert
-            velocities from m/s to Km/s. See also
+            velocities from m/s to km/s. See also
             example 2_ below.
       :type fun: Python function or Lambda expression
 
       :param tex:
             If True then format the tick label in LaTeX. This is the
-            default. If False then standard text will applies.
+            default. If False then standard text will be applied.
             Some text properties cannot be changed if LaTeX is
             in use.
       :type tex: Boolean
@@ -958,10 +958,8 @@ class Insidelabels(object):
       :note:
             Some projections generate labels that are very close
             to each other. If you want to skip labels then you can
-            use keyword/value *visible=False*. There is not a documented
-            keyword *visible* in this method because *visible* is a
-            valid keyword argument in Matplotlib.
-
+            use keyword/value *visible=False*. Note that *visible*
+            is a parameter of Matplotlib's plot functions.
       """
       #-----------------------------------------------------------------
       if position != None:
@@ -1057,7 +1055,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
                   Software that interfaces with a user to get data
                   and relevant properties could/should produce objects which
-                  have at least values for the properties listed above.
+                  have at least values for the attributes listed above.
                   Then these objects could be used as a shortcut parameter.
 :type graticuledata:  Object with some required attributes
 
@@ -1114,12 +1112,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   a frequency into a velocity which is one of
                   the types: VOPT-F2W, VRAD, VELO-F2V
                   (for optical, radio and radial velocities).
-                  See also article
+                  See also the article
                   `Representations of spectral coordinates in FITS <http://www.atnf.csiro.au/people/mcalabre/WCS/scs.pdf>`_
                   by Greisen, Calabretta, Valdes & Allen.
                   Module *maputils* from the Kapteyn Package provides
                   a method that creates a list with possible spectral
-                  translations given a arbitrary header.
+                  translations given an arbitrary header.
                   The spectral translation should be followed by
                   a code (e.g. as in 'VOPT-F2W') which sets the
                   conversion algorithm. If you
@@ -1131,7 +1129,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 :param skyout:    A single number or a tuple which specifies
                   the celestial system.
-                  The syntax for the tuple is:
+                  The tuple is laid out as follows:
                   ``(sky system, equinox, reference system,
                   epoch of observation)``.
                   Predefined are the systems:
@@ -1140,6 +1138,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      * wcs.ecliptic,
                      * wcs.galactic
                      * wcs.supergalactic
+
+                  or the minimal matched string versions of these values.
                   
                   Predefined reference systems are:
 
@@ -1148,6 +1148,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      * wcs.fk5,
                      * wcs.icrs,
                      * wcs.j2000
+
+                  or the minimal matched string versions of these values.
 
                   Prefixes for epoch data are:
 
@@ -1165,8 +1167,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      =============  =================== ======================================
  
                 
-                  See the documentation of module *celestial* (part of the
-                  Kapteyn Package) to read more details.
+                  See the documentation of module :mod:`celestial` for more details.
                   Example of a sky definition::
    
                      skyout = (wcs.equatorial, wcs.fk4_no_e, 'B1950')
@@ -1190,10 +1191,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   to transform only the limits in pixels because a maximum
                   or minimum in world coordinates could be located
                   on arbitrary pixel positions depending on the projection.
-:type wxlim:      *None* or exactly two Floating point numbers
+:type wxlim:      *None* or exactly two floating point numbers
 
 :param wylim:     See wxlim, but now applied for the y-axis
-:type wylim:      *None* or exactly two Floating point numbers
+:type wylim:      *None* or exactly two floating point numbers
 
 :param boxsamples: Number of random pixel positions within a box
                    with limits *pxlim* and *pylim* for which world
@@ -1204,7 +1205,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                    numbers than the default.
 :type boxsamples:  Integer
 
-:param startx:    If one value given then this is the
+:param startx:    If one value is given then this is the
                   first graticule line that has a constant
                   x **world coordinate** equal to *startx*.
                   The other values will be
@@ -1214,16 +1215,16 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   If *None* is set, then a suitable value will be
                   calculated.
                   For longitudes and latitudes the parameter can also be
-                  a string representing a sexagisimal number.
+                  a string representing a sexagesimal number.
                   The syntax is explained in :func:`positions.parsehmsdms`.
-:type startx:     *None* or 1 Floating point number or a sequence
-                  of Floating point numbers or a string.
+:type startx:     *None* or 1 floating point number or a sequence
+                  of floating point numbers or a string.
 
 :param starty:    [None, one value, sequence]
                   Same for the graticule line with constant
                   y world coordinate equal to starty.
-:type starty:     *None* or 1 Floating point number or a sequence
-                  of Floating point numbers or a string.
+:type starty:     *None* or 1 floating point number or a sequence
+                  of floating point numbers or a string.
 
 :param deltax:    Step in **world coordinates** along the x-axis
                   between two subsequent graticule lines.
@@ -1243,7 +1244,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 :param gridsamples: Number of positions on a graticule line for which
                     a pixel position is calculated and stored as part
-                    of the graticule line. If *None* is set than the
+                    of the graticule line. If *None* is set then the
                     default is used (see the argument list of this method).
 :type gridsamples:  Integer
 
@@ -1262,12 +1263,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 :type labelsintex:  Boolean
 
 :param offsetx:     Change the default mode which sets either plotting
-                    the labels for the given -or calculated world coordinates-
-                    or plotting labels which represents constant offsets
+                    the labels for the given -or calculated world coordinates
+                    or plotting labels which represent constant offsets
                     with respect to a given starting point.
                     The offset mode is default for plots with mixed axes,
                     i.e. with only one spatial axis. In spatial maps
-                    this offset mode it is not
+                    this offset mode is not
                     very useful to plot the graticule lines because these lines
                     are plotted at a constant world coordinate and do not know
                     about offsets.
@@ -1298,12 +1299,16 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       Graticules need two different axes.
    
    :exc:`ValueError` *pxlim needs to be of type tuple or list*
+      Check type.
    
    :exc:`ValueError` *pxlim must have two elements*
+      Number must be exactly 2.
    
    :exc:`ValueError` *pylim needs to be of type tuple or list*
+      Check type.
    
    :exc:`ValueError` *pylim must have two elements*
+      Number must be exactly 2.
    
    :exc:`ValueError` *Could not find a grid for the missing spatial axis*
       The specification in *axnum* corresponds to a map with only one
@@ -1320,13 +1325,17 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
    
    
    :exc:`ValueError` *wxlim needs to be of type tuple or list*
-   
+      Check type.
+      
    :exc:`ValueError` *wxlim must have two elements*
-   
+      Number must be exactly 2.
+      
    :exc:`ValueError` *wylim needs to be of type tuple or list*
-   
+      Check type.
+      
    :exc:`ValueError` *wylim must have two elements*
-   
+      Number must be exactly 2.
+      
    :exc:`ValueError` *boxsamples < 2: Need at least two samples to find limits*
       There is a minimum number of random positions we have to
       calculate to get an impression of the axis limits in world coordinates.
@@ -1363,7 +1372,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                         
 .. attribute::    axes
                         
-                  Read also docstring for PLOTaxis class.
+                  Read the PLOTaxis class documentation.
                   Four PLOTaxis instances, one for each axis of the
                   rectangular frame in pixels set by *xplim* and *pylim*
                   If your graticule object is called **grat** then
@@ -1404,7 +1413,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   The limits of the map in pixels along the x-axis.
                   This value is either set in the constructor or 
                   calculated. The default is *[1,NAXISn]*.
-                  The attribute is implemented as a read-only attribute.
+                  The attribute is meant as a read-only attribute.
 
 .. attribute:: pylim:
 
@@ -1450,7 +1459,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
                   World coordinates associated with the x-axis
                   which set the constant value of a graticule line
-                  as calculated by the constructor.
+                  as calculated when the object is initialized.
                   This attribute is meant as a read-only attribute.
 
 .. attribute:: ystarts
@@ -1486,7 +1495,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   Select the axes for the graticules. Note that the order
                   of the axes should be the same as the order of axes in
                   the image where you want to plot the graticule. If necessary
-                  one can swap the graticule plat axes with input parameter
+                  one can swap the graticule plot axes with input parameter
                   *axnum*::
 
                      #3. Swap x and y- axis in a FITS file
@@ -1499,9 +1508,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      #  create a graticule for the FREQ,RA axes:
                      grat = wcsgrat.Graticule(header, axnum=(3,1))
 
-                  Use sexagisimal numbers for *startx*/*starty*::
+                  Use sexagesimal numbers for *startx*/*starty*::
 
-                     #5. Sexagisimal input
+                     #5. Sexagesimal input
                      grat = wcsgrat.Graticule(...., startx="7h59m30s", starty="-10d0m30s')
 
 **Methods which set (plot) attributes:**
@@ -2573,13 +2582,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       world coordinates which can suffer from loss
       of precision.
       This method tracks the border from a starting
-      point by scanning in x- and -direction and
+      point by scanning in x- and y direction and
       tries to find the position of a limb with a
       standard bisection technique. This method has been applied
       to a number of all-sky plots with slanted projections.
 
       :param xstart: X-coordinate in pixels of position where to
-                     start the scan to find border.
+                     start the scan to find a border.
                      The parameter has no default.
       :type xstart:  Floating point 
 
@@ -2588,7 +2597,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      The parameter has no default.
       :type ystart:  Floating point
 
-      :param deltax: Set range in pixels to look for border in
+      :param deltax: Set range in pixels to look for a border in
                      scan direction. The default value is 10 percent
                      of the total pixel range in x- or y-direction.
       :type deltax:  Floating point
@@ -2613,6 +2622,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   of an invalid coordinate transformation,
                   and repeats this for a number of scan lines
                   along the x-axis and y-axis.
+
                   ::
 
                      A position on a border off an all-sky plot is the position at
@@ -2668,7 +2678,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
    def addgratline(self, x, y, pixels=False):
       #-----------------------------------------------------------------
       """
-      For any path given by a set world coordinates
+      For any path given by a set of world coordinates
       of which none is a constant value (e.g. borders
       in slanted projections where the positions are calculated by an
       external routine),
@@ -2680,7 +2690,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       
       
       :param x:      A sequence of world coordinates or pixels
-                     that correspond to horizontal axis in a graticule plot..
+                     that correspond to the horizontal axis in a graticule plot..
       :type x:       Floating point numbers
       
       :param y:      The same for the second axis
@@ -2691,7 +2701,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      coordinates. Else they are pixel coordinates.
       :type pixels:  Boolean
       
-      :Returns:      A **Identification number** *id* which can be used
+      :Returns:      A Identification number *id* which can be used
                      to set properties for this special path with
                      method :meth:`setp_linespecial`.
                      Return *None* if no line piece could be found
@@ -2757,12 +2767,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       on the size of plot window with this aspect ratio).
       
       :param xcm: Given a value for xcm or ycm (or omit both),
-                  then suggest a figure size in inches and a viewport in
+                  suggest a suitable figure size in and a viewport in
                   normalized device coordinates of a plot which has
                   an axes rectangle that corrects the figure for an
                   aspect ratio (i.e. CDELTy/CDELTx) unequal to 1 while
                   the length of the x-axis is xcm OR the length of the
                   y-axis is ycm. See note for non-spatial maps.
+                  
       :type xcm:  Floating point number
       
       :param ycm: See description at *xcm*.
@@ -2772,7 +2783,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       
       :Note:      (i.e. AR > 10 or AR < 0.1), an aspect ratio of 1
                   is returned. This method sets the attributes:
-                  'axesrect', 'figsize', 'aspectratio'
+                  'axesrect', 'figsize', 'aspectratio'.
+                  The attribute 'figsize' is in inches which is compatible
+                  to the methods of Matplotlib.
       """
       #-----------------------------------------------------------------
       cdeltx = self.gmap.cdelt[0]
@@ -2807,7 +2820,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       Set (plot) attributes for a wcs tick label.
       A tick is identified by the type of grid line
       it belongs to, and/or the plot axis for which
-      it defined an intersection and/or a position which
+      it defines an intersection and/or a position which
       corresponds to the constant value of the graticule
       line.
       All these parameters are valid with none, one or
@@ -2826,7 +2839,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       
       :param plotaxis:
             Accepted values are 'None', 0, 1, 2, 3 or a
-            combination, to represent the left, bottom, right
+            sequence of these numbers, to represent the left, bottom, right
             and top axis of the enclosing rectangle that
             represents the limits in pixel coordinates.
       :type plotaxis: One or more integers between 0 and 3.
@@ -2837,7 +2850,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             world coordinates. These positions are used to identify
             individual graticule lines so that each line can have its
             own properties.
-            The input can also be a string that represents a sexagisimal number.
+            The input can also be a string that represents a sexagesimal number.
       :type position: *None* or one or a sequence of floating point numbers
       
       :param tol:
@@ -2850,7 +2863,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             A string that formats the tick value
             e.g. ``fmt="%10.5f"`` in the Python way, or a string
             that contains no percentage character (%) but a format
-            to set the output of sexagisimal numbers e.g.
+            to set the output of sexagesimal numbers e.g.
             fmt='HMs'. The characters in the format either force
             (uppercase) a field to be printed, or it suppresses
             (lowercase) a field to be printed.
@@ -2860,7 +2873,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       :param fun:
             An external function which will be used to
             convert the tick value e.g. to convert
-            velocities from m/s to Km/s. See also
+            velocities from m/s to km/s. See also
             example 2_ below.
       :type fun: Python function or Lambda expression
       
@@ -2868,7 +2881,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             Properties for the tick marker. Amongst others:
       
                * markersize:
-                 Size of tick line. Use negative number (e.g. -4) to
+                 Size of tick line. Use a negative number (e.g. -4) to
                  get tick lines that point outside the plot instead
                  of the default which is inside.
                * markeredgewidth:
@@ -2996,7 +3009,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      tol=1e-12, **mkwargs):
       #-----------------------------------------------------------------
       """
-      Utility function for :meth:`setp_tick`. It handles the
+      Utility method for :meth:`setp_tick`. It handles the
       properties of the tick marks, which are :class:`Line2D` objects
       in Matplotlib. The most useful properties are *color*, *markeredgewidth*
       and *markersize*.
@@ -3010,7 +3023,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                       tol=1e-12, fmt=None, fun=None, tex=None, **kwargs):
       #-----------------------------------------------------------------
       """
-      Utility function for :meth:`setp_tick`. It handles the
+      Utility method for :meth:`setp_tick`. It handles the
       properties of the tick labels, which are :class:`Text` objects
       in Matplotlib. The most useful properties are *color*, *fontsize*
       and *fontstyle*.
@@ -3036,7 +3049,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             world coordinates. These positions are used to identify
             individual graticule lines so that each line can have its
             own properties.
-            The input can also be a string that represents a sexagisimal number.
+            The input can also be a string that represents a sexagesimal number.
       :type position: *None* or one or a sequence of floating point numbers
       
       :param tol:
@@ -3049,17 +3062,17 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             A string that formats the tick value
             e.g. ``fmt="%10.5f"`` in the Python way, or a string
             that contains no percentage character (%) but a format
-            to set the output of sexagisimal numbers e.g.
+            to set the output of sexagesimal numbers e.g.
             fmt='HMs'. The characters in the format either force
             (uppercase) a field to be printed, or it suppresses
             (lowercase) a field to be printed.
-            Se also the examples at :func:`wcsgrat.makelabel`.
+            See also the examples at :func:`wcsgrat.makelabel`.
       :type fmt: String
       
       :param fun:
             An external function which will be used to
             convert the tick value e.g. to convert
-            velocities from m/s to Km/s. See also
+            velocities from m/s to km/s. See also
             example 2_ below.
       :type fun: Python function or Lambda expression
 
@@ -3098,7 +3111,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       """
       Set (plot) attributes for one or more graticule
       lines.
-      These graticule lines are identified by the wcs
+      These graticule lines are identified by the wcs axis
       number (*wcsaxis=0* or *wcsaxis=1*) and by their constant
       world coordinate in *position*.
       
@@ -3106,7 +3119,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                          the attributes are set.
                          If one value is given then only for that axis
                          the attributes will be set.
-      :type wcsaxis:     *None* or Integer(s) from set 0, 1. 
+      :type wcsaxis:     *None* , integer or tuple with integers from set 0, 1.
       
       :param position:   None, one value or a sequence of
                          values representing the constant value of a graticule
@@ -3191,10 +3204,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       
       :Parameters:  See description at :meth:`setp_gratline`
       
-      :Returns:     --
-      
-      :Notes:       --
-      
       :Examples:  Make lines of constant latitude magenta and
                   lines of constant longitude green. The line that
                   corresponds to a latitude of 30 degrees and
@@ -3215,15 +3224,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
    def setp_lineswcs1(self, position=None, tol=1e-12, **kwargs):
       #-----------------------------------------------------------------
       """
-      Helper method for :meth:`setp_gratline`.
+      Equivalent to  method :meth:`setp_gratline`.
       It pre-selects the grid line that
       corresponds to the second world coordinate.
       
       :Parameters:  See description at :meth:`setp_gratline`
       
-      :Returns:       --
-      
-      :Notes:         --
       :Examples:     See example at :meth:`setp_lineswcs0`.
       """
       #-----------------------------------------------------------------
@@ -3246,14 +3252,11 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       :type id:          Integer
       :param `**kwargs`: keywords for (plot) attributes
       :type `**kwargs`:  Matplotlib keyword argument(s)
-      
-      :Returns:           --
-      
-      :Notes:             --
-      
+
+
       :Examples:         Create a special graticule line
                          which follows the positions in two
-                         given arrays *x* and *y*. and set
+                         given sequences *x* and *y*. and set
                          the line width for this line to 2::
       
                               id = grat.addgratline(x, y)
@@ -3284,16 +3287,16 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       behaviour.
       
       .. Note::
-         This method addresses the four axes of a plot seperately. Therefore
-         its functionality cannot be incorporated in :meth:`setp_tick`!
+         This method addresses the four axes of a plot separately. Therefore
+         its functionality cannot be incorporated in :meth:`setp_tick`
       
       :param plotaxis:   The axis number of one of the axes of the
                          plot rectangle:
       
-                           * wcsgrat.left (== 0)
-                           * wcsgrat.bottom (==1)
-                           * wcsgrat.right (==2)
-                           * wcsgrat.top (==3)
+                           * wcsgrat.left
+                           * wcsgrat.bottom
+                           * wcsgrat.right
+                           * wcsgrat.top
       
                          or (part of) a string which can be (case insensitive)
                          matched by one from 'left', 'bottom', 'right', 'top'.
@@ -3308,7 +3311,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                            * 2 = both types of ticks (map could be rotated)
                            * 3 = no ticks
       
-                         Or use a text that can match one of:
+                         Or use a text that can (case insensitive) match one of:
       
                            * "NATIVE_TICKS"
                            * "SWITCHED_TICKS"
@@ -3323,9 +3326,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       :param `**kwargs`: Keywords for (plot) attributes
       :type  `**kwargs`: Matplotlib keyword argument(s)
       
-      :Returns:          --
-      
-      :Note:             --
       
       :Examples:         Change the font size of the tick labels along
                          the bottom axis in 11::
@@ -3356,7 +3356,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
    def setp_axislabel(self, plotaxis=None, label=None, xpos=None, ypos=None, **kwargs):
       #-----------------------------------------------------------------
       """
-      Utility function that calls method setp_plotaxis but
+      Utility method that calls method :meth:`setp_plotaxis` but
       the parameters are restricted to the axis labels.
       These labels belong to one of the 4 plot axes.
       See the documentation at setp_plotaxis for the input
@@ -3374,10 +3374,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
       :param plotaxis: The axis number of one of the axes of the plot rectangle:
 
-            * wcsgrat.left (== 0)
-            * wcsgrat.bottom (==1)
-            * wcsgrat.right (==2)
-            * wcsgrat.top (==3)
+            * wcsgrat.left 
+            * wcsgrat.bottom
+            * wcsgrat.right
+            * wcsgrat.top
 
          or (part of) a string which can be (case insensitive)
          matched by one from 'left', 'bottom', 'right', 'top'.
@@ -3402,7 +3402,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
    def set_tickmode(self, plotaxis=None, mode=None):
       #-----------------------------------------------------------------
       """
-      Utility function that calls method setp_plotaxis but
+      Utility method that calls method :meth:`setp_plotaxis` but
       the parameters are restricted to the tick mode.
 
       Each plot axis has a tick mode.
@@ -3410,12 +3410,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       :param plotaxis:   The axis number of one of the axes of the
                          plot rectangle:
 
-                           * wcsgrat.left (== 0)
-                           * wcsgrat.bottom (==1)
-                           * wcsgrat.right (==2)
-                           * wcsgrat.top (==3)
+                           * wcsgrat.left
+                           * wcsgrat.bottom
+                           * wcsgrat.right
+                           * wcsgrat.top
 
-                         or (part of) a string which can be (case insensitive)
+                         or (part of) a string which can be (minimal & case insensitive)
                          matched by one from 'left', 'bottom', 'right', 'top'.
 
       :type plotaxis:    Integer or String
@@ -3464,17 +3464,17 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                          is 0.
       :type wcsaxis:     Integer 
       
-      :param world:      One or more world coordinates on the axis given
+      :param world:      One or a sequence of world coordinates on the axis given
                          by *wcsaxis*. The positions are completed
                          with one value for *constval*.
                          If world=None (the default) then the world
                          coordinates are copied from graticule
                          world coordinates.
-      :type world:       Floating point number(s) or None
+      :type world:       One or a sequence of floating point number(s) or None
       
       :param constval:   A constant world coordinate to complete the positions
                          at which a label is plotted. The value can also be a
-                         string representing a sexagisimal number.
+                         string representing a sexagesimal number.
       :type constval:    Floating point number or String
       
       :param deltapx:    Small shift in pixels in x-direction of text. This enables
@@ -3495,7 +3495,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                          default angles.
       :type addangle:    Floating point number
 
-      :param fun:        unction or lambda expression to convert the
+      :param fun:        Function or lambda expression to convert the
                          label value.
       :type func:        Python function or lambda expression
       
