@@ -39,8 +39,9 @@ except ImportError:
 from docutils import nodes
 import sphinx
 
-sphinx_version = sphinx.__version__.split(".")
-sphinx_version = tuple([int(x) for x in sphinx_version[:2]])
+### sphinx_version = sphinx.__version__.split(".")
+### sphinx_version = tuple([int(x) for x in sphinx_version[:2]])
+sphinx_version = (1,0)
 
 import matplotlib
 import matplotlib.cbook as cbook

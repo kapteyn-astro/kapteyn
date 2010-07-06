@@ -38,7 +38,7 @@ Introduction
 ------------
 
 One of the goals of the Kapteyn Package is to provide a user/programmer basic
-tools to make plots (with wcs annotation) of image data from FITS files.
+tools to make plots (with WCS annotation) of image data from FITS files.
 These tools are based on the functionality of PyFITS and Matplotlib.
 The methods from these packages are modified in *maputils* for an optimal
 support of inspection and presentation of astronomical image data with
@@ -83,12 +83,15 @@ replace them by enhanced versions, perhaps with a graphical user interface.
 
 Here is an example of what you can expect. We have a three dimensional data set
 on disk called *ngc6946.fits* with axes RA, DEC and VELO.
-The program prompts a user to enter
+The program prompts the user to enter
 image properties like data limits, axes and axes order.
 The image below is a data slice in RA, DEC at VELO=50.
 We changed interactively the color map (keys *page-up/page-down*)
 and the color limits (pressing right mouse button while moving the mouse) and saved
 a hard copy on disk.
+
+In the next code we use keyword parameter *promptfie* a number of times.
+Abbreviation 'fie' stands for *Function Interactive Environment*.
 
 .. literalinclude:: EXAMPLES/mu_introduction.py
    
@@ -249,6 +252,11 @@ from random import choice
 from re import split as re_split
 from datetime import datetime
 import time
+try:
+   from gipsy import anyout
+   gipsymod = True
+except:
+   gipsymod = False
 
 KeyPressFilter.allowed = ['f', 'g']
 
@@ -393,12 +401,8 @@ def fitsheader2dict(header, comment=True, history=True):
    """
 Transform a FITS header, read with PyFITS into a Python
 dictionary.
-This is useful if one want to iterate over all keys in the
-header. The PyFITS header is not iterable because it has to
-deal with multiple entries of COMMENT and HISTORY.
-Here they are stored as a list. When a dictionary is
-converted back to a PyFITS header, one should iterate
-over these items and 
+This is useful if one wants to iterate over all keys in the
+header. The PyFITS header is not iterable.
    """
 #-----------------------------------------------------------
    class fitsdict(dict):
@@ -474,6 +478,7 @@ All these numbers are converted to integers.
 
 
 :Returns:
+   Tuple with two elements
    pxlim, pylim (see parameter description)
 
 :Notes:
@@ -536,10 +541,10 @@ def prompt_fitsfile(defaultfile=None, hnr=None, alter=None, memmap=None):
 #-----------------------------------------------------------------
    """
 An external helper function for the FITSimage class to
-prompt a user to open the right Header Data Unit (hdu)
+prompt a user to open the right Header and Data Unit (hdu)
 of a FITS file.
-A programmer can supply his/her own function as long
-as the parameters that are returned are 
+A programmer can supply his/her own function
+of which the return value is a sequence containing 
 the hdu list, the header unit number, the filename and a character for 
 the alternate header.
    
@@ -572,8 +577,8 @@ the alternate header.
       Enter name of file on disk of valid url.
    2. *Enter number of Header Data Unit ...... [0]:*
 
-      If a FITS file has more than one header, one must decide
-      which header contains the required image data.
+      If a FITS file has more than one HDU, one must decide
+      which HDU contains the required image data.
       
 :Returns:
 
@@ -583,7 +588,7 @@ the alternate header.
    * *hnr* - FITS header number. Usually the first header, i.e. *hnr=0*
    * *fitsname* - Name of the FITS file.
    * *alter* - A character that corresponds to an alternate header
-     (with alternate wcs information e.g. a spectral translation).
+     (with alternate WCS information e.g. a spectral translation).
      
 :Notes:
    --
@@ -694,14 +699,14 @@ be returned. These positions set the position of the data
 slice on the axes that do not belong to the image.
 Only with this information the right slice can be extracted.
 
-User is prompted in a loop until a correct input is given.
+The user is prompted in a loop until a correct input is given.
 If a spectral axis is part of the selected image then
 a second prompt is prepared for the input of the required spectral
 translation.
 
 :param fitsobj:
-   An object from class FITSimage. This prompt function must
-   have knowledge of this object such as the allowed spectral
+   An object from class FITSimage. This prompt function derives useful
+   attributes from this object such as the allowed spectral
    translations.
 :type fitsobj:
    Instance of class FITSimage
@@ -739,6 +744,8 @@ translation.
 
    
 :Returns:
+   Tuple with three elements:
+   
    * *axnum1*:
      Axis number of first image axis. Default or entered by a user.
    * *axnum2*:
@@ -840,8 +847,7 @@ def prompt_spectrans(fitsobj):
 Ask user to enter spectral translation if one of the axes is spectral.
 
 :param fitsobj:
-   An object from class FITSimage. This prompt function must
-   have knowledge of this object such as the allowed spectral
+   An object from class FITSimage. From this object we derive the allowed spectral
    translations.
 :type fitsobj:
    Instance of class FITSimage
@@ -895,9 +901,9 @@ def prompt_skyout(fitsobj):
 Ask user to enter the output sky system if the data is a spatial map.
 
 :param fitsobj:
-   An object from class FITSimage. This prompt function must
-   have knowledge of this object such as the allowed spectral
-   translations.
+   An object from class FITSimage. This prompt function uses this object to
+   get information about the axis numbers of the spatial axes in a
+   data structure.
 :type fitsobj:
    Instance of class FITSimage
 
@@ -1051,11 +1057,11 @@ def prompt_dataminmax(fitsobj):
 class Image(object):
    #--------------------------------------------------------------------
    """
-   Prepare the FITS- or external image data to be plotted in Matplotlib
+   Prepare the FITS- or external image data to be plotted in Matplotlib.
    All parameters are set by method :meth:`Annotatedimage.Image`.
    The keyword arguments are those for Matplotlib's method *imshow()*.
    Two of them are useful in the context of this class. These parameters
-   are *visible* a boolean to set the visibility of the image to on or off,
+   are *visible*, a boolean to set the visibility of the image to on or off,
    and *alpha*, a number between 0 and 1 which sets the transparency of
    the image.
 
@@ -1088,14 +1094,7 @@ class Image(object):
       #--------------------------------------------------------------------
       """
       Plot image object. Usually this is done by method
-      :meth`Annotatedimage.plot` but it can also be used separately.
-
-      :Example:
-
-      >>> annim = fitsobject.Annotatedimage(frame)
-      >>> frame = fig.add_subplot(1,1,1)
-      >>> grat = annim.Graticule()
-      >>> grat.plot(frame)
+      :meth:`Annotatedimage.plot` but it can also be used separately.
 
       """
       #--------------------------------------------------------------------
@@ -1113,14 +1112,14 @@ class Image(object):
 class Contours(object):
    #--------------------------------------------------------------------
    """
-   objects from this class calculate and plot contour lines.
+   Objects from this class calculate and plot contour lines.
    Most of the parameters are set by method
    :meth:`Annotatedimage.Contours`. The others are:
 
    
    :param filled:
       If True, then first create filled contours and draw
-      the contours lines upon these filled contours
+      the contour lines upon these filled contours
    :type filled:
       Boolean
    :param negative:
@@ -1180,7 +1179,7 @@ class Contours(object):
       #--------------------------------------------------------------------
       """
       Plot contours object. Usually this is done by method
-      :meth`Annotatedimage.plot` but it can also be used separately.
+      :meth:`Annotatedimage.plot` but it can also be used separately.
       """
       #--------------------------------------------------------------------
       if self.data == None:
@@ -1263,7 +1262,7 @@ class Contours(object):
       """
       Set properties for the labels along the contours.
 
-      :Examples;
+      :Examples:
 
       >>> cont2 = annim.Contours(levels=(8000,9000,10000,11000))
       >>> cont2.setp_label(11000, colors='b', fontsize=14, fmt="%.3f")
@@ -1290,14 +1289,14 @@ class Contours(object):
 class Colorbar(object):
    #--------------------------------------------------------------------
    """
-   Colorbar class. Usually the parameters will be provide by method
+   Colorbar class. Usually the parameters will be provided by method
    :meth:`Annotatedimage.Colorbar`
 
    Useful keyword parameters:
 
    :param frame:
       If a frame is given then this frame will be the colorbar frame.
-      If None, the frame is calculated by taking space of its parent
+      If None, the frame is calculated by taking space from its parent
       frame.
    :type frame:
       Matplotlib Axes instance
@@ -1347,7 +1346,7 @@ class Colorbar(object):
       #--------------------------------------------------------------------
       """
       Plot image object. Usually this is done by method
-      :meth`Annotatedimage.plot` but it can also be used separately.
+      :meth:`Annotatedimage.plot` but it can also be used separately.
       """
       #--------------------------------------------------------------------
       # ColorbarBase needs a norm instance
@@ -1378,7 +1377,7 @@ class Colorbar(object):
    def set_label(self, label, **kwargs):
       #--------------------------------------------------------------------
       """
-      Set a text label along the long size of the color bar.
+      Set a text label along the long side of the color bar.
       It is a convenience routine for Matplotlib's *set_label()*
       but this one needs a plotted colorbar while we postpone plotting.
       """
@@ -1390,7 +1389,7 @@ class Colorbar(object):
 class Beam(object):
    #--------------------------------------------------------------------
    """
-   Beam class. Usually the parameters will be provide by method
+   Beam class. Usually the parameters will be provided by method
    :meth:`Annotatedimage.Beam`
    
    Objects from class Beam are graphical representations of the resolution
@@ -1403,7 +1402,8 @@ class Beam(object):
    the beam by applying distance 'r' (see code) as a function of
    angle, to get the new world coordinates. The reason is that the
    fwhm's are given as sizes on a sphere and therefore a correction for
-   the declination is required. With method *dispcoord()* (see code)
+   the declination is required. With method *dispcoord()* (see source code
+   of class Beam)
    we sample the
    ellipse on a sphere with a correct position angle and with the correct
    sizes.
@@ -1502,7 +1502,7 @@ class Beam(object):
 class Marker(object):
 #--------------------------------------------------------------------
    """
-   Marker class. Usually the parameters will be provide by method
+   Marker class. Usually the parameters will be provided by method
    :meth:`Annotatedimage.Marker`
 
    Mark features in your map with a marker symbol. Properties of the
@@ -1819,7 +1819,7 @@ has a method that prepares the parameters for the constructor of
 this class.
 
 :param frame:
-   This the frame where image and or contours will be plotted.
+   This is the frame where image and or contours will be plotted.
    If omitted then a default frame will be set
 :type frame:
    Matplotlib Axes instance
@@ -1847,8 +1847,8 @@ this class.
    2D NumPy array
 :param projection:
    The current projection object which provides this class
-   with conversion methods from :mod"`wcs` like
-   :meth:`wcs.Projection.toworld()` and :meth:`wcs.Projection.topixel()`
+   with conversion methods from :mod:`wcs` like
+   :meth:`wcs.Projection.toworld` and :meth:`wcs.Projection.topixel`
    needed for conversions between pixel- and world coordinates.
 :type projection:
    Instance of Projection class from module :mod:`wcs`
@@ -1893,9 +1893,9 @@ this class.
    string
 :param cmap:
    A colormap from class :class:`mplutil.VariableColormap` or a string
-   that represents 
+   that represents a colormap (e.g. 'jet', 'spectral' etc.).
 :type cmap:
-   mplutil.VariableColormap instance
+   mplutil.VariableColormap instance or string
 :param clipmin:
    A value which sets the lower value of the interval between which the colors
    in the colormap are distributed. If omitted, the minimum data value will
@@ -1953,7 +1953,7 @@ this class.
 
     .. attribute:: slicepos
 
-          Single value or tuple with more than one values representing
+          Single value or tuple with more than one value representing
           the pixel coordinates on axes in the original data structure
           that do not belong to the image. It defines how the data slice
           is ectracted from the original.
@@ -1969,15 +1969,6 @@ this class.
 
            The color map. This is an object from class :class:`mplutil.VariableColormap`.
            which is inherited from the Matplotlib color map class.
-           Its main methods are:
-   
-           * :class:`mplutil.VariableColormap.set_source`
-           * :class:`mplutil.VariableColormap.set_bad`
-           * :class:`mplutil.VariableColormap.add_frame`
-           * :class:`mplutil.VariableColormap.modify`
-           * :class:`mplutil.VariableColormap.set_scale`
-           * :class:`mplutil.VariableColormap.set_inverse`
-           * :class:`mplutil.VariableColormap.update`
 
     .. attribute:: objlist
 
@@ -2085,7 +2076,18 @@ this class.
       self.pixelstep = 1.0                       # Sub divide pixel for flux
       self.fluxfie = lambda s, a: s/a
       annotatedimage_list.append(self)
-      
+      self.pixoffset = [0.0, 0.0]                # Use this offset to display pixel positions
+
+
+   def set_pixoffset(self, xoff=0.0, yoff=0.0):
+      #-----------------------------------------------------------------
+      """
+      For conversions from FITS to other pixel based coordinate systems.
+      """
+      #-----------------------------------------------------------------
+      self.pixoffset[0] = xoff
+      self.pixoffset[1] = yoff
+
 
    def set_norm(self, clipmin, clipmax):
       #-----------------------------------------------------------------
@@ -2157,6 +2159,10 @@ this class.
       then it is added to the list, which is a global variable called
       *cmlist*.
 
+      The Kapteyn Package has also a list with useful color maps. See
+      example below or example 'mu_luttest.py' in the
+      :doc:`maputilstutorial`.
+      
       If you add the event handler *interact_imagecolors()* it is
       possible to change colormaps with keyboard keys and mouse.
 
@@ -2178,6 +2184,12 @@ this class.
          or use the constructor as in:
 
          >>> annim = fitsobj.Annotatedimage(frame, cmap="spectral", clipmin=10000, clipmax=15500)
+
+         Get extra lookup tables from Kapteyn Package:
+      
+         >>> extralist = mplutil.VariableColormap.luts()
+         >>> maputils.cmlist.add(extralist)
+
       """
       #-----------------------------------------------------------------
       if cmap == None:
@@ -2469,7 +2481,7 @@ this class.
 
          >>> annim.Contours(filled=True)
 
-         In the next example not the plural form of the standard Matplotlib
+         In the next example note the plural form of the standard Matplotlib
          keywords. They apply to all contours:
          
          >>> annim.Contours(colors='w', linewidths=2)
@@ -2478,7 +2490,7 @@ this class.
       
          >>> annim.Contours(levels=[-500,-300, 0, 300, 500], negative="dotted")
 
-         A combination of keyword parameters with less elements then
+         A combination of keyword parameters with less elements than
          the number of contour levels:
       
          >>> cont = annim.Contours(linestyles=('solid', 'dashed', 'dashdot', 'dotted'),
@@ -2520,9 +2532,9 @@ this class.
       :type clines:
           Boolean
       :param kwargs:
-          Method specific keyword arguments and Keyword arguments for Matplotlib's method *ColorbarBase()*
+          Specific keyword arguments and Keyword arguments for Matplotlib's method *ColorbarBase()*
 
-          * *frame* - Default a colorbar will 'steal' some space from its parent frame
+          * *frame* - By default a colorbar will 'steal' some space from its parent frame
             but this behaviour can be overruled by setting an explicit frame (Matplotlib Axes object).
           * *label* - A text that will be plotted along the long axis of the colorbar.
 
@@ -2633,6 +2645,7 @@ this class.
             self.skyout = skyout
             self.spectrans = spectrans
 
+      print "Graticule sky,spec", self.skyout, self.spectrans, self.mixpix
       gratdata = Gratdata(self.hdr, self.axperm, self.pxlim, self.pylim, self.mixpix, self.skyout, self.spectrans)
       graticule = wcsgrat.Graticule(graticuledata=gratdata, **kwargs)
       graticule.visible = visible     # A new attribute only for this context
@@ -2763,13 +2776,12 @@ this class.
       :Properties:
 
          A selection of keyword arguments for the beam (which is a
-         Matplotlib :class:`Polygon`
-         object are:
+         Matplotlib :class:`Polygon` object) are:
 
          * alpha - float (0.0 transparent through 1.0 opaque)
-         * color - matplotlib color arg or sequence of rgba tuples
-         * edgecolor or ec - mpl color spec, or None for default, or 'none' for no color
-         * facecolor or fc - mpl color spec, or None for default, or 'none' for no color
+         * color - Matplotlib color arg or sequence of rgba tuples
+         * edgecolor or ec - Matplotlib color spec, or None for default, or 'none' for no color
+         * facecolor or fc - Matplotlib color spec, or None for default, or 'none' for no color
          * linestyle  or ls - ['solid' | 'dashed' | 'dashdot' | 'dotted']
          * linewidth or lw - float or None for default
 
@@ -2812,10 +2824,11 @@ this class.
          String
       :param x:
          If keyword argument *pos* is not used, then this method
-         expects numbers in parameters *x* and *y*
+         expects numbers in parameters *x* and *y*. Advantage of
+         using this parameter, is that it skips the position
+         parser and therefore it is much faster.
       :type x:
          Float or a sequence of floating point numbers
-         String
       :param y:
          If keyword argument *pos* is not used, then this method
          expects numbers in parameters *x* and *y*
@@ -3025,8 +3038,9 @@ this class.
       :type matchspatial:
          Boolean
 
-      :Raises:
-         If an exception is raised then the return values of the world
+      :Note:
+         If somewhere in the process an error occurs,
+         then the return values of the world
          coordinates are all *None*.
 
       :Returns:
@@ -3126,7 +3140,7 @@ this class.
       #--------------------------------------------------------------------
       """
       This is a helper method for method :meth:`wcs.Projection.topixel`.
-      It knows about missing spatial axis if a data slice has only one
+      It knows about the missing spatial axis if a data slice has only one
       spatial axis. It converts world coordinates in units (given by the
       FITS header, or the spectral translation) from a map to pixel coordinates.
       Note that pixels in FITS run from 1 to *NAXISn*.
@@ -3144,9 +3158,9 @@ this class.
          pixel on the missing spatial axis.
       :type matchspatial:
          Boolean
-      :Raises:
-         If an exception is raised then the return values of the pixel
-         coordinates are all *None*.
+      
+       If somewhere in the proces an error occurs, then the return values of the pixel
+       coordinates are all *None*.
          
       :Returns:
          Two pixel coordinates: *x* which is the world coordinate for
@@ -3229,7 +3243,8 @@ this class.
             #if not numpy.ma.is_masked(self.boxdat[yi-1, xi-1]):
             # Note that there is no need to check on -inf and inf values
             # because they are either already filtered or they exist and
-            # are displayed then as strings '-inf' ans 'inf'.
+            # are displayed then as strings '-inf' and 'inf'.
+            x -= self.pixoffset[0]; y -= self.pixoffset[1];
             if self.data != None and not numpy.isnan(self.data[yi-1, xi-1]):
                z = self.data[yi-1, xi-1]
                if missingspatial == None:
@@ -3271,7 +3286,7 @@ this class.
       #--------------------------------------------------------------------
       """
       Allow this :class:`Annotatedimage` object to interact with the user.
-      It reacts on mouse movements. A message is prepared with position information
+      It reacts to mouse movements. A message is prepared with position information
       in both pixel coordinates and world coordinates. The world coordinates
       are in the units given by the (FITS) header.
 
@@ -3555,7 +3570,7 @@ this class.
 
          * **page-down** move forwards through a list with known color maps.
          * **r** (or 'R') **reset** the colors to the original colormap and scaling.
-           The default color map is called 'jet'.
+           The default color map is 'jet'.
          * **i** (or 'I') toggles between **inverse** and normal scaling.
          * **1** sets the colormap scaling to **linear**
          * **2** sets the colormap scaling to **logarithmic**
@@ -3565,7 +3580,7 @@ this class.
          * **b** (or 'B') changes color of **bad** pixels.
          * **h** (or 'H') replaces the current data by a **histogram equalized**
            version of this data.
-         * **m** (or 'M') saves current color**map** lut data to a file.
+         * **m** (or 'M') saves current colormap look up data to a file.
            The default name of the file is the name of file from which the data
            was extracted or the name given in the constructor. The name is
            appended with '.lut'. This data is written in the
@@ -3624,10 +3639,13 @@ this class.
          x, y = axesevent.xdata, axesevent.ydata
          s = self.positionmessage(x, y)
       if s != '':
-         print s       # Write to terminal
+         if axesevent.gipsy and gipsymod:
+            anyout(s)
+         else:
+            print s       # Write to terminal
 
 
-   def interact_writepos(self):
+   def interact_writepos(self, gipsy=False):
       #--------------------------------------------------------------------
       """
       Add mouse interaction (left mouse button) to write the position
@@ -3645,7 +3663,7 @@ this class.
       >>> annim.plot()
       """
       #--------------------------------------------------------------------
-      self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame, 'button_press_event')
+      self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame, 'button_press_event', gipsy=gipsy)
 
 
    def motion_events(self):
@@ -3794,11 +3812,6 @@ header.
 :type hdr:
    pyfits.NP_pyfits.Header instance
 
-:Returns:
-   --
-
-:Notes:
-   --
    
 :Methods:
 
@@ -3866,7 +3879,7 @@ header.
    wcsunits   - Axis units according to WCSLIB:  None
    outsidepix - A position on an axis that does not belong to an image:  None
    
-   If we set the image axes in *fitsobject* then the wcs attributes
+   If we set the image axes in *fitsobject* then the WCS attributes
    will get a value also. This object stores its FITSaxis objects in a list
    called *axisinfo[]*. The index is the required FITS axis number.
    
@@ -3991,7 +4004,7 @@ to know the properties of the FITS data beforehand.
 :param externaldata:
    If defined, then it is data from an external source e.g. user
    defined data or processed data in a numpy array. A user/programmer
-   should check is the shape of the numpy array fits the sizes given
+   should check if the shape of the numpy array fits the sizes given
    in FITS keywords *NAXISn*.
 :type externaldata:
    Numpy array
@@ -4001,10 +4014,7 @@ to know the properties of the FITS data beforehand.
    for their meaning.
 :type parms:
    keyword arguments
-   
-:Returns:
-   --
-      
+
 :Attributes:
    
     .. attribute:: filename
@@ -4021,8 +4031,8 @@ to know the properties of the FITS data beforehand.
        
     .. attribute:: dat
 
-       Pointer to the raw image data (not sliced, swapped or limited in range).
-       The required sliced image data is stored in attribute :attr:`map`.
+       The raw image data (not sliced, swapped or limited in range).
+       The required sliced image data is stored in attribute :attr:`boxdat`.
        This is a read-only attribute. 
        
     .. attribute:: axperm
@@ -4038,8 +4048,8 @@ to know the properties of the FITS data beforehand.
        
     .. attribute:: axisinfo
 
-       A list with :class:`FITSimage` objects. One for each axis. The index is
-       an axis number (starting at 1), not an array index.
+       A list with :class:`FITSaxis` objects. One for each axis. The index is
+       an axis number (starting at 1).
        
     .. attribute:: slicepos
 
@@ -4087,16 +4097,16 @@ to know the properties of the FITS data beforehand.
        latitude in degrees.
       
 :Notes:
-   The constructor sets also a default position for a data slice if
+   The object is initialized with a default position for a data slice if
    the dimension of the FITS data is > 2. This position is either the value
    of CRPIX from the header or 1 if CRPIX is outside the range [1, NAXIS].
 
    Values -inf and +inf in a dataset are replaced by NaN's (not a number number).
-   We now that Matplotlib methods have problems with these values, but these
+   We know that Matplotlib's methods have problems with these values, but these
    methods can deal with NaN's.
 
 :Examples:
-   PyFITS allows url's to retrieve FITS files. It can also read gzipped files e.g.:
+   PyFITS allows URL's to retrieve FITS files. It can also read gzipped files e.g.:
    
       >>> f = 'http://www.atnf.csiro.au/people/mcalabre/data/WCS/1904-66_ZPN.fits.gz'
       >>> fitsobject = maputils.FITSimage(f)
@@ -4135,6 +4145,7 @@ to know the properties of the FITS data beforehand.
 .. automethod:: str_wcsinfo
 .. automethod:: str_spectrans
 .. automethod:: get_dataminmax
+.. automethod:: slice2world
 .. automethod:: header2classic
 .. automethod:: reproject_to
 .. automethod:: writetofits
@@ -4282,6 +4293,57 @@ to know the properties of the FITS data beforehand.
       self.figsize = None      # TODO is dit nog belangrijk??
       
 
+   def slice2world(self):
+      #-----------------------------------------------------------------
+      """
+      Given the pixel coordinates of a slice, return the world
+      coordinates of these pixel positions and their units.
+      For example in a 3-D radio cube with axes RA-DEC-FREQ one can have
+      several RA-DEC images as function of FREQ. This FREQ is given
+      in pixels coordinates in attribute *slicepos*. The world coordinates
+      are calculated using the Projection object which is
+      also an attribute.
+
+      :Returns:
+         A tuple with two elements: *world* and *units*.
+         Element *world* is either an empty list or a list with
+         one or more world coordinates. The number of coordinates is
+         equal to the number of axes in a data set that do not
+         belong to the extracted data which can be a slice.
+         For each world coordinate there is a unit in element *units*.
+
+      :Note:
+         This method first calculates a complete set of world coordinates.
+         Where it did not define a slice position, it takes the header
+         value *CRPIXn*. So if a map is defined with only one spatial axes and
+         the missing spatial axis is found in *slicepos* than we have two
+         matching pixel coordinates for which we can calculate world coordinates.
+         So by definition, if a slice is a function of a spatial
+         coordinate, then its world coordinate is found by using the matching
+         pixel coordinate which in case of a spatial map, corresponds to the
+         projection center.
+      """
+      #-----------------------------------------------------------------
+      # Is there something to do?
+      pix = []
+      units = []
+      world = []
+      j = 0
+      if self.slicepos == None:
+         return None, None
+      for i in range(self.naxis):
+         if (i+1) in self.axperm:
+            pix.append(self.proj.crpix[i])
+         else:
+            pix.append(self.slicepos[j])
+            j += 1
+            # Note that we assumed the order in slicepos is the same as in the Projection object
+      wor = self.proj.toworld(tuple(pix))
+      for i in range(self.naxis):
+         if not (i+1) in self.axperm:
+            world.append(wor[i])
+            units.append(self.proj.cunit[i])
+      return world, units
 
 
    def get_dataminmax(self, box=False):
@@ -4302,12 +4364,12 @@ to know the properties of the FITS data beforehand.
          min, max, two floating point numbers representing the minimum
          and maximum data value in data units of the header (*BUNIT*).
 
-      :Notes:
+      :Note:
          We assume here that the data is read when a FITSobject was created.
          Then the data is filtered and the -inf, inf values are replaced 
          by NaN's.
          
-      :Examples:
+      :Example:
          Note the difference between the min, max of the entire data or the
          min, max of the slice (limited by a box)::
    
@@ -4445,9 +4507,10 @@ to know the properties of the FITS data beforehand.
    def str_wcsinfo(self):
    #------------------------------------------------------------
       """
-      Print the data related to the World Coordinate System (WCS)
-      such as the current sky system and which axes are
-      longitude, latitude or spectral.
+      Compose a string with information about
+      the data related to the current World Coordinate System (WCS)
+      (e.g. which axes are
+      longitude, latitude or spectral axes)
 
       :Returns:
          String with WCS information for the current Projection
@@ -4497,7 +4560,7 @@ to know the properties of the FITS data beforehand.
    def str_spectrans(self):
    #------------------------------------------------------------
       """
-      Print the spectral translations for this data.
+      Compose a string with the possible spectral translations for this data.
 
       :Returns:
          String with information about the allowed spectral
@@ -4596,7 +4659,8 @@ to know the properties of the FITS data beforehand.
       :type spectrans:
          Integer
       :param promptfie:
-         A function, supplied by the user, that can
+         A Function that for in an Interactive Environment (fie),
+         supplied by the user, that can
          prompt a user to enter the values for axnr1, axnr2
          and slicepos. An example of a function supplied by
          :mod:`maputils` is function :func:`prompt_imageaxes`
@@ -4616,9 +4680,6 @@ to know the properties of the FITS data beforehand.
             spatial axis for one of the image axes could not be found
             in the FITS header. It will not be possible to get
             useful world coordinates for the spatial axis in your image.
-
-      :Returns:
-         --
 
       **Modifies attributes:**
           .. attribute:: axisinfo
@@ -4640,7 +4701,7 @@ to know the properties of the FITS data beforehand.
 
                 One or a list with integers that represent pixel positions on
                 axes in the data set that do not belong to the image.
-                At these position a slice with image data is extracted.
+                At these position, a slice with image data is extracted.
 
           .. attribute:: map
 
@@ -4667,7 +4728,7 @@ to know the properties of the FITS data beforehand.
                 The axis numbers corresponding with the X-axis and Y-axis in
                 the image.
 
-      :Notes:
+      :Note:
          The aspect ratio is reset (to *None*) after each call to this method.
 
       :Examples:
@@ -4873,7 +4934,7 @@ to know the properties of the FITS data beforehand.
          self.spectrans = promptfie(self)
       if self.spectrans != None:
          self.convproj = self.convproj.spectra(self.spectrans)
-         
+      print "in set_spectra", self.spectrans
 
          
    def set_skyout(self, skyout=None, promptfie=None):
@@ -4952,12 +5013,6 @@ to know the properties of the FITS data beforehand.
          :mod:`maputils` is function :func:`prompt_box`
       :type promptfie:
          Python function
-
-      :Returns:
-         --
-
-      :Notes:
-         --
 
       :Examples: Ask user to enter limits with prompt function :func:`prompt_box`
          
@@ -5039,12 +5094,12 @@ to know the properties of the FITS data beforehand.
       Usually a user will set the figure size manually
       with Matplotlib's figure(figsize=...) construction.
       For many plots this is a waste of white space around the plot.
-      This can be improves by taken the aspectratio into account
+      This can be improved by taking the aspect ratio into account
       and adding some extra space for labels and titles.
       For aspect ratios far from 1.0 the number of pixels in x and y
       are taken into account.
 
-      A handy feature is that you can enter two value in centimeter
+      A handy feature is that you can enter the two values in centimeters
       if you set the flag *cm* to True.
 
       If you have a plot which is higher than its width and you want to
@@ -5093,27 +5148,27 @@ to know the properties of the FITS data beforehand.
       #--------------------------------------------------------------------
       """
       If a header contains PC or CD elements, and not all the 'classic'
-      elements for a wcs then  a number of FITS readers could have a
+      elements for a WCS then  a number of FITS readers could have a
       problem if they don't recognize a PC and CD matrix. What can be done
       is to derive the missing header items, CDELTn and CROTA from
       these headers and add them to the header.
 
       When a header is altered in such legacy environments and written back
-      into a FITS file again you will end up with a mixed environment because
-      you have a header that has both all classic FITS cards to descibe a wcs and
+      into a FITS file, you will end up with a mixed environment because
+      you have a header that has both all classic FITS cards to describe a WCS and
       the PC or CD description which is usually is untouched.
       This method inspects the header of the current FITSimage object.
-      If it has all the classic keywords for a wcs then it will only search
+      If it has all the classic keywords for a WCS then it will only search
       voor PC and CD elements and remove them from the header.
       If the CDELTs or CROTA are missing in the header and there is a CD matrix,
-      then the necessary elements are derived from this matric. The same can be done
+      then the necessary elements are derived from this matrix. The same can be done
       if there is a PC matrix, but then the CDELT's must be present in the header.
 
       The CDi_j matrix must not be singular. If so, an exception is raised.
       Elements in the CD matrix that are not specified default to 0.0
 
-      PCi_j elements that are not specified defaults to 1.0 if i == j and
-      to 0.0 if i != j. Also the PC matric must not be singular.
+      PCi_j elements that are not specified default to 1.0 if i == j and
+      to 0.0 if i != j. Also the PC matrix must not be singular.
 
       A PC and CD matrix should not both be present in the same header.
       
@@ -5121,15 +5176,17 @@ to know the properties of the FITS data beforehand.
       in FITS', section 6
 
       :Returns:
+         A tuple with three elements:
 
          * *hdr* - A modified copy of the current header.
            The CD and PC elements are removed.
-         * *skew* - Difference between the two calculates rotation angles
+         * *skew* - Difference between the two calculated rotation angles
            If this number is bigger then say 0.001 then there is considerable
            skew in the data. One should reproject the data so that it fits
-           a none skewed version with only a CROTA in the header
+           a non skewed version with only a CROTA in the header
          * A message if somehow this routine fails to process the header.
-           If a message exists ((i.e. <> "") then the *hdr* is None.
+           If a message exists ((i.e. a non empty string) then element *hdr* is
+           set to None.
            So in the calling environment you can check on both
            return values.
 
@@ -5154,13 +5211,13 @@ to know the properties of the FITS data beforehand.
 
       :Notes:
 
-         This method is tested with the following FITS files with
+         This method is tested with FITS files:
 
-         * Classic header
-         * Only CD matrix
-         * Only PC matrix
-         * With PC and CD
-         * With CD and NAXIS > 2
+         * With classic header
+         * With only CD matrix
+         * With only PC matrix
+         * With PC and CD matrix
+         * With CD matrix and NAXIS > 2
          * With sample files with skew
 
          
@@ -5397,8 +5454,8 @@ to know the properties of the FITS data beforehand.
       the headers so there is no need to specify the spatial parts of the
       data structures.
 
-      The image that is reprojected kan be limited in pixel coordinates
-      with the :meth:`set_limits()` method. If the input is a FITSimage object than
+      The image that is reprojected can be limited in pixel coordinates
+      with the :meth:`set_limits()` method. If the input is a FITSimage object then
       also the output size can be altered by using :meth:`set_limits()` for the
       pixel coordinate limits of the destination.
 
@@ -5416,7 +5473,7 @@ to know the properties of the FITS data beforehand.
              one spatial map and its slice information is copied
              from the current FITSimage. This option is selected if you
              want to overlay e.g. contours from the current FITSimage
-             data onto data from another wcs. 
+             data onto data from another WCS. 
       :type reprojobj:
           Python dictionary or PyFITS header. Or a :class:`maputils.FITSimage`
           object
@@ -5424,7 +5481,7 @@ to know the properties of the FITS data beforehand.
           Limits in pixels for the reprojected box
       :param plimlo:
           One or more pixel coordinates corresponding to axes outside
-          the spatial map in order as found in the header 'repheader'.
+          the spatial map in order as found in the header 'reprojobj'.
           The values set the lower limits of the axes.
           There is no need to specify all limits but the order is important.
       :type plimlo:
@@ -5442,11 +5499,11 @@ to know the properties of the FITS data beforehand.
           .. tabularcolumns:: |p{10mm}|p{100mm}|
 
           =========  ===============================================================        
-            order :  int, optional
+            order :  Integer, optional
 
                      The order of the spline interpolation, default is 1.
                      The order has to be in the range 0-5.
-            mode :   str, optional
+            mode :   String, optional
 
                      Points outside the boundaries of the input are filled according
                      to the given mode ('constant', 'nearest', 'reflect' or 'wrap').
@@ -5496,8 +5553,8 @@ to know the properties of the FITS data beforehand.
 
          Note that if the data structure was represented by axes
          FREQ-RA-STOKES-DEC then the examples above are still valid because
-         the set the limits on the repeat axes FREQ and POL whatever the
-         position of these axes in the data structure
+         these set the limits on the repeat axes FREQ and POL whatever the
+         position of these axes in the data structure.
           
       :Tests:
 
@@ -5911,7 +5968,7 @@ to know the properties of the FITS data beforehand.
       on disk. This is useful if either header or data comes from an
       external source. If no file name is entered then a file name
       will be composed using current date and time of writing.
-      The names start with 'FITS'.
+      The name then start with 'FITS'.
 
       :param filename:
          Name of new file on disk. If omitted the default name is
@@ -5928,7 +5985,7 @@ to know the properties of the FITS data beforehand.
          Boolean
       :param bitpix:
          Write FITS data in another format (8, 16, 32, -32, -64).
-         If nor *bitpix* is entered then -32 is assumed. Parameters 
+         If no *bitpix* is entered then -32 is assumed. Parameters
          *bzero*, *bscale* and *blank* are ignored then.
       :type bitpix:
          Integer
@@ -5960,24 +6017,19 @@ to know the properties of the FITS data beforehand.
       :type clobber:
          Boolean
       :param append:
-         Append image data in new hdu to existing FITS file
+         Append image data in new HDU to existing FITS file
       :type append:
          Boolean
       :param extname:
          Name of image extension if append=True. Default is empty string.
       :type  extname:
          String
-         
-      :Returns:
-         ---
 
       :Raises:
          :exc:`ValueError`
              You will get an exception if the shape of your external data in parameter 'boxdat'
              is not equal to the current sliced data with limits.
 
-      :Notes:
-         ---
 
       :Examples: Artificial header and data:
 
@@ -6152,6 +6204,7 @@ to know the properties of the FITS data beforehand.
       if frame == None:
          fig = figure()
          frame = fig.add_subplot(1,1,1)
+      print "Before annotatedimage", self.skyout, self.spectrans, self.mixpix
       mplimage = Annotatedimage(frame, self.hdr, self.pxlim, self.pylim, self.boxdat,
                                 self.convproj, self.axperm,
                                 skyout=self.skyout, spectrans=self.spectrans,
@@ -6192,9 +6245,6 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
    Boolean
    
 
-:Returns:
-   --
-
 :Attributes:
    
     .. attribute:: annimagelist
@@ -6209,10 +6259,7 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
 
        A value in seconds, representing the interval of refreshing an image
        in the movie loop.
-       
-:Notes:
-   --
-   
+
 
 :Examples:
    Use of this class as a container for images in a movie loop:
@@ -6260,16 +6307,11 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
       :param visible:
          Set the data in this object to visible or invisible. Usually one sets
          the first image in a movie to visible and the others to invisible.
-      
-      :Returns:
-          --
 
       :Raises:
          'Container object not of class maputils.Annotatedimage!'
          An object was not recognized as a valid object to append.
-      
-      :Notes:
-          --
+
       """
    #---------------------------------------------------------------------
       if not isinstance(annimage, Annotatedimage):
@@ -6284,17 +6326,12 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
    #---------------------------------------------------------------------
       """
       Connect keys for movie control and start the movie.
-      
-      :Returns:
-          --
 
       :Raises:
          'No objects in container!'
          The movie container is empty. Use method :meth:`MovieContainer.append`
          to fill it.
-         
-      :Notes:
-          --
+
       """
    #---------------------------------------------------------------------
       if self.fig == None:
@@ -6387,12 +6424,7 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           Step forward through list if next=True. Else step backwards.
        :type next:
           Boolean
-          
-       :Returns:
-          --
-       
-       :Notes:
-          
+
        """
     #---------------------------------------------------------------------
        oldim = self.annimagelist[self.indx]

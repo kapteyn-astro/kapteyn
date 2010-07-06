@@ -26,52 +26,51 @@ If you are only interested in coordinate transformations, then the
 Which module to use?
 ---------------------
 
-.. tabularcolumns:: |p{100mm}|p{50mm}|
+.. tabularcolumns:: p{1mm}|p{100mm}|p{50mm}|
 
-+-------------------------------------------+---------------------------+
-|You want:                                  |You need:                  |
-+===========================================+===========================+
-|For a set of world coordinates, I want     |:mod:`wcs` (you need also  |
-|to transform these to another projection   |a FITS header or Python    |
-|system                                     |dictionary with WCS        |
-|                                           |information)               |
-+-------------------------------------------+---------------------------+
-|I want to transform world coordinates      |:mod:`wcs`                 |
-|between sky- and reference systems         |                           |
-+-------------------------------------------+---------------------------+
-|I want a parser to convert a string with   |:mod:`positions`           |
-|position information to pixel- and/or      |                           |
-|world coordinates.                         |                           |
-+-------------------------------------------+---------------------------+
-|I want to transform data in a FITS file    |:mod:`maputils`            |
-|from one projection system to another      |                           |
-+-------------------------------------------+---------------------------+
-|I want to build a utility that converts a  |:mod:`maputils`            |
-|header with a PC or CD matrix to a         |                           |
-|'classic' header with CRPIX, CRVAL, CDELT  |                           |
-|and CROTA                                  |                           |
-+-------------------------------------------+---------------------------+
-|I want to create a utility that can        |:mod:`maputils`            |
-|display a mosaic of image data             |                           |
-+-------------------------------------------+---------------------------+
-|I want to plot an all sky map with         |:mod:`maputils`            |
-|graticules                                 |                           |
-+-------------------------------------------+---------------------------+
-|I want to calculate flux in a set of       |:mod:`maputils`,           |
-|images                                     |:mod:`shapes`              |
-+-------------------------------------------+---------------------------+
-|I want to create a simple FITS file viewer |:mod:`maputils`            |
-|with user interaction for the colors etc.  |                           |
-+-------------------------------------------+---------------------------+
-|I want to read a huge data file very fast  |:mod:`tabarray`            |
-+-------------------------------------------+---------------------------+
-|Given a year, month and day number, I want |:mod:`celestial`           |
-|the corresponding Julian date              |                           |
-+-------------------------------------------+---------------------------+
-|I want to know the obliquity of the        |:mod:`celestial`           |
-|ecliptic at a Julian date?                 |                           |
-+-------------------------------------------+---------------------------+
+== =========================================== ============================
+.. You want:                                   You need:
+== =========================================== ============================
+.. For a set of world coordinates, I want      :mod:`wcs`, (you need also
+   to transform these to another projection    a FITS header or Python
+   system                                      dictionary with WCS
+                                               information)
 
+.. I want to transform world coordinates       :mod:`wcs`
+   between sky- and reference systems
+
+.. I want a parser to convert a string with    :mod:`positions`
+   position information to pixel- and/or
+   world coordinates.
+
+.. I want to transform data in a FITS file     :mod:`maputils`
+   from one projection system to another
+
+.. I want to build a utility that converts a   :mod:`maputils`
+   header with a PC or CD matrix to a
+   'classic' header with CRPIX, CRVAL, CDELT
+   and CROTA
+
+.. I want to create a utility that can         :mod:`maputils`
+   display a mosaic of image data
+
+.. I want to plot an all sky map with          :mod:`maputils`
+   graticules
+
+.. I want to calculate flux in a set of        :mod:`maputils`,
+   images                                      :mod:`shapes`
+
+.. I want to create a simple FITS file viewer  :mod:`maputils`
+   with user interaction for the colors etc.
+
+.. I want to read a huge data file very fast   :mod:`tabarray`
+
+.. Given a year, month and day number, I want  :mod:`celestial`
+   the corresponding Julian date
+
+.. I want to know the obliquity of the         :mod:`celestial`
+   ecliptic at a Julian date?
+== =========================================== ============================
 
 
 Functionality of the modules in the Kapteyn Package
