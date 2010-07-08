@@ -265,6 +265,13 @@ __version__ = '1.9'
 (left,bottom,right,top) = (wcsgrat.left, wcsgrat.bottom, wcsgrat.right, wcsgrat.top)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = (wcsgrat.native, wcsgrat.notnative, wcsgrat.bothticks, wcsgrat.noticks) 
 
+
+# The plot canvas has a toolbar and in that toolbar
+# one can display messages. We modified the default use
+# of this toolbar so that it does not display its own
+# message while we are in pan- or zoom mode.
+messenger = None
+
 # Each object of class Annotatedimage is stored in a list.
 # This list is used by function 'showall()' to plot
 # all the objects in each Annotatedimage object.
@@ -1414,13 +1421,11 @@ class Beam(object):
                 units=None, **kwargs):
       self.ptype = "Beam"
 
-      print "Units=", units
       if units != None:
          uf, errmes = unitfactor('degree', units)
          if uf == None:
             raise ValueError(errmes)
          else:
-            print 
             fwhm_major /= uf
             fwhm_minor /= uf
 
@@ -2009,6 +2014,7 @@ this class.
       """
       """
       #-----------------------------------------------------------------
+      global messenger
       self.ptype = "Annotatedimage"
       self.hdr = header
       self.projection = projection
@@ -2036,6 +2042,10 @@ this class.
       self.objlist = []
       self.frame = self.adjustframe(frame)
       self.figmanager = plt_get_current_fig_manager()
+      if messenger == None:
+        # Initialize only once because we have only one toolbar
+         messenger = self.figmanager.toolbar.set_message
+         self.figmanager.toolbar.set_message=lambda x: None
       # Related to color maps:
       self.set_colormap(cmap)
       self.set_blankcolor(blankcolor)
@@ -2559,7 +2569,7 @@ this class.
           >>> annim.Image()
           >>> colbar = annim.Colorbar(fontsize=8)
           >>> annim.plot()
-          >>>plt.show()
+          >>> plt.show()
 
           Set frames for Image and Colorbar:
 
@@ -2645,7 +2655,6 @@ this class.
             self.skyout = skyout
             self.spectrans = spectrans
 
-      print "Graticule sky,spec", self.skyout, self.spectrans, self.mixpix
       gratdata = Gratdata(self.hdr, self.axperm, self.pxlim, self.pylim, self.mixpix, self.skyout, self.spectrans)
       graticule = wcsgrat.Graticule(graticuledata=gratdata, **kwargs)
       graticule.visible = visible     # A new attribute only for this context
@@ -3276,10 +3285,12 @@ this class.
       #--------------------------------------------------------------------
       s = ''
       x, y = axesevent.xdata, axesevent.ydata
-      if self.figmanager.toolbar.mode == '':
+      if 1 : #self.figmanager.toolbar.mode == '':
          s = self.positionmessage(x, y)
       if s != '':
-         self.figmanager.toolbar.set_message(s)
+         messenger(s)
+         
+         #self.figmanager.toolbar.set_message(s)
 
 
    def interact_toolbarinfo(self):
@@ -4293,7 +4304,7 @@ to know the properties of the FITS data beforehand.
       self.figsize = None      # TODO is dit nog belangrijk??
       
 
-   def slice2world(self):
+   def slice2world(self, skyout=None, spectra=None):
       #-----------------------------------------------------------------
       """
       Given the pixel coordinates of a slice, return the world
@@ -4304,6 +4315,17 @@ to know the properties of the FITS data beforehand.
       are calculated using the Projection object which is
       also an attribute.
 
+      :param skyout:
+         Set current projection object in new output sky mode
+      :type skyout:
+         String or tuple representing sky definition
+      
+
+      :param spectra:
+         Use this spectral translation for the output world coordinates
+      :type spectra:
+         String
+         
       :Returns:
          A tuple with two elements: *world* and *units*.
          Element *world* is either an empty list or a list with
@@ -4320,29 +4342,43 @@ to know the properties of the FITS data beforehand.
          matching pixel coordinates for which we can calculate world coordinates.
          So by definition, if a slice is a function of a spatial
          coordinate, then its world coordinate is found by using the matching
-         pixel coordinate which in case of a spatial map, corresponds to the
+         pixel coordinate which, in case of a spatial map, corresponds to the
          projection center.
+
+      :Example:
+      
+         >>> vel, uni = fitsobj.slice2world(spectra="VOPT-???")
+         >>> velinfo = "ch%d = %.1f km/s" % (ch, vel[0]/1000.0)
       """
       #-----------------------------------------------------------------
       # Is there something to do?
+      if self.slicepos == None:
+         return None, None
       pix = []
       units = []
       world = []
       j = 0
-      if self.slicepos == None:
-         return None, None
+      skyout_old = self.proj.skyout
+      if skyout != None:
+         self.proj.skyout = skyout
+      if spectra != None:
+         newproj = self.proj.spectra(spectra)
+      else:
+         newproj = self.proj
       for i in range(self.naxis):
          if (i+1) in self.axperm:
             pix.append(self.proj.crpix[i])
          else:
             pix.append(self.slicepos[j])
             j += 1
-            # Note that we assumed the order in slicepos is the same as in the Projection object
-      wor = self.proj.toworld(tuple(pix))
+            # Note that we assumed the axis order in slicepos is the same as in the Projection object
+      wor = newproj.toworld(tuple(pix))
       for i in range(self.naxis):
          if not (i+1) in self.axperm:
             world.append(wor[i])
-            units.append(self.proj.cunit[i])
+            units.append(newproj.cunit[i])
+      if skyout != None:
+         self.proj.skyout = skyout_old
       return world, units
 
 
@@ -4934,7 +4970,6 @@ to know the properties of the FITS data beforehand.
          self.spectrans = promptfie(self)
       if self.spectrans != None:
          self.convproj = self.convproj.spectra(self.spectrans)
-      print "in set_spectra", self.spectrans
 
          
    def set_skyout(self, skyout=None, promptfie=None):
@@ -4970,6 +5005,7 @@ to know the properties of the FITS data beforehand.
    #--------------------------------------------------------------
       spatials = [self.proj.lonaxnum, self.proj.lataxnum]
       spatialmap = self.axperm[0] in spatials and self.axperm[1] in spatials
+
       if not spatialmap:
          return         # Silently
       
@@ -4980,6 +5016,7 @@ to know the properties of the FITS data beforehand.
             self.skyout = skyout
       else:
          self.skyout = promptfie(self)
+
       if self.skyout != None:
          self.convproj.skyout = self.skyout
    
@@ -6204,7 +6241,6 @@ to know the properties of the FITS data beforehand.
       if frame == None:
          fig = figure()
          frame = fig.add_subplot(1,1,1)
-      print "Before annotatedimage", self.skyout, self.spectrans, self.mixpix
       mplimage = Annotatedimage(frame, self.hdr, self.pxlim, self.pylim, self.boxdat,
                                 self.convproj, self.axperm,
                                 skyout=self.skyout, spectrans=self.spectrans,

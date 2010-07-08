@@ -37,9 +37,9 @@ which converts strings with position information into pixel coordinates
 and world coordinates. Let's list some options with examples how to use
 method :meth:`str2pos`.
 
-Assume we have a projection object *pr* and
+Assume we have a projection object *pr* and you
 want to know the world coordinates *w* and the pixels *p* for a given
-string (*u* are the units of the world coordinates and *e* is an error message).
+string (*u* are the units of the world coordinates and *e* is an error message):
 
    * Expressions for the input of numbers.
      Example: ``w,p,e = str2pos('[pi]*3, [e**2]*3`', pr)``
@@ -94,7 +94,7 @@ a Python dictionary with FITS keywords.
 How to use this module
 ----------------------
 
-This module is used in other modules of the Kapteyn Package, but
+This module is included in other modules of the Kapteyn Package, but
 it can also be imported in your own scripts so that you are able to convert
 positions in a string to pixel- and world coordinates.
 It is also possible to use it as a test application (on the command line
@@ -1311,8 +1311,8 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None, gipsy=False):
    #-------------------------------------------------------------------
    skyout_orig = subproj.skyout            # Store and restore before return
    errmes = ''                             # Init error message to no error 
-   #r_world = []
-   #r_pixels = []
+   r_world = []
+   r_pixels = []
    subsetunits = None
    if gipsy:
       # First we determine the -integer- offsets to transform grids
@@ -1404,7 +1404,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None, gipsy=False):
       # Get world coordinates in system of input projection system
       wor = subproj.toworld(tuple(pix))
       subsetunits = subproj.cunit     # Set units to final units
-      """
+      
       # pix is a tuple with 'subdim' coordinates. But note: each coordinate
       # can be an array with one or more numbers.
       # Make a NumPy array of this tuple and transpose the array
@@ -1416,9 +1416,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None, gipsy=False):
       for w, p in zip(wt, pt):
          r_world.append(w)
          r_pixels.append(p)
-   return r_world, r_pixels, subsetunits, errmes
-      """
-   return wor, pix, subsetunits, errmes
+   return asarray(r_world), asarray(r_pixels), subsetunits, errmes
 
 
 def str2pos(postxt, subproj, mixpix=None, maxpos=100000):
@@ -1537,19 +1535,7 @@ def str2pos(postxt, subproj, mixpix=None, maxpos=100000):
                                               gipsy=False)
       if errmes != '':
          return [], [], [], errmes
-
-      # pix is a tuple with 'subdim' coordinates. But note: each coordinate
-      # can be an array with one or more numbers.
-      # Make a NumPy array of this tuple and transpose the array
-      # to get one position (i.e. subdim coordinates) in one row.
-      wt = asarray(wor).T
-      pt = asarray(pix).T
-      # Append to the results list. Note that list appending is more flexible than
-      # NumPy array concatenation.
-      for w, p in zip(wt, pt):
-         r_world.append(w)
-         r_pixels.append(p)
-   return asarray(r_world), asarray(r_pixels), subsetunits, ''
+   return wor, pix, subsetunits, ''
 
 
 def dotest():
@@ -1657,7 +1643,7 @@ def dotest():
    print "--------- Sky systems and AC&PC ----------\n"
    proj = origproj.sub((1,2))
    userpos = ["0 0",
-              "5,6",
+              "5,6 0 0 3,1",
               "eq 178.7792  eq 53.655",          # e 10 will not work because e is not a symbol and an ambiguous sky system`
               "{eq} 178.7792  {} 53.655",
               "178.7792 deg  53.655 deg",
