@@ -96,6 +96,7 @@ Symbol                  String        Description
 .. _celestial-refsystems:
    
 Reference systems
+.................
 
 .. tabularcolumns:: |p{20mm}|p{20mm}|p{110mm}|
 

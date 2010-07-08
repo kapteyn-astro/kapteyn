@@ -8,12 +8,12 @@ Introduction
 ------------
 
 This tutorial aims at starters. Experienced users find relevant but compact documentation
-in the module API documentation. In this tutorial we address different practical
+in the module documentation. In this tutorial we address different practical
 situations where we need to convert between pixel- and world coordinates. 
 Many examples are working scripts, others are very useful to try in an interactive
 Python session.
 
-:mod:`wcs` is the core of the kapteyn package. An important feature of that package is
+:mod:`wcs` is the core of the Kapteyn Package. An important feature of that package is
 that it provides a world coordinate system which is easy to incorporate in your own
 (Python) environment and :mod:`wcs` provides the basic methods to do this.
 Together with module  :mod:`celestial` it allows a user to transform between pixel coordinates
@@ -53,10 +53,10 @@ Main goal of module :mod:`wcs`  is to
 enable transformations between pixel coordinates and world coordinates
 The pixel coordinates are defined by the FITS standard. The transformation 
 is defined by meta data which are usually found in FITS headers.
-So it may be obvious that FITS files play a central role in the use of
+So it may be obvious that FITS files play an important role in the use of
 Module :mod:`wcs`.
 
-However, FITS data processed by :mod:`wcs` are in fact FITS keywords that are
+However, FITS data processed by :mod:`wcs` can also be FITS keywords that are
 stored in a Python dictionary. This invites to experiment with WCSLIB even more
 because one can create a (minimal) FITS header from scratch.
 In an attempt to create the most simple use of :mod:`wcs` we started to write a
@@ -68,14 +68,14 @@ these keywords can be found in
 We entered an axis type in *CTYPE1* that WCSLIB does not recognize as a 
 known type. With this trick we force the system to do a linear transformation.
 It shows that you have to be careful with values for CTYPE because 
-you will not be warned if a CTYPE is not recognized. 
+you will not be warned when a CTYPE is not recognized.
  
 For the conversions between pixel coordinates and world coordinates we 
 defined methods in a class which we called the :class:`wcs.Projection` class.
 An object of this class is created using the header of the FITS file for
 which we want WCS transformations. It accepts also a user defined
 Python dictionary with FITS keywords and values. We use this last option
-in this tutorial to be more flexible when we want to apply changes in the header.
+in this tutorial to be more flexible when we want to apply changes to the header.
 
 The methods for single axes are called :meth:`wcs.Projection.toworld1d` and 
 :meth:`wcs.Projection.topixel1d`.
@@ -163,7 +163,7 @@ The pixel coordinates  9, 10 and 11 should give values in the neighbourhood of
 
 .. note:: 
        
-      The advantage of NumPy arrays is that you can use them in mathematical
+      An advantage of NumPy arrays is that you can use them in mathematical
       expressions to process the array content. 
       For example: assume you have a sequence of velocities in a numpy array V
       but want to express the numbers in km/s, then change the content with expression:
@@ -325,9 +325,9 @@ the world coordinates ('ABCD-XYZ'). Shorter coordinate types are padded
 with the '-' character, shorter algorithm codes are padded on the right
 with blanks ('RA---NCP', 'RA---UV\_ '). So if we were sloppy and
 wrote RA--NCP and DEC-NCP then WCSLIB assigns a linear conversion algorithm.
-It does not complain, but you get unexpected results. If your CTYPE's are correct
+It does not complain, but you get unexpected results. If your CTYPEs are correct
 but the units are not standard and are not recognized by WCSLIB, then you get
-an Python exception after you tried to create the Projection object.
+an Python exception after you try to create the Projection object.
 For example, if you specified CUNIT1='Degree' then the error message displayed by the
 exception is:
 *"Invalid coordinate transformation parameters".*
@@ -373,7 +373,7 @@ and :meth:`wcs.Projection.topixel`
 are tuples. The dimension of the tuple corresponds to the number of axes in the Projection object,
 and each element in the tuple can be a list of scalars.
 In some situations it is more intuitive to start with a list of 2 dimensional positions.
-The Python interface to WCSLIB allows for this type of input.
+The :mod:`wcs` module allows for this type of input.
 You can get the same coordinate output as the previous script if you replace the body by::
 
    proj = wcs.Projection(header)
@@ -504,7 +504,7 @@ for positions with less dimensions than the dimension of the data structure.
 In practice we encounter many astronomical measurements based on three or more independent axes.
 Well known examples are of course the data sets from radio interferometers.
 Usually these are spatial maps observed at different frequencies and sometimes
-as function of Stokes parameter (polarization). If we are only interested in
+as function of Stokes parameters (polarization). If we are only interested in
 spatial maps and don't bother about the other axes,
 we can create a Projection object with only the relevant axes.
 This is done with the  :meth:`wcs.Projection.sub` method from the Projection class.
@@ -514,7 +514,7 @@ This is done with the  :meth:`wcs.Projection.sub` method from the Projection cla
 The method has two parameters. You can specify parameter *nsub* which sets the first
 *nsub* axes from the original Projection object to the actual axes.
 Or you can use the other parameter axes which is a tuple or a list with axis numbers.
-Axis numbers in WCSLIB follow the fits standard so they start with 1.
+Axis numbers in WCSLIB follow the FITS standard so they start with 1.
 The order in the sequence is important. The axis description sequence in a
 FITS file is not bound to rules and luckily WCSLIB accepts permuted axis number sequences.
 This can be illustrated with the next example.
@@ -859,7 +859,8 @@ we need to find and inspect the axis numbers ourselves.
    # True
    
 
-Note the check at the end of the code.  It should return `True`. We started with world coordinates
+Note the check at the end of the code.  It should return `True` (i.e. within some
+limited precision). We started with world coordinates
 equal to the values of CRVALn from the header and we assert that these correspond
 to pixel values equal to the corresponding CRPIXn.
 
@@ -916,7 +917,7 @@ then we find the missing coordinates after applying the lines::
    print "pixel_out = ", pixel_out
    # pixel_out = (51.0, -20.0, 51.0)
    
-The *mixed()* method in wcs is more powerful than its equivalent in the C-version
+The *mixed()* method in :mod:`wcs` is more powerful than its equivalent in the C-version
 of WCSLIB. It accepts the same coordinate representations as for *topixel()* and *toworld()*
 whereas the library version accepts only one coordinate pair per call.
 
@@ -943,9 +944,10 @@ coordinate will also be a NaN. You can test whether a value is a NaN with
 function *numpy.isnan()*. NaN's cannot be compared so a simple test as in:
 
 >>> x = numpy.nan
->>> if x == numpy.nan:
+>>> if x == numpy.nan:         # ... fails
       
-will fail because the result is always `False` 
+will fail because the result is always `False`  The test x != x will
+give True if x is NaN.
 
 In practice it will be difficult to get into problems if you convert from world coordinates
 to pixel coordinates, but when you start with pixel coordinates then it is possible
@@ -996,13 +998,13 @@ Reading data from a FITS file
 Reading a FITS header
 .....................
 
-Until now, we created our own header which was a Python dictionary which could be processed by
-the :mod:`wcs` module.
-Usually our starting point is a FITS file.
+Until now, we created our own header as a Python dictionary.
+But usually our starting point is a FITS file.
 A FITS file can contain more than one header. Header data is read from a FITS file with methods from
 module :mod:`pyfits`.
 Select the unit you want and store it in a variable (like *header*) so that it can be parsed by wcs.
 Below we demonstrate how to read the first header from a FITS file. 
+
 .. index:: Reading headers from FITS files (example)
 
 A flag is set to enter WCSLIB's debug mode::
@@ -1046,7 +1048,8 @@ PyFITS has a nice method to make a list with all the FITS cards.
 In the next example we added a little filter, using list comprehension,
 to filter all items that start with 'HISTORY'. Also we added output for the
 two projection attributes :attr:`wcs.Projection.types` and :attr:`wcs.Projection.units`.
-The script is a useful tool to inspect the FITS file and to check its parsing by WCSLIB::
+The script is a useful tool to inspect the FITS file and to check its parsing by module
+:mod:`wcs`::
    
    #!/usr/bin/env python
    from kapteyn import wcs
@@ -1128,7 +1131,7 @@ are all defined in the same sky- and reference system.
 If such a position is given in another system (e.g. galactic instead of equatorial),
 then you have to transform the position to the other sky- and/or reference system.
 Sometimes you might find a so called *alternate* header in the header information
-of a FITS file. In an alternate header the WCS related keywords end on a character
+of a FITS file. In an alternate header the WCS related keywords end on a letter A-Z
 (e.g. CRVAL1A).
 
 Usually these alternate headers describe a world coordinate system for another
@@ -1140,7 +1143,7 @@ For the Kapteyn Package we wrote module :mod:`celestial`. This module can be use
 as stand alone module if one is interested in celestial transformations of world
 coordinates only.
 But the module is well integrated in module :mod:`wcs` so one can use it
-in the context of :mod:`wcs`, i.e. it defines a class :class:`wcs.Transformation`.
+in the context of :mod:`wcs`, with the class :class:`wcs.Transformation`.
 for conversions of world coordinates between sky-/reference systems
 and also, if pixel coordinates are involved, methods
 :meth:`wcs.Projection.toworld` and :meth:`wcs.Projection.topixel`
@@ -1184,7 +1187,7 @@ Epochs (detailed information in :ref:`celestial-epochs`):
 
 The equinox and epoch of observations are instants of time and are of type string.
 These strings are parsed by a function of module :mod:`celestial` called :func:`celestial.epochs`.
-The parser rules are described in the API documentation for that function.
+The parser rules are described in the documentation for that function.
 Each string starts with a prefix. Supported prefixes are:
 
    #. B:   Besselian epoch
@@ -1326,7 +1329,7 @@ the appropriate input celestial definition, we get::
 
 
 which gives the result as expected.
-Note that we used a special feature of the Transformation class.
+Note that we used attribute *reverse* of the Transformation class.
 The two previous examples show that the transformation class is very useful to check
 basic celestial transformations.
 
@@ -1524,7 +1527,9 @@ example could be derived from attribute :attr:`wcs.Projection.skysys`::
 Below a table with a short explanation of the attributes.
 More information about epochs and equinoxes can be found
 in the documentation of :mod:`celestial`.
- 
+
+.. tabularcolumns:: |p{15mm}|p{135mm}|
+
 ========== ===============================================================
 Attribute    Explanation
 ========== ===============================================================
@@ -1537,7 +1542,7 @@ equinox    equinox is a floating point number. It is read from the
            used for the definition of an equatorial system.
 epoch      This attribute is the epoch of the equinox. That is the 
            value of the equinox with prefix 'J' or 'B'. The context 
-           (a.o. keyword RADYSYS) sets the prefix.
+           (a.o. keyword RADESYS) sets the prefix.
 dateobs    Date of observation. Floating point number given by FITS
            keyword DATE-OBS
 mjdobs     Date of observation. Floating point number given by FITS 
@@ -1587,7 +1592,7 @@ Spectral transformations
 Introduction
 ............
 
-The most important documentation about conversions of spectral coordinates in WCSlib is found
+The most important documentation about conversions of spectral coordinates in WCSLIB is found
 paper "Representations of spectral coordinates in FITS" (paper III, [Ref3]_ )
 In the next sections we show how :mod:`wcs`/WCSLIB can deal with spectral conversions
 with the focus on conversions between
@@ -1595,10 +1600,11 @@ frequencies and velocities. We discuss conversion examples shown in the paper
 in detail and try to illustrate how :mod:`wcs` deals with FITS data from 
 (legacy) AIPS and GIPSY sources. In many of those files the reference frequencies
 and reference velocities are not given in the same reference system
-(e.g. topocentric v.s. barycentric). It is estimated that there are many of
-these FITS files and that their headers generate wrong results when they enter
-the constructor for the :class:`wcs.Projection` class unmodified. 
-For FITS files generated with legacy software some extra parsing of the FITS header is applied.
+(e.g. topocentric vs. barycentric). It is estimated that there are many of
+these FITS files and that their headers generate wrong results when they are used to
+create an object
+the constructor of :class:`wcs.Projection` class unmodified.
+For FITS files generated with legacy software some extra interpretation of the FITS header is applied.
 This procedure is described in more detail in the background information related to
 spectral coordinates.
 
@@ -1612,7 +1618,7 @@ to world coordinates. For spectral axes with frequency as the primary type
 (e.g. in the FITS header we read CTYPE3='FREQ'), it is possible to convert
 between pixel coordinates and frequencies, but also, if the header provides the correct information, 
 between pixel coordinates and velocities.
-WCSlib expects that in a FITS header the given frequencies are bound to the same
+WCSLIB expects that in a FITS header the given frequencies are bound to the same
 standard of rest (i.e. reference system) as the given reference velocity.
 In practice however there are many FITS files that list the frequencies in 
 the topocentric system and a reference velocity in an inertial system
@@ -1652,13 +1658,13 @@ This example tells us that the spatial data corresponding with channel 32 was ob
 at a topocentric frequency (SPECSYS='TOPOCENT') of 1.37835117405 GHz.
 The step size in frequency is 97.65625 kHz.
 A rest frequency (1.420405752e+9 Hz) is needed to convert frequencies to velocities.
-Description of standard FITS keywords can be found in [FITS]_ 
+The description of standard FITS keywords can be found in [FITS]_
 
 The topocentric frequency (for the receiver) was derived from a barycentric optical
 velocity of 9120 km/s that was requested by an observer.
 
-We prepared a minimal header to simulate this FITS header. 
-and calculate world coordinates for the spectral axis 
+We prepared a minimal header to simulate this FITS header 
+and calculate world coordinates for the spectral axis.
 The numbers are frequencies. The units are *Hz* and the central frequency is *CRVAL3*.
 The step in frequency is *CDELT3*. Our minimal header (here presented as a Python dictionary)
 shows only one axis so our header items got axis number 1 (e.g. *CRVAL1*, *CDELT1*, etc.)::
@@ -1688,7 +1694,7 @@ The output shows frequency as function of pixel coordinate. Pixel coordinate 32 
 of *CRVAL1*. Now we have a method to find at which frequency a spatial map in the data cube was 
 observed.
 
-WCSlib velocities from frequency data
+WCSLIB velocities from frequency data
 .....................................
 
 Usually similar FITS headers provide information about a velocity. 
@@ -1716,7 +1722,7 @@ To convert to another spectral type the constructor from class :class:`wcs.Proje
 which spectral type we want to convert to. The translation is set then with :meth:`wcs.Projection.spectra`.
 which stands for *spectral translation*.
 
-The parameter that we need to set the translation is *ctype*. It's syntax follows the
+The parameter that we need to set the translation is *ctype*. Its syntax follows the
 FITS convention, see note below.
 
 .. note:: The first four
@@ -1725,7 +1731,7 @@ FITS convention, see note below.
           algorithm for computing the world coordinates from intermediate
           physical coordinates ([Ref3]_ ).
 
-The spectral types that are supported are (from [Ref3]_):
+The following spectral types are supported (from [Ref3]_):
         
 =========  ============================ ======= ======= ================
 Type       Name                         Symbol   Units  Associated with
@@ -1801,8 +1807,8 @@ Some comments about this example:
       
     * It shows how to add the
       spectral translation to the projection object. For a conversion from frequency to 
-      optical velocity one can define a new object `spec = proc.spectra('VOPT-F2W')` or change
-      the current object with: `proj = wcs.Projection(header).spectra('VOPT-F2W')`.
+      optical velocity one can derive a new object with `spec = proj.spectra('VOPT-F2W')`
+      or `proj = wcs.Projection(header).spectra('VOPT-F2W')`.
     * The output is a list with pixel coordinates and *topocentric* velocities. This explains
       why we don't see the requested velocity (9120 km/s) at CRPIX because that velocity was barycentric.
     * When we enter an invalid algorithm code for the velocity, the script will raise an exception.
@@ -1907,7 +1913,7 @@ returns velocities in the same system as the system of reference frequency.
 .. warning::
 
       Reference frequencies given in FITS keyword CRVALn refer to a reference system.
-      This system should be given with FITS keyword SPECSYS= (e.g. SPECSYS='TOPOCENT').
+      This system should be given with FITS keyword SPECSYS (e.g. SPECSYS='TOPOCENT').
       Module :mod:`wcs`
       converts between frequencies and velocities in the *same* reference system.
       You should inspect your FITS header to find what this system is.
@@ -1928,7 +1934,7 @@ Spectral CTYPE's with special extensions
 
 There are many (old) FITS headers which describe a system where the reference frequency is
 topocentric and the required reference velocity is given for another reference system.
-These velocities are given with keywords like VELR= or DRVALn= and the reference system
+These velocities are given with keywords like VELR or DRVALn and the reference system
 for the velocities is given as an extension in CTYPEn (e.g.: CTYPE3='FREQ-OHEL').
 Image processing systems like AIPS and GIPSY
 have their own tools to deal with this. If :mod:`wcs` recognizes a legacy header, it tries
@@ -2106,7 +2112,8 @@ Processing real FITS data
 .........................
 
 With the knowledge we have at this moment, it is easy to make a small utility
-that looks for a spectral axis in a FITS file and if it can find one, it convert 5 pixel coordinates in
+that looks for a spectral axis in a FITS file and if it can find one, it converts
+5 pixel coordinates in
 the neighbourhood of CRPIX to world coordinates for all allowed spectral translations::
 
    from kapteyn import wcs
@@ -2132,7 +2139,7 @@ the neighbourhood of CRPIX to world coordinates for all allowed spectral transla
 
 The projection object reads its header data from the first hdu of the FITS file
 (`hdulist[0].hdr`) and is set to only convert the spectral axis of the data set:
-`proj.(.sub((ax,)))`.
+`proj.sub((ax,))`.
 Remember that the argument is a Python tuple but we have only one axis so the tuple has an extra comma.
 Header items can be read from the header directly (e.g. `header['CRPIX3']`). That's how we find
 the value of CRPIX for the spectral axis. The allowed spectral translations are

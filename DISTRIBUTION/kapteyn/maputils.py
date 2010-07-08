@@ -608,7 +608,6 @@ the alternate header.
       
    """
 #--------------------------------------------------------------------
-
    while True:
       try:
          if defaultfile == None:
@@ -2043,9 +2042,13 @@ this class.
       self.frame = self.adjustframe(frame)
       self.figmanager = plt_get_current_fig_manager()
       if messenger == None:
-        # Initialize only once because we have only one toolbar
-         messenger = self.figmanager.toolbar.set_message
-         self.figmanager.toolbar.set_message=lambda x: None
+         try:
+            # Initialize only once because we have only one toolbar
+            messenger = self.figmanager.toolbar.set_message
+            self.figmanager.toolbar.set_message=lambda x: None
+         except:
+            pass
+
       # Related to color maps:
       self.set_colormap(cmap)
       self.set_blankcolor(blankcolor)
