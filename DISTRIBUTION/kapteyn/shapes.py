@@ -28,7 +28,7 @@ For each defined area the module :mod:`maputils` calculates the sum of the inten
 the area and some other properties of the data. The shapes are one of
 polygon, ellipse, circle, rectangle or spline.
 
-The strength of this module is that it duplcicates a shape in different
+The strength of this module is that it duplicates a shape in different
 images using transformations to world coordinates. This enables one to compare
 flux in two images with different WCS systems.
  
@@ -693,7 +693,7 @@ class Shapecollection(object):
    :type inputwcs: Boolean
 
 
-   This shape interactor reacts on the following keyboard and mouse buttons::
+   This shape interactor reacts to the following keyboard and mouse buttons::
 
       mouse - left  :  Drag a polygon point to a new position or
                        change the radius of a circle or
@@ -740,16 +740,16 @@ class Shapecollection(object):
 
    :Notes:
 
-      All the shapes are derived from a polygon class. There is one method
-      that generates coordinates for all the shapes and :meth:`maputils.getflux`
+      All shapes are derived from a polygon class. There is one method
+      that generates coordinates for all shapes and :meth:`maputils.getflux`
       uses the same routine to calculate whether a pixel in an enclosing
-      bos is within or outside the shape. For circles and ellipses the
+      box is within or outside the shape. For circles and ellipses the
       number of polygon points is 360 and this slows down the calculation
       significantly. Methods which assume a perfect circle or ellipse can
       handle the inside/outside problem much faster, but note that due to different
       WCS's, ellipses and circles don't keep their shape in other images.
       So in fact only a polygon is the common shape. A spline is a polygon
-      with an artificial increased number of points.
+      with an artificially increased number of points.
 
    :Example:
    

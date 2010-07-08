@@ -34,7 +34,7 @@ from kapteyn.positions import str2pos, unitfactor
 class Ruler(object):
    #-----------------------------------------------------------------
    """
-   Draw a line between two spatial positions
+   Draws a line between two spatial positions
    from a start point (x1,y1) to an end point (x2,y2)
    with labels indicating a constant offset in world
    coordinates. The positions are either in pixels
@@ -43,7 +43,7 @@ class Ruler(object):
    because projection effects make the offsets non linear
    (e.g. the TAN projection diverges while the CAR projection
    shows equidistant ticks).
-   Default, the zero point is exactly in the middle of
+   By default, the zero point is exactly in the middle of
    the ruler but this can be changed by setting a
    value for *lambda0*.  The step size
    for the ruler ticks in units of the spatial
@@ -65,7 +65,7 @@ class Ruler(object):
    :type pylim:          Tuple or list with two integers.
 
    :param aspectratio:   The aspect ratio is defined as *pixel height / pixel width*.
-                         The value is needed to draw tick marker perpendicular
+                         The value is needed to draw tick mark perpendicular
                          to the ruler line for images where the pixels are not square
                          in world coordinates. Its default is 1.0.
    :type aspectratio:    Float
@@ -163,7 +163,8 @@ class Ruler(object):
          then we need a matching spatial axis.
       :exc:`Exception`
          *Cannot make ruler with step size equal to zero!*
-         Either the input of the step size...
+         Either the input of the step size is invalid or a wrong default
+         was calculated (perhaps end point is equal to start point).
       :exc:`Exception`
          *Start point of ruler not in pixel limits!*
       :exc:`Exception`
@@ -492,7 +493,6 @@ class Ruler(object):
                   fmt = r"%4.0f''"
       elif fmt == None:          # A function but not a format. Then a default format
          fmt = '%g'
-   
       # Check whether the start- and end point of the ruler are inside the frame
       start_in = (pxlim[0]-0.5 <= x1 <= pxlim[1]+0.5) and (pylim[0]-0.5 <= y1 <= pylim[1]+0.5)
       if not start_in:
