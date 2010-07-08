@@ -52,7 +52,7 @@ The topocentric spectral properties in the FITS header from the paper are::
       .. math::
          :label: eq2
         
-           W(N) = W_{ref} + (N - N_{ref}) * \Delta W  
+           W(N) = W_{ref} + (N - N_{ref}) \times \Delta W
 
       If *CTYPE* contains a code for a non linear conversion algorithm
       (as in CTYPE='VOPT-F2W') then this relation cannot be applied.
@@ -138,7 +138,7 @@ The relation is:
    
 We adopted variable Z for velocities following the optical definition.
 The header tells us that equal steps in pixel coordinates are equal steps in frequency
-and the formula above shows that these steps in terms of optical velocity is
+and the formula above shows that these steps in terms of optical velocity
 depends on the frequency in a non-linear way. Therefore we set the conversion algorithm
 to **F2W**  which indicates that there is a non linear conversion from frequency to wavelength
 (optical velocities are associated with wavelength, see  [Ref3]_ .). Note that we can use wildcards
@@ -177,15 +177,15 @@ Barycentric/lsrk frequency increments
    :width: 400
    :align: center
 
-*fig.1 Overview velocities and frequencies of barycenter (B) and Earth (E) w.r.t. source.
+*fig.1 Overview of velocities and frequencies of barycenter (B) and Earth (E) w.r.t. source.
 The arrows represent velocities. The object and the Earth are moving. The longest arrow represents the
 (relativistic) addition of two velocities*
 
 
 Let's use index *b* for variables bound to the barycentric system and *e*
 for the topocentric system.
-This frequency, :math:`\nu_b` =1.37847121643 Ghz is greater than the reference frequency
-:math:`\nu_e` at the observatory (FITS keyword `CRVAL3=` 1.37835117405 Ghz).
+This frequency, :math:`\nu_b` =1.37847121643 GHz is greater than the reference frequency
+:math:`\nu_e` at the observatory (FITS keyword `CRVAL3=` 1.37835117405 GHz).
 
 **The difference between frequencies in the topocentric and barycentric system
 is caused by the difference between the velocities of reference frames B and E at 
@@ -247,7 +247,7 @@ With the numbers inserted we find:
    v_t = \frac{9007426.97201 - 8981342.29811}{1 - \frac{8981342.29811\times 9007426.97201}{299792458.0^2}} = 26108.1743997\ m/s
 
 If the FITS header has keywords with the position of the source, the time of observation and 
-the location of the observatory than one can calculate the topocentric correction by hand.
+the location of the observatory then one can calculate the topocentric correction by hand.
 This information was needed at the observatory to set a frequency for a given barycentric 
 velocity. However many FITS files do not have enough information to calculate the topocentric correction.
 Also it is not needed if one knows the shifted frequencies :math:`\nu_e` and :math:`\nu_b` , then
@@ -296,14 +296,14 @@ observatory with :eq:`eq100` written as:
 .. note::
    
    2) If we forget about the source and we have an *event on E* with a certain frequency
-   than an *observer* in barycenter *B* will observe a *lower* frequency.
+   then an *observer* in barycenter *B* will observe a *lower* frequency.
    This is because on the line that connects the source and B, the observatory at E moves away
    from B which decreases the remote frequency.
 
 
 So if we change a frequency on E by tuning the receiver at the observatory at frequency 
 :math:`\nu_e + \Delta \nu_e` ,
-than the observer at B would observe a smaller frequency
+then the observer at B would observe a smaller frequency
 :math:`\nu_b + \Delta \nu_b` .
 The amount of the decrease is related to the topocentric correction as follows:
 
@@ -320,7 +320,7 @@ and therefore we can write for the frequency bandwidth in B:
    \Delta \nu_b =\Delta \nu_e\sqrt{\frac{c-v_t}{c+v_t}}
 
 At first it seems that this contradicts eq. :eq:`eq120` 
-(where the indices seems to be swapped), but this is not true 
+(where the indices seem to be swapped), but this is not true
 because we changed the frame of the observer from Earth to the barycenter.
 The event was in E and it is observed in B.
 
@@ -461,7 +461,7 @@ topocentric correction are the same. One can use the formula
    \frac{V_b}{Z_b} = \frac{\nu_b}{\nu_0} 
 
 to find the value of :math:`V_b = 1.37847121643*9120/1.420405752 = 8850.750904` km/s (with the frequencies in GHz and the velocity in km/s).
-In a next section we will derive this value in another way see :eq:`eq230` and :eq:`eq240`
+In a next section we will derive this value in another way; see :eq:`eq230` and :eq:`eq240`
 ::
 
       
@@ -521,7 +521,7 @@ From the definition of radio velocity:
 
 we can find a radio velocity that corresponds to the value of the optical
 velocity. This (barycentric) optical velocity (9120 Km/s) caused a shift of the rest frequency.
-The new frequency became :math:`\nu_b` = 1.37847122\times 10^9 Hz.
+The new frequency became :math:`\nu_b = 1.37847122 \times 10^9 Hz`.
 If we insert this number in the equation above we find:
 
 .. math::
@@ -529,8 +529,8 @@ If we insert this number in the equation above we find:
 
    V_b = c\ \bigl(\frac{1420405752.0 - 1378471216.43}{1420405752.0}\bigr) = 8850750.90419\ m/s
    
-The formula for a direct conversion from optical to radio velocity can be derived to 
-insert the formula for the frequency shift corresponding to optical velocity, into
+The formula for a direct conversion from optical to radio velocity can be derived by 
+inserting the formula for the frequency shift corresponding to optical velocity, into
 the expression for the radio velocity:
 
 .. math::
@@ -631,7 +631,7 @@ As written before, the relation between a true velocity and a shifted frequency 
 
    v = c\ \frac{\nu_0^2-\nu^2}{\nu_0^2+\nu^2}
 
-Observed from the barycenter the source has a apparent radial velocity:
+Observed from the barycenter the source has an apparent radial velocity:
 
 .. math::
    :label: eq310
@@ -690,7 +690,7 @@ If you insert this into:
 
    dv = \frac{-4 c \nu \nu_0^2}{{(\nu_0^2+\nu^2)}^2}\ d\nu
    
-then after some calculations you end up with the expression:
+then after some rearrangements you end up with the expression:
 
 .. math::
    :label: eq370
@@ -701,10 +701,10 @@ If you insert v = 8981342.29811 (m/s) in this expression you will get exactly th
 apparent radial velocity increment (-2.1217551e+4 m/s).
 
 
-We found a apparent radial velocity and 
+We found an apparent radial velocity and 
 calculated the increment for this radial velocity. With a short script and
 a minimal header we demonstrate how to use WCSLIB to get
-a apparent radial velocity for an arbitrary pixel::
+an apparent radial velocity for an arbitrary pixel::
 
          
    #!/usr/bin/env python
@@ -1105,7 +1105,7 @@ Alternative conversions
 Conversion between radio and optical velocity
 -----------------------------------------------
 
-In the next two section we give some formula's that could be handy if you want to verify
+In the next two sections we give some formula's that could be handy if you want to verify
 numbers. They are not used in WCSLIB.
 
 With the definitions for radio and optical velocity it is easy to derive:
@@ -1122,7 +1122,7 @@ This can be verified with:
    * :math:`\nu_0` = 1420405752.00 Hz
    * :math:`\nu_b` = 1378471216.43 Hz
 
-Both ratio's are equal to 1.030421045482.
+Both ratios are equal to 1.030421045482.
 
 Conversion between apparent radial velocity and optical/radio velocity
 -------------------------------------------------------------------------
@@ -1150,7 +1150,7 @@ Then:
 
    \frac{v}{c} = \frac{{(1+Z/c)}^2-1}{{(1+Z/c)}^2+1} = \frac{Z^2+2cZ}{Z^2+2cZ+2c^2}
    
-This equation is used in AIPS memo 27 [Aipsmemo]_ to relate an optical velocity to a 
+This equation is used in AIPS memo 27 [Aipsmemo]_ to relate an optical velocity to an 
 apparent radial velocity.
 If we insert :math:`Z_b` = 9120000 (m/s) then we find :math:`v_b` = 8981342.29811 (m/s) as expected
 (eq. :eq:`eq50`, :eq:`eq310`)
@@ -1191,7 +1191,7 @@ WCSLIB applies a conversion for these headers before they are
 processed by WCSLIB. From the previous steps we can summarize how
 the data in the Nmap/GIPSY FITS header is changed:
 
-   * The extension in CTYPEn is '-OHEL', '-OLSR', 'RHEL' or 'RLSR'
+   * The extension in CTYPEn is '-OHEL', '-OLSR', '-RHEL' or '-RLSR'
    * The velocity is retrieved from FITS keyword VELR= (always in m/s) or DRVALn= (in units of DUNITn)
    * Convert reference frequency to a frequency in Hz.
    * Calculate the reference frequency in the barycentric system using eq. :eq:`eq10`
@@ -1206,7 +1206,7 @@ the data in the Nmap/GIPSY FITS header is changed:
 
 In the following script we show:
 
-   * the (invisible conversion to the heliocentric system)
+   * the (invisible) conversion to the heliocentric system
    * how to get the same output by applying the appropriate formulas
    * the approximation that GIPSY uses
 
@@ -1245,8 +1245,8 @@ Output::
 
 
 The Python interface allows for an easy implementation for these special exceptions.
-Here is a script that uses the new facility. The conversion here is triggered by the CTYPE
-extension **OHEL**. So as long this is unique to GIPSY spectral axes, you are save to
+Here is a script that uses this facility. The conversion here is triggered by the CTYPE
+extension **OHEL**. So as long this is unique to GIPSY spectral axes, you are safe to
 use it. Note that we converted the frequencies to optical, radio and apparent radial velocities.
 This is added value to the existing GIPSY implementation where these conversions are not
 possible. These WCSLIB conversions are explained in previous sections::
@@ -1311,7 +1311,7 @@ possible. These WCSLIB conversions are explained in previous sections::
 
 .. note::
 
-   Comment: Note that changing DRVAL1 to VELR gives the same output. Both are recognized as keywords
+   Note that changing DRVAL1 to VELR gives the same output. Both are recognized as keywords
    that store a velocity. The value in VELR should always be in m/s.
    Note also how we created different sub-projections (one for each type of velocity)
    from the same main projection. All these objects can coexist.
@@ -1543,7 +1543,8 @@ VELO-W2V                 WAVE  or FREQ-W2F or VOPT or VRAD-W2F
 .. note::
 
       From the WCSLIB API documentation:
-      
+
+
       AIPS-convention celestial projection types, NCP and GLS, and spectral types,
       '{FREQ,FELO,VELO}-{OBS,HEL,LSR}' as in 
       'FREQ-LSR', 'FELO-HEL', etc., set in CTYPEia are translated on-the-fly by
@@ -1839,7 +1840,7 @@ is exactly the same as WCSLIB with optical velocities using the velocity increme
 calculated with the AIPS method (as to be expected). And these velocities 
 are very close to the velocities calculates with WCSLIB using the barycentric
 frequency that corresponds to the given optical velocity. The differences can be explained
-with the fact that the different methods are used to calculate a velocity increment.
+by the fact that the different methods are used to calculate a velocity increment.
 
 What did we prove with this script? We selected an arbitrary pixel as reference pixel for
 the velocity. This velocity has a relation with the initial optical velocity (9120 km/s)
@@ -1884,7 +1885,7 @@ Optical
 For optical velocities we use symbol *Z*.
 The conversion from frequencies to **optical** velocities is not linear. One can try to
 approximate a constant step in velocity, and to apply the standard linear
-transformation  :math:`Z(N) = Z_r + (N-crpix)*dZ`, but this approximation can
+transformation  :math:`Z(N) = Z_r + (N-crpix) \times dZ`, but this approximation can
 deviate significantly in certain circumstances.
 Therefore most reduction and analysis packages provide
 functionality to calculate velocities also for the non-linear cases. Like Classic AIPS, 
@@ -1896,7 +1897,7 @@ frequencies are topocentric.
 In this section we show how GIPSY transforms frequencies to optical velocities. Also we
 derive formulas for a linear transformation (i.e. for a constant velocity increment)
 which can be used if one wants to compose a modified header for a linear transformation
-:math:`Z(N) = Z_r + (N-crpix)*dZ`
+:math:`Z(N) = Z_r + (N-crpix) \times dZ`
 
 Given a barycentric (or lsrk) frequency one calculates an optical velocity *Z*
 in that system with:
@@ -1976,7 +1977,7 @@ and thereby:
    dZ \approx \frac{-c\nu_0\delta_{\nu_b}}{{\nu_{br}}^2}
    
 This is the formula that is documented in the programmers manual to get a
-value for GIPSY's keyword *DDELT* (on of the alternative keywords from the list
+value for GIPSY's keyword *DDELT* (one of the alternative keywords from the list
 DRVAL, DDELT, DRPIX, DUNIT which describe an alternative coordinate system with a higher
 priority than the system described by the corresponding keywords that start with 'C'). 
 However the formula is never used in GIPSY to explicitly set the value of DDELT.
@@ -2019,7 +2020,7 @@ velocities if the rest frequency is unknown.**
 
 And again, if we want to express the optical velocity at pixel N as a function
 of the reference velocity and a **constant** velocity increment as in
-:math:`Z(N) = Z_r + {\bf n}dZ` the we need to find an expression for *dZ* which does not depend
+:math:`Z(N) = Z_r + {\bf n}dZ` then we need to find an expression for *dZ* which does not depend
 on *n*. Note that :math:`{\bf n}\delta \nu_b << \nu_{br}`, then
 
 .. math::
@@ -2039,29 +2040,37 @@ Output::
   Topocentric correction (km/s): 9.57140206387
   Barycentric frequency and increment (Hz): 1418966870.14 -9765.3132202
        
-       pix         WCSLIB       GIP+bary    GIP+bary-f0       GIP+topo      Linear+f0      Linear-f0
-   61.9940     299.869536     299.869536     299.869536     299.869141     299.869479     299.873664
-   62.9940     301.934754     301.934754     301.934754     301.934556     301.934740     301.936832
-   63.9940     304.000000     304.000000     304.000000     304.000000     304.000000     304.000000
-   64.9940     306.065274     306.065274     306.065274     306.065472     306.065260     306.063168
-   65.9940     308.130577     308.130577     308.130577     308.130973     308.130521     308.126336
+       pix         WCSLIB       GIP+bary    GIP+bary-f0
+   61.9940     299.869536     299.869536     299.869536
+   62.9940     301.934754     301.934754     301.934754
+   63.9940     304.000000     304.000000     304.000000
+   64.9940     306.065274     306.065274     306.065274
+   65.9940     308.130577     308.130577     308.130577
+
+     GIP+topo      Linear+f0      Linear-f0
+   299.869141     299.869479     299.873664
+   301.934556     301.934740     301.936832
+   304.000000     304.000000     304.000000
+   306.065472     306.065260     306.063168
+   308.130973     308.130521     308.126336
+
 
 The columns in the output are:
 
    1. *pix*: The (non integer) pixel value at which a velocity is calculated.
-   2. *WCSLIB*: The optical velocity (Km/s) as calculated by WCSLIB. The extension in
+   2. *WCSLIB*: The optical velocity (km/s) as calculated by WCSLIB. The extension in
       CTYPE is recognized and the frequencies are replaced by their
       barycentric counterparts according to the recipe in :ref:`spectral_gipsy`.
-   3. *GIP+bary*: The optical velocity (Km/s) calculated with GIPSY formula in eq. :eq:`gipsynonlinear`
+   3. *GIP+bary*: The optical velocity (km/s) calculated with GIPSY formula in eq. :eq:`gipsynonlinear`
       using barycentric reference frequency and barycentric frequency increment.
-   4. *GIP+bary-f0*: The optical velocity (Km/s) calculated with GIPSY formula
+   4. *GIP+bary-f0*: The optical velocity (km/s) calculated with GIPSY formula
       without the rest frequency as in eq. :eq:`gipsynonlinearwithoutf0`
       using barycentric reference frequency and barycentric frequency increment.
-   5. *GIP+topo*: The optical velocity (Km/s) calculated with GIPSY formula in eq. :eq:`gipsynonlinear`
+   5. *GIP+topo*: The optical velocity (km/s) calculated with GIPSY formula in eq. :eq:`gipsynonlinear`
       using topocentric/geocentric reference frequency and frequency increment.
-   6. *Linear+f0*: The optical velocity (Km/s) calculated with GIPSY formula in eq. :eq:`gipsylinearwithf0`
+   6. *Linear+f0*: The optical velocity (km/s) calculated with GIPSY formula in eq. :eq:`gipsylinearwithf0`
       using a rest frequency.
-   7. *Linear-f0*: The optical velocity (Km/s) calculated with GIPSY formula in eq. :eq:`gipsylinearwithoutf0`
+   7. *Linear-f0*: The optical velocity (km/s) calculated with GIPSY formula in eq. :eq:`gipsylinearwithoutf0`
       without a rest frequency.
 
 
@@ -2146,13 +2155,13 @@ after 64 channels the deviation is almost 40 m/s.
 In our example, the channel separation is approximately 2 km/s and the deviations
 are therefore small (2%).
 
-For the example at the start of this tutorial, the reference velocity was 9120 km/s.
-The channel separation (*CDELT3Z*) is approximately 20 Km/s. For the listed topocentric
+For the example at the start of this chapter, the reference velocity was 9120 km/s.
+The channel separation (*CDELT3Z*) is approximately 20 km/s. For the listed topocentric
 frequency and the calculated barycentric frequency we find with :eq:`gipsyapprox2c` an error 
 of approximately 6.6 m/s. After 64 channels the deviation is approximately 420 m/s
 (2%).
 
-With :eq:`866` we get an relative error:
+With :eq:`eq866` we get an relative error:
 
 .. math::
    :label: gipsyapprox2d
@@ -2399,11 +2408,10 @@ the next script is a very small GIPSY program that asks the user for the name of
 and then calculates the optical velocities for a number of pixels in the neighborhood of
 the reference pixel (CRPIX3).
 
-GIPSY data sets consist of two files. One file contains the image data.
-The other is called the descriptor. The descriptor contains FITS header 
+GIPSY data have a descriptor which contains FITS header
 items (e.g. CRVAL1=) and GIPSY specific keywords but not only attached to the
 set but also to subsets (slices) of the data. Not only planes or lines can have
-their own header but even pixels can. The script below reads it information from 
+their own header but even pixels can. The script below reads its information from
 top level (which hosts the global description of the data cube itself)::
    
    #!/usr/bin/env python

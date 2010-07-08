@@ -9,7 +9,7 @@ Background information module celestial
 Rotation matrices
 -----------------
 
-Spherical astronomy in older textbooks rely heavily on the reader's knowledge of
+Spherical astronomy sections in older textbooks rely heavily on the reader's knowledge of
 spherical trigonometry (e.g. Smart 1977). For more complicated problems than 
 a simple rotation, this technique becomes laborious. Matrix and vector techniques 
 come to rescue. Many of the transformations are defined in terms of rotation matrices.
@@ -87,7 +87,7 @@ of a position in system 0, then the corresponding position vector can be written
    \vec r_0 = \begin{bmatrix}\cos\delta_0\cos\alpha_0 \\ \cos\delta_0\sin\alpha_0\\ \sin\delta_0  \end{bmatrix}
 
 
-Note that the longitude and latitude applies to the other skysystems too, but then 
+Note that the longitude and latitude applies to the other sky systems too, but then 
 we use other symbols, like (:math:`\lambda, \beta`), (l,b) or (sgl, sgb).
 >From any position (x,y,z) we calculate the longitude and latitude with the expressions:
 
@@ -104,8 +104,8 @@ and
    \tan(lat) = z/\sqrt{x^2+y^2}
 
 where we used the arctan2 function to solve for (lon,lat) to keep the right quadrant.
-Longitudes range from :math:`0^o` to :math:`360^o`  and latitudes from
-:math:`-90^o` to :math:`90^o`.
+Longitudes range from :math:`0^\circ` to :math:`360^\circ`  and latitudes from
+:math:`-90^\circ` to :math:`90^\circ`.
 
 
 FK4
@@ -133,8 +133,8 @@ represented by a circular velocity component and a component perpendicular to
 the major axis 
 caused by the fact that the orbit is elliptical. This velocity component 
 is responsible for elliptical terms of aberration (E-terms) which are less
-than 0.35 arcseconds (maximum is equal to constant of aberration times eccentricity of the earths orbit
-= 20".496 * 0.01673 ~= 343 mas). The terms are independent of the position of the earth and depend
+than 0.35 arcseconds (maximum is equal to the constant of aberration times the eccentricity of the earths orbit
+= 20".496 x 0.01673 ~= 343 mas). The terms are independent of the position of the earth and depend
 only on the position of the object in the sky.
 
 .. image:: EXAMPLES/etermfig2.png
@@ -287,7 +287,7 @@ is equal to:
 This E-term vector can then be used to transform FK4 positions to real mean places 
 (i.e. remove E-terms) or to convert mean places to FK4 catalog positions (i.e. add E-terms).
 
-Celestial calculates the E-term vector in the equatorial system as function of
+Module :mod:`celestial` calculates the E-term vector in the equatorial system as function of
 epoch.
 Removing and adding E-term vectors are best illustrated in a figure.
 In the next plot, the red circle represents the FK4 catalog system.
@@ -434,7 +434,7 @@ fictitious proper motion in FK5, then we get the equation:
 
 where *v* is the (fictitious) proper motion in FK5 and *t* is the time in Julian
 centuries form J2000.
-This is how the function  :func:`celestial.FK42FK5Matrix()` works for given epoch of
+This is how the function  :func:`celestial.FK42FK5Matrix()` works for a given epoch of
 observation. In the output of the next interactive session, we show the results
 of varying the epoch of observation for a position R.A., Dec = (0,0)::
 
@@ -520,7 +520,7 @@ are less than 5 mas.
 Radio maps
 ----------
 
-Much of the B1950 data that a users at the Kapteyn Astronomical Institute
+Much of the B1950 data that users at the Kapteyn Astronomical Institute
 transform to FK5 J2000, is data from the Westerbork Synthesis Radio Telescope (WSRT).
 For this telesope we retrieved some information about the correction program that
 was used to transform apparent places to mean places.
@@ -532,7 +532,7 @@ Apparent coordinates change during an observing run, due to:
    * Aberration
        1. Annual aberration
        2. Diurnal aberration
-       3. Saecular aberration (unknown and not significant)
+       3. Secular aberration (unknown and not significant)
        4. Planetary aberration (unknown and not significant)
    * Proper motion (not significant)
    * Parallax (not significant)
@@ -613,7 +613,7 @@ For VLBI data we need another kind of test for accuracy.
 Aoki (1986) [Aoki2]_ compares the transformation results of the B1950 position of 3C273B
 
 :math:`\alpha=12^h26^\prime 33^{\prime \prime}.246`, 
-:math:`\delta=2^o19^\prime 42^{\prime \prime}.4238`,
+:math:`\delta=2^\circ 19^\prime 42^{\prime \prime}.4238`,
 epoch of observation: 1978.62) to J2000 of several authors. He concludes that
 different authors use different methods and get different results.
 Aoki's method differs a few tens mas from the J2000 (VLBI radio sources based) catalog 
@@ -661,7 +661,7 @@ by (his) formal transformation from B1950 to J2000 of:
 :math:`(\Delta \alpha \cos(\delta), \Delta \delta) = (20\ mas, 7\ mas)`
 
 It is not straightforward to draw conclusions from these comparisons because the 
-formal transformation is not described in detail. The results of "mod:`celestial`
+formal transformation is not described in detail. The results of :mod:`celestial`
 are close to Aoki's so if Hering's method is based on Aoki's, we expect 
 comparable differences, which is, for unknown reasons, not the case.
 
@@ -676,7 +676,7 @@ sky systems are:
      .. math::
         :label: eq440
         
-        (\alpha,\ \delta) = (12h49m\ ,\  27^o.4) = (192^o.25,\  27^o.4)
+        (\alpha,\ \delta) = (12h49m\ ,\  27^\circ .4) = (192^\circ .25,\  27^\circ .4)
 
      (equinox 1950.0)
        
@@ -754,7 +754,7 @@ non-orthogonal because the E-term correction depends on the position
 in the sky. Therefore we consider the position of the galactic pole as a 
 FK4 position corrected for E-terms (i.e. FK4-NO-E) and apply transformations only to
 FK4 positions corrected for E-terms (i.e. we transform from and to the FK4-NO-E system).
-According to Blaauw (private communications 2008) the precision in the determination 
+According to Blaauw (private communication 2008) the precision in the determination
 of the position of the galactic pole did not justify the effort to bother about E-terms.
 So if we define the position of the Galactic pole to be in FK4-NO-E coordinates,
 we don't change the original definition.
@@ -777,7 +777,7 @@ the Ecliptic system.
 
 
 
-The composed rotation matrix for ``FK5 to Galactic`` coordinates from  :mod:`celestial` is::
+The composed rotation matrix for *FK5 to Galactic* coordinates from  :mod:`celestial` is::
 
    >>> m = skymatrix((eq,'j2000',fk5), gal)[0]
    [-0.054875539396 -0.873437104728 -0.48383499177 ]
@@ -792,7 +792,9 @@ which is consistent with the transpose of the matrix in eq. 33 of Murray (1989) 
    [ 0.494109454 -0.444829594  0.746982249]
    [-0.867666136 -0.198076390  0.455983795]
 
-And to SLALIB's `galeq.f <http://koala.ir.isas.ac.jp/AKARI/iris_data/trac/iraf64/browser/trunk/src/iraf/math/slalib/galeq.f?rev=9>_`::
+And to SLALIB's
+`galeq.f <http://koala.ir.isas.ac.jp/AKARI/iris_data/trac/iraf64/browser/trunk/src/iraf/math/slalib/galeq.f?rev=9>`_::
+
 
    [-0.054875539726D0,-0.873437108010D0,-0.483834985808D0]
    [+0.494109453312D0,-0.444829589425D0,+0.746982251810D0]
@@ -807,7 +809,7 @@ Galactic coordinates are given in (l,b) (also known as
 Supergalactic coordinates
 -------------------------
 
-Supergalactic equator is conceptually defined by the plane
+The Supergalactic equator is conceptually defined by the plane
 of the local (Virgo-Hydra-Centaurus) supercluster, and the origin of 
 supergalactic longitude is at the intersection of the supergalactic and galactic planes. 
 According to Corwin (1994) the 
@@ -829,7 +831,7 @@ an angle of 90 degrees. So the composed rotation matrix is:
 
    R = R_z(90) R_y(90-6.32) R_z(47.37)
 
-The numbers in the matrix that converts from ``galactic to supergalactic`` coordinates
+The numbers in the matrix that converts from *galactic to supergalactic* coordinates
 are::
 
    [ -7.357425748044e-01   6.772612964139e-01  -6.085819597056e-17]
@@ -837,7 +839,9 @@ are::
    [  6.731453021092e-01   7.312711658170e-01   1.100812622248e-01]
 
 Compare this to the numbers in SLALIB's
-`galsup.f <http://koala.ir.isas.ac.jp/AKARI/iris_data/trac/iraf64/browser/trunk/src/iraf/math/slalib/galsup.f?rev=9>`_::
+`galsup.f <http://koala.ir.isas.ac.jp/AKARI/iris_data/trac/iraf64/browser/trunk/src/iraf/math/slalib/galsup.f?rev=9>`_ 
+
+::
 
    [-0.735742574804D0,+0.677261296414D0,+0.000000000000D0]
    [-0.074553778365D0,-0.080991471307D0,+0.993922590400D0]
@@ -879,7 +883,7 @@ can be made with the expression:
 .. math::
    :label: eq480
 
-   \epsilon = 23^o26'21''.448 - 46''8150T - 0''00059T^2 + 0''.001813T^3
+   \epsilon = 23^\circ 26'21''.448 - 46''8150T - 0''00059T^2 + 0''.001813T^3
 
 The expression is from Lieske (1977).
 T is the time, measured in Julian centuries of 36525 days, since 'basic' epoch J2000.
@@ -1073,7 +1077,7 @@ Most of the definitions are from the reference below or from various web sources
 
 
    Equinox 
-         An equinox is moment in time when the center of the Sun can be observed to be 
+         An equinox is a moment in time when the center of the Sun can be observed to be 
          directly above the Earth's equator. At an equinox, the Sun is at one of two 
          opposite points on the celestial sphere where the celestial equator (i.e. declination 0) 
          and the ecliptic intersect (Vernal and autumnal points).
