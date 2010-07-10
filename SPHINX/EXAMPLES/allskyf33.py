@@ -8,9 +8,9 @@ frame = fig.add_axes(plotbox)
 theta_a = 45.0
 t1 = 20.0; t2 = 70.0
 eta = abs(t1-t2)/2.0
-title = r"""Conic equidistant projection (COD) oblique with $\theta_a=45$, $\theta_1=20$
-and $\theta_2=70$, $\alpha_p = 0$, $\delta_p = 30$, $\phi_p = 75$ also: 
-$(\phi_0,\theta_0) = (0,90^\circ)$. (Cal. fig.33d)"""
+title = r"""Conic equidistant projection (COD) oblique with $\theta_a=45^\circ$, $\theta_1=20^\circ$
+and $\theta_2=70^\circ$, $\alpha_p = 0^\circ$, $\delta_p = 30^\circ$, $\phi_p = 75^\circ$ also:
+$(\phi_0,\theta_0) = (0^\circ,90^\circ)$. (Cal. fig.33d)"""
 header = {'NAXIS'  : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---COD',
           'CRVAL1' : 0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : -5.0,

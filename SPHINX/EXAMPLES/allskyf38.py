@@ -4,10 +4,10 @@ from service import *
 
 fignum = 38
 fig = plt.figure(figsize=figsize)
-frame = fig.add_axes(plotbox)
+frame = fig.add_axes((0.1,0.1,0.8,0.75))
 theta_a = 60.0; eta = 15.0 
 title = r"""WCS conic equal area projection with 
-$\theta_a=60$ and $\eta=15$ (Cal. PGSBOX fig.2)"""
+$\theta_a=60^\circ$ and $\eta=15^\circ$ (Cal. PGSBOX fig.2)"""
 header = {'NAXIS'  : 2, 'NAXIS1': 512, 'NAXIS2': 512,
           'CTYPE1' : 'RA---COE',
           'CRVAL1' : 90.0, 'CRPIX1' : 256, 'CUNIT1' : 'deg', 'CDELT1' : -1.0/3.0,
@@ -27,6 +27,8 @@ grat.setp_lineswcs1(color='b')
 grat.setp_lineswcs0(0, lw=2)
 grat.setp_lineswcs1(0, lw=2)
 grat.setp_tick(plotaxis=1, position=(150.0,210.0), visible=False)
+grat.setp_tick(wcsaxis=0, fmt="Hms")
+grat.setp_tick(wcsaxis=1, fmt="Dms")
 deltapx = 10
 # Draw border with standard graticule
 header['CRVAL1'] = 0.0;

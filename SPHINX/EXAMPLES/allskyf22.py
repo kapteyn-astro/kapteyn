@@ -9,7 +9,7 @@ theta_a = 45
 t1 = 20.0; t2 = 70.0
 eta = abs(t1-t2)/2.0
 title = r"""Conic equidistant projection (COD) with:
-$\theta_a=45$, $\theta_1=20$ and $\theta_2=70$. (Cal. fig.26)"""
+$\theta_a=45^\circ$, $\theta_1=20^\circ$ and $\theta_2=70^\circ$. (Cal. fig.26)"""
 header = {'NAXIS'  : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---COD',
           'CRVAL1' : 0.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : -5.0,

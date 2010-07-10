@@ -26,8 +26,8 @@ w1 = numpy.arange(0,179,30.0)
 w2 = numpy.arange(180,360,30.0)
 w2[0] = 180 + epsilon
 lon_world = numpy.concatenate((w1, w2))
-labkwargs0 = {'color':'r', 'va':'top', 'ha':'right'}
-labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
+labkwargs0 = {'color':'r', 'va':'bottom', 'ha':'right'}
+labkwargs1 = {'color':'b', 'va':'center', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,
        labkwargs0=labkwargs0, labkwargs1=labkwargs1,

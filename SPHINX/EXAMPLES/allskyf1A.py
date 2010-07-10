@@ -21,11 +21,14 @@ annim = f.Annotatedimage(frame)
 grat = annim.Graticule(header, axnum=(1,2), 
                        wylim=(-90,90.0), wxlim=(-60,300),
                        startx=X, starty=Y)
-lat_world = [-60, -30, 0, 30, 60]
+#print "Lonpole, latpole values: ", \
+#      annim.projection.lonpole, annim.projection.latpole, 
+lat_world = [-60, -30, 30, 60]
 lon_world = range(-30,301,30)
-labkwargs0 = {'color':'r', 'va':'top', 'ha':'right'}
+labkwargs0 = {'color':'r', 'va':'bottom', 'ha':'right'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title, 
        lat_world=lat_world, lon_world=lon_world,
+       lon_fmt='Hms',
        labkwargs0=labkwargs0, labkwargs1=labkwargs1,
        markerpos=markerpos)

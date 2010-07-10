@@ -29,5 +29,6 @@ labkwargs0 = {'color':'r', 'va':'bottom', 'ha':'right'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,
+       lat_constval = 0.0,
        labkwargs0=labkwargs0, labkwargs1=labkwargs1,
        markerpos=markerpos)

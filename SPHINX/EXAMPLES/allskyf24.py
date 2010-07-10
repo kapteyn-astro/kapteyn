@@ -6,7 +6,7 @@ fignum = 24
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
 theta1 = 45
-title = r"Bonne's equal area projection (BON) with $\theta_1=45$. (Cal. fig.28)"
+title = r"Bonne's equal area projection (BON) with $\theta_1=45^\circ$. (Cal. fig.28)"
 header = {'NAXIS'  : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---BON',
           'CRVAL1' : 0.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : -4.0,

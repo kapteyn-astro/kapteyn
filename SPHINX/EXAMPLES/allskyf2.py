@@ -3,7 +3,7 @@ import numpy
 from service import *
 
 # Fig 2 in celestial article (Calabretta et al) shows a  positive cdelt1
-fignum = 1                   # id of script and plot
+fignum = 2                   # id of script and plot
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
 title = r"""Plate Carree projection (CAR), non oblique with:

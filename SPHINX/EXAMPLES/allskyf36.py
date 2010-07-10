@@ -4,7 +4,7 @@ from service import *
 
 fignum = 36
 fig = plt.figure(figsize=figsize)
-frame = fig.add_axes(plotbox)
+frame = fig.add_axes((0.1,0.15,0.8,0.75))
 title = 'Earth in zenithal perspective (AZP). (Cal. fig.36)'
 # The ctype's are TLON, TLAT. These are recognized by WCSlib as longitude and latitude.
 # Any other prefix is also valid.
@@ -30,8 +30,8 @@ grat.setp_lineswcs0(0, color='r', lw=2)
 grat.setp_plotaxis('bottom', mode='all_ticks', label='Latitude / Longitude')
 grat.setp_plotaxis('left', mode='switched_ticks', label='Latitude')
 grat.setp_plotaxis('right', mode='native_ticks')
-grat.setp_tick(wcsaxis=0, color='g')
-grat.setp_tick(wcsaxis=1, color='m')
+grat.setp_tick(wcsaxis=0, color='g', fmt="Dms")
+grat.setp_tick(wcsaxis=1, color='m', fmt="Dms")
 grat.setp_tick(wcsaxis=1, plotaxis=('bottom','right'), color='m', rotation=-30, ha='left')
 grat.setp_tick(plotaxis='left', position=-10, visible=False)
 g = grat.scanborder(560, 1962, 2)
@@ -44,5 +44,6 @@ print "TLON and TLAT are recognized as:", grat.gmap.types
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
 labkwargs1 = {'color':'g', 'va':'top', 'ha':'left'}
 doplot(frame, fignum, annim, grat, title,
+       lon_fmt="Dms", lat_fmt="Dms",
        labkwargs0=labkwargs0, labkwargs1=labkwargs1,
        plotdata=True, markerpos=markerpos)

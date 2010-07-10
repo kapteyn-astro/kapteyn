@@ -6,7 +6,7 @@ fignum = 29
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
 title = r"""Zenith equal area projection (ZEA) oblique with:
-$\alpha_p=0$, $\delta_p=30$ and $\phi_p=180$. (Cal. fig.33a)"""
+$\alpha_p=0^\circ$, $\delta_p=30^\circ$ and $\phi_p=180^\circ$. (Cal. fig.33a)"""
 header = {'NAXIS' : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---ZEA',
           'CRVAL1' :0.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : -3.5,

@@ -23,12 +23,12 @@ Module :mod:`maputils` provides methods to draw a :term:`graticule` in a plot sh
 the world coordinates in the given projection and sky system.
 One can plot spatial rulers which show offsets of constant
 distance whatever the projection of the map is. We will also demonstrate how to
-create so called :term:`all-sky plot`
+create a so called :term:`all-sky plot`
 
 The module combines the functionality in modules 
-:mod:`wcs`, :mod:`celestial` from the Kapteyn package, together with Matplotlib,
+:mod:`wcs` and :mod:`celestial` from the Kapteyn package, together with Matplotlib,
 into a powerful module for the extraction and display of FITS image data or external
-data described by a FITS header or Python dictionary with FITS keywords
+data described by a FITS header or a Python dictionary with FITS keywords
 (so in principle you are not bound to FITS files).
 
 We show examples of:
@@ -41,7 +41,7 @@ We show examples of:
      (e.g. Frequency to Radio velocity)
    * rulers showing offsets in spatial distance
    * overlay a second image on a base image
-   * plots that cover the entire sky (allsky plot)
+   * plot that covers the entire sky (allsky plot)
    * mosaics of multiple images (e.g. HI channel maps)
    * a simple movie loop program to view 'channel' maps.
 
@@ -84,8 +84,8 @@ can be summarized with:
    * Import maputils module
    * Get data from a FITS file or another source
    * Create a plot window and tell it where to plot your data
-   * From the object that contains your data, derive a plotable object
-   * With the methods of that object, plot an image, contours, graticule etc.
+   * From the object that contains your data, derive new objects
+   * With the methods of these new objects, plot an image, contours, graticule etc.
    * Do the actual plotting and in a second step fine tune plot properties
      of various objects
    * Inspect, print or save your plot or save your new data to file on disk.
@@ -183,24 +183,25 @@ This code generates the following output::
    """
 
 
-The example extacts data from a FITS file on disk as given in the example code.
+The example extracts data from a FITS file on disk as given in the example code.
 To make the script a real utility one should allow the user to enter a file
 name. This can be done with Python's `raw-input` function but to make
 it robust one should check the existence of a file, and if a FITS
-file has more than one header, one should prompt a user to
+file has more than one header, one should prompt the user to
 specify the header. We also have to deal with alternate headers for world coordinate
 systems (WCS) etc. etc.
 
 .. note::
    
-      To facilitate parameter settings we implemented so called :term:`prompt functions`.
+      To facilitate parameter settings we implemented so called :term:`prompt function`.
       These are external functions which read context in a terminal and then set reasonable
       defaults for the required parameters in a prompt.
       These functions can serve as templates for more advanced functions
       which are used in gui environments.
 
 
-The projection class from :mod:`wcs` is a parser for header information. It prepares
+The projection class from :mod:`wcs` interprests and stores the header information.
+It serves as
 the interface between *maputils* and the library *WCSLIB*.
 
 **Example: mu_projection.py - Get data from attributes of the projection system**
@@ -274,7 +275,7 @@ This is done with the following methods:
      the axis numbers. These numbers follow the FITS standard, i.e. they start with 1.
      If the data
      has only two axes then it is possible to swap the axes. This method can be
-     used in combination with an external prompt function. If the data hase more
+     used in combination with an external prompt function. If the data has more
      than two axes, then the default value for the axis numbers *axnr1=1*
      and *axnr2=2*. One can also enter the names of the axes. The input is case
      insensitive and a minimal match is applied to the axis names found
@@ -385,7 +386,7 @@ This is a simple script that displays an image using the defaults for the axes,
 the limits, the color map and many other properties.
 From an object from class :class:`maputils.FITSimage` an
 object from class :class:`maputils.FITSimage.Annotatedimage`
-object is derived.
+is derived.
 
 This object has methods to create other objects (image, contours, graticule, ruler etc.)
 that can be plotted
@@ -497,7 +498,7 @@ Probably you already have many questions about what :mod:`wcsgrat`
 can do more:
 
    * Is it possible to draw labels only and no graticule lines?
-   * Can I change the starting point and sep size for the coordinate labels?
+   * Can I change the starting point and step size for the coordinate labels?
    * Is it possible to change the default tick label format?
    * Can I change the default titles along the axes?
    * Is it possible to highlight (e.g. by changing color) just one graticule line?
@@ -536,7 +537,7 @@ for testing. The world coordinate system is arbitrary.
    :include-source:
    :align: center
 
-The plot shows a system of grid lines that correspond to non spatial axes. and it will be no
+The plot shows a system of grid lines that correspond to non spatial axes and it will be no
 surprise that the graticule is a rectangular system.
 The example follows the same recipe as the previous ones and it shows how one
 selects the required plot axes in a FITS file.
@@ -565,18 +566,18 @@ Let's study the plot in more detail:
      With the knowledge we have about this ``CRVAL`` and ``CDELT`` we tell
      the Graticule constructor to create 4 graticule lines (``starty=1000, deltay=10``).
    * The four positions are stored in attribute *ystarts* as in ``grat.ystarts``.
-     we use these numbers to change the coordinate labels into Stokes parameters with
+     We use these numbers to change the coordinate labels into Stokes parameters with
      method :meth:`wcsgrat.Graticule.setp_ticklabel`
 
      >>> grat.setp_ticklabel(plotaxis="left", position=1000, color='m', fmt="I")
 
-   * We used :meth:`wcsgrat.Insidelabels` to add coordinate labels
-     inside the plot. We marked a position near ``CRVAL`` and plotted a label
+   * We use :meth:`wcsgrat.Insidelabels` to add coordinate labels
+     inside the plot. We mark a position near ``CRVAL`` and plot a label
      and with the same method we added a single label at that position.
 
 
 This example shows an important feature of the underlying module :mod:`wcsgrat` and that is
-its functionality to change properties of graticules, ticks and labels.
+its possibility to change properties of graticules, ticks and labels.
 We summarize:
 
    * *Graticule line* properties are set with :meth:`wcsgrat.Graticule.setp_gratline`
@@ -617,7 +618,7 @@ We summarize:
 
 Let's summarize these methods in a table:
 
-.. tabularcolumns:: |p{100mm}|p{100mm}|
+.. tabularcolumns:: |p{50mm}|p{100mm}|
 
 =================================  ===============================================
 Object                             Properties method
@@ -727,7 +728,7 @@ For the next example we used a FITS file with the following header information::
    :align: center
 
 
-We used Matplotlib's *add_subplot()* methode to create 4 plots in one figure with minimum effort.
+We used Matplotlib's *add_subplot()* method to create 4 plots in one figure with minimum effort.
 The top panel shows a plot with the default axis numbers which are 1 and 2.
 This corresponds to the axis types RA and DEC and therefore the map is a spatial map.
 The next panel has axis numbers 3 and 2 representing a *position-velocity* or *XV map* with DEC
@@ -744,12 +745,12 @@ The two calls to this method need some extra explanation::
                            color='r', ha='right')
    graticule4.Insidelabels(wcsaxis=1, fontsize=10, fmt="%.2f", color='b')
 
-The first line sets labels that correspond to positions
+The first statement sets labels that correspond to positions
 in world coordinates inside a plot. It copies the positions of the velocities,
 set by the initialization of the graticule object. It plots those labels at a
-Right Ascension equal to 20h35m which is equal to -51 (==309) degrees.
-It rotates these labels with angle 90 degrees and
-sets the size, color and alignment of the font. The second line does something similar for
+Right Ascension equal to 20h35m which is equal to -51 (=309) degrees.
+It rotates these labels by an angle of 90 degrees and
+sets the size, color and alignment of the font. The second statement does something similar for
 the Right Ascension labels, but it adds also a format for the numbers.
 
 Note also the line:
@@ -757,9 +758,9 @@ Note also the line:
 >>> graticule4 = mplim4.Graticule(offsety=False)
 >>> graticule4.setp_ticklabel(plotaxis="left", fmt='HMs')
 
-Default the module would plot labels which are offsets because we have only one spatial axis.
+By default the module would plot labels which are offsets because we have only one spatial axis.
 We overruled this behaviour with keyword parameter *offsety=False*. Then we get world coordinates
-which are default formatted in hour/minutes/seconds. If we want these labels to be
+which by default are formatted in hour/minutes/seconds. If we want these labels to be
 plotted in another format, lets say decimal degrees, then one needs parameter
 *fun* to define some transformation and with
 *fmt* we set the format for that output, e.g. as in:
@@ -827,7 +828,7 @@ It demonstrates also the use of attributes to change plot properties.
 
 **Explanation:**
 
-This plot shows a graticule for equatorial coordinates and galactic coordinates in the
+This plot shows graticules for equatorial coordinates and galactic coordinates in the
 same figure. The center of the image is the position of the galactic pole. That is why
 the graticule for the galactic system shows circles. The galactic graticule is also
 labeled inside the plot using method :meth:`wcsgrat.Insidelabels`
@@ -851,7 +852,7 @@ method :meth:`maputils.Annotatedimage.Pixellabels`.
      tick that points outwards. Also the color and the font size of the tick labels 
      is set. Note that these are Matplotlib keyword arguments.
    * With :meth:`wcsgrat.Graticule.setp_axislabel` we allow galactic coordinate labels and ticks
-     to be plotted along the top and right plot axis. Default, the labels along these axes
+     to be plotted along the top and right plot axis. By default, the labels along these axes
      are set to be invisible, so we need to make them visible with keyword argument *visible=True*.
      Also a title is set for these axes.
      
@@ -880,7 +881,7 @@ found in its header::
 Its spectral axis number is 3. The type is frequency. The extension tells us that an
 optical velocity in the heliocentric system is associated with the frequencies. In the
 header we found that the optical velocity is 1050 Km/s.
-The header is a legacy GIPSY header and module :mod:`wcs` can parse it.
+The header is a legacy GIPSY header and module :mod:`wcs` can interpret it.
 We require the frequencies to be expressed as wavelengths.
 
 **Example: mu_wave.py - Plot a graticule in a position wavelength diagram.**
@@ -906,7 +907,7 @@ We require the frequencies to be expressed as wavelengths.
 
 .. note::
    
-   The spatial axis is expressed in offsets. Default it starts with an offset equal
+   The spatial axis is expressed in offsets. By default it starts with an offset equal
    to zero in the middle of the plot. Then a suitable step size is calculated and
    the corresponding labels are plotted. For spatial offsets we need also
    a value for the missing spatial axis. If not specified with parameter *mixpix*
@@ -926,12 +927,12 @@ For the next example we use the same FITS file (mclean.fits).
 
 **Explanation:**
 
-  * With PyFITS we open the fits file on disk and read its header
+  * With PyFITS we open the FITS file on disk and read its header
   * We created a :class:`wcs.Projection` object for this header to get a 
     list with allowed spectral translations (attribute *altspec*). We need
     this list before we create the graticules 
-  * A Matplotlib Figure- and Axes instance are made
-  * The native FREQ axis (label in red) differs from the FREQ axis in the
+  * Matplotlib Figure- and Axes instances are made
+  * The native FREQ axis (top figure) differs from the FREQ axis in the
     next plot, because a legacy header was found and its freqencies were transformed
     to a barycentric/heliocentric system.
 
@@ -941,7 +942,7 @@ Rulers
 
 Rulers in are objects derived from a Graticule object.
 A ruler is always plotted
-as a straight line, whatever the projection is (so it doesn't necessarily
+as a straight line, whatever the projection (so it doesn't necessarily
 follow graticule lines).
 A ruler plots ticks and labels and the *spatial* distance between any two ticks is
 a constant. This makes rulers ideal to put nearby a feature in your map to
@@ -970,7 +971,8 @@ want offsets to be plotted in arcminutes.
    :align: center
 
 It is possible to put a ruler in a map with only one spatial coordinate
-(as long there is a matching axis in the header) like a Position-Velocity diagram.
+(as long there is a matching axis in the header) like a Position-Velocity diagram (sometimes
+also called XV maps).
 It will take the pixel coordinate of the slice as a constant so even for XV maps
 we have reliable offsets. In the next example we created two rulers.
 The red ruler is in fact the same as the Y-axis offset labeling. The blue
@@ -1019,8 +1021,8 @@ global properties of the contours:
    :include-source:
    :align: center
 
-The plot shows two sets of contours. The first set is to plot all contours
-in a straightforward way. The second is to plot annotated contours.
+The plot shows two sets of contours. The first step is to plot all contours
+in a straightforward way. The second is to plot contours with annotation.
 For this second set we don't see any contours if a label could not be fitted
 that's why we first plot all the contours. Note that now we can use the properties methods
 for single contours because we can identify these contours by their corresponding level.
@@ -1049,7 +1051,7 @@ orientation ('vertical' or 'horizontal').
    :align: center
 
 If you want more control over the position and size of the colorbar then specify a frame
-for the colorbar. In the next example we prepared a frame for bot the image and the colorbar.
+for the colorbar. In the next example we prepared a frame for both the image and the colorbar.
 If you don't enter a figure size, it can happen that the figure does not provide enough space
 in either width or height. In the example we want the colorbar to be as big as the width
 of the image. This will be a problem with the default figure size so we provided some
@@ -1062,7 +1064,7 @@ extra space in height with *figsize=*:
    :align: center
 
 Note that we entered a colormap (case sensitive names!) and a value for the
-clip below which all image pixels get the same color. The clip for the maximum
+lower clip value (below which all image pixels get the same color). The clip for the maximum
 is not entered so the default will be taken which is the maximum intensity
 in your image.
 
@@ -1087,7 +1089,7 @@ Adding pixel coordinate labels
 -------------------------------
 
 In Matplotlib the axes in a frame are coupled. To get uncoupled axes a we
-stacked frames at the same location. For each frame one can change
+stack frames at the same location. For each frame one can change
 properties of the pixel coordinate labels separately. The trick is
 implemented in a number of methods, but in the methods
 of class :class:`maputils.Pixellabels` it is easy to demonstrate that it works.
@@ -1138,7 +1140,7 @@ Markers
 Sometimes there are features in an image that you want to mark with a symbol.
 In other cases you want to plot positions from an external source (file or database etc.).
 Then you use objects from class :meth:`maputils.Annotatedimage.Marker`. The use is straightforward.
-Positions can entered in different formats: as pixel coordinates, as world coordinates
+Positions can be entered in different formats: as pixel coordinates, as world coordinates
 or as strings with position information (see module :mod:`positions`).
 
 .. note::
@@ -1258,10 +1260,10 @@ We used NumPy's FFT functions to calculate the transform. Have a look at the cod
 
 .. centered:: Fig. mu_fft.py - FFT: another use of external data
 
-The example shows that we van use external data with the correct shape
+The example shows that we can use external data with the correct shape
 in combination with the original FITS header. Note that we used Matplotlib's
 *text()* method instead of *xlabel()*. The reason is that the primary
-frame has all her axes set to invisible. We can set them to visible but
+frame has all its axes set to invisible. We can set them to visible but
 besides a label, one also get numbers along the axes and that was what we
 want to avoid.
 
@@ -1362,7 +1364,7 @@ subject to a small rotation.
    :align: center
 
 
-Transforming a wcs with CD or PC elements to a classic header
+Transforming a WCS with CD or PC elements to a classic header
 ...............................................................
 
 To facilitate legacy FITS readers which cannot process CD and PC elements
@@ -1387,8 +1389,8 @@ of a second FITS image are used upon an image of a base FITS image.
 The situation is a bit different compared to the examples above.
 We need only one spatial map to be reprojected and this spatial map is
 set by a slice (i.e. pixel positions on the repeat axes). The pixel
-limits (box) of the spatial axes is set by the first FITS image.
-Instead of a header we can use the FITSimage object to which we want to
+limits (box) of the spatial axes are set by the first FITS image.
+Instead of a header we can use the *FITSimage* object to which we want to
 reproject as a parameter. Then all appropriate information is passed
 and the :meth:`maputils.FITSimage.reproject_to` method returns a new FITSimage
 object with only one spatial map with sizes that fits the first spatial map.
@@ -1397,7 +1399,7 @@ first image using the *boxdat* parameter in  method :meth:`maputils.FITSimage.An
 
 The example script below shows how this is implemented in a script.
 The situation is not very complicated because we deal with two
-2-dim. data structures. Note the use of histogram equalization to enhance
+2-dimensional data structures. Note the use of histogram equalization to enhance
 some details.
 
 
@@ -1426,7 +1428,7 @@ the second image remains fixed. This enables you do compare the two images.
 Improving the quality of the reprojection
 ............................................
 
-The interpolation routine in the Kapteyn package is based on SciPy's
+The interpolation routine in the Kapteyn Package is based on SciPy's
 :func:`map_coordinates`. This function has a parameter *order* which
 sets the interpolation mode. In the script below we create a contour overlay
 using a rotated version of a base image (also the pixel size differs).
@@ -1445,9 +1447,7 @@ order  interpolation      mean     std    sum
 5      order 5            0.030    107     6183
 ====== ================== ======== ====== ======
 
-So *order=2* or *order=3* seems a reasonable choice. However, interpolations
-of order greater than 1 have problems with NaN's. That is the reason
-why we replace NaN's by zeros in our script just before the interpolation.
+So *order=2* or *order=3* seems a reasonable choice.
 
 If you zoom the third figure, you will see that the red contours closely
 follow the green contours that were drawn first. This is also a measure
@@ -1498,7 +1498,7 @@ Method :meth:`maputils.Annotatedimage.positionsfromfile` is based on method
 many options to get your data from a file.
 
 The next plot also uses :mod:`tabarray.tabarray` to read coast line data. But here we wanted
-the coast line dots to be connect to get more realistic coast lines. For this we
+the coast line dots to be connected to get more realistic coast lines. For this we
 use the comment lines in the file as segment separator. This gives us an option
 to process the data in segments using tabarray's segment attribute
 and avoid that distant segments are connected with
@@ -1519,11 +1519,11 @@ Mosaics of plots
 
 We have two examples of a mosaic of plots. First a mosaic is presented with an
 image and two position-velocity diagrams. The second is a classic examples which
-shows channel maps from a HI data cube at different velocities.
+shows channel maps from an HI data cube at different velocities.
 
 The base of the image is a velocity for which we want to show data and
 a pixel coordinate to set the position of the slice (*slicepos=51*).
-This code can be used as a template for a more general application e.g. with
+This code can be used as a template for a more general application, e.g. with
 user input of parameters that set velocity and slice position.
 
 **Example: mu_channelmaps1.py - Adding two slices**
@@ -1574,7 +1574,7 @@ want to use the shortcut with a function:
 
 Note that the interactions defined in module
 :mod:`maputils` could interfere with some of these keys.
-Default, the keys 'f' and 'g' are allowed.
+By default, the keys 'f' and 'g' are allowed.
 
 
 **Some Matplotlib Navigation Keyboard Shortcuts**
@@ -1655,7 +1655,7 @@ Writing position information to terminal
 ........................................
 
 Method :meth:`maputils.Annotatedimage.interact_writepos`
-write the toolbar message with indormation about coordinates and
+writes the toolbar message with information about coordinates and
 image values to the terminal.
 This is a primitive way to collect positional information about
 features in a map.
@@ -1666,7 +1666,7 @@ features in a map.
 
 The first two numbers are the x and y pixel coordinate.
 Then two numbers follow which represent the pixel position in world
-coordinates. The units are the s.i. versions of the units found in the header.
+coordinates. The units are the S.I. versions of the units found in the header.
 For spatial maps these units are degrees. The values are the real longitude and
 latitude even when the labels along the axes represent offsets.
 For spectral axes, the units depend on the selected spectral translation.
@@ -1701,7 +1701,7 @@ both represent the same area in the sky.
       shapes in pixel coordinates. 
 
 For these areas the flux can be calculated.
-Default the flux is given by the (lambda) expression *s/a* where
+By default the flux is given by the (lambda) expression *s/a* where
 *s* represents the sum of the intensities of all the pixels enclosed
 by area *a*. One can supply a user defined function or
 lambda expression using Annotatedimage attribute *fluxfie*.
@@ -1716,7 +1716,8 @@ at the top of your figure. You should anticipate on this when
 setting the figure size. Ofcourse one can also resize the plot window
 to make space for the buttons. The gui is simple. Here is an example.
 It corresponds to the example script above. A reprojection (to Mercator)
-of M101 is displayed together with the original image. One ellipse is plotted
+of M101 (with exaggerated values for the pixel sizes) is displayed
+together with the original image. One ellipse is plotted
 to demonstrate that the same area in the reprojection looks different.
 If enough resolution (pixelstep=0.2) is used, then the flux in both
 shapes is comparable.
@@ -1746,7 +1747,8 @@ Instance of class :class:`mplutil.VariableColormap`        cmap=myimage.cmap
 ===================================================== ===============================================
 
 Module :mod:`maputils` has a global list called *cmlist* which contains
-the colormaps provided by Matplotlib. You can add an external colormap
+the colormaps provided by Matplotlib. You can add an external colormap to this
+list as follows:
 
 >>> maputils.cmlist.add('/home/user/luts/rainbow4.lut')
 
@@ -1761,7 +1763,7 @@ If you have a number of local color maps then use Python's glob function to read
    :align: center
 
 The format of a colormap on disk (also called a color LookUp Table or *lut*) is simple.
-There should be 256 lines with three floating point numbers between 0 and 1 which
+There should be a number (e.g. 256) lines with three floating point numbers between 0 and 1 which
 represent Red, Green and Blue.
 
 
@@ -1828,11 +1830,11 @@ Blanks
 ........
 
 An image can contain some 'bad pixels'. A bad pixel is a location where a
-physical value is missing. These pixels are represented by value
+physical value is missing. These pixels are represented by the value
 *NaN*. For FITS files where the data are integers (i.e. keyword BITPIX has a
 positive value) one needs to set an integer value for 
 a bad pixel with FITS keyword *BLANK*. For the extraction of data the package *PyFITS* is
-used. PyFITS takes care of blanks automatically.
+used. PyFITS should take care of blanks automatically.
 
 Some FITS writers use for BITPIX=-32 a blank value equal to -inf.
 To avoid problems with plotting images and contours we replace these values
@@ -1904,7 +1906,7 @@ Glossary
       Plot of the sky in arbitrary projection showing a range in longitudes
       between [-180,180) degrees and a range in latitudes between [-90,90).
 
-   prompt functions
+   prompt function
       Function supplied by a user (or one of the pre defined functions in module
       :mod:`maputils` which prompts a user to enter relevant data. The functions
       need to return their data in a special format. See documentation in

@@ -24,7 +24,7 @@ grat.setp_lineswcs1(0, lw=2)
 perimeter = getperimeter(grat)
 lon_world = range(0,360,30)
 lat_world = [-dec0, -60, -30, 0, 30, 60, dec0]
-labkwargs0 = {'color':'r', 'va':'bottom', 'ha':'right'}
+labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,

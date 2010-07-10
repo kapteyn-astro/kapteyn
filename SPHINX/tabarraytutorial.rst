@@ -8,11 +8,11 @@ Tutorial tabarray module
 Introduction
 ------------
 
-Many applications send output of numbers to plain text (:term:`Ascii`)
+Many applications send output of numbers to plain text (:term:`ASCII`)
 files in a rectangular form. I.e. they store human readable
 numbers in one ore more columns in one or more rows. In one of our
 example figures to illustrate the use of graticules
-we plotted coastline data from an Ascii file with
+we plotted coastline data from a text file with
 coordinates in longitude and latitude in a :mod:`wcs` supported projection.
 
 If you want to plot such data or you need data to do calculations, then you
@@ -38,17 +38,17 @@ Simple interface functions
 Function readColumns
 ....................
 
-A typical example of an Ascii data file is given below.
+A typical example of a text data file is given below.
 It has 3 columns and several rows of which a number of rows represent a comment.
 To experiment with tabarray functions and methods you can copy this data and store it
 as `testdata.txt` on disk.::
    
-   ! Ascii file 'testdata.txt' 12-09-2008
+   ! ASCII file 'testdata.txt' 12-09-2008
    !
    ! X    |   Y   |    err
    23.4    -44.12   1.0e-3
    19.32   0.211    0.332
-   # Next numbers are include als
+   # Next numbers are include as
    -22.2   44.2     3.2
    1.2e3   800      1
 
@@ -93,7 +93,7 @@ To read only the last row in your data you should use `rows=(-1,)`.
 
 If you know beforehand which lines of the data files should be read,
 you can set the converter to read only the lines in parameter *lines*.
-For a big Ascii file (called *satview.txt*) containing longitudes and latitudes of positions
+For a big text file (called *satview.txt*) containing longitudes and latitudes of positions
 in two columns, we are only interested in the first 1000 lines containing
 relevant data. Then the *lines* parameter saves time.
 So we use the following command:
@@ -138,10 +138,10 @@ We could have changed our columns to:
 
 which makes this function very powerful.
 
-It is common practice to start an Ascii data file with some comments.
-Next code shows how to write a date and the name of the author in a new
+It is common practice to start text data file with some comments.
+The next code shows how to write a date and the name of the author in a new
 file with function :func:`tabarray.writeColumns`. The comments parameter
-is a list with strings. Each string is written on a new line at the start of the Ascii file.
+is a list with strings. Each string is written on a new line at the start of the text file.
 
 >>> when = datetime.datetime.now().strftime("Created at: %A (%a) %d/%m/%Y")
 >>> author = 'Created by: Kapteyn'
@@ -170,9 +170,6 @@ Again we want to read the data from file 'testtable.txt'.
  [  1.20000000e+03   8.00000000e+02   1.00000000e+00]]
 
 Selections are made with methods :meth:`tabarray.rows` and :meth:`tabarray.columns`.
-The *rows()* method needs to be applied before the *columns()* method because
-for the latter, the array *t* is transposed and its row information is
-changed.
 
 .. warning:: 
 
@@ -201,8 +198,8 @@ can extract data using NumPy indexing:
 Messy files
 ...........
 
-Ascii readers should be flexible and robust.
-Examine the contents of the next Ascii data file (which we stored
+ASCII text readers should be flexible and robust.
+Examine the contents of the next ASCII data file (which we stored
 on disk as *messyascii.txt*)::
 
    
@@ -257,6 +254,6 @@ Glossary
 
 .. glossary::
 
-   Ascii
+   ASCII
       *American Standard Code for Information Interchange* is a character-encoding
       scheme based on the ordering of the English alphabet.

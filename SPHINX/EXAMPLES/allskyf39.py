@@ -7,7 +7,7 @@ fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
 theta1 = 35
 title = r"""Bonne's equal area projection (BON) with conformal latitude 
-$\theta_1=35$ and $\alpha_p=0^\circ$, $\theta_p=+45^\circ$ and N.C.P. at $(45^\circ,0^\circ)$. 
+$\theta_1=35^\circ$ and $\alpha_p=0^\circ$, $\theta_p=+45^\circ$ and N.C.P. at $(45^\circ,0^\circ)$. 
 (Cal. PGSBOX example)"""
 header = {'NAXIS'  : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---BON',
@@ -42,7 +42,7 @@ if not smallversion:
    txt ="""Green:  Native, non-oblique graticule.  Yellow: Equator and prime meridian
 Others: Colour coded oblique graticule"""
 plt.figtext(0.1, 0.008, txt, fontsize=6)
-labkwargs0 = {'visible':False}
+labkwargs0 = {'visible':False}  # No labels at all!
 labkwargs1 = {'visible':False}
 doplot(frame, fignum, annim, grat, title, 
        labkwargs0=labkwargs0, labkwargs1=labkwargs1,

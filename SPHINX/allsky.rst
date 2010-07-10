@@ -19,7 +19,7 @@ have the functionality to do it and to facilitate users who want to set up
 an all-sky plot with module :mod:`maputils`. For this purpose we
 created for each figure the minimal required FITS headers.
 Header and other code is listed below the examples.
-Click on the hires link to get a plot which shows more details.
+In the HTML documentation, click on the hires link to get a plot which shows more details.
 With the information in this document, it should be easy to compose
 a Python program that creates just a single plot which then can be
 enhanced to fit your needs.
@@ -95,16 +95,20 @@ header description (e.g. as in CRVAL2Z).
      ``'CRVAL1' : 120.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : 5.0``
 
    * CROTA : Usually the angle in degrees between the axis for which CROTA is given
-     and the North. Rotations can also be included in the FITS CD and PC matrix. 
+     and the direction of the North. Rotations can also be included in the FITS CD or PC matrix.
    * The pixel position that corresponds to the values of CRPIX is denoted 
      with :math:`(r_x, r_y)`.
    * An arbitrary pixel coordinate is denoted with :math:`(p_x, p_y)`.
    * If we apply an operation M involving the PC or CD matrix or CDELT and CROTA
-     we get :math:X = M.(p-r)`. The result is a position denoted with :math:`(x, y)` and
+     we get :math:`X = M.(p-r)`. The result is a position denoted with :math:`(x, y)` and
      its coordinates are called *intermediate world coordinates* and in this context 
      we refer to them as *projection plane coordinates*.
    * The coordinate reference point is at :math:`(x, y) = (0, 0)`.
-   * Intermediate coordinates are in degrees. 
+   * Intermediate coordinates are in degrees.
+   * PV FITS cards have syntax :math:`PVi\_na` i.e. the keyword starts
+     with PV, it is associated with axis *i*, it has a number *n* and can be part of
+     an alternate header identified by *a*. The PV elements are called *coordinate parameters*
+     and are used to change the default coordinate system.
    * With the projection information in CTYPE one converts projection plane coordinates
      :math:`(x, y)` to *native longitude and latitude*, :math:`(\phi, \theta)`.
      Additional information for this transformation can be given in FITS PV keywords.
@@ -120,7 +124,7 @@ header description (e.g. as in CRVAL2Z).
    * This :math:`(\phi_0, \theta_0)` depends on the projection or its values are  
      given in FITS PV
      keywords. With the previous assumption of the axis order, these elements will
-     be :math:PV1_1 and PV1_2
+     be :math:`PV1_1` and :math:`PV1_2`
    * For the transformation from native longitude and latitude :math:`(\phi, \theta)` 
      to *celestial coordinates*
      we need the **native** longitude and latitude of the **celestial** pole :math:`(\phi_p, \theta_p)`.
@@ -129,13 +133,17 @@ header description (e.g. as in CRVAL2Z).
      Also we need the **celestial** position of the **native** pole  :math:`(\alpha_p, \delta_p)`.
      (and :math:`\delta_p = \theta_p` ).
    
-We summarize what van be varied in the FITS headers we used to plot all aky graticules.
+We summarize what can be varied in the FITS headers we used to plot all sky graticules.
 
    * :math:`(\alpha_0, \delta_0) \leftrightarrow  (CRVAL1, CRVAL2)`
    * native longitude and latitude of
      reference point :math:`(\phi_0, \theta_0)  \leftrightarrow  (PV1\_1, PV1\_2)`
    * native latitude of the celestial pole 
      :math:`(\phi_p, \theta_p) \leftrightarrow (LONPOLE, LATPOLE) \leftrightarrow (PV1\_3, PV1\_4)`
+   * In certain classes of projections  :math:`(\alpha_0, \delta_0)`  is decoupled
+     from the reference point. To restore the relation between FITS cards *CRVALn*
+     and *CRPIXn* one can use  **PVi_0** where i is the axis number of the longitude axis.
+     Any value unequal to 0.0 will do the job.
 
 
 Standard versus Oblique
@@ -147,13 +155,13 @@ Fig.0: Linear equatorial coordinate system
 Before the non-linear coordinate transformations, world coordinates were calculated in a
 linear way using the number of pixels from the reference point in CRPIX times the 
 increment in world coordinate and added to that the value of CRVAL. We demonstrate this
-system bu creating a header where we omitted the code in CTYPE that sets the projection system.
+system by creating a header where we omitted the code in CTYPE that sets the projection system.
 
 WCSLIB does not recognize a valid projection system and defaults to linear transformations.
 The header is a Python dictionary. With method :meth:`maputils.Annotatedimage.Graticule` we draw 
 the graticules. The graticule lines that we want to draw are given by their start position
 *startx=* and *starty=*. The labels inside the plot are set by *lon_world* and *lat_world*.
-To be consistent with fig.2 in {Ref2]_, we inserted a positive CDELT for the longitude. 
+To be consistent with fig.2 in Cal. [Ref2]_ , we inserted a positive CDELT for the longitude.
 
 .. note:: 
 
@@ -224,8 +232,8 @@ The cyan colored border is calculated with a border formula given in [Ref2]_ and
 red border is calculated with a brute force method :meth:`wcsgrat.Graticule.scanborder`
 which uses a bisection method in X and Y direction to find the position
 of a transition between a valid world coordinate and an invalid coordinate.
-Obviously the border that is plotted accoding to the algorithm is less accurate.
-The brute force method gives a more accurate border but needs a user to
+Obviously the border that is plotted according to the algorithm is less accurate.
+The brute force method gives a more accurate border but needs the user to
 enter start positions for the bisection.
 
 .. plot:: EXAMPLES/allskyf4.py
@@ -300,7 +308,7 @@ Fig.11: Airy projection (AIR)
 Cylindrical Projections
 +++++++++++++++++++++++
 
-The native coordinate system origin of a Cylindrical projections coincides 
+The native coordinate system origin of a Cylindrical projection coincides
 with the reference point. Therefore we set  :math:`(\phi_0, \theta_0) = (0,0)` 
 
 Fig.12: Gall's stereographic projection (CYP)
@@ -410,7 +418,7 @@ Near the poles we have a problem to draw graticule lines at constant latitude.
 With the defaults for the Graticule constructor we would observe a
 horizontal line that connects longitudes -180 and 180 deg. near the poles.
 >From a plotting point of view the range -180 to 180 deg. means a closed
-shape (.e.q. a circle near a pole).
+shape (e.g. a circle near a pole).
 To prevent horizontal jumps in such plots we defined a jump in terms of pixels.
 If the distance between two points is much bigger than the pixel sampling
 then it must be a jump. However, in some projections (like this one), the
@@ -445,7 +453,7 @@ Fig.26: Tangential spherical cube projection (TSC)
 ..................................................
 
 For all the quad cube projections we plotted a border
-by converting edges in world coordinates into pixels coordinates
+by converting edges in world coordinates into pixel coordinates
 and connected them in the right order. 
 
 .. plot:: EXAMPLES/allskyf26.py
@@ -530,7 +538,7 @@ from a plain text version of the CIA World DataBank II map database
 made by Dave Pape (http://www.evl.uic.edu/pape/data/WDB/).
 
 We used values 'TLON', 'TLAT' for the ``CTYPE``'s.
-These are recognized by WCSlib as longitude and latitude.
+These are recognized by WCSLIB as longitude and latitude.
 Any other prefix is also valid.
 
 Note the intensive use of methods to set label/tick- and plot properties.
@@ -579,20 +587,19 @@ See equivalent plot at http://www.atnf.csiro.au/people/mcalabre/WCS/
 Projection aliases
 +++++++++++++++++++
 
-Table A.1. in [Ref2]_ list many alternative projection. These are either one of the 
+Table A.1. in [Ref2]_ lists many alternative projections. These are either one of the 
 projections listed in previous sections or they have special projection parameters.
 This table lists those parameters and in table 13 of [Ref2]_ one can find the corresponding
 PV keyword.
 
-For example if we want a Peter's projection then in table A.1. we read that this is in fact 
+For example if we want a Peter's projection, then in table A.1. we read that this is in fact 
 a Gall's orthographic projection (CEA) with :math:`\lambda = 1/2`. In table 13 we find that for
 projection CEA the parameter :math:`\lambda` corresponds to keyword PVi_1a. This keyword is associated with the
 latitude axis. If this is the second axis in a FITS header and if we don't use an alternate
 header description, then this keyword is PV1_1.
 
 
-Source code of the service module program
+Source code of the service module
 ------------------------------------------
 
 .. literalinclude:: EXAMPLES/service.py
-

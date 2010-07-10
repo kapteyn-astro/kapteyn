@@ -84,7 +84,7 @@ def plotcoast(fn, frame, grat, col='k', lim=100, decim=5, plotsym=None, sign=1.0
 title = ''
 titlepos = 1.02
 dec0 = 89.9999999999
-fsize = 11
+fsize = 10
 figsize = (7,6)
 drawgrid = False
 grat = None
@@ -95,7 +95,9 @@ markerpos = "120 deg 60 deg"
 
 def doplot(frame, fignum, annim, grat, title, 
            lon_world=None, lat_world=None, 
-           lon_constval=None, lat_constval=None, markerpos=None, 
+           lon_constval=None, lat_constval=None,
+           lon_fmt=None, lat_fmt=None,
+           markerpos=None, 
            plotdata=False, perimeter=None, drawgrid=None, 
            smallversion=False, addangle0=0.0, addangle1=0.0, 
            framebgcolor=None, deltapx0=0.0, deltapy0=0.0,
@@ -121,17 +123,25 @@ def doplot(frame, fignum, annim, grat, title,
       Xp, Yp = zip(*perimeter)
       frame.plot(Xp, Yp, color='r')
 
+   if lon_constval == None:
+      lon_constval = 0.0    # Reasonable for all sky plots
+   if lat_constval == None:
+      lat_constval = 0.0    # Reasonable for all sky plots
+   if lon_fmt == None:
+      lon_fmt = 'Dms'
+   if lat_fmt == None:
+      lat_fmt = 'Dms'
    # Plot labels inside graticule if required
    labkwargs0.update({'fontsize':fsize})
    labkwargs1.update({'fontsize':fsize})
    ilabs1 = grat.Insidelabels(wcsaxis=0, 
                         world=lon_world, constval=lat_constval, 
                         deltapx=deltapx0, deltapy=deltapy0, 
-                        addangle=addangle0, fmt="$%g$", **labkwargs0)
+                        addangle=addangle0, fmt=lon_fmt, **labkwargs0)
    ilabs2 = grat.Insidelabels(wcsaxis=1, 
                         world=lat_world, constval=lon_constval, 
                         deltapx=deltapx1, deltapy=deltapy1, 
-                        addangle=addangle1, fmt="$%g$", **labkwargs1)
+                        addangle=addangle1, fmt=lat_fmt, **labkwargs1)
 
    # Plot just 1 pixel c.q. marker
    if markerpos != None:
@@ -151,4 +161,3 @@ def doplot(frame, fignum, annim, grat, title,
    annim.interact_toolbarinfo()
 
    plt.show()
-

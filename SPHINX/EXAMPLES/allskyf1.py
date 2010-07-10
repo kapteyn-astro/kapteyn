@@ -3,7 +3,7 @@ import numpy
 from service import *
 
 # Fig 2 in celestial article (Calabretta et al) shows a  positive cdelt1
-fignum = 2
+fignum = 1
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
 title = r"""Plate Carree projection (CAR), oblique with:
@@ -29,7 +29,7 @@ header['CRVAL2'] = 0.0
 border = annim.Graticule(header, axnum= (1,2), boxsamples=10000,
                          wylim=(-90,90.0), wxlim=(-180,180),
                          startx=(180-epsilon,-180+epsilon), starty=(-90,90))
-lat_world = [-60, -30, 0, 30, 60]
+lat_world = [-60, 0, 30, 60]
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'right'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'center'}
 doplot(frame, fignum, annim, grat, title,

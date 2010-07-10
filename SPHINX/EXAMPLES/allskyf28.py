@@ -5,7 +5,8 @@ from service import *
 fignum = 28
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
-title = r"Quadrilateralized spherical cube projection (QSC). (Cal. fig.32)"
+title = r"""Quadrilateralized spherical cube projection (QSC).
+ (Cal. fig.32) with coastlines"""
 header = {'NAXIS'  : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---QSC',
           'CRVAL1' : 0.0, 'CRPIX1' : 85, 'CUNIT1' : 'deg', 'CDELT1' : -4.0,
@@ -23,7 +24,7 @@ grat.setp_lineswcs1(0, lw=2)
 lon_world = range(0,360,30)
 lat_world = [-60, -30, 30, 60]
 perimeter = getperimeter(grat)
-labkwargs0 = {'color':'g', 'va':'bottom', 'ha':'right'}
+labkwargs0 = {'color':'g', 'va':'center', 'ha':'center'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,

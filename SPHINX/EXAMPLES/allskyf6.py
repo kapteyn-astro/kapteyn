@@ -5,7 +5,7 @@ from service import *
 fignum = 6
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
-title = r"Stereographic projection (STG) diverges at $\theta=-90$. (Cal. fig.9)"
+title = r"Stereographic projection (STG) diverges at $\theta=-90^\circ$. (Cal. fig.9)"
 header = {'NAXIS' : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---STG',
           'CRVAL1' :0.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : -12.0,

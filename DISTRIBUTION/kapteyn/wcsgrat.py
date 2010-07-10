@@ -208,7 +208,7 @@ def parsetickmode(tickmode):
 
 
 
-def gethmsdms(a, prec, axtype, skysys):
+def gethmsdms(a, prec, axtype, skysys, eqlon=None):
    #---------------------------------------------------------------------------
    """
    Given a number in degrees and an axis type in *axtype*
@@ -253,7 +253,8 @@ def gethmsdms(a, prec, axtype, skysys):
    sign = 1
    if not issequence(skysys): # Usually a number, sometimes a tuple
       skysys = [skysys]
-   eqlon = (axtype == 'longitude') and (wcs.equatorial in skysys)
+   if eqlon == None:
+      eqlon = (axtype == 'longitude') and (wcs.equatorial in skysys)
    if axtype == 'longitude':
       degs = numpy.fmod(a, 360.0)  # Now in range -360, 360
       if degs < 0.0:
@@ -267,7 +268,7 @@ def gethmsdms(a, prec, axtype, skysys):
 
    if prec < 0:
       prec = 0
-   # How many seconds is this. Round to 'prec'
+   # How many seconds is this? Round to 'prec'
    if eqlon:
       sec = numpy.round(degs*240.0, prec)
       sec = numpy.fmod(sec, 360.0*240.0)     # Rounding can result in 360 deg. again, so correct
@@ -318,7 +319,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
       after the dot set the precision itself.
       A character that is not a capital sets the corresponding input
       Boolean (Hlab, Dlab, etc.) to False. This is a bit dangerous because
-      with this option one can suppress field to be printed that contain
+      with this option one can suppress fields to be printed that contain
       a value unequal to zero. It is applied if you want to suppress
       e.g. seconds if all the seconds in your label are 0.0.
       The suppression of printing minutes is overruled if hours (or degrees)
@@ -351,6 +352,9 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
       >>> # If we know that all minutes and seconds in our labels are 0.0
       >>> # and we want only the hours to be printed, then use:
       >>> grat.setp_tick(wcsaxis=0, fmt="Hms")
+
+      >>> grat.setp_tick(wcsaxis=0, fmt="Dms")
+      >>> # Plot labels in Degrees even if the axis is an equatorial longitude.
    """
    #-------------------------------------------------------------------------------
    Ihours, Ideg, Imin, Isec, Fsec, sign = hmsdms
@@ -386,9 +390,10 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
    if hms:
       if Hlab:
          if tex:
-            lab += r"%.2d^h"%Ihours
+            #lab += r"%.2d^h"%Ihours
+            lab += r"%d^h"%Ihours
          else:
-            lab += "%.2dh"%Ihours
+            lab += "%d^h"%Ihours
          if Slab:
             Mlab = True
    else:
@@ -397,9 +402,9 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
          if sign == -1:
             si = '-'
          if tex:
-            lab += r"%c%.2d^{\circ}"%(si,Ideg)
+            lab += r"%c%d^{\circ}"%(si,Ideg)
          else:
-            lab += "%c%.2dd"%(si,Ideg)
+            lab += "%c%dd"%(si,Ideg)
          if Slab:
             Mlab = True
    if Mlab:
@@ -492,7 +497,13 @@ def createlabels(Tlist):
       # There are some conditions for plotting labels in hms/dms:
       if t.axtype in ['longitude', 'latitude'] and t.offset == False and t.fun == None and\
          (t.fmt == None or t.fmt.find('%') == -1):
-         hmsdms = gethmsdms(t.labval, t.prec, t.axtype, t.skysys)
+         if t.axtype == 'longitude' and t.fmt != None and 'D' in t.fmt.upper():
+            # This is a equatorial longitude axis for which one wants
+            # DMS formatting not HMS formatting. Useful for all sky plots
+            eqlon = False
+         else:
+            eqlon = None
+         hmsdms = gethmsdms(t.labval, t.prec, t.axtype, t.skysys, eqlon)
          Ihours, Ideg, Imin, Isec, Fsec, sign = hmsdms
          if first:
             hmsdms1 = hmsdms
@@ -850,7 +861,8 @@ class PLOTaxis(object):
 
 class Insidelabels(object):
    """
-   A small utility class for wcs labels inside a plot with a graticule
+   A small utility class for wcs labels inside a plot with a graticule.
+   Useful for all sky plots.
 
    .. automethod:: setp_label
    """

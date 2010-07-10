@@ -5,7 +5,7 @@ from service import *
 fignum = 5
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes(plotbox)
-title = r"Gnomonic projection (TAN) diverges at $\theta=0$. (Cal. fig.8)"
+title = r"Gnomonic projection (TAN) diverges at $\theta=0^\circ$. (Cal. fig.8)"
 header = {'NAXIS' : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---TAN',
           'CRVAL1' :0.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 'CDELT1' : -5.0,

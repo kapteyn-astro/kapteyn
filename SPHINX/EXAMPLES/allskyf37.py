@@ -4,7 +4,7 @@ from service import *
 
 fignum = 37
 fig = plt.figure(figsize=figsize)
-frame = fig.add_axes(plotbox)
+frame = fig.add_axes((0.1,0.15,0.8,0.75))
 title = 'WCS polyconic (PGSBOX fig.1)'
 rot = 30.0 *numpy.pi/180.0
 header = {'NAXIS'  : 2, 'NAXIS1': 512, 'NAXIS2': 512,
@@ -26,7 +26,9 @@ grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                        startx=X, starty=Y, gridsamples=4000)
 grat.setp_lineswcs0(0, lw=2)
 grat.setp_lineswcs1(0, lw=2)
-grat.setp_tick(position=(-15.0,-45.0, -60.0,-75.0), visible=False)
+grat.setp_tick(wcsaxis=0, position=15*numpy.array((18,20,22,23)), visible=False)
+grat.setp_tick(wcsaxis=0, fmt="Hms")
+grat.setp_tick(wcsaxis=1, fmt="Dms")
 header['CRVAL1'] = 0.0
 header['CRVAL2'] = 0.0
 header['LONPOLE'] = 999
