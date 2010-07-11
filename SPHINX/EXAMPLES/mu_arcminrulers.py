@@ -24,7 +24,7 @@ grat.setp_ticklabel(fmt='s') # Suppress the seconds in all labels
 
 xmax = annim.pxlim[1]+0.5; ymax = annim.pylim[1]+0.5
 annim.Ruler(x1=xmax, y1=0.5, x2=xmax, y2=ymax, lambda0=0.5, step=5.0/60.0, 
-            fun=lambda x: x*60.0, fmt=r"%4.0f^\prime", 
+            fun=lambda x: x*60.0, fmt="%4.0f^\prime", 
             fliplabelside=True, color='r')
 
 # The wcs methods that convert between pixels and world
@@ -32,7 +32,7 @@ annim.Ruler(x1=xmax, y1=0.5, x2=xmax, y2=ymax, lambda0=0.5, step=5.0/60.0,
 # header are (e.g. arcsec, arcmin).
 annim.Ruler(x1=60/60.0, y1=390/60.0, x2=60/60.0, y2=420/60.0, 
             lambda0=0.0, step=5.0/60, world=True, 
-            fun=lambda x: x*60.0, fmt=r"%4.0f^\prime", color='g')
+            fun=lambda x: x*60.0, fmt="%4.0f^\prime", color='g')
 
 annim.Ruler(pos1='0h3m30s 6d30m', pos2='0h3m30s 7d0m', 
             lambda0=0.0, step=5.0, 

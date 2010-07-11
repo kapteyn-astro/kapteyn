@@ -16,14 +16,14 @@ grat.setp_axislabel("right", label="Offset (Arcmin.)", visible=True)
 xmax = annim.pxlim[1]+0.5; ymax = annim.pylim[1]+0.5
 ruler = annim.Ruler(x1=xmax, y1=0.5, x2=xmax, y2=ymax, 
                     lambda0 = 0.5, step=5.0/60.0, 
-                    fun=lambda x: x*60.0, fmt=r"%4.0f^\prime", 
+                    fun=lambda x: x*60.0, fmt="%4.0f^\prime", 
                     fliplabelside=True)
 ruler.setp_line(lw=2, color='r')
 ruler.setp_label(color='r')
 
 ruler2 = annim.Ruler(x1=0.5, y1=0.5, x2=xmax, y2=ymax, lambda0 = 0.5, 
                      step=5.0/60.0, 
-                     fun=lambda x: x*60.0, fmt=r"%4.0f^\prime", 
+                     fun=lambda x: x*60.0, fmt="%4.0f^\prime", 
                      fliplabelside=True)
 ruler2.setp_line(lw=2, color='b')
 ruler2.setp_label(color='b')
@@ -33,4 +33,3 @@ annim.plot()
 annim.interact_writepos()
 
 plt.show()
-

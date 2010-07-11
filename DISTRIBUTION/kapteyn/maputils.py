@@ -1263,18 +1263,40 @@ class Contours(object):
                self.ckwargslist[i] = kwargs
 
 
-   def setp_label(self, levels=None, **kwargs):
+   def setp_label(self, levels=None, tex=True, **kwargs):
       #--------------------------------------------------------------------
       """
       Set properties for the labels along the contours.
+      The properties are Matplotlib properties (fontsize, colors,
+      inline, fmt).
 
+      :param levels:
+          None or one or more levels from the set of given contour levels
+      :type levels:
+          None or one or a sequence of numbers
+
+      :param tex:
+         Print the labels in TeX if a format is entered.
+         If set to True, add '$' characters
+         so that Matplotlib knows that it has to format the label
+         in TeX. The default is *True*. 
+      :type tex:
+         Boolean
+
+      Other parameters are Matplotlib parameters for method
+      :meth:`clabel` in Matplotlib :class:`ContourLabeler`
+      (fontsize, colors, inline, fmt).
+      
       :Examples:
 
       >>> cont2 = annim.Contours(levels=(8000,9000,10000,11000))
       >>> cont2.setp_label(11000, colors='b', fontsize=14, fmt="%.3f")
-      >>> cont2.setp_label(fontsize=10, fmt="$%g \lambda$")
+      >>> cont2.setp_label(fontsize=10, fmt="%g \lambda")
       """
       #--------------------------------------------------------------------
+      if tex and kwargs.has_key('fmt'):
+         kwargs['fmt'] = r'$'+kwargs['fmt']+'$'
+      print "newkwargs = ", kwargs
       if levels == None:
          self.commonlabelkwargs = kwargs
       else:
@@ -1998,7 +2020,9 @@ this class.
 .. automethod:: plot
 .. automethod:: toworld
 .. automethod:: topixel
+.. automethod:: inside
 .. automethod:: histeq
+.. automethod:: blur
 .. automethod:: interact_toolbarinfo
 .. automethod:: interact_imagecolors
 .. automethod:: interact_writepos
@@ -2081,6 +2105,8 @@ this class.
       self.data_hist = None                      # There is not yet a hist. eq. version of the data
       self.blurred = False
       self.data_blur = None
+      self.blurfac = (self.pxlim[1]-self.pxlim[0]+1)/200.0
+      self.blurindx = 0
       self.data_orig = self.data                 # So we can toggle between image versions
       if basename == None:
          self.basename = "Unknown"               # Default name for file with colormap lut data
@@ -2800,10 +2826,10 @@ this class.
       """
       #-----------------------------------------------------------------
       if pos != None:
-         poswp = str2pos(pos, self.projection, mixpix=self.mixpix, maxpos=1)
+         poswp = str2pos(pos, self.projection, mixpix=self.mixpix)
          if poswp[3] != "":
             raise Exception, poswp[3]
-         world = poswp[0][0]
+         world = poswp[0][0]      # Only first element is used
       else:
          world = (xc, yc)
       spatials = [self.projection.lonaxnum, self.projection.lataxnum]
@@ -2817,7 +2843,7 @@ this class.
       return beam
 
 
-   def Marker(self, pos=None, x=None, y=None, world=True, maxpos=100000, **kwargs):
+   def Marker(self, pos=None, x=None, y=None, world=True, **kwargs):
       #-----------------------------------------------------------------
       """
       Plot marker symbols at given positions. This method creates
@@ -2890,6 +2916,9 @@ this class.
             yp = range(100,200)
             annim.Marker(x=xp, y=yp, world=False, marker='o', color='g')
 
+            # Single position in pixel coordinates
+            annim.Marker(x=150, y=150, world=False, marker='+', color='b')
+            
          In the next example we show how to use method :meth:`positionsfromfile`
          in combination with this Marker method to read positions
          from a file and to plot them. The positions in the file
@@ -2903,7 +2932,7 @@ this class.
       """
       #-----------------------------------------------------------------
       if pos != None:
-         poswp = str2pos(pos, self.projection, mixpix=self.mixpix, maxpos=maxpos) # with implicit maximum of 'maxpos'
+         poswp = str2pos(pos, self.projection, mixpix=self.mixpix)
          if poswp[3] != "":
             raise Exception, poswp[3]
          xp = poswp[1][:,0]
@@ -3125,7 +3154,7 @@ this class.
             #                 60.028325686860846]
 
             #Back to pixel coordinates: x, y = [  10.   50.  300.  399.]
-            #                                   [   1.   44.   88.  100.]
+            #                                  [   1.   44.   88.  100.]
       """
       #--------------------------------------------------------------------
       xw = yw = None
@@ -3166,28 +3195,28 @@ this class.
       :type yw:
          Floating point number
       :param matchspatial:
-         If True then return the pixel coordinates and the value of the
+         If set to *True* then return the pixel coordinates and the value of the
          pixel on the missing spatial axis.
       :type matchspatial:
          Boolean
-      
-       If somewhere in the proces an error occurs, then the return values of the pixel
-       coordinates are all *None*.
-         
+
       :Returns:
          Two pixel coordinates: *x* which is the world coordinate for
          the x-axis and *y* which is the world coordinate for
          the y-axis.
+
+         If somewhere in the proces an error occurs, then the return values of the pixel
+         coordinates are all *None*.
    
       :Notes:
          This method knows about the pixel on the missing spatial axis
          (if there is one). This pixel is usually the pixel coordinate of
          the slice if the dimension of the data is > 2.
-   
+
       :Examples:
          See example at :meth:`toworld`
       """
-   #--------------------------------------------------------------------
+      #--------------------------------------------------------------------
       x = y = None
       try:
          if (self.mixpix == None):
@@ -3214,6 +3243,130 @@ this class.
          return x, y
 
 
+   def inside(self, x=None, y=None, pos='', world=True):
+      #--------------------------------------------------------------------
+      """
+      This convenience method belongs to class :class:`Annotatedimage` which
+      represents a two dimensional map which could be a slice
+      (*slicepos*) from a
+      bigger data structure and/or could be limited by limits on the
+      pixel ranges of the image axes (*pxlim*, *pylim*).
+      Then, for a sequence of coordinates in x and y, return a sequence with
+      Booleans with *True* for a coordinate within the boundaries of this
+      map and *False* when it is outside the boundaries of this
+      map. This method can work with either sequences of coordinates
+      (parameters *x* and *y*)
+      or a string with a position (parameter *pos*).
+      If parameters *x* and *y* are used then parameter *world* sets
+      these coordinates to world- or pixel coordinates.
+
+      :param x:
+         Single number of a sequence representing the x coordinates
+         of your input positions. These coordinates are world coordinates
+         id *world=True* (which is the default) and pixel coordinates
+         if *world=False*.
+      :type x:
+         Floating point number or sequence of floating point numbers.
+      :param y:
+         Single number of a sequence representing the x coordinates
+         of your input positions. See description for parameter *x*
+      :type y:
+         Floating point number or sequence of floating point numbers.
+      :param pos:
+         A description of one or a number of positions entered as a string.
+         The syntax is described in module :mod:`positions`.
+         The value of parameter *world* is ignored.
+      :type pos:
+         String
+      :param world:
+         If parameters *x* and *y* are used then the step of coordinate
+         interpretation as with *pos* is skipped. These coordinates can be either
+         pixel- or world coordinates depending on the value of *world*.
+         By default this value is *True*.
+      :type world:
+         Boolean
+
+      :Raises:
+         :exc:`Exception`
+            *One of the arrays is None and the other is not!*
+
+         :exc:`Exception`
+            *You cannot enter values for both pos= and x= and/or y=*
+
+      :Returns:
+
+         * None -- there was nothing to do
+         * Single Boolean -- Input was a single position
+         * NumPy array of Booleans -- Input was a sequence of positions
+
+      :Note:
+         
+         For programmers: note the similarity to method :meth:`Marker`
+         with respect to the use of method :meth:`positions.str2pos`.
+
+      :Examples:
+
+      >>> fitsobj = maputils.FITSimage("m101.fits")
+      >>> fitsobj.set_limits((180,344), (100,200))
+      >>> annim = fitsobj.Annotatedimage()
+
+      >>> pos="{} 210.870170 {} 54.269001"
+      >>> print annim.inside(pos=pos)
+      >>> pos="ga 101.973853, ga 59.816461"
+      >>> print annim.inside(pos=pos)
+
+      >>> x = range(180,400,40)
+      >>> y = range(100,330,40)
+      >>> print annim.inside(x=x, y=y, world=False)
+
+
+      """
+      #--------------------------------------------------------------------
+      if x == None and y == None and pos == '':
+         # Nothing to do
+         return None
+      if (x == None and y != None) or (x != None and y == None):
+         raise Exception, "One of the arrays is None and the other is not!"
+      if pos != '' and (x != None or y != None):
+         raise Exception, "You cannot enter values for both pos= and x= and/or y="
+      if pos != '':
+         world, pixels, units, errmes = str2pos(pos, self.projection, mixpix=self.mixpix)
+         if errmes != '':
+            raise Exception, errmes
+         else:
+            xp = pixels[:,0]
+            yp = pixels[:,1]
+      else:
+         if world:
+            xp, yp = self.topixel(x, y)
+            # When conversions fial then None, None is returned
+            if xp == None:
+               xp = numpy.array([None]*len(x))
+            if yp == None:
+               yp = numpy.array([None]*len(y))
+         else:
+            if not isinstance(x, (numpy.ndarray)):
+               xp = numpy.array(x)
+            else:
+               xp = x
+            if not isinstance(y, (numpy.ndarray)):
+               yp = numpy.array(y)
+            else:
+               yp = y
+      # At this stage we have an array for the x and y coordinates.
+      # Now check whether they are inside a map
+      if issequence(xp):
+         b = numpy.where((xp>self.pxlim[0]-0.5) &
+                         (xp<self.pxlim[1]+0.5) &
+                         (yp>self.pylim[0]-0.5) &
+                         (yp<self.pylim[1]+0.5), True, False)
+      else:
+         b = self.pxlim[0]-0.5 < xp < self.pxlim[1]+0.5 and\
+             self.pylim[0]-0.5 < yp < self.pylim[1]+0.5
+      if issequence(b) and len(b) == 1:
+         b = b[0]
+      return b
+         
 
    def positionmessage(self, x, y):
       #--------------------------------------------------------------------
@@ -3416,16 +3569,16 @@ this class.
             if self.cmindx < 0:
                self.cmindx = lm - 1
          newcolormapstr = colormaps[self.cmindx]
-         self.figmanager.toolbar.set_message(newcolormapstr)
+         messenger(newcolormapstr)
          self.cmap.set_source(newcolormapstr)     # Keep original object, just change the lut
          #self.cmap.update()
       # Request for another scale, linear, logarithmic etc.
       elif axesevent.event.key in scales:
          key = axesevent.event.key 
-         self.figmanager.toolbar.set_message(scales[key])
+         messenger(scales[key])
          self.cmap.set_scale(scales[key])
          mes = "Color map scale set to '%s'" % scales[key]
-         self.figmanager.toolbar.set_message(mes)
+         messenger(mes)
       # Invert the color map colors
       #elif axesevent.event.key.upper() == 'I':
       elif axesevent.event.key == '9':
@@ -3437,12 +3590,12 @@ this class.
             self.cmap.set_inverse(True)
             self.cmapinverse = True
             mes = "Color map inverted!"
-         self.figmanager.toolbar.set_message(mes)
+         messenger(mes)
       # Reset all color map parameters
       #elif axesevent.event.key.upper() == 'R':
       elif axesevent.event.key == '0':
          self.cmap.auto = False      # Postpone updates of the canvas.
-         self.figmanager.toolbar.set_message('Reset color map to default')
+         messenger('Reset color map to default')
          #self.cmap.set_source(self.startcmap)
          self.cmap.set_source(colormaps[self.startcmindx])
          self.cmap.modify(1.0, 0.0)
@@ -3477,36 +3630,44 @@ this class.
          self.blankcol = blankcols[indx]
          self.cmap.set_bad(self.blankcol)
          mes = "Color of bad pixels changed to '%s'" % self.blankcol
-         self.figmanager.toolbar.set_message(mes)
+         messenger(mes)
       elif axesevent.event.key.upper() == 'M':
          stamp = datetime.now().strftime("%d%m%Y_%H%M%S")
          filename = self.basename + "_" + stamp + ".lut"
          self.write_colormap(filename)
          mes = "Save color map to file [%s]" % filename
-         self.figmanager.toolbar.set_message(mes)
+         messenger(mes)
       elif axesevent.event.key.upper() == 'H':
          # Set data to histogram equalized version
          if self.histogram:
             # Back to normal
             self.set_histogrameq(False)
-            self.figmanager.toolbar.set_message('Original image displayed')
+            messenger('Original image displayed')
          else:
             if self.data_hist == None:
-               self.figmanager.toolbar.set_message('Calculating histogram')
+               messenger('Calculating histogram')
             self.set_histogrameq()
-            self.figmanager.toolbar.set_message('Histogram eq. image displayed')
+            messenger('Histogram eq. image displayed')
+      elif axesevent.event.key.upper() == 'X':
+         # Change the smooting factor and go to blur mode.
+         self.blurindx += 1
+         if self.blurindx >= 10:
+            self.blurindx = 1
+         self.blurfac = self.blurindx * (self.pxlim[1]-self.pxlim[0]+1) / 200.0
+         mes = "Blur index: %d blur sigma: %g" % (self.blurindx, self.blurfac)
+         messenger(mes)
+         self.set_blur(nx=self.blurfac, new=True)
       elif axesevent.event.key.upper() == 'Z':
          # Set data to blurred version
          if self.blurred:
             # Back to normal
             self.set_blur(False)
-            self.figmanager.toolbar.set_message('Original image displayed')
+            messenger('Original image displayed')
          else:
             if self.data_blur == None:
-               self.figmanager.toolbar.set_message('Calculating smoothed version')
-            self.set_blur()
-            self.figmanager.toolbar.set_message('Smoothed eq. image displayed')
-      
+               messenger('Calculating smoothed version')
+            self.set_blur(nx=self.blurfac)
+            messenger('Smoothed eq. image displayed')
 
    def set_histogrameq(self, on=True):
       if not on:
@@ -3536,7 +3697,6 @@ this class.
          self.blurred = False
       else:
          if self.data_blur == None or new:
-            #self.data_hist = self.histeq()
             self.blur(nx, ny)
          self.data = self.data_blur
          self.blurred = True
@@ -3576,14 +3736,9 @@ this class.
 
       **KEYBOARD**
 
-      Supported keys are *pageup* and *pagedown*, 'I','H' and 'R' and
-      the numbers 1 to 5.
-      The page up/down keys move through a list
-      with known color maps. You will see the results of a new setting
-      immediately.
-
          * **page-down** move forwards through a list with known color maps.
-         * **r** (or 'R') **reset** the colors to the original colormap and scaling.
+         * **page-up** move backwards through a list with known color maps.
+         * **0** resets the colors to the original colormap and scaling.
            The default color map is 'jet'.
          * **i** (or 'I') toggles between **inverse** and normal scaling.
          * **1** sets the colormap scaling to **linear**
@@ -3593,7 +3748,14 @@ this class.
          * **5** sets the colormap scaling to **square**
          * **b** (or 'B') changes color of **bad** pixels.
          * **h** (or 'H') replaces the current data by a **histogram equalized**
-           version of this data.
+           version of this data. This key toggles between the original
+           data and the equalized data.
+         * **z** (or 'Z') replaces the current data by a **smoothed**
+           version of this data. This key is a toggle between
+           the original data and the blurred version, smoothed
+           with a value of sigma set by key 'x'
+         * **x** (or 'X") increases the smoothing factor. The number of steps is
+           10. Then is starts again with step 1.
          * **m** (or 'M') saves current colormap look up data to a file.
            The default name of the file is the name of file from which the data
            was extracted or the name given in the constructor. The name is

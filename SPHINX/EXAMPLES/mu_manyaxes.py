@@ -18,6 +18,7 @@ grat = mplim.Graticule(starty=1000, deltay=10)
 print "The world coordinates along the y-axis:", grat.ystarts
 
 # 5. Show header information in attributes of the Projection object
+#    The projection object of a graticule is attribute 'gmap'
 print "CRVAL, CDELT from header:", grat.gmap.crval, grat.gmap.cdelt
 
 # 6. Set a number of properties of the graticules and plot axes
@@ -48,6 +49,7 @@ inlabs = grat.Insidelabels(wcsaxis=0, constval=1015,
 
 w = grat.gmap.crval[0] + 0.2*grat.gmap.cdelt[0]
 cv = grat.gmap.crval[1]
+# Print without any formatting
 inlab2 = grat.Insidelabels(wcsaxis=0, world=w, constval=cv,
                            deltapy=0.1, rotation=20, 
                            fontsize=10, color='c')

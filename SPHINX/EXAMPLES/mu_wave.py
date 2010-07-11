@@ -13,7 +13,7 @@ frame = fig.add_subplot(1,1,1)
 annim = f.Annotatedimage(frame)
 
 grat = annim.Graticule(spectrans='WAVE')
-grat.setp_ticklabel(plotaxis='bottom', fun=lambda x: x*100, fmt="$%.3f$")
+grat.setp_ticklabel(plotaxis='bottom', fun=lambda x: x*100, fmt="%.3f")
 grat.setp_axislabel(plotaxis='bottom', label="Wavelength (cm)")
 grat.setp_gratline(wcsaxis=(0,1), color='g')
 

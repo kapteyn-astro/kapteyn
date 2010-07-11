@@ -392,13 +392,12 @@ class Ruler(object):
             step = (D3*10.0**f)/k
          return step/fact
 
-
       spatial = projection.types[0] in ['longitude', 'latitude'] or projection.types[1] in ['longitude', 'latitude']
       if not spatial:
          raise Exception, "Rulers only suitable for maps with at least one spatial axis!"
    
       if pos1 != None:
-         poswp = str2pos(pos1, projection, mixpix=mixpix, maxpos=1) # with implicit maximum of 'maxpos'
+         poswp = str2pos(pos1, projection, mixpix=mixpix)
          if poswp[3] != "":
             raise Exception, poswp[3]
          # The result of the position parsing of str2pos is stored in 'poswp'
@@ -418,7 +417,7 @@ class Ruler(object):
             x1, y1 = topixel2(x1, y1)
    
       if pos2 != None:
-         poswp = str2pos(pos2, projection, mixpix=mixpix, maxpos=1) # with implicit maximum of 'maxpos'
+         poswp = str2pos(pos2, projection, mixpix=mixpix)
          if poswp[3] != "":
             raise Exception, poswp[3]
          pix =  poswp[1][0]

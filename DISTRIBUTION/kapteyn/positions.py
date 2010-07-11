@@ -904,7 +904,11 @@ class Coordparser(object):
     translations- A list with all the spectral translations that are
                   possible for the selected data set.
           maxpos- A maximum for the total number of coordinates that can be
-                  entered in one number specification.
+                  entered in one number specification for GIPSY's
+                  expression evaluation. By default the maximum is set to
+                  100000. If this method is used in the GIPSY environment
+                  then this parameter could be important if you expect
+                  many coordinates.
 
       Returns:    This constructor instantiates an object from class 'Coordparser'. The
                   most important attributes are:
@@ -1419,7 +1423,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None, gipsy=False):
    return asarray(r_world), asarray(r_pixels), subsetunits, errmes
 
 
-def str2pos(postxt, subproj, mixpix=None, maxpos=100000):
+def str2pos(postxt, subproj, mixpix=None):
    #-------------------------------------------------------------------
    """
    This method accepts a string that represents a position in the
@@ -1442,9 +1446,6 @@ def str2pos(postxt, subproj, mixpix=None, maxpos=100000):
                     spatial axis to be able to convert between
                     world- and pixel coordinates.
    :type mixpix:    Integer
-   :param maxpos:   The maximum number of positions that should be
-                    returned. The default value is usually sufficient.
-   :type maxpos:    Integer
 
    :Returns:
 
@@ -1499,7 +1500,7 @@ def str2pos(postxt, subproj, mixpix=None, maxpos=100000):
          position.append("eq 178.7792 0.0")
          position.append("0.0, eq 53.655")
          for pos in position:
-            poswp = positions.str2pos(pos, proj, maxpos=1)
+            poswp = positions.str2pos(pos, proj)
             if poswp[3] != "":
                raise Exception, poswp[3]
             world = poswp[0][0]
@@ -1522,8 +1523,8 @@ def str2pos(postxt, subproj, mixpix=None, maxpos=100000):
                                  subproj.crpix,  # Crpix values for 'PC' (projection center)
                                  subproj.naxis,  # Axis lengths for center 'AC'
                                  subproj.altspec,# List with allowed spectral translations
-                                 subproj.source, # Get access to header
-                                 maxpos)         # A maximum for the number evaluator
+                                 subproj.source) # Get access to header
+
    if parsedpositions.errmes:
       if postxt != '':
          return [], [], [], parsedpositions.errmes
@@ -1539,7 +1540,6 @@ def str2pos(postxt, subproj, mixpix=None, maxpos=100000):
 
 
 def dotest():
-
    def printpos(postxt, pos):
       # Print the position information
       world, pixels, units, errmes = pos

@@ -2359,7 +2359,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             elif self.offsetx:
                offsetlabel = self.offsetvaluesx[i]
                if self.gmap.types[0] in ['longitude', 'latitude'] and self.labelsintex:
-                  fmt = r"%g^{\circ}"
+                  fmt = "%g^{\circ}"
                else:
                   fmt = "%g"
                if unitsx != None:
@@ -2384,7 +2384,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             elif self.offsety:
                offsetlabel = self.offsetvaluesy[i]
                if self.gmap.types[1] in ['longitude', 'latitude'] and self.labelsintex:
-                  fmt = r"%g^{\circ}"
+                  fmt = "%g^{\circ}"
                else:
                   fmt = "%g"
             gridl = Gratline(1, y, self.gmap,
@@ -2888,7 +2888,16 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             velocities from m/s to km/s. See also
             example 2_ below.
       :type fun: Python function or Lambda expression
-      
+
+      :param tex:
+            Interpret the format in *fmt* as a TeX label.
+            The default is set to *None* to indicate it has
+            not been set (to True or False) so that it is possible
+            to distinguish between global and local settings of this
+            property.
+      :type tex:
+            Boolean
+            
       :param markerdict:
             Properties for the tick marker. Amongst others:
       

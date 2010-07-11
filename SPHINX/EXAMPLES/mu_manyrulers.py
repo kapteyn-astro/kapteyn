@@ -31,7 +31,7 @@ ruler3.setp_label(color='r')
 
 ruler4 = annim.Ruler(pos1="23h0m 15d0m", pos2="22h0m 30d0m", lambda0=0.0, 
                      step=1,
-                     fmt=r"%4.0f^\prime", 
+                     fmt="%4.0f^\prime", 
                      fun=lambda x: x*60.0, addangle=0)
 ruler4.setp_line(color='g')
 ruler4.setp_label(color='m')
