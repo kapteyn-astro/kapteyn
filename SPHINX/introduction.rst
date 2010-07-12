@@ -1,11 +1,11 @@
-Introduction
-============
+Obtaining and using the package
+===============================
 
 
 .. toctree::
    :maxdepth: 2
 
-   How to get started <intro>
+   intro
 
    gettingstarted
 
