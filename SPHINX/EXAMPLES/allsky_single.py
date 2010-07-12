@@ -3,12 +3,12 @@ from numpy import arange
 from matplotlib import pyplot as plt
 
 dec0 = 89.9999999999   # Avoid plotting on the wrong side
-header = {'NAXIS'  : 2, 
-          'NAXIS1' : 100, 'NAXIS2': 80,
+header = {'NAXIS'  :  2, 
+          'NAXIS1' :  100, 'NAXIS2': 80,
           'CTYPE1' : 'RA---TAN',
-          'CRVAL1' : 0.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 
+          'CRVAL1' :  0.0, 'CRPIX1' : 50, 'CUNIT1' : 'deg', 
           'CDELT1' : -5.0, 'CTYPE2' : 'DEC--TAN',
-          'CRVAL2' : dec0, 'CRPIX2' : 40, 
+          'CRVAL2' :  dec0, 'CRPIX2' : 40, 
           'CUNIT2' : 'deg', 'CDELT2' : 5.0,
          }
 X = arange(0,360.0,15.0)
@@ -30,17 +30,18 @@ lat_constval = 20
 lon_kwargs = {'color':'r', 'fontsize':15}
 lat_kwargs = {'color':'b', 'fontsize':10}
 grat.Insidelabels(wcsaxis=0, 
-                  world=lon_world, constval=lat_constval-1, fmt="$%g^\circ$",
-                  addangle=90,
+                  world=lon_world, constval=lat_constval, 
+                  fmt="Dms",
                   **lon_kwargs)
 grat.Insidelabels(wcsaxis=1, 
-                  world=lat_world, constval=lon_constval, fmt="$%g^\circ$",
+                  world=lat_world, constval=lon_constval, 
+                  fmt="Dms",
                   **lat_kwargs)
    
 annim.plot()
 # Set title for Matplotlib
 titlepos = 1.02
-title = r"Gnomonic projection (TAN) diverges at $\theta=0$. (Cal. fig.8)"
+title = r"Gnomonic projection (TAN) diverges at $\theta=0^\circ$. (Cal. fig.8)"
 t = frame.set_title(title, color='g')
 t.set_y(titlepos)
 
