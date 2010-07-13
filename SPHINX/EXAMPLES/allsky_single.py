@@ -31,6 +31,7 @@ lon_kwargs = {'color':'r', 'fontsize':15}
 lat_kwargs = {'color':'b', 'fontsize':10}
 grat.Insidelabels(wcsaxis=0, 
                   world=lon_world, constval=lat_constval, 
+                  addangle=90.0,
                   fmt="Dms",
                   **lon_kwargs)
 grat.Insidelabels(wcsaxis=1, 
