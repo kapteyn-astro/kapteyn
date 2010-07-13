@@ -683,6 +683,7 @@ class Projection(object):
 .. automethod:: mixed(world, pixel[, span=None, step=0.0, iter=7])
 .. automethod:: sub([axes=None, nsub=None])
 .. automethod:: spectra(ctype[, axindex=None])
+.. automethod:: inside(coords[, pixel=False])
 
 **WCSLIB-related attributes:**
 
@@ -1744,6 +1745,50 @@ Example::
          self.result = result
          if not self.allow_invalid:
             raise WCSinvalid, (status, wcs_errmsg[status])
+      return result
+
+   def inside(self, coords, pixel=False):
+      """
+      Test whether one or more coordinates are inside the area defined
+      by the attribute :attr:`naxis`. This is a convenience method not
+      directly related to WCS.
+      *coords* is an object containing one or more coordinates. Depending
+      on the argument *pixel* these can be pixel- or world coordinates.
+      World coordinates are the default. The method returns a value
+      True or False or, in the case of multiple coordinates, a list with
+      these values.
+"""
+      cdef double *data
+
+      ndim = len(self.naxis)
+      result = []
+
+      if pixel:
+         pixels = coords
+      else:
+         save_allow = self.allow_invalid
+         self.allow_invalid = True
+         try:
+            pixels = self.topixel(coords)
+         finally:
+            self.allow_invalid = save_allow
+
+      coord = Coordinate(pixels, self.rowvec)
+      data = <double*>void_ptr(coord.data)
+
+      for i in range(coord.n):
+         elem = i*ndim         
+         is_in = True
+         for idim in self.naxis:
+            data_el = data[elem]
+            if numpy.isnan(data_el) or data_el<0.5 or data_el>idim+0.5:
+               is_in = False
+               break
+            elem += 1
+         result.append(is_in)
+
+      if len(result)==1:
+         result = result[0]
       return result
 
    def __setaxtypes(self):
