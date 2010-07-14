@@ -683,7 +683,7 @@ class Projection(object):
 .. automethod:: mixed(world, pixel[, span=None, step=0.0, iter=7])
 .. automethod:: sub([axes=None, nsub=None])
 .. automethod:: spectra(ctype[, axindex=None])
-.. automethod:: inside(coords[, pixel=False])
+.. automethod:: inside(coords, mode)
 
 **WCSLIB-related attributes:**
 
@@ -1747,31 +1747,34 @@ Example::
             raise WCSinvalid, (status, wcs_errmsg[status])
       return result
 
-   def inside(self, coords, pixel=False):
+   def inside(self, coords, mode):
       """
       Test whether one or more coordinates are inside the area defined
       by the attribute :attr:`naxis`. This is a convenience method not
       directly related to WCS.
-      *coords* is an object containing one or more coordinates. Depending
-      on the argument *pixel* these can be pixel- or world coordinates.
-      World coordinates are the default. The method returns a value
+      *coords* is an object containing one or more coordinates
+      which depending on *mode* can be either world- or pixel coordinates.
+      The argument *mode* must be 'world' or 'pixel'. The method returns a value
       True or False or, in the case of multiple coordinates, a list with
       these values.
 """
       cdef double *data
 
+      mode = mode[0].upper()
       ndim = len(self.naxis)
       result = []
 
-      if pixel:
-         pixels = coords
-      else:
+      if mode=='W':
          save_allow = self.allow_invalid
          self.allow_invalid = True
          try:
             pixels = self.topixel(coords)
          finally:
             self.allow_invalid = save_allow
+      elif mode=='P':
+         pixels = coords
+      else:
+         raise ValueError, "mode must be 'world' or 'pixel'"
 
       coord = Coordinate(pixels, self.rowvec)
       data = <double*>void_ptr(coord.data)
