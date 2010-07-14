@@ -1,30 +1,29 @@
 from kapteyn import maputils
+from matplotlib import pyplot as plt
 
 fitsobj = maputils.FITSimage("m101.fits")
-fitsobj.set_limits((180,344), (100,200))
-
-print "Limits in x:", fitsobj.pxlim 
-print "Limits in y:", fitsobj.pylim 
+fitsobj.set_limits((200,400), (200,400))
 
 annim = fitsobj.Annotatedimage()
+pos = "300 300"
+print "Is " + pos + " inside?", annim.inside(pos=pos) 
+# Mode has no effect on parameter pos
+print "Is " + pos + " inside?", annim.inside(pos=pos, mode='p') 
+print "Is " + pos + " inside?", annim.inside(pos=pos, mode='w') 
 
-# We have a position in world coordinates from which we know
-# it is inside the boundaries of pxlim and pylim
-pos="{} 210.870170 {} 54.269001" 
-print "pos, inside:", pos, annim.inside(pos=pos)
-pos="ga 101.973853, ga 59.816461" 
-print "pos, inside:", pos, annim.inside(pos=pos)
+print "Is 300, 300 inside?", annim.inside(x=300, y=300, mode='p') 
+print "Is 300, 300 inside?", annim.inside(x=300, y=300, mode='w') 
 
+print "Is 300, 300, 20,200 inside?", annim.inside(x=[300,20], y=[300,200], 
+                                                  mode='p') 
+crval1 = annim.projection.crval[0]
+crval2 = annim.projection.crval[1]
 
-# Demonstrate the use of plain coordinates
-x = range(180,400,40)
-y = range(100,330,40)
-print "x,y, inside?", zip(x,y), annim.inside(x=x, y=y, world=False)
-print "world 210.870170  54.269001 inside?",\
-      annim.inside(x=210.870170, y=54.269001, world=True)
+print "Is %f %f" % (crval1, crval2) + " inside?", annim.inside(x=crval1, 
+                                                 y=crval2, mode='w')
 
-while 1:
-   pos = raw_input("Enter position ..... [abort]: ")
-   if pos == '':
-      break
-   print "%s inside? %s" % (pos, annim.inside(pos=pos))
+pos = '{} ' + str(crval1) + ' {} ' + str(crval2)
+print "Is " + pos + " inside?", annim.inside(pos=pos)
+
+# Raise an exception
+print "Is 300, 300 inside?", annim.inside(x=300, y=300) 

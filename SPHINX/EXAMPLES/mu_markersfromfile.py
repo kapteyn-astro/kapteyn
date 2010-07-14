@@ -20,7 +20,7 @@ grat = annim.Graticule()
 
 fn = 'WDB/smallworld.txt'
 xp, yp = annim.positionsfromfile(fn, 's', cols=[0,1])
-annim.Marker(x=xp, y=yp, world=False, marker=',', color='b')
+annim.Marker(x=xp, y=yp, mode='pixels', marker=',', color='b')
 annim.plot()
 frame.set_title("Markers in the Carribbean")
 

@@ -305,7 +305,7 @@ def showall():
 
 
 def issequence(obj):
-  return isinstance(obj, (list, tuple, numpy.ndarray))
+   return isinstance(obj, (list, tuple, numpy.ndarray))
 
 
 def getfilename(pre='mu', post='fits'):
@@ -2843,7 +2843,7 @@ this class.
       return beam
 
 
-   def Marker(self, pos=None, x=None, y=None, world=True, **kwargs):
+   def Marker(self, pos=None, x=None, y=None, mode='', **kwargs):
       #-----------------------------------------------------------------
       """
       Plot marker symbols at given positions. This method creates
@@ -2914,10 +2914,10 @@ this class.
             # positions in pixel coordinates
             xp = [400+20*numpy.sin(x/20.0) for x in range(100,200)]
             yp = range(100,200)
-            annim.Marker(x=xp, y=yp, world=False, marker='o', color='g')
+            annim.Marker(x=xp, y=yp, mode='pixels', marker='o', color='g')
 
             # Single position in pixel coordinates
-            annim.Marker(x=150, y=150, world=False, marker='+', color='b')
+            annim.Marker(x=150, y=150, mode='pixels', marker='+', color='b')
             
          In the next example we show how to use method :meth:`positionsfromfile`
          in combination with this Marker method to read positions
@@ -2927,10 +2927,26 @@ this class.
       
             fn = 'smallworld.txt'
             xp, yp = annim.positionsfromfile(fn, 's', cols=[0,1])
-            annim.Marker(x=xp, y=yp, world=False, marker=',', color='b')
+            annim.Marker(x=xp, y=yp, mode='pixels', marker=',', color='b')
 
       """
       #-----------------------------------------------------------------
+      if x == None and y == None and pos == None:
+         # Nothing to do
+         return None
+
+      # For parameters *x* and *y* a *mode* should be given
+      if pos == None:
+         p = mode.upper().startswith('P')
+         if p:
+            w = False
+         else:
+            w = mode.upper().startswith('W')
+         if not p and not w:
+            raise Exception, "Mode not or incorrectly specified!"
+         else:
+            world = w
+
       if pos != None:
          poswp = str2pos(pos, self.projection, mixpix=self.mixpix)
          if poswp[3] != "":
@@ -3243,7 +3259,7 @@ this class.
          return x, y
 
 
-   def inside(self, x=None, y=None, pos='', world=True):
+   def inside(self, x=None, y=None, pos=None, mode=''):
       #--------------------------------------------------------------------
       """
       This convenience method belongs to class :class:`Annotatedimage` which
@@ -3263,8 +3279,8 @@ this class.
       :param x:
          Single number of a sequence representing the x coordinates
          of your input positions. These coordinates are world coordinates
-         id *world=True* (which is the default) and pixel coordinates
-         if *world=False*.
+         if *mode='world'* (or *mode='w'*) and pixel
+         coordinates if *mode='pixels* (or *mode='p'*).
       :type x:
          Floating point number or sequence of floating point numbers.
       :param y:
@@ -3272,10 +3288,15 @@ this class.
          of your input positions. See description for parameter *x*
       :type y:
          Floating point number or sequence of floating point numbers.
+      :param mode:
+         Input in *x* and*y* represent either pixel coordinates or
+         world coordinates. Is the first character is 'p' or 'P' then
+         the mode is set to pixels. If it starts with 'w' or 'W' the input
+         in *x* and *y* are world coordinates.
       :param pos:
          A description of one or a number of positions entered as a string.
          The syntax is described in module :mod:`positions`.
-         The value of parameter *world* is ignored.
+         The value of parameter *mode* is ignored.
       :type pos:
          String
       :param world:
@@ -3317,19 +3338,33 @@ this class.
 
       >>> x = range(180,400,40)
       >>> y = range(100,330,40)
-      >>> print annim.inside(x=x, y=y, world=False)
+      >>> print annim.inside(x=x, y=y, mode='pixels')
 
+      >>> print annim.inside(x=crval1, y=crval2, mode='w')
 
       """
       #--------------------------------------------------------------------
-      if x == None and y == None and pos == '':
+      if x == None and y == None and pos == None:
          # Nothing to do
          return None
+
+      # For parameters *x* and *y* a *mode* should be given
+      if pos == None:
+         p = mode.upper().startswith('P')
+         if p:
+            w = False
+         else:
+            w = mode.upper().startswith('W')
+         if not p and not w:
+            raise Exception, "Mode not or incorrectly specified!"
+         else:
+            world = w
+            
       if (x == None and y != None) or (x != None and y == None):
          raise Exception, "One of the arrays is None and the other is not!"
-      if pos != '' and (x != None or y != None):
+      if pos != None and (x != None or y != None):
          raise Exception, "You cannot enter values for both pos= and x= and/or y="
-      if pos != '':
+      if pos != None:
          world, pixels, units, errmes = str2pos(pos, self.projection, mixpix=self.mixpix)
          if errmes != '':
             raise Exception, errmes
@@ -3339,7 +3374,11 @@ this class.
       else:
          if world:
             xp, yp = self.topixel(x, y)
-            # When conversions fial then None, None is returned
+            # When conversions fail then None, None is returned
+            if not issequence(x):
+               x = [x]
+            if not issequence(y):
+               y = [y]
             if xp == None:
                xp = numpy.array([None]*len(x))
             if yp == None:
@@ -3353,17 +3392,15 @@ this class.
                yp = numpy.array(y)
             else:
                yp = y
+               
       # At this stage we have an array for the x and y coordinates.
       # Now check whether they are inside a map
-      if issequence(xp):
-         b = numpy.where((xp>self.pxlim[0]-0.5) &
-                         (xp<self.pxlim[1]+0.5) &
-                         (yp>self.pylim[0]-0.5) &
-                         (yp<self.pylim[1]+0.5), True, False)
-      else:
-         b = self.pxlim[0]-0.5 < xp < self.pxlim[1]+0.5 and\
-             self.pylim[0]-0.5 < yp < self.pylim[1]+0.5
-      if issequence(b) and len(b) == 1:
+      
+      b = numpy.where((xp>self.pxlim[0]-0.5) &
+                      (xp<self.pxlim[1]+0.5) &
+                      (yp>self.pylim[0]-0.5) &
+                      (yp<self.pylim[1]+0.5), True, False)
+      if b.shape != () and len(b) == 1:
          b = b[0]
       return b
          

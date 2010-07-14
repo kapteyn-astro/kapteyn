@@ -29,10 +29,10 @@ annim.Marker(pos=pos, marker='o', color='r')
 # positions in pixel coordinates
 xp = [400+20*numpy.sin(x/20.0) for x in range(100,200)]
 yp = range(100,200)
-annim.Marker(x=xp, y=yp, world=False, marker='o', color='g')
+annim.Marker(x=xp, y=yp, mode='pixels', marker='o', color='g')
 
 xp = yp = 150
-annim.Marker(x=xp, y=yp, world=False, marker='+', color='b')
+annim.Marker(x=xp, y=yp, mode='pixels', marker='+', color='b')
 
 annim.plot()
 annim.interact_imagecolors()
