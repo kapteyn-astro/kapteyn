@@ -2931,23 +2931,28 @@ this class.
 
       """
       #-----------------------------------------------------------------
-      if x == None and y == None and pos == None:
+      if x is None and y is None and pos is None:
          # Nothing to do
          return None
 
       # For parameters *x* and *y* a *mode* should be given
-      if pos == None:
+      if pos is None:
          p = mode.upper().startswith('P')
          if p:
             w = False
          else:
             w = mode.upper().startswith('W')
          if not p and not w:
-            raise Exception, "Mode not or incorrectly specified!"
+            raise Exception, "Marker(): Mode not or incorrectly specified!"
          else:
             world = w
 
-      if pos != None:
+      if (x is None and not y is None) or (not x is None and y is None):
+         raise Exception, "Marker(): One of the arrays is None and the other is not!"
+      if not pos is None and (not x is None or not y is None):
+         raise Exception, "Marker(): You cannot enter values for both pos= and x= and/or y="
+
+      if not pos is None:
          poswp = str2pos(pos, self.projection, mixpix=self.mixpix)
          if poswp[3] != "":
             raise Exception, poswp[3]
@@ -3325,6 +3330,9 @@ this class.
          For programmers: note the similarity to method :meth:`Marker`
          with respect to the use of method :meth:`positions.str2pos`.
 
+         This method is tested with script *mu_insidetest.py* which
+         is part of the examples tar file.
+
       :Examples:
 
       >>> fitsobj = maputils.FITSimage("m101.fits")
@@ -3344,27 +3352,27 @@ this class.
 
       """
       #--------------------------------------------------------------------
-      if x == None and y == None and pos == None:
+      if x is None and y is None and pos is None:
          # Nothing to do
          return None
 
       # For parameters *x* and *y* a *mode* should be given
-      if pos == None:
+      if pos is None:
          p = mode.upper().startswith('P')
          if p:
             w = False
          else:
             w = mode.upper().startswith('W')
          if not p and not w:
-            raise Exception, "Mode not or incorrectly specified!"
+            raise Exception, "Inside(): Mode not or incorrectly specified!"
          else:
             world = w
             
-      if (x == None and y != None) or (x != None and y == None):
-         raise Exception, "One of the arrays is None and the other is not!"
-      if pos != None and (x != None or y != None):
-         raise Exception, "You cannot enter values for both pos= and x= and/or y="
-      if pos != None:
+      if (x is None and not y is None) or (not x is None and y is None):
+         raise Exception, "Inside(): One of the arrays is None and the other is not!"
+      if not pos is None and (not x is None or not y is None):
+         raise Exception, "Inside(): You cannot enter values for both pos= and x= and/or y="
+      if not pos is None:
          world, pixels, units, errmes = str2pos(pos, self.projection, mixpix=self.mixpix)
          if errmes != '':
             raise Exception, errmes
@@ -3379,9 +3387,9 @@ this class.
                x = [x]
             if not issequence(y):
                y = [y]
-            if xp == None:
+            if xp is None:
                xp = numpy.array([None]*len(x))
-            if yp == None:
+            if yp is None:
                yp = numpy.array([None]*len(y))
          else:
             if not isinstance(x, (numpy.ndarray)):
@@ -4416,7 +4424,7 @@ to know the properties of the FITS data beforehand.
          # integer data and keyword BLANK is available. In that case
          # the integer array is automatically converted to float64 and
          # the BLANK values are converted to NaN.
-         if externaldata == None:
+         if externaldata is None:
             if 'int' in hdu.data.dtype.name:
                # So this is integer data without bscale, bzero or blank
                self.dat = hdu.data.astype(numpy.float32)
@@ -4621,7 +4629,7 @@ to know the properties of the FITS data beforehand.
       """
    #------------------------------------------------------------
       if box:
-         if self.boxdat == None:
+         if self.boxdat is None:
             return 0, 1
          mi = numpy.nanmin(self.boxdat)
          ma = numpy.nanmax(self.boxdat)

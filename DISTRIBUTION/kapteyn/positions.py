@@ -456,6 +456,7 @@ from re import split as re_split
 from re import findall as re_findall
 from string import whitespace, ascii_uppercase, join
 from string import upper as string_upper
+from types import StringType
 from numpy import nan as unknown
 from numpy import asarray, zeros, floor, array2string
 from numpy import ndarray
@@ -1510,6 +1511,8 @@ def str2pos(postxt, subproj, mixpix=None):
 
    """
    #-------------------------------------------------------------------
+   if type(postxt) != StringType:
+      raise TypeError, "str2pos(): parameter postxt must be a String"
    subdim = len(subproj.types)
    if mixpix != None:
       subdim -= 1
