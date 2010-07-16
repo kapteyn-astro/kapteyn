@@ -15,6 +15,7 @@ mkdir ${destdir} >& /dev/null                 # try to make home directory
 cd SPHINX
 tar cfz examples.tar.gz EXAMPLES
 sphinx-build -E -b html . ${destdir}          # make html doc
+\mv examples.tar.gz ${destdir}/_downloads/    # example sources
 cd ..
 
 UTILS/makedist.csh                            # make distro, including pdf doc
