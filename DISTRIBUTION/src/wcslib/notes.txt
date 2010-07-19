@@ -1,0 +1,30 @@
+Steps to obtain the necessary source files from the WCSLIB distribution.
+(valid for WCSLIB 4.5)
+==========================================================================
+
+- download the current WCSLIB distribution and unpack it in a
+  separate directory.
+
+- there:
+
+  ./configure --without-pgplot --without-cfitsio --disable-fortran
+              --disable-utils --disable-largefile
+
+- gmake
+
+(the previous steps are necessary to also obtain the .c versions of the .l
+ sources and to generate wcsconfig.h)
+
+- copy the following files from ?/wcslib-???/C/ to this directory:
+    cel.c cel.h lin.c lin.h
+    log.c log.h prj.c prj.h spc.c spc.h sph.c sph.h spx.c spx.h tab.c tab.h
+    wcs.c wcsfix.c wcsfix.h wcs.h wcshdr.c wcshdr.h wcsmath.h
+    wcstrig.c wcstrig.h wcsulex.c wcsunits.c wcsunits.h wcsutil.c wcsutil.h
+    wcsutrn.c
+
+- copy wcsconfig.h from ?/wcslib-???/ to this directory.
+
+- edit wcsconfig.h and _remove_ the line with 'HAVE_SINCOS'
+  (setting the symbol to zero is not sufficient)
+  This is to prevent installation problems on machines that do not
+  have the GNU extension sincos.

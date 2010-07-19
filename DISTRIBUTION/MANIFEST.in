@@ -1,8 +1,10 @@
 include MANIFEST.in
 include MANIFEST
 include setup.py
-include INSTALL.txt LICENSE.txt SciPy-LICENSE.txt
+include INSTALL.txt LICENSE.txt SciPy-LICENSE.txt WCSLIB-LICENSE.txt
 graft   kapteyn
 graft   src
+graft   src/wcslib
+graft   src/scipy
 graft   doc
 graft   kapteyn/lut

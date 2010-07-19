@@ -84,21 +84,18 @@ The the following modules are included:
   :mod:`ascarray`, a binary module containing the base function for
   module :mod:`tabarray`.
 
-.. index:: prerequisites, Python, WCSLIB, NumPy, PyFITS, matplotlib
+.. index:: prerequisites, Python, NumPy, PyFITS, matplotlib
 
 Prerequisites
 -------------
 
-To install the Kapteyn Package, at least Python_ 2.4, Mark Calabretta's WCSLIB_,
+To install the Kapteyn Package, at least Python_ 2.4
 and NumPy_ are required. For using it, the availability of
 PyFITS_ and matplotlib_ are recommended.
 
-An often-encountered problem is that WCSLIB's default
-installation procedure installs its lib/ and include/ directories under
-/usr/local/ while the system is not configured for this. This can be fixed
-by changing the system's configuration, e.g., by changing /etc/ld.so.conf, or
-WCSLIB can be installed under /usr. See the file INSTALL in WCSLIB's
-distribution.
+Mark Calabretta's WCSLIB_ does not need to be installed separately anymore.
+Its code is now included in the Kapteyn Package under the
+GNU Lesser General Public License.
 
 .. _Python: http://www.python.org/
 .. _WCSLIB: http://www.atnf.csiro.au/people/mcalabre/WCS/
