@@ -2,7 +2,7 @@
 #                                Declarations
 #  --------------------------------------------------------------------------
 
-cdef extern from "wcslib/wcs.h":
+cdef extern from "wcs.h":
 
    cdef struct pvcard:
       int i
@@ -65,10 +65,10 @@ cdef extern from "wcslib/wcs.h":
               int viter, double *world, double *phi, double *theta,
               double *imgcrd, double *pixcrd)
 
-cdef extern from "wcslib/wcsunits.h":
+cdef extern from "wcsunits.h":
    int wcsutrn(int ctrl, char *unitstr)
 
-cdef extern from "wcslib/wcsfix.h":
+cdef extern from "wcsfix.h":
    int unitfix(int, wcsprm *)
    int celfix(wcsprm *)
    int spcfix(wcsprm *)

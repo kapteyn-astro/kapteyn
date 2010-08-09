@@ -2,6 +2,8 @@ from distutils.core import setup, Extension
 from distutils.sysconfig import get_python_inc, get_python_lib
 from kapteyn import __version__ as version
 
+wcslib_dir = 'src/wcslib-4.5/C/'  # === must be changed for other version ===
+
 import sys, os
 
 try:
@@ -18,6 +20,8 @@ include_dirs = []
 numdir = os.path.dirname(numpy.__file__)
 ipath = os.path.join(numdir, numpy.get_include())
 include_dirs.append(ipath)
+include_dirs.append('src')
+include_dirs.append(wcslib_dir)
 
 description = """The Kapteyn Package is a collection of Python modules
 and applications developed by the computer group of the Kapteyn
@@ -86,10 +90,10 @@ wcslib_src = [
    "wcsfix.c",
    "wcshdr.c",
    "wcstrig.c",
-   "wcsulex.c",
    "wcsunits.c",
    "wcsutil.c",
-   "wcsutrn.c"
+   "flexed/wcsulex.c",
+   "flexed/wcsutrn.c"
 ]
 
 scipy_src = [
@@ -103,7 +107,7 @@ scipy_src = [
 ]
 
 wcs_src       = (   ['src/'        + source for source in kapteyn_src]
-                  + ['src/wcslib/' + source for source in wcslib_src]  )
+                  + [wcslib_dir    + source for source in wcslib_src]  )
 
 _nd_image_src = ['src/scipy/'  + source for source in scipy_src]
 

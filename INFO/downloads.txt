@@ -127,5 +127,7 @@ Cornell University - Center for Advanced Computing @ 128.84.31.60
 SLAC National Accelerator Laboratory @ 198.129.217.118
 The Canadian Astronomy Data Centre @ 132.246.194.10
 Tomsk State University of Systems Control and Radioelectronics @ 88.204.74.85
+Observatoire du Puy Sainte Reparade @ 213.41.164.100
 
-tot:  Mon Jul 19 15:14:16 CEST 2010
+
+tot:  Mon Aug  9 10:54:09 CEST 2010

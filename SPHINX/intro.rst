@@ -91,7 +91,7 @@ Prerequisites
 
 To install the Kapteyn Package, at least Python_ 2.4
 and NumPy_ are required. For using it, the availability of
-PyFITS_ and matplotlib_ are recommended.
+PyFITS_ and matplotlib_ is recommended.
 
 Mark Calabretta's WCSLIB_ does not need to be installed separately anymore.
 Its code is now included in the Kapteyn Package under the
