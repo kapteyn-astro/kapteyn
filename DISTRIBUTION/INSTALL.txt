@@ -1,8 +1,8 @@
 Installation Instructions
 =========================
 
-Requirements for installing this package are a suitable
-C compiler, wcslib and numpy.
+Requirements for installing this package are Python, numpy
+and a suitable C compiler.
 
 There are three installation options:
 
@@ -28,16 +28,5 @@ There are three installation options:
       python setup.py install --install-lib $gip_exe
 
 
-Known Problem
-=============
-
-An often-encountered problem is that WCSLIB's default installation
-procedure installs its lib/ and include/ directories under /usr/local/
-while the system is not configured for this.  This can be fixed by
-changing the system's configuration, e.g., by changing /etc/ld.so.conf,
-or WCSLIB can be installed under /usr.  See the file INSTALL in WCSLIB's
-distribution. 
-
-
-                                            10-03-2010, JPT
+                                            11-08-2010, JPT
 

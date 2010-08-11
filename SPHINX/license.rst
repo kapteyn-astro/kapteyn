@@ -9,6 +9,7 @@ To the modules included from the SciPy package, the following license applies:
 
 .. literalinclude:: ../DISTRIBUTION/SciPy-LICENSE.txt
 
-To the code included from WCSLIB, the following license applies:
+WCSLIB, which is included in the Kapteyn Package's distribution,
+is provided under the following license:
 
 .. literalinclude:: ../DISTRIBUTION/WCSLIB-LICENSE.txt
