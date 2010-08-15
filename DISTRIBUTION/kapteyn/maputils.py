@@ -209,6 +209,11 @@ Class FITSaxis
 
 .. autoclass:: FITSaxis
 
+Class Positionmessage
+---------------------
+
+.. autoclass:: Positionmessage
+
 Class MovieContainer
 --------------------
 
@@ -234,7 +239,7 @@ import pyfits
 import warnings
 import numpy
 from kapteyn import wcs, wcsgrat
-from kapteyn.celestial import skyrefsystems, epochs, skyparser
+from kapteyn.celestial import skyrefsystems, epochs, skyparser, lon2hms, lat2dms, lon2dms
 from kapteyn.tabarray import tabarray, readColumns
 from kapteyn.mplutil import AxesCallback, VariableColormap, TimeCallback, KeyPressFilter
 from kapteyn.positions import str2pos, mysplit, unitfactor
@@ -369,6 +374,142 @@ def getscale(hdr):
    if hdr.has_key('BLANK'):
       blank = hdr['BLANK']
    return bitpix, bzero, bscale, blank
+
+
+class Positionmessage(object):
+#-----------------------------------------------------------
+   """
+   This class creates an object with attributes that are needed to
+   set a proper message with information about a position
+   in a map and its corresponding image value.
+   The world coordinates are calculated in the sky system
+   of the image. This system could have been changed by the user.
+
+   The input parameters are usually set after initialization of
+   an object from class :class:`Annotatedimage`.
+   For users/programmers the atributes are more important.
+   With the attributes of objects of this class we can change
+   the format of the numbers in the informative message.
+
+   Note that the methods of this class return separate strings
+   for the pixel coordinates, the world coordinates and the image
+   values. The final string is composed in the calling environment.
+   
+   :param skysys:
+      The sky definition of the current image
+   :type skysys:
+      A single parameter or tuple with integers or string
+   :param skyout:
+      The sky definition of the current image as defined by
+      a user/programmer
+   :type skyout:
+      A single parameter or tuple with integers or string
+   :param skysys:
+      The sky definition of the current image
+   :type axtype:
+      tuple with strings
+
+   :Attributes:
+
+    .. attribute:: pixfmt
+
+          Python number format to set formatting of pixel
+          coordinates in position message in toolbar.
+
+    .. attribute:: wcsfmt
+
+          Python number format to set formatting of world
+          coordinates in position message in toolbar.
+          If the map has a valid sky system then the
+          values will be formatted in hms/dms, unless
+          attribute *hmsdms* is set to *False*.
+
+    .. attribute:: zfmt
+
+          Python number format to set formatting of image
+          value(s) in position message in toolbar.
+
+    .. attribute:: hmsdms
+
+          If True, spatial coordinates are formatted in hms/dms.
+
+    .. attribute:: dmsprec
+
+          Precision in (dms) seconds if coordinate is
+          formatted in dms. The precision in seconds of a
+          longitude axis in an equatorial system is
+          automatically copied from this number and increased
+          with 1.
+   """
+#-----------------------------------------------------------
+   def __init__(self, skysys, skyout, axtype):
+      self.pixfmt = "%.1f"
+      self.wcsfmt = "%.3g"     # If any is given, this will overrule hms/dms formatting
+      self.zfmt = "%.3e"
+      self.hmsdms = True
+      self.dmsprec = 1
+      if skyout is None:
+         sys, ref, equinox, epoch = skyparser(skysys)
+      else:
+         sys, ref, equinox, epoch = skyparser(skyout)
+      self.sys = sys
+      self.axtype = axtype
+
+   def z2str(self, z):
+      # Image value(s) to string
+      if self.zfmt is None:
+         return None
+      if issequence(z):
+         if len(z) != 3:
+            raise Exception, "z2str: Toolbar Message expects 1 or 3 image values"
+         else:
+            s = ''
+            for number in z:
+               if numpy.isnan(number):
+                  s += 'NaN'
+               else:
+                  s += self.zfmt % number + ' '
+            return s.rstrip()
+      else:
+         if numpy.isnan(z):
+            s = 'NaN'
+         else:
+            s = self.zfmt % z
+         return s
+
+   def pix2str(self, x, y):
+      # Pixel coordinates to string
+      if self.pixfmt is None:
+         return None
+      s = self.pixfmt%x + ' ' + self.pixfmt%y
+      return s
+
+   def wcs2str(self, xw, yw, missingspatial):
+      # World coordinates to string
+      if self.wcsfmt is None:
+         return None
+      vals = (xw, yw)
+      if not missingspatial is None:
+         vals += (missingspatial,)
+      s = ''
+      for atyp, val in zip(self.axtype, vals):
+         if val == None:
+            coord = "NaN"
+         else:
+            if self.hmsdms:
+               if atyp == 'longitude':
+                  if self.sys == wcs.equatorial:
+                     coord = lon2hms(val, prec=self.dmsprec+1) # One extra digit for hms
+                  else:
+                     coord = lon2dms(val, prec=self.dmsprec)
+               elif atyp == 'latitude':
+                  coord = lat2dms(val, prec=self.dmsprec)
+               else:
+                  coord = self.wcsfmt%val
+            else:
+               coord = self.wcsfmt%val
+         s += coord + ' '
+      return s
 
 
 class Colmaplist(object):
@@ -544,7 +685,7 @@ All these numbers are converted to integers.
 
 
 
-def prompt_fitsfile(defaultfile=None, hnr=None, alter=None, memmap=None):
+def prompt_fitsfile(defaultfile=None, prompt=True, hnr=None, alter=None, memmap=None):
 #-----------------------------------------------------------------
    """
 An external helper function for the FITSimage class to
@@ -561,6 +702,11 @@ the alternate header.
    See also the examples.
 :type defaultfile:
    String
+:param prompt:
+   If False and a default file exists, then do not prompt for a file name.
+   Open file and start checking HDU's
+:type prompt:
+   Boolean
 :param hnr:
    The number of the FITS header that you want to use.
    This function lists the hdu information and when
@@ -616,17 +762,22 @@ the alternate header.
          else:
             filename = defaultfile
             s = "Enter name of FITS file ...... [%s]: " % filename   # PyFits syntax
-         fn = raw_input(s)
+         if defaultfile is None or prompt:
+            fn = raw_input(s)
+         else:
+            fn = filename
          if fn != '':
             filename = fn
          # print "Filename memmap", filename, memmap
          hdulist = pyfits.open(filename, memmap=memmap)
          break
       except IOError, (errno, strerror):
-         print "I/O error(%s): %s" % (errno, strerror)
+         print "I/O error(%s): %s opening [%s]" % (errno, strerror, filename)
+         prompt = True    # Also prompt when a default file name was entered
       except KeyboardInterrupt:
          raise
       except:
+         defaultfile = None
          print "Cannot open file, unknown error."
          con = raw_input("Abort? ........... [Y]/N:")
          if con == '' or con.upper() == 'Y':
@@ -732,21 +883,13 @@ translation.
    Integer [1, NAXIS]
 
 :Prompts:
-   1. Name of the image axes:
+      Name of the image axes:
         *Enter 2 axes from (list with allowed axis names) .... [default]:*
 
         e.g.: ``Enter 2 axes from (RA,DEC,VELO) .... [RA,DEC]:``
 
         The axis names can be abbreviated. A minimal match is applied.
 
-   2. The spectral translation if one of the image axes is a spectral axis.
-   
-         *Enter number between 0 and N of spectral translation .... [native]:*
-
-         *N* is the number of allowed translations  minus 1.
-         The default *Native* in this context implies that no translation is applied.
-         All calculations are done in the spectral type given by FITS header
-         item *CTYPEn* where *n* is the number of the spectral axis.
 
    
 :Returns:
@@ -858,6 +1001,17 @@ Ask user to enter spectral translation if one of the axes is spectral.
 :type fitsobj:
    Instance of class FITSimage
 
+:Prompts:
+
+      The spectral translation if one of the image axes is a spectral axis.
+   
+         *Enter number between 0 and N of spectral translation .... [native]:*
+
+         *N* is the number of allowed translations  minus 1.
+         The default *Native* in this context implies that no translation is applied.
+         All calculations are done in the spectral type given by FITS header
+         item *CTYPEn* where *n* is the number of the spectral axis.
+
 :Returns: 
    * *spectrans* - The selected spectral translation from a list with spectral
      translations that are allowed for the input object of class FITSimage.
@@ -878,6 +1032,10 @@ Ask user to enter spectral translation if one of the axes is spectral.
    spectrans = None
    nt = len(fitsobj.allowedtrans)
    if (nt > 0 and asktrans):
+      s = ''
+      for i, tr in enumerate(fitsobj.allowedtrans):
+         s += "%d:%s (%s) " % (i, tr[0], tr[1])
+      print s
       unvalid = True
       while unvalid:
          try:
@@ -2010,6 +2168,7 @@ this class.
 .. automethod:: set_aspectratio
 .. automethod:: get_colornavigation_info
 .. automethod:: Image
+.. automethod:: RGBimage
 .. automethod:: Contours
 .. automethod:: Colorbar
 .. automethod:: Graticule
@@ -2116,6 +2275,8 @@ this class.
       self.fluxfie = lambda s, a: s/a
       annotatedimage_list.append(self)
       self.pixoffset = [0.0, 0.0]                # Use this offset to display pixel positions
+      self.rgbs = None                           # If not None, then the image is a
+                                                 # composed image with r,g & b components.
 
 
    def set_pixoffset(self, xoff=0.0, yoff=0.0):
@@ -2463,6 +2624,113 @@ this class.
       image = Image(self.data, self.box, self.cmap, self.norm, **kwargs)
       self.objlist.append(image)
       self.image = image
+      return image
+
+
+   def RGBimage(self, f_red, f_green, f_blue, fun=None, **kwargs):
+      #-----------------------------------------------------------------
+      """
+      Matplotlib's method imshow() is able to produce RGB images.
+      To create a real RGB image, we need three arrays with identical
+      shape representing the red, green and blue components.
+      Method imshow() requires data scaled between 0 and 1.
+
+      This utility method prepares a composed and scaled data array
+      derived from three FITSimage objects.
+      It scales the composed array and not the individual image arrays.
+      The method allows for a function or lambda expression to
+      be entered to process the scaled data.
+      The world coordinate system (e.g. to plot graticules) is copied
+      from the current :class:`Annotatedimage` object. Note that for the
+      three images only the shape of the array must be equal to the
+      shape of the data of the current :class:`Annotatedimage` object.
+
+
+      :param f_red:
+         This object describes a two dimensional data structure which represents
+         the red part of the composed image.
+      :type f_red:
+         Object from class :class:`FITSimage`
+      :param f_green:
+         This object describes a two dimensional data structure which represents
+         the green part of the composed image.
+      :type f_green:
+         Object from class :class:`FITSimage`
+      :param f_blue:
+         This object describes a two dimensional data structure which represents
+         the blue part of the composed image.
+      :type f_blue:
+         Object from class :class:`FITSimage`
+      :param fun:
+         A function or a Lambda expression to process the scaled data.
+      :type fun:
+         Function or Lambda expression
+      :param kwargs:
+         See description method :meth:`Annotatedimage.Image`.
+      :type kwargs:
+         Python keyword parameters
+
+      :Note:
+         A RGB image does not interact with a colormap. Interacting with a colormap
+         (e.g. after adding annim.interact_imagecolors() in the example below)
+         is not forbidden but it gives weird results. To rescale the data, for
+         instance for a better view, you need to enter a function or Lambda expression
+         with parameter *fun*.
+
+      :Example:
+
+       ::
+      
+         from kapteyn import maputils
+         from numpy import sqrt
+         from matplotlib import pyplot as plt
+         
+         f_red = maputils.FITSimage('m101_red.fits')
+         f_green = maputils.FITSimage('m101_green.fits')
+         f_blue = maputils.FITSimage('m101_blue.fits')
+         
+         fig = plt.figure()
+         frame = fig.add_subplot(1,1,1)
+         annim = f_red.Annotatedimage(frame)
+         annim.RGBimage(f_red, f_green, f_blue, fun=lambda x:sqrt(x), alpha=0.5)
+         
+         grat = annim.Graticule()
+         annim.interact_toolbarinfo()
+         
+         maputils.showall()
+
+      """
+      #-----------------------------------------------------------------
+      if self.image != None:
+         raise Exception, "Only 1 image allowed per Annotatedimage object"
+      if f_red.dat.shape != self.data.shape:
+         raise Exception, "Shape of red image is not equal to shape of Annotatedimage object!"
+      if f_green.dat.shape != self.data.shape:
+         raise Exception, "Shape of green image is not equal to shape of Annotatedimage object!"
+      if f_blue.dat.shape != self.data.shape:
+         raise Exception, "Shape of blue image is not equal to shape of Annotatedimage object!"
+      # Compose a new array. Note that this syntax implies a real copy of the data.
+      rgbim = numpy.zeros((self.data.shape+(3,)))
+      rgbim[:,:,0] = f_red.dat
+      rgbim[:,:,1] = f_green.dat
+      rgbim[:,:,2] = f_blue.dat
+      # Scale the composed array to values between 0 and 1
+      dmin = rgbim.min()
+      dx = rgbim.max() - dmin
+      if dx == 0.0:
+         dx = 1.0
+      rgbim = (rgbim - dmin)/dx
+      # Apply the function or lambda expression if any is given
+      if not fun is None:
+         rgbim = fun(rgbim)
+      image = Image(rgbim, self.box, self.cmap, self.norm, **kwargs)
+      self.objlist.append(image)
+      self.image = image
+      # Set a flag to indicate that this Annotatedimage object has a rgb
+      # data as image. We store the FITSimage objects as an attribute.
+      # We need this data later if we wnat to display the image values of the
+      # three maps in an informative message.
+      self.rgbs = (f_red.dat, f_green.dat, f_blue.dat)
       return image
 
 
@@ -3413,7 +3681,7 @@ this class.
       return b
          
 
-   def positionmessage(self, x, y):
+   def positionmessage(self, x, y, posobj):
       #--------------------------------------------------------------------
       """
       Display cursor position in pixels and world coordinates together
@@ -3429,6 +3697,11 @@ this class.
          The y coordinate of a position in the image
       :type y:
          Floating point number
+      :param posobj:
+         A description of how the string should be formatted is
+         stored in this object.
+      :type posobj:
+         An object from class :class:`Positionmessage`
 
       :Returns:
          A formatted string with position information and
@@ -3450,31 +3723,28 @@ this class.
             xw, yw, missingspatial = self.toworld(x, y, matchspatial=True)
             xi = numpy.round(x) - (self.pxlim[0]-1)
             yi = numpy.round(y) - (self.pylim[0]-1)
-            #if not numpy.ma.is_masked(self.boxdat[yi-1, xi-1]):
-            # Note that there is no need to check on -inf and inf values
-            # because they are either already filtered or they exist and
-            # are displayed then as strings '-inf' and 'inf'.
             x -= self.pixoffset[0]; y -= self.pixoffset[1];
-            if self.data != None and not numpy.isnan(self.data[yi-1, xi-1]):
-               z = self.data[yi-1, xi-1]
-               if missingspatial == None:
-                  s = "x,y=%6.1f,%6.1f  wcs=%10f,%10f  Z=%+8.2e " % (x, y, xw, yw, z)
+            spix = posobj.pix2str(x,y)
+            swcs = posobj.wcs2str(xw, yw, missingspatial)
+            if self.rgbs is None:
+               if self.data is None:
+                  z = numpy.nan
                else:
-                  s = "x,y=%6.1f,%6.1f  wcs=%10f,%10f,%10f  Z=%+8.2e " % (x, y, xw, yw, missingspatial, z)
+                  z = self.data[yi-1, xi-1]
             else:
-               if xw == None or yw == None:
-                  if missingspatial == None:
-                     s = "x,y=%6.1f,%6.1f  wcs=NaN,NaN  Z=NaN" % (x, y)
-                  else:
-                     s = "x,y=%6.1f,%6.1f  wcs=NaN,NaN,%10f  Z=NaN" % (x, y, missingspatial)
-               else:
-                  if missingspatial == None:
-                     s = "x,y=%6.1f,%6.1f  wcs=%10f,%10f  Z=NaN" % (x, y, xw, yw)
-                  else:
-                     s = "x,y=%6.1f,%6.1f  wcs=%10f,%10f,%10f  Z=NaN" % (x, y, xw, yw, missingspatial)
+               z = (self.rgbs[0][yi-1, xi-1], self.rgbs[1][yi-1, xi-1], self.rgbs[2][yi-1, xi-1])
+            s = ''
+            if not spix is None:
+               s = "x,y=%s" % spix
+            if not swcs is None:
+               s += "  wcs=%s" % swcs
+            if not (self.rgbs is None and self.data is None):
+               sz   = posobj.z2str(z)
+               s += "  z=%s" % sz
          else: #except:
-            s = "xp,yp: %.2f %.2f " % (x, y)
-      return s
+            spix = self.posmes.pix2str(x,y)
+            s = "pix:%s" % spix
+      return s.strip()
 
 
    def mouse_toolbarinfo(self, axesevent):
@@ -3487,14 +3757,27 @@ this class.
       s = ''
       x, y = axesevent.xdata, axesevent.ydata
       if 1 : #self.figmanager.toolbar.mode == '':
-         s = self.positionmessage(x, y)
+         s = self.positionmessage(x, y, axesevent.posobj)
       if s != '':
+         # For a window with width 19.5 cm, there is a fixed widht for
+         # toolbar buttons (7.5 cm = 2.95 inch). For the rest (12 cm) we have
+         # space to set a message. Unfortunately we don't have any information
+         # about the real width of the string with information.
+         # In this 12 cm we have 57 characters. On average the size of a
+         # character is 12/57/2.54 inch (0.083 inch).
+         charw = 0.12    # Average character width (better than 0.083)
+         xsize = self.frame.figure.get_figwidth()
+         messagemax = xsize - 2.5
+         if len(s)*charw > messagemax:
+            l = int(messagemax/charw)
+            s = s[:l]
          messenger(s)
          
          #self.figmanager.toolbar.set_message(s)
 
 
-   def interact_toolbarinfo(self):
+   def interact_toolbarinfo(self, pixfmt="%.1f", wcsfmt="%.3g", zfmt="%.3e",
+                            hmsdms=True, dmsprec=1):
       #--------------------------------------------------------------------
       """
       Allow this :class:`Annotatedimage` object to interact with the user.
@@ -3502,6 +3785,31 @@ this class.
       in both pixel coordinates and world coordinates. The world coordinates
       are in the units given by the (FITS) header.
 
+      :param pixfmt:
+         Python number format for pixel coordinates
+      :type pixfmt:
+         String
+      :param wcsfmt:
+         Python number format for wcs coordinates if the coordinates
+         are not spatial or if parameter *hmsdms* is False.
+      :type wcsfmt:
+         String
+      :param zfmt:
+         Python number format for image value(s)
+      :type pixfmt:
+         String
+      :param hmsdms:
+         If True (default) then spatial coordinates will be formatted
+         in hours/degrees, minutes and seconds according to the current sky system.
+         The precision in seconds is entered with parameter *dmsprec*.
+      :type hmsdms:
+         Boolean
+      :param dmsprec:
+         Number of decimal digits in seconds for coordinates formatted in
+         in HMS/DMS
+      :type dmsprec:
+         Integer
+         
       :Notes:
 
          If a message does not fit in the toolbar then nothing is
@@ -3516,6 +3824,10 @@ this class.
          >>> annim = f.Annotatedimage(frame)
          >>> annim.interact_toolbarinfo()
 
+         or:
+
+         >>> annim.interact_toolbarinfo(wcsfmt=None, zfmt="%g")
+         
          A more complete example::
 
             from kapteyn import maputils
@@ -3536,7 +3848,14 @@ this class.
 
       """
       #--------------------------------------------------------------------
-      self.toolbarkey = AxesCallback(self.mouse_toolbarinfo, self.frame, 'motion_notify_event')
+      posobj = Positionmessage(self.projection.skysys, self.skyout, self.projection.types)
+      posobj.pixfmt = pixfmt
+      posobj.wcsfmt = wcsfmt
+      posobj.zfmt = zfmt
+      posobj.hmsdms = hmsdms
+      posobj.dmsprec = dmsprec
+      self.toolbarkey = AxesCallback(self.mouse_toolbarinfo, self.frame,
+                                     'motion_notify_event', posobj=posobj)
 
 
 
@@ -3858,7 +4177,7 @@ this class.
       s = ''
       if self.figmanager.toolbar.mode == '':
          x, y = axesevent.xdata, axesevent.ydata
-         s = self.positionmessage(x, y)
+         s = self.positionmessage(x, y, axesevent.posobj)
       if s != '':
          if axesevent.gipsy and gipsymod:
             anyout(s)
@@ -3866,12 +4185,44 @@ this class.
             print s       # Write to terminal
 
 
-   def interact_writepos(self, gipsy=False):
+   def interact_writepos(self, pixfmt="%.1f", wcsfmt="%.3g", zfmt="%.3e",
+                         hmsdms=True, dmsprec=1, gipsy=False):
       #--------------------------------------------------------------------
       """
       Add mouse interaction (left mouse button) to write the position
       of the mouse to screen. The position is written both in pixel
       coordinates and world coordinates.
+
+      
+      :param pixfmt:
+         Python number format for pixel coordinates
+      :type pixfmt:
+         String
+      :param wcsfmt:
+         Python number format for wcs coordinates if the coordinates
+         are not spatial or if parameter *hmsdms* is False.
+      :type wcsfmt:
+         String
+      :param zfmt:
+         Python number format for image value(s)
+      :type pixfmt:
+         String
+      :param hmsdms:
+         If True (default) then spatial coordinates will be formatted
+         in hours/degrees, minutes and seconds according to the current sky system.
+         The precision in seconds is entered with parameter *dmsprec*.
+      :type hmsdms:
+         Boolean
+      :param dmsprec:
+         Number of decimal digits in seconds for coordinates formatted in
+         in HMS/DMS
+      :type dmsprec:
+         Integer
+      :param gipsy:
+         If set to True, the output is written with a GIPSY command to
+         a log file.
+      :type gipsy:
+         Boolean
       
       :Example:
 
@@ -3882,9 +4233,24 @@ this class.
       >>> annim.Image()
       >>> annim.interact_writepos()
       >>> annim.plot()
+
+      For a formatted output one could add parameters to *interact_writepos()*.
+      The next line writes no pixel coordinates, writes spatial coordinates
+      in degrees (not in HMS/DMS format) and adds a format for
+      the world coordinates and the image value(s).
+
+      >>> annim.interact_writepos(pixfmt=None, wcsfmt="%.12f", zfmt="%.3e",
+                                  hmsdms=False)
       """
       #--------------------------------------------------------------------
-      self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame, 'button_press_event', gipsy=gipsy)
+      posobj = Positionmessage(self.projection.skysys, self.skyout, self.projection.types)
+      posobj.pixfmt = pixfmt
+      posobj.wcsfmt = wcsfmt
+      posobj.zfmt = zfmt
+      posobj.hmsdms = hmsdms
+      posobj.dmsprec = dmsprec
+      self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame,
+                           'button_press_event', gipsy=gipsy, posobj=posobj)
 
 
    def motion_events(self):
@@ -4374,7 +4740,7 @@ to know the properties of the FITS data beforehand.
    """
 
 #--------------------------------------------------------------------
-   def __init__(self, filespec=None, promptfie=None, hdunr=None, alter='', memmap=None,
+   def __init__(self, filespec=None, promptfie=None, prompt=True, hdunr=None, alter='', memmap=None,
                 externalheader=None, externaldata=None, **parms):
       #----------------------------------------------------
       # Usually the required header and data are extracted
@@ -4391,9 +4757,9 @@ to know the properties of the FITS data beforehand.
          # Not an external header, so a file is given or user wants to be prompted.
          if promptfie:
             if memmap == None:  # Use default of current PyFITS version
-               hdulist, hdunr, filename, alter = promptfie(filespec, hdunr, alter)
+               hdulist, hdunr, filename, alter = promptfie(filespec, prompt, hdunr, alter)
             else:
-               hdulist, hdunr, filename, alter = promptfie(filespec, hdunr, alter, memmap)
+               hdulist, hdunr, filename, alter = promptfie(filespec, prompt, hdunr, alter, memmap)
          else:
             try:
                if memmap == None:

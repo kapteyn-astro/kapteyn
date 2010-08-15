@@ -945,7 +945,7 @@ Convert an angle in degrees to **hours, minutes, seconds** format.
                s = s1
    else:
       if prec > 0:
-         s = "%.2dh%.2dm%*.*fs" % (Ihours, Imin, prec+3, prec, secleft+Fsec)
+         s = "%.2dh%.2dm%0*.*fs" % (Ihours, Imin, prec+3, prec, secleft+Fsec)
       else:
          s = "%.2dh%.2dm%2ds" % (Ihours, Imin, secleft)
    return s
@@ -1041,10 +1041,9 @@ the range -90 to 90 degrees
                s = s1
    else:
       if prec > 0:
-         s = "%c%.2dd%.2dm%*.*fs" % (si, Ideg, Imin, prec+3, prec, secleft+Fsec)
+         s = "%c%.2dd%.2dm%0*.*fs" % (si, Ideg, Imin, prec+3, prec, secleft+Fsec)
       else:
          s = "%c%.2dd%.2dm%2ds" % (si, Ideg, Imin, secleft)
-   
    return s
 
 
@@ -1130,7 +1129,7 @@ system.
                s = s1
    else:
       if prec > 0:
-         s = "%4dd%2dm%*.*fs" % (Ideg, Imin, prec+3, prec, secleft+Fsec)
+         s = "%4dd%2dm%0*.*fs" % (Ideg, Imin, prec+3, prec, secleft+Fsec)
       else:
          s = "%4dd%2dm%2ds" % (Ideg, Imin, secleft)
    return s

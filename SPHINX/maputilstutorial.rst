@@ -361,6 +361,18 @@ of the FITSimage object and print information about the world coordinate system
 
 .. literalinclude:: EXAMPLES/mu_getfitsimage.py
 
+**Example: fitsview** - Use prompt functions to create a script that
+displays a FITS image
+ 
+As a summary we present a small but handy utility to display a FITS image
+using prompt functions. The name of the FITS file can be a command line argument
+e.g.: ``./fitsimage m101.fits``
+For this you need to download the code and make the script executable
+(e.g. chmod u+x) and run it from the command line like:
+
+>>> ./fitsview m101.fits
+
+.. literalinclude:: EXAMPLES/fitsview
 
 
 Image objects
@@ -412,6 +424,54 @@ In the next example we reduce whitespace and use keyword parameters *cmap*, *cli
    :align: center
 
 .. centered:: Fig.: mu_withimage.py - Image with non default plot frame and parameters for color map and clip levels.
+
+
+RGB image
+...........
+
+It is possible to compose an image from three separate images which represent
+a red, green and blue component. In this case you need to create an
+:class:`maputils.FITSimage.Annotatedimage`
+object first. The data associated with this image can be used
+to draw e.g. contours, while the parameters of the method
+:meth:`maputils.FITSimage.Annotatedimage.rgbimage` compose the
+RGB image. 
+
+**Example: mu_rgbdemo.py - display RGB image**
+
+.. plot:: EXAMPLES/mu_rgbdemo.py
+   :include-source:
+   :align: center
+
+
+**Explanation:**
+
+Three FITS files contain data in rectangular shapes in different positions.
+The shapes have an overlap. For each RGB
+component a :class:`maputils.FITSimage` is created. One of these is used to
+make a :class:`maputils.FITSimage.Annotatedimage` object. The three
+*FITSimage* objects are used as parameters for method
+:meth:`maputils.FITSimage.Annotatedimage.rgbimage` to set the individual
+components of a RGB image. The shapes are displayed in the colour that
+corresponds to the component that was used. The overlapping regions show
+composed colours as expected in an RGB image. 
+
+This script also displays a message in the message toolbar with information
+about mouse positions and the corresponding image value. For an RGB image,
+all three image values (z values) are displayed.
+The format of the message is changed with parameters in
+:meth:`maputils.FITSimage.Annotatedimage.interact_toolbarinfo`
+as in:
+
+>>> annim.interact_toolbarinfo(wcsfmt=None, zfmt="%g")
+
+
+Two parameters need some extra explanation. The first is parameter *fun*.
+This is either a function or a lambda expression which scales the
+data. An RGB image has no colormap and there is no scaling available through
+colormap editing. To provide any scaling for display purposes, we provide this
+parameter. The other parameter is *alpha*. This is an alpha factor which applies
+to the entire map.
 
 
 Figure size
@@ -1647,12 +1707,22 @@ and the image value of the pixel.
 .. note::
    
    There is a minimum width
-   for the window to be able to display the message. If you don't see any
+   for the window to be able to display the message. If you see any imcomplete
    text, then resize the window until it is wide enough to show the message.
 
+A programmer can change the formatting of the informative string
+using parameters with the same name as the attributes
+of an object from class :class:`maputils.Annotatedimage.Positionmessage`
+If a format is set to *None*, its corresponding number(s) will
+not appear in the informative message. Here is an example how to
+skip the world coordinates (*wcsfmt=None*) and to add a
+format for the image values (*zfmt*).
 
-Writing position information to terminal
-........................................
+>>> interact_toolbarinfo(wcsfmt=None, zfmt="%g")
+
+
+Writing position information to the terminal
+.............................................
 
 Method :meth:`maputils.Annotatedimage.interact_writepos`
 writes the toolbar message with information about coordinates and
@@ -1675,6 +1745,17 @@ For spectral axes, the units depend on the selected spectral translation.
 Here is a minimalistic example how to add user interaction:
 
 .. literalinclude:: EXAMPLES/mu_interactive2.py
+
+For a formatted output one could add parameters to *interact_writepos()*.
+The next line writes no pixel coordinates, writes spatial coordinates
+in degrees (not in HMS/DMS format) and adds a format for
+the world coordinates and the image value(s).
+
+>>> interact_writepos(pixfmt=None, wcsfmt="%.12f", zfmt="%.3e", hmsdms=False)
+
+Or if you need a lot of precision in the seconds of a HMS/DMS format:
+
+>>> interact_writepos(dmsprec=3)
 
 
 

@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+from kapteyn import wcsgrat, maputils
+from matplotlib import pylab as plt
+import sys
+
+# Create a maputils FITS object from a FITS file on disk
+if len(sys.argv) > 1:
+   filename = sys.argv[1]
+   fitsobject = maputils.FITSimage(filespec=filename,
+                promptfie=maputils.prompt_fitsfile, prompt=False)
+else:
+   fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
+
+fitsobject.set_imageaxes(promptfie=maputils.prompt_imageaxes)
+fitsobject.set_limits(promptfie=maputils.prompt_box)
+fitsobject.set_skyout(promptfie=maputils.prompt_skyout)
+fitsobject.set_spectrans(promptfie=maputils.prompt_spectrans)
+clipmin, clipmax = maputils.prompt_dataminmax(fitsobject)
+   
+# Get connected to Matplotlib
+fig = plt.figure()
+frame = fig.add_subplot(1,1,1)
+   
+# Create an image to be used in Matplotlib
+annim = fitsobject.Annotatedimage(frame, clipmin=clipmin, clipmax=clipmax)
+annim.Image()
+annim.Graticule()
+#annim.Contours()
+frame.set_title(fitsobject.filename, y=1.03)
+annim.plot()
+
+annim.interact_toolbarinfo()
+annim.interact_imagecolors()
+annim.interact_writepos()
+
+plt.show()

@@ -25,8 +25,8 @@ grat.setp_lineswcs1(0, lw=2)
 lon_world = range(0,360,30)
 lat_world = [-60, -30, 30, 60]
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
-labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
-deltapy0 = 2
+labkwargs1 = {'color':'b', 'va':'center', 'ha':'center'}
+deltapy0 = 0 #2
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,
        labkwargs0=labkwargs0, labkwargs1=labkwargs1,
