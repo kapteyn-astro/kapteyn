@@ -448,8 +448,10 @@ class Positionmessage(object):
       self.zfmt = "%.3e"
       self.hmsdms = True
       self.dmsprec = 1
+      sys = None
       if skyout is None:
-         sys, ref, equinox, epoch = skyparser(skysys)
+         if not skysys is None:
+            sys, ref, equinox, epoch = skyparser(skysys)
       else:
          sys, ref, equinox, epoch = skyparser(skyout)
       self.sys = sys
@@ -3812,7 +3814,10 @@ this class.
          
       :Notes:
 
-         If a message does not fit in the toolbar then nothing is
+         If a format is set to *None*, its corresponding number(s) will
+         not appear in the informative message.
+
+         If a message does not fit in the toolbar then only a part is
          displayed. We don't have control over the maximum size of that message
          because it depends on the backend that is used (GTK, QT,...).
          If nothing appears, then a manual resize of the window will suffice.

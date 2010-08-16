@@ -317,7 +317,7 @@ in a compatible spectral system:
 .. note::
 
    For positions in a data structure with one spatial axis, the other
-   (missing) spatial axis is identified by a pixel coordinate Usually it's
+   (missing) spatial axis is identified by a pixel coordinate. Usually it's
    a slice).
    This restricts the spatial world coordinates to their native wcs.
    We define a world coordinate in its native sky system
@@ -1539,6 +1539,7 @@ def str2pos(postxt, subproj, mixpix=None):
                                               gipsy=False)
       if errmes != '':
          return [], [], [], errmes
+
    return wor, pix, subsetunits, ''
 
 
