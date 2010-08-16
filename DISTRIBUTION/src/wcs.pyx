@@ -1160,6 +1160,14 @@ Example::
          except:
             pass
 
+         #----------------------
+         #    VELREF
+         #----------------------
+         try:
+            param.velref = header['VELREF']
+         except:
+            pass
+
          #---------------------------------
          #    Initialise parameter struct
          #---------------------------------

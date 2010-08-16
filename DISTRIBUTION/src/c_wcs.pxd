@@ -46,6 +46,7 @@ cdef extern from "wcs.h":
       char   specsys[72]
       char   lngtyp[8]
       double equinox
+      int    velref
 
    cdef char *wcs_errmsg[]
 
