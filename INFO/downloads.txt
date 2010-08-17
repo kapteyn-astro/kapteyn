@@ -130,4 +130,4 @@ Tomsk State University of Systems Control and Radioelectronics @ 88.204.74.85
 Observatoire du Puy Sainte Reparade @ 213.41.164.100
 
 
-tot:  Fri Aug 13 13:21:08 CEST 2010
+tot:  Tue Aug 17 15:19:56 CEST 2010

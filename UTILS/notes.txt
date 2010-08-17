@@ -41,3 +41,14 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTILS/make..."
   Argument: de directory waar de release wordt geplaatst (verplicht).
             Voor een definitieve release zal dat
             /net/webserver/var/www/base/internet/software/kapteyn zijn.
+
+- wininstlogo.bmp
+
+  is een plaatje t.b.v. de Windows installer. Deze installer zou als volgt
+  gebouwd moeten kunnen worden:
+
+     python setup.py bdist_wininst --bitmap wininstlogo.bmp
+
+  Vooralsnog lukt dit niet omdat de Visual C++ compiler problemen heeft met
+  de WCSLIB functie wcsset() die interfereert met de depracated POSIX functie
+  met dezelfde naam.
