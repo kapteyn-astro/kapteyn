@@ -469,7 +469,6 @@ try:
 except:
    gipsymod = False
 
-
 # Define constants for use in eval()
 c_ = 299792458.0    # Speed of light in m/s
 h_ = 6.62606896e-34 # Planck constant in J.s
@@ -745,7 +744,8 @@ def parsehmsdms(hmsdms, axtyp=None):
    
    for p in parts:
       try:
-         number = eval(p)                        # Everything that Python can parse in a number
+         # Use float and not eval because eval cannot convert '08' like numbers
+         number = float(p)                       # Everything that Python can parse in a number
          prevnumber = True
          adelimiter = False
       except:

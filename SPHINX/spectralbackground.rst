@@ -1435,115 +1435,107 @@ AIPS axis type VELO
 In this section we want to address the question what WCSLIB does if it
 encounters an AIPS VELO-XXX axis as in *CTYPE1='VELO-HEL'* or *'VELO-LSR'*.
 From the AIPS documentation we learn that VELO is regularly gridded in
-velocity (m/s) in the radio convention, unless overridden by use of 
-the *VELDEF* keyword.
-In other AIPS documents we read:
-   
-   *  veldef: The velocity definition (e.g. *radio*, *optical*). 
-   *  velref: The velocity reference frame (e.g. *LSR*, *HEL*, ,etc.). 
+velocity (m/s) in the optical convention, unless overridden by use of
+the *VELREF* keyword. VELREF is an integer. From the documentation
+of WCSLIB we learn that for Classic Aips:
 
-So we safely can assume that in AIPS VELO-XXX (with XXX one of the 
-velocity references) without a *VELDEF* keyword defaults to a radio velocity.
-However, in the example script below we demonstrate that WCSLIB processes
-such an axis as if it is an apparent radial velocity (FITS standard: VELO). 
-There is no interpretation like with the
-FELO axis. The WCSLIB source confirms this. Also
-Calabretta (private comm.) has confirmed this. It is not sure how later
-versions (>4.4) of WCSLIB will process VELO-XXX (Feb 10, 2010).
+         1. LSR kinematic, originally described simply as "LSR" without distinction
+            between the kinematic and dynamic definitions.
+         2. Barycentric, originally described as "HEL" meaning heliocentric.
+         3. Topocentric, originally described as "OBS" meaning geocentric
+            but widely interpreted as topocentric.
 
- .. note::
+And for AIPS++ extensions to VELREF which are also recognized:
+      
+         4. LSR dynamic.
+         5. Geocentric.
+         6. Source rest frame.
+         7. Galactocentric.
 
-    An AIPS VELO-XXX axis shows the right velocities with WCSLIB because
-    VELO in AIPS is an axis that is regularly gridded in velocity. But note
-    that conversions with spectral translations assume that VELO is a
-    apparent radial velocity.
+.. note::
+
+      From the WCSLIB documentation:
+
+      For an AIPS 'VELO' axis, a radio convention velocity is denoted by adding 256 to VELREF,
+      otherwise an optical velocity is indicated (not applicable to 'FELO' axes).
+      Unrecognized values of VELREF are simply ignored.
+      VELREF takes precedence over CTYPEia in defining the Doppler frame.
+
+.. note::
+
+      Only WCSLIB (versions >= 4.5.1) do recognize keyword *VELREF*.
+
+We show the use of *VELREF* with the following script:
 
 
-.. literalinclude:: EXAMPLES/veloaips.py
+.. literalinclude:: EXAMPLES/aipsvelo.py
 
 Output::
 
    The velocity increment is constant and equal to 5.000000 (km/s):
+   Allowed spectral translations [('FREQ', 'Hz'), ('ENER', 'J'), ('WAVN', '/m'),
+   ('VOPT-F2W', 'm/s'), ('VRAD', 'm/s'), ('VELO-F2V', 'm/s'), ('WAVE-F2W', 'm'),
+   ('ZOPT-F2W', ''), ('AWAV-F2A', 'm'), ('BETA-F2V', '')]
    
-   With CTYPE='VELO-HEL' we get the output:
-   Pixel , Velocity (km/s)
-   30     -253.000000
-   31     -248.000000
-   32     -243.000000
-   33     -238.000000
+   T1. Radio velocity directly from header and optical velocity
+   from spectral translation. VELO is a radio velocity here because
+   VELREF > 256
+   Pixel Vradio in (km/s) and Voptical (km/s)
+   30     -253.000000     -252.786669
+   31     -248.000000     -247.795014
+   32     -243.000000     -242.803193
+   33     -238.000000     -237.811206
+   34     -233.000000     -232.819052
    
-   With CTYPE='VELO-HEL' and spec.trans 'VOPT-V2W':
-   Pixel,  Velocity (km/s), Voptical (km/s)
-   30     -253.000000     -252.893335
-   31     -248.000000     -247.897507
-   32     -243.000000     -242.901597
-   33     -238.000000     -237.905603
+   T2. Now insert CTYPE1='VRAD' in the header and convert to VOPT-F2W
+   with a spectral translation (Z1) and with a calculation (Z2)
+   This should give the same results as in table T1.
    
-   With CTYPE='VELO':
-   Pixel,  Vrelativistic (km/s)
-   30     -253.000000
-   31     -248.000000
-   32     -243.000000
-   33     -238.000000
+   With CTYPE='RAD' and spec.trans 'VOPT-F2W': Pixel , Vrad, Z1 (km/s), Z2 (km/s)
+   30 -253.0 -252.786668992 -252.786668992
+   31 -248.0 -247.795014311 -247.795014311
+   32 -243.0 -242.803193261 -242.803193261
+   33 -238.0 -237.811205834 -237.811205834
+   34 -233.0 -232.819052022 -232.819052022
    
-   With CTYPE='VELO' and spectral translation 'VOPT-V2W':
-   Pixel, Vrelativistic (km/s), Voptical (km/s)
-   30     -253.000000     -252.893335
-   31     -248.000000     -247.897507
-   32     -243.000000     -242.901597
-   33     -238.000000     -237.905603
+   T3. We set CTYPE1 to VELO-HEL and VELREF to 2 (Helio) and 
+   derive optical and radio velocities from it. Compare these with
+   the relativistic velocity in Table T4.
+   Allowed spectral translations for VELO as optical velocity [('FREQ-W2F', 'Hz'),
+  ('ENER-W2F', 'J'), ('WAVN-W2F', '/m'), ('VOPT', 'm/s'), ('VRAD-W2F', 'm/s'),
+  ('VELO-W2V', 'm/s'), ('WAVE', 'm'), ('ZOPT', ''), ('AWAV-W2A', 'm'),
+  ('BETA-W2V', '')]
+   Pixel Voptical in (km/s) and Vradio (km/s)
+   30     -253.000000     -253.213691
+   31     -248.000000     -248.205325
+   32     -243.000000     -243.197126
+   33     -238.000000     -238.189094
+   34     -233.000000     -233.181229
    
-   Optical velocities, calculated with the appropriate formulas,
-   from relativistic velocity with constant velocity increment. This should give
-   the same output as the previous conversion.
-   30     -253.000000     -252.893335
-   31     -248.000000     -247.897507
-   32     -243.000000     -242.901597
-   33     -238.000000     -237.905603
-   
-   Now replace VELO-HEL in CTYPE1 by VRAD. Calculate VOPT in two ways.
-   First with spectral VOPT-F2W and then with the appropriate formulas
-   for VRAD -> VOPT-F2W.
-   With CTYPE='VRAD' and spec.trans 'VOPT-F2W'(Z1) and calculated (Z2):
-   Pixel      Vrad(km/s)       Z1 (km/s)       Z2 (km/s)
-   30     -253.000000     -252.786669     -252.786669
-   31     -248.000000     -247.795014     -247.795014
-   32     -243.000000     -242.803193     -242.803193
-   33     -238.000000     -237.811206     -237.811206
-   Obviously the optical velocities are different compared to
-   those calculated from CTYPE1='VELO' or 'VELO-HEL', This also proves
-   that a VELO-XXX axis form a AIPS source is not processed as a radio
-   velocity.
+   T4. Next a list with optical velocities calculated from relativistic
+   velocity with constant increment.
+   If these values are different from the previous optical velocity then 
+   obviously the velocities derived from the header are not relativistic
+   as in pre 4.5.1 versions of WCSLIB.
+   30     -252.893335
+   31     -247.897507
+   32     -242.901597
+   33     -237.905603
+   34     -232.909526
 
 
-   
-We used eq. :eq:`eq30` to calculate a frequency for a given apparent radial velocity. This frequency
-is used in eq. :eq:`eq5` to calculate the optical velocity. The script proves:
+We used eq. :eq:`eq30` to calculate a frequency for a given apparent radial velocity.
+This frequency is used in eq. :eq:`eq5` to calculate the optical velocity.
+The script proves:
 
-       * Axis VELO-HEL is processed as if 'VELO-XXX' is an apparent radial velocity
-       * This can give wrong results when applying spectral translations, because
-         the meaning of 'VELO-XXX' could be a radio velocity instead of an apparent radial
-         velocity.
-
-
-The table below shows possible conversions between VELO axes and
-other spectral axes.
-
-=======================  =====================================================================
-CTYPE                    Can be converted with spectral translations
-=======================  =====================================================================
-VELO-HEL, VELO-LSR       Is processed as a VELO axis
-VELO                     WAVE-V2W  or FREQ-V2F or VOPT-V2F or VRAD-V2F
-VELO-F2V                 WAVE-F2W  or FREQ or VOPT-F2W or VRAD
-VELO-W2V                 WAVE  or FREQ-W2F or VOPT or VRAD-W2F
-=======================  =====================================================================
-
-
+       * Axis VELO-HEL is processed as an optical velocity and if keyword *VELREF*
+         is present and its value is greater than 256, then VELO-HEL is processed
+         as a radio velocity. In versions of WCSLIB < 4.5.1, the VELO-XXX axis was
+         processed as VELO i.e. a relativistic velocity.
 
 .. note::
 
       From the WCSLIB API documentation:
-
 
       AIPS-convention celestial projection types, NCP and GLS, and spectral types,
       '{FREQ,FELO,VELO}-{OBS,HEL,LSR}' as in 
