@@ -2,6 +2,7 @@ include MANIFEST.in
 include MANIFEST
 include setup.py
 include INSTALL.txt LICENSE.txt SciPy-LICENSE.txt WCSLIB-LICENSE.txt
+include wininstlogo.bmp
 graft   kapteyn
 graft   src
 graft   src/wcslib*

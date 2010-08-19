@@ -3,8 +3,11 @@ from numpy import sqrt
 from matplotlib import pyplot as plt
 
 f_red = maputils.FITSimage('m101_red.fits')
+f_red.set_limits((200,300),(200,300))
 f_green = maputils.FITSimage('m101_green.fits')
+f_green.set_limits((200,300),(200,300))
 f_blue = maputils.FITSimage('m101_blue.fits')
+f_blue.set_limits((200,300),(200,300))
 
 fig = plt.figure()
 frame = fig.add_subplot(1,1,1)

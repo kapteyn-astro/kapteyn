@@ -376,6 +376,38 @@ def getscale(hdr):
    return bitpix, bzero, bscale, blank
 
 
+def change_header(hdr, **kwargs):
+#-----------------------------------------------------------
+   """
+   Given header 'hdr', change/add or delete all keys
+   given in **kwargs. Input 'hdr' is either a Python
+   dictionary or a PyFITS header object.
+   """
+#-----------------------------------------------------------
+   if type(hdr) == 'dict':
+      dicttype = True
+   else:
+      dicttype = False
+
+   # We need to loop over all keys because we distinguish
+   # deleting/adding and changing of entries which cannot
+   # be combined into 1 action.
+   for name in kwargs.keys():
+     value = kwargs[name]
+     fitsname = name.upper()
+     if value is None:
+        try:
+           del hdr[fitsname]
+        except KeyError:
+           pass
+     else:
+        if dicttype:
+           hdr[fitsname] = value
+        else:
+           hdr.update(fitsname, value)
+    # Nothing to return. Only contents of 'hdr' is changed
+
+
 class Positionmessage(object):
 #-----------------------------------------------------------
    """
@@ -1622,6 +1654,7 @@ class Beam(object):
       d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
       r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
       lon_new, lat_new = self.dispcoord(xc, yc, r, -1, phi+pa)
+      #print "BEAM:", zip(lon_new, lat_new)
       xp, yp = projection.topixel((lon_new, lat_new))
       self.vertices = zip(xp, yp)
       self.kwargs = kwargs
@@ -1663,16 +1696,29 @@ class Beam(object):
       b,alpha and d2 are known -> a2.
       """
       #--------------------------------------------------------------------
-
+      
+      def DV(l1, b1, l2, b2):
+         # Vincenty, Thaddeus, 1975, formula for distance on sphere accurate over entire sphere
+         fac = numpy.pi / 180.0
+         l1 *= fac; b1 *= fac; l2 *= fac; b2 *= fac
+         dlon = l2 - l1
+         aa1 = numpy.cos(b2)*numpy.sin(dlon)
+         aa2 = numpy.cos(b1)*numpy.sin(b2) - numpy.sin(b1)*numpy.cos(b2)*numpy.cos(dlon)
+         a = numpy.sqrt(aa1*aa1+aa2*aa2)
+         b = numpy.sin(b1)*numpy.sin(b2) + numpy.cos(b1)*numpy.cos(b2)*numpy.cos(dlon)
+         d = numpy.arctan2(a,b)
+         return d*180.0/numpy.pi
+      
+      
       Pi = numpy.pi
       b = abs(disp*Pi/180.0)
       a1 = longitude * Pi/180.0
       d1 = latitude * Pi/180.0
       alpha = angle * Pi/180.0
       d2 = numpy.arcsin( numpy.cos(b)*numpy.sin(d1)+numpy.cos(d1)*numpy.sin(b)*numpy.cos(alpha) )
-      dH = direction * numpy.arcsin( numpy.sin(b)*numpy.sin(alpha)/numpy.cos(d2) )
-
-      #Note that a2 is to the left of a1 and direction = -1 if cdelt[0] < 0
+      cosa2a1 = (numpy.cos(b) - numpy.sin(d1)*numpy.sin(d2))/(numpy.cos(d1)*numpy.cos(d2))
+      sina2a1 = numpy.sin(b)*numpy.sin(alpha)/numpy.cos(d2)
+      dH =  numpy.arctan2(direction*sina2a1, cosa2a1)
 
       a2 = a1 - dH
       lonout = a2*180.0/Pi
@@ -2705,17 +2751,17 @@ this class.
       #-----------------------------------------------------------------
       if self.image != None:
          raise Exception, "Only 1 image allowed per Annotatedimage object"
-      if f_red.dat.shape != self.data.shape:
+      if f_red.boxdat.shape != self.data.shape:
          raise Exception, "Shape of red image is not equal to shape of Annotatedimage object!"
-      if f_green.dat.shape != self.data.shape:
+      if f_green.boxdat.shape != self.data.shape:
          raise Exception, "Shape of green image is not equal to shape of Annotatedimage object!"
-      if f_blue.dat.shape != self.data.shape:
+      if f_blue.boxdat.shape != self.data.shape:
          raise Exception, "Shape of blue image is not equal to shape of Annotatedimage object!"
       # Compose a new array. Note that this syntax implies a real copy of the data.
       rgbim = numpy.zeros((self.data.shape+(3,)))
-      rgbim[:,:,0] = f_red.dat
-      rgbim[:,:,1] = f_green.dat
-      rgbim[:,:,2] = f_blue.dat
+      rgbim[:,:,0] = f_red.boxdat
+      rgbim[:,:,1] = f_green.boxdat
+      rgbim[:,:,2] = f_blue.boxdat
       # Scale the composed array to values between 0 and 1
       dmin = rgbim.min()
       dx = rgbim.max() - dmin
@@ -2732,7 +2778,7 @@ this class.
       # data as image. We store the FITSimage objects as an attribute.
       # We need this data later if we wnat to display the image values of the
       # three maps in an informative message.
-      self.rgbs = (f_red.dat, f_green.dat, f_blue.dat)
+      self.rgbs = (f_red.boxdat, f_green.boxdat, f_blue.boxdat)
       return image
 
 
@@ -3726,7 +3772,7 @@ this class.
             xi = numpy.round(x) - (self.pxlim[0]-1)
             yi = numpy.round(y) - (self.pylim[0]-1)
             x -= self.pixoffset[0]; y -= self.pixoffset[1];
-            spix = posobj.pix2str(x,y)
+            spix = posobj.pix2str(x, y)
             swcs = posobj.wcs2str(xw, yw, missingspatial)
             if self.rgbs is None:
                if self.data is None:
@@ -5771,6 +5817,9 @@ to know the properties of the FITS data beforehand.
       is to derive the missing header items, CDELTn and CROTA from
       these headers and add them to the header.
 
+      Sometimes one wants to have a classic header to get a CROTA
+      from a skewed image to be able to apply a rotation afterwards.
+
       When a header is altered in such legacy environments and written back
       into a FITS file, you will end up with a mixed environment because
       you have a header that has both all classic FITS cards to describe a WCS and
@@ -5802,11 +5851,7 @@ to know the properties of the FITS data beforehand.
            If this number is bigger then say 0.001 then there is considerable
            skew in the data. One should reproject the data so that it fits
            a non skewed version with only a CROTA in the header
-         * A message if somehow this routine fails to process the header.
-           If a message exists ((i.e. a non empty string) then element *hdr* is
-           set to None.
-           So in the calling environment you can check on both
-           return values.
+         * A Boolean which indicates whether a header is changed or not.
 
       :Example:
 
@@ -5817,15 +5862,11 @@ to know the properties of the FITS data beforehand.
             
             
             Basefits = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
-            newheader, skew, mes = Basefits.header2classic()
-            if newheader:
+            newheader, skew, hdrchanged = Basefits.header2classic()
+            if hdrchanged:
                print newheader
+            if skew != 0.0:
                print "found skew:", skew
-            else:
-               print "Could not modify header. Reason:"
-               print mes
-
-
 
       :Notes:
 
@@ -5930,7 +5971,7 @@ to know the properties of the FITS data beforehand.
          if not cdmatrix:
             if pcmatrix and None in [cdeltlon, cdeltlat]:
                # A PC matrix cannot exist without values for CDELT
-               return None, 0.0, "Header does not contain necessary CDELT's!"
+               raise ValueError("Header does not contain necessary CDELT's!")
             if pcmatrix:
                # Found no CD but use PC to create one
                # |cd11 cd12|  = |cdelt1      0| * |pc11 pc12|
@@ -5946,7 +5987,7 @@ to know the properties of the FITS data beforehand.
          # but if it does, use the CD.
          # If there is no CD/PC matrix then there is nothing to do
          if not cdmatrix:
-            return None, 0, "No PC or CD matrix available"
+            return hdr, 0, False
          else:
             from math import sqrt
             from math import atan2
@@ -6040,13 +6081,12 @@ to know the properties of the FITS data beforehand.
                    del hdr[key]
                    hdrchanged = True
 
-      if hdrchanged:
-         return hdr, skew, ""
-      return None, 0.0, "Nothing changed"
+      return hdr, skew, hdrchanged
 
 
-   def reproject_to(self, reprojobj, pxlim_dst=None, pylim_dst=None,
-                    plimlo=None, plimhi=None, interpol_dict = None):
+   def reproject_to(self, reprojobj=None, pxlim_dst=None, pylim_dst=None,
+                    plimlo=None, plimhi=None, interpol_dict = None,
+                    rotation=None, **fitskeys):
       #---------------------------------------------------------------------
       """
       The current FITSimage object must contain a number of spatial maps.
@@ -6092,11 +6132,13 @@ to know the properties of the FITS data beforehand.
              from the current FITSimage. This option is selected if you
              want to overlay e.g. contours from the current FITSimage
              data onto data from another WCS. 
+          *  If None, then the current header is used. Modifications to this header
+             are done with keyword arguments.
       :type reprojobj:
           Python dictionary or PyFITS header. Or a :class:`maputils.FITSimage`
           object
       :param pxlim_dst:
-          Limits in pixels for the reprojected box
+          Limits in pixels for the reprojected box.
       :param plimlo:
           One or more pixel coordinates corresponding to axes outside
           the spatial map in order as found in the header 'reprojobj'.
@@ -6134,68 +6176,136 @@ to know the properties of the FITS data beforehand.
           
       :type overlay_dict:
          Python dictionary
+      :param rotation:
+         Sets a rotation angle. If this method encounters this keyword, it will
+         create a so called 'classic' header. That is a header without
+         CD or PC elements. Then the rotation angle of the current spatial
+         map is only given by FITS keyword *CROTAn*. The value of *rotation* is added
+         to *CROTAn* to create a new value which is inserted in the new header.
+         Note that values for *CROTAn* in the *fitskeys* parameter list
+         overwrite this calculated value.
+      :type rotation:
+         Floating point number or *None*
+      :param fitskeys:
+         Parameters containing FITS keywords and values which are written
+         in the reprojection header. 
+      :type fitskeys:
+         Python keyword arguments.
 
+
+      .. warning::
+
+            Values for *CROTAn* in parameter *fitskeys* overwrite
+            values previously set with keyword *rotation*.
+
+      .. warning::
+
+            Changing values of *CROTAn* will not always result in
+            a rotated image. If the world coordinate system was defined using
+            CD or PC elements, then changing *CROTAn* will only add the keyword
+            but it is never read because CD & PC transformations have precedence.
 
 
       :Examples:
 
-         Set limits for axes outside the spatial map. Assume a data structure
-         with axes RA-DEC-FREQ-STOKES for which the RA-DEC part is reprojected to
-         a set RA'-DEC'-FREQ-STOKES. The ranges for FREQ and STOKES set the
-         number of spatial maps in this data structure. One can limit these
-         ranges with *plimlo* and *plimhi*.
-          
-         * *plimlo=(20,2)*, *plimhi=(40,2)*  we restrict the reprojections for spatial maps
-           at frequencies 20 to 40 at one position on the STOKES axis
-           (at pixel coordinate 2).
+         1) Set limits for axes outside the spatial map. Assume a data structure
+            with axes RA-DEC-FREQ-STOKES for which the RA-DEC part is reprojected to
+            a set RA'-DEC'-FREQ-STOKES. The ranges for FREQ and STOKES set the
+            number of spatial maps in this data structure. One can limit these
+            ranges with *plimlo* and *plimhi*.
+            
+            * *plimlo=(20,2)*, *plimhi=(40,2)*  we restrict the reprojections for spatial maps
+              at frequencies 20 to 40 at one position on the STOKES axis
+              (at pixel coordinate 2).
+   
+            * *plimlo=(None,2)*, *plimhi=(None,2)*
+              If one wants to reproject all the maps at all frequencies
+              but only for STOKES=2 and 3 then use:
+              *plimlo=(None,2)* and *plimhi=(None,2)* where None implies no limits.
+   
+            * *plimlo=40*
+               No *plimhi* is entered. Then there are no upper limits. Only one value
+               (40) is entered so this must represent the FREQ axis at pixel
+               coordinate 40. It represents all spatial maps from FREQ pixel
+               coordinate 40 to the end of the FREQ range, repeated for all
+               pixels on the STOKES axis.
+   
+            * *plimlo=(55,1)*, *plimhi=(55,1)*
+               This reprojects just one map at FREQ pixel coordinate 55
+               and STOKES pixel coordinate 1. This enables a user/programmer
+               to extract one spatial map, reproject it and write it as a single
+               map to a FITS file while no information about the FREQ and STOKES
+               axes is lost. The dimensionality of the new data remains 4 but
+               the length of the 'repeat axes' is 1.
+   
+            Note that if the data structure was represented by axes
+            FREQ-RA-STOKES-DEC then the examples above are still valid because
+            these set the limits on the repeat axes FREQ and POL whatever the
+            position of these axes in the data structure.
 
-         * *plimlo=(None,2)*, *plimhi=(None,2)*
-           If one wants to reproject all the maps at all frequencies
-           but only for STOKES=2 and 3 then use:
-           *plimlo=(None,2)* and *plimhi=(None,2)* where None implies no limits.
 
-         * *plimlo=40*
-           No *plimhi* is entered. Then there are no upper limits. Only one value
-           (40) is entered so this must represent the FREQ axis at pixel
-           coordinate 40. It represents all spatial maps from FREQ pixel
-           coordinate 40 to the end of the FREQ range, repeated for all
-           pixels on the STOKES axis.
+         2) Use and modify the current header to change the data.
+            The example shows how to rotate an image and display the result.
 
-         * *plimlo=(55,1)*, *plimhi=(55,1)*
-           This reprojects just one map at FREQ pixel coordinate 55
-           and STOKES pixel coordinate 1. This enables a user/programmer
-           to extract one spatial map, reproject it and write it as a single
-           map to a FITS file while no information about the FREQ and STOKES
-           axes is lost. The dimensionality of the new data remains 4 but
-           the length of the 'repeat axes' is 1.
+            ::
 
-         Note that if the data structure was represented by axes
-         FREQ-RA-STOKES-DEC then the examples above are still valid because
-         these set the limits on the repeat axes FREQ and POL whatever the
-         position of these axes in the data structure.
-          
+               Basefits = maputils.FITSimage("m101.fits")
+               Rotfits = Basefits.reproject_to(rotation=40.0,
+                                             naxis1=800, naxis2=800,
+                                             crpix1=400, crpix2=400)
+   
+               # If copy on disk required:
+               # Rotfits.writetofits("m10rot.fits", clobber=True, append=False)
+   
+               annim = Rotfits.Annotatedimage()
+               annim.Image()
+               annim.Graticule()
+               annim.interact_toolbarinfo()
+               maputils.showall()
+
+         3) Use an external header and change keywords in that header
+            befor the re-projection:
+       
+            >>> Rotfits = Basefits.reproject_to(externalheader,
+                                                naxis1=800, naxis2=800,
+                                                crpix1=400, crpix2=400)
+
+
+      .. note::
+
+            If you want to align an image with the direction of the north,
+            then the value of *CROTAn* (e.g. CROTA2) should be set to zero.
+            To ensure that the data will be rotated, use parameter
+            *rotation* with a dummy value so that the header used for
+            the re-projection is a 'classic' header:
+
+            e.g.:
+
+            >>> Rotfits = Basefits.reproject_to(rotation=0.0, crota2=0.0)
+
+
       :Tests:
 
-         1) The first test is a reprojection of data of *map1* to the
-         spatial header of *map2*. One should observe that the result
-         of the reprojection (*reproj*) has its spatial structure from
-         *map2* and its non spatial structure (i.e. the repeat axes)
-         from *map1*. Note that the order of longitude, latitude
-         in *map1* is swapped in *map2*.
-
-         map1:
-         CTYPE:  RA - POL - FREQ - DEC
-         NAXIS   35   5     16     41
-
-         map2:
-         CTYPE:  DEC - POL - FREQ - RA
-         NAXIS   36    4     17     30
-
-         reproj = map1.reproject_to(map2)
-
-         reproj:
-         CTYPE:  RA - POL - FREQ - DEC
-         NAXIS   36   5     16     30
+         1) The first test was a reprojection of data of *map1* to the
+            spatial header of *map2*. One should observe that the result
+            of the reprojection (*reproj*) has its spatial structure from
+            *map2* and its non spatial structure (i.e. the repeat axes)
+            from *map1*. Note that the order of longitude, latitude
+            in *map1* is swapped in *map2*.
+   
+            map1:
+            CTYPE:  RA - POL - FREQ - DEC
+            NAXIS   35   5     16     41
+   
+            map2:
+            CTYPE:  DEC - POL - FREQ - RA
+            NAXIS   36    4     17     30
+   
+            reproj = map1.reproject_to(map2)
+   
+            reproj:
+            CTYPE:  RA - POL - FREQ - DEC
+            NAXIS   36   5     16     30
 
          2) Tested with values for the repeat axes
          3) Tested with values for the output box
@@ -6234,11 +6344,33 @@ to know the properties of the FITS data beforehand.
          pylim_dst = reprojobj.pylim
          slicepos = self.slicepos
          plimLO = plimHI = slicepos
-         repheader = reprojobj.hdr
+         repheader = reprojobj.hdr.copy()
          fromheader = False
       else:
-         # Its a plain header
-         repheader = reprojobj
+         # It's a plain header
+         if reprojobj is None:
+            repheader = self.hdr.copy()
+         else:
+            # A Python dict or a PyFITS header
+            repheader = reprojobj.copy()
+            
+      # For a rotation (only) we convert the header to a 'classic' header
+      if not rotation is None:
+         # Get rid of skew and ambiguous rotation angles
+         # by converting cd/pc matrix to 'classic' header, so that CROTA can
+         # be adjusted.
+         repheader, skew, hdrchanged = self.header2classic()
+         # Look for the right CROTA (associated with latitude)
+         key = "CROTA%d"%self.proj.lataxnum
+         crotanew = repheader[key] + rotation     # Rotation of latitude axis + user rot.
+         repheader[key] = crotanew
+
+      if len(fitskeys) > 0:
+         # Note that a ROTATION= keyword changes the value of CROTAn
+         # but we can overwrite this with a user supplied keyword CROTAn
+         # In effect, this is a trigger that CROTA changes and a 'classic'
+         # header is required.
+         change_header(repheader, **fitskeys)
 
       p1 = wcs.Projection(self.hdr)
       
@@ -6262,7 +6394,7 @@ to know the properties of the FITS data beforehand.
       # Create a projection object for
       # the current spatial maps
       p1_spat = p1.sub(axnum)
-
+      
       # Get a Projection object for a spatial map defined in the
       # input header, the destination
       p2 = wcs.Projection(repheader)

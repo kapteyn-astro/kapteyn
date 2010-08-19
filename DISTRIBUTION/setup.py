@@ -2,7 +2,9 @@ from distutils.core import setup, Extension
 from distutils.sysconfig import get_python_inc, get_python_lib
 from kapteyn import __version__ as version
 
-wcslib_dir = 'src/wcslib-4.5/C/'  # === must be changed for other version ===
+wcslib_version = '4.5'            # === must be changed for other version ===
+
+wcslib_dir = 'src/wcslib-%s/C/' % wcslib_version # WCSLIB source directory
 
 import sys, os
 
@@ -68,7 +70,8 @@ classifiers = [
    'License :: OSI Approved :: BSD License',
    'License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)',
    'Operating System :: POSIX :: Linux',
-   'Operating System :: MacOS :: MacOS X'
+   'Operating System :: MacOS :: MacOS X',
+   'Operating System :: Microsoft :: Windows'
    ]   
 
 kapteyn_src = [
@@ -112,6 +115,9 @@ wcs_src       = (   ['src/'        + source for source in kapteyn_src]
 
 _nd_image_src = ['src/scipy/'  + source for source in scipy_src]
 
+define_macros = []
+if sys.platform == 'win32':
+    define_macros.append(('YY_NO_UNISTD_H', None))
 
 setup(
    name="kapteyn",
@@ -122,14 +128,15 @@ setup(
    url='http://www.astro.rug.nl/software/kapteyn/',
    download_url = "http://www.astro.rug.nl/software/kapteyn/kapteyn.tar.gz",
    long_description=description,
-   platforms = ['Linux', 'Mac OSX'],
+   platforms = ['Linux', 'Mac OSX', 'Windows'],
    license = 'BSD',
    classifiers = classifiers,
    ext_package='kapteyn',
    ext_modules=[
       Extension(
          "wcs", wcs_src,
-          include_dirs=include_dirs
+          include_dirs=include_dirs,
+          define_macros=define_macros
       ),
       Extension(
          "ascarray",
