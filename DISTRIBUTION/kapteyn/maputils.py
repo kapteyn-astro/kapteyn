@@ -6208,35 +6208,40 @@ to know the properties of the FITS data beforehand.
 
       :Examples:
 
-         1) Set limits for axes outside the spatial map. Assume a data structure
+            -Set limits for axes outside the spatial map. Assume a data structure
             with axes RA-DEC-FREQ-STOKES for which the RA-DEC part is reprojected to
             a set RA'-DEC'-FREQ-STOKES. The ranges for FREQ and STOKES set the
             number of spatial maps in this data structure. One can limit these
             ranges with *plimlo* and *plimhi*.
             
-            * *plimlo=(20,2)*, *plimhi=(40,2)*  we restrict the reprojections for spatial maps
+            * *plimlo=(20,2)*, *plimhi=(40,2)*
+
+              we restrict the reprojections for spatial maps
               at frequencies 20 to 40 at one position on the STOKES axis
               (at pixel coordinate 2).
    
             * *plimlo=(None,2)*, *plimhi=(None,2)*
+            
               If one wants to reproject all the maps at all frequencies
               but only for STOKES=2 and 3 then use:
               *plimlo=(None,2)* and *plimhi=(None,2)* where None implies no limits.
    
             * *plimlo=40*
-               No *plimhi* is entered. Then there are no upper limits. Only one value
-               (40) is entered so this must represent the FREQ axis at pixel
-               coordinate 40. It represents all spatial maps from FREQ pixel
-               coordinate 40 to the end of the FREQ range, repeated for all
-               pixels on the STOKES axis.
+              
+              No *plimhi* is entered. Then there are no upper limits. Only one value
+              (40) is entered so this must represent the FREQ axis at pixel
+              coordinate 40. It represents all spatial maps from FREQ pixel
+              coordinate 40 to the end of the FREQ range, repeated for all
+              pixels on the STOKES axis.
    
             * *plimlo=(55,1)*, *plimhi=(55,1)*
-               This reprojects just one map at FREQ pixel coordinate 55
-               and STOKES pixel coordinate 1. This enables a user/programmer
-               to extract one spatial map, reproject it and write it as a single
-               map to a FITS file while no information about the FREQ and STOKES
-               axes is lost. The dimensionality of the new data remains 4 but
-               the length of the 'repeat axes' is 1.
+            
+              This reprojects just one map at FREQ pixel coordinate 55
+              and STOKES pixel coordinate 1. This enables a user/programmer
+              to extract one spatial map, reproject it and write it as a single
+              map to a FITS file while no information about the FREQ and STOKES
+              axes is lost. The dimensionality of the new data remains 4 but
+              the length of the 'repeat axes' is 1.
    
             Note that if the data structure was represented by axes
             FREQ-RA-STOKES-DEC then the examples above are still valid because
@@ -6244,7 +6249,7 @@ to know the properties of the FITS data beforehand.
             position of these axes in the data structure.
 
 
-         2) Use and modify the current header to change the data.
+            -Use and modify the current header to change the data.
             The example shows how to rotate an image and display the result.
 
             ::
@@ -6263,7 +6268,7 @@ to know the properties of the FITS data beforehand.
                annim.interact_toolbarinfo()
                maputils.showall()
 
-         3) Use an external header and change keywords in that header
+            -Use an external header and change keywords in that header
             befor the re-projection:
        
             >>> Rotfits = Basefits.reproject_to(externalheader,

@@ -1054,11 +1054,14 @@ Example::
          #------------------
          #   EQUINOX, EPOCH
          #------------------
+         # The float conversions here shouldn't be necessary, but there
+         # seem to exist FITS files which represent EQUINOX as a string.
+         # (From the Sloan Digital Sky Survey?)
          try:
-            self.equinox = header['EQUINOX' + alter] 
+            self.equinox = float(header['EQUINOX' + alter]) 
          except:
             try:
-               self.equinox = header['EPOCH']
+               self.equinox = float(header['EPOCH'])
             except:
                try:
                   radesys = reftab[header['RADESYS' + alter].upper()]
