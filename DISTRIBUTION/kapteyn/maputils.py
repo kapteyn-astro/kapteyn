@@ -1719,17 +1719,13 @@ class Beam(object):
       sinA = numpy.sin( phi*Pi/180.0 )
       d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
       r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
-      
+      """
       X = r*sinA+xc; Y = r*cosA+yc
       xp, yp = projection.topixel((X,Y))
       self.vertices = zip(xp,yp)
       self.p2 = Polygon(self.vertices, facecolor='g', alpha=0.5)
-      
-
-      
-      
+      """
       lon_new, lat_new = dispcoord(xc, yc, r, -1, phi+pa)
-      #print "BEAM:", zip(lon_new, lat_new)
       xp, yp = projection.topixel((lon_new, lat_new))
       self.vertices = zip(xp, yp)
       self.kwargs = kwargs
@@ -1803,7 +1799,7 @@ class Beam(object):
    def plot(self, frame):
       p = Polygon(self.vertices, **self.kwargs)
       frame.add_patch(p)
-      frame.add_patch(self.p2)
+      #frame.add_patch(self.p2)
 
 
 
