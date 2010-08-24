@@ -19,7 +19,9 @@ annim = f.Annotatedimage(frame)
 grat = annim.Graticule()
 
 fn = 'WDB/smallworld.txt'
-xp, yp = annim.positionsfromfile(fn, 's', cols=[0,1])
+# Note that in this file the latitudes are in the first column
+# (column 0). And the longitudes in the second (column=1)
+xp, yp = annim.positionsfromfile(fn, 's', cols=[1,0])
 annim.Marker(x=xp, y=yp, mode='pixels', marker=',', color='b')
 annim.plot()
 frame.set_title("Markers in the Carribbean")

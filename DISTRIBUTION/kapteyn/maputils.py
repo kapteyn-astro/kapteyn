@@ -150,6 +150,9 @@ Utility functions
 .. index:: Convert PyFITS header to Python dictionary
 .. autofunction:: fitsheader2dict
 
+.. index:: Calculate distance on sphere
+.. autofunction:: dist_on_sphere
+
 .. autofunction:: showall
 
 Class FITSimage
@@ -376,6 +379,51 @@ def getscale(hdr):
    return bitpix, bzero, bscale, blank
 
 
+def dist_on_sphere(l1, b1, l2, b2):
+#-----------------------------------------------------------
+   """
+Formula for distance on sphere accurate over entire sphere
+(Vincenty, Thaddeus, 1975). Input and output are in degrees.
+
+:param l1:
+   Longitude of first location on sphere
+:type l1:
+   float
+:param b1:
+   Latitude of first location on sphere
+:type b1:
+   float
+:param l2:
+   Longitude of second location on sphere
+:type l2:
+   float
+:param b2:
+   Latitude of second location on sphere
+:type b2:
+   float
+
+:Examples:
+
+   >>> from kapteyn.maputils import dist_on_sphere
+   >>> print dist_on_sphere(0,0, 20,0)
+       20.0
+
+   >>> print dist_on_sphere(0,30, 20,30)
+       17.2983302106
+
+   """
+#-----------------------------------------------------------
+   fac = numpy.pi / 180.0
+   l1 *= fac; b1 *= fac; l2 *= fac; b2 *= fac
+   dlon = l2 - l1
+   aa1 = numpy.cos(b2)*numpy.sin(dlon)
+   aa2 = numpy.cos(b1)*numpy.sin(b2) - numpy.sin(b1)*numpy.cos(b2)*numpy.cos(dlon)
+   a = numpy.sqrt(aa1*aa1+aa2*aa2)
+   b = numpy.sin(b1)*numpy.sin(b2) + numpy.cos(b1)*numpy.cos(b2)*numpy.cos(dlon)
+   d = numpy.arctan2(a,b)
+   return d*180.0/numpy.pi
+
+
 def dispcoord(longitude, latitude, disp, direction, angle):
    #--------------------------------------------------------------------
    """
@@ -412,20 +460,6 @@ def dispcoord(longitude, latitude, disp, direction, angle):
    b,alpha and d2 are known -> a2.
    """
    #--------------------------------------------------------------------
-
-   def DV(l1, b1, l2, b2):
-      # Vincenty, Thaddeus, 1975, formula for distance on sphere accurate over entire sphere
-      fac = numpy.pi / 180.0
-      l1 *= fac; b1 *= fac; l2 *= fac; b2 *= fac
-      dlon = l2 - l1
-      aa1 = numpy.cos(b2)*numpy.sin(dlon)
-      aa2 = numpy.cos(b1)*numpy.sin(b2) - numpy.sin(b1)*numpy.cos(b2)*numpy.cos(dlon)
-      a = numpy.sqrt(aa1*aa1+aa2*aa2)
-      b = numpy.sin(b1)*numpy.sin(b2) + numpy.cos(b1)*numpy.cos(b2)*numpy.cos(dlon)
-      d = numpy.arctan2(a,b)
-      return d*180.0/numpy.pi
-
-
    Pi = numpy.pi
    b = abs(disp*Pi/180.0)
    a1 = longitude * Pi/180.0
@@ -1729,72 +1763,6 @@ class Beam(object):
       xp, yp = projection.topixel((lon_new, lat_new))
       self.vertices = zip(xp, yp)
       self.kwargs = kwargs
-
-
-   def QQQQdispcoord(self, longitude, latitude, disp, direction, angle):
-      #--------------------------------------------------------------------
-      """
-      INPUT:   longitude: enter in degrees.
-               latitude:  enter in degrees.
-               disp:      the displacement in the sky entered
-                          in degrees. The value can also be
-                          negative to indicate the opposite
-                          direction
-               angle:     the angle wrt. a great circle of
-                          constant declination entered in
-                          degrees.
-               direction: If the longitude increases in the -X
-                          direction (e.q. RA-DEC) then direction
-                          is -1. else direction = +1
-
-      Assume a triangle on a sphere with side b(=disp) connec-
-      ting two positions along a great circle and sides 90-d1,
-      and 90-d2 (d1, d2 are the declinations of the input and
-      output positions) that connect the input and output
-      position to the pole P of the sphere. Then the distance
-      between the two points Q1=(a1,d1) and Q2=(a2,d2) is:
-      cos(b)=cos(90-d1)cos(90-d2)+sin(90-d1)sin(90-d2)cos(a2-a1) 
-      Q2 is situated to the left of Q1.
-      If the angle PQ1Q2 is alpha then we have another cosine     
-      rule:
-      cos(90-d2) = cos(b)cos(90-d1)+sin(b)sin(90-d1)cos(alpha)   
-      or:
-      sin(d2) = cos(b)sin(d1)+sin(b)cos(d1)cos(alpha)
-      which gives d2. Angle Q1PQ2 is equal to a2-a1. For this
-      angle we have the sine formula:
-      sin(b)/sin(a2-a1) = sin(90-d2)/sin(alpha) so that:
-      sin(a2-a1) = sin(b)sin(alpha)/cos(d2).
-      b,alpha and d2 are known -> a2.
-      """
-      #--------------------------------------------------------------------
-      
-      def DV(l1, b1, l2, b2):
-         # Vincenty, Thaddeus, 1975, formula for distance on sphere accurate over entire sphere
-         fac = numpy.pi / 180.0
-         l1 *= fac; b1 *= fac; l2 *= fac; b2 *= fac
-         dlon = l2 - l1
-         aa1 = numpy.cos(b2)*numpy.sin(dlon)
-         aa2 = numpy.cos(b1)*numpy.sin(b2) - numpy.sin(b1)*numpy.cos(b2)*numpy.cos(dlon)
-         a = numpy.sqrt(aa1*aa1+aa2*aa2)
-         b = numpy.sin(b1)*numpy.sin(b2) + numpy.cos(b1)*numpy.cos(b2)*numpy.cos(dlon)
-         d = numpy.arctan2(a,b)
-         return d*180.0/numpy.pi
-      
-      
-      Pi = numpy.pi
-      b = abs(disp*Pi/180.0)
-      a1 = longitude * Pi/180.0
-      d1 = latitude * Pi/180.0
-      alpha = angle * Pi/180.0
-      d2 = numpy.arcsin( numpy.cos(b)*numpy.sin(d1)+numpy.cos(d1)*numpy.sin(b)*numpy.cos(alpha) )
-      cosa2a1 = (numpy.cos(b) - numpy.sin(d1)*numpy.sin(d2))/(numpy.cos(d1)*numpy.cos(d2))
-      sina2a1 = numpy.sin(b)*numpy.sin(alpha)/numpy.cos(d2)
-      dH =  numpy.arctan2(direction*sina2a1, cosa2a1)
-
-      a2 = a1 - dH
-      lonout = a2*180.0/Pi
-      latout = d2*180.0/Pi
-      return lonout, latout
 
    def plot(self, frame):
       p = Polygon(self.vertices, **self.kwargs)
@@ -4424,6 +4392,9 @@ this class.
       Read positions from a file with world coordinates and convert them to
       pixel coordinates. The interface is exactly the same as from method
       :meth:`tabarray.readColumns()`
+
+      It expects that the first column contains the longitudes and
+      the second column the latitudes.
 
       :Examples:
       

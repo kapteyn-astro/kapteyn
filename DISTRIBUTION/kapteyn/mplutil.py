@@ -40,6 +40,12 @@ will be available again.
 The filtering can be completely switched on and off by assigning True or False
 to KeyPressFilter's attribute *enabled*. E.g.,
 ``KeyPressFilter.enabled = False``.
+
+GIPSY keyword event connection
+------------------------------
+
+.. autofunction:: gipsy_connect
+
  
 """
 # ==========================================================================
@@ -756,3 +762,51 @@ try:
    
 except:
    pass
+
+def gipsy_connect():
+   """
+Function only to be used by GIPSY tasks.
+It should be called by matplotlib programs when GIPSY's keyword events need
+to be handled, i.e., when the task uses the class KeyCallback.
+Here is an example::
+
+   #!/usr/bin/env python
+
+   import gipsy
+   from matplotlib.pyplot import figure, show
+   from kapteyn.mplutil import AxesCallback, gipsy_connect
+
+   def key_handler(cb):
+      gipsy.anyout('Event: %s %s' % (cb.key, gipsy.usertext(cb.key)))
+
+   gipsy.init()
+
+   fig = figure()
+
+   frame = fig.add_axes((0.1, 0.1, 0.8, 0.8))
+
+   gipsy_connect()
+
+   gipsy.KeyCallback(key_handler, 'TESTKEY=')
+
+   show()
+
+   gipsy.finis()
+
+"""
+   import gipsy
+   backend = rcParams['backend'].upper()
+   if backend in ['GTK', 'GTKAGG']:
+      gipsy.gtkconnect()
+   elif backend in ['QT4AGG']:
+      gipsy.qtconnect()
+   elif backend in ['TKAGG']:
+      import Tkinter
+      def _tkio(fd, mask):
+         gipsy.hersignal()
+      window = get_current_fig_manager().window
+      fd = gipsy.herconnect()
+      window.tk.createfilehandler(fd, Tkinter.READABLE, _tkio)
+   else:
+      raise RuntimeError, 'Unsupported matplotlib backend for GIPSY connect'
+
