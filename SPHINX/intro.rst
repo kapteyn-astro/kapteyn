@@ -92,6 +92,7 @@ Prerequisites
 To install the Kapteyn Package, at least Python_ 2.4
 and NumPy_ are required. For using it, the availability of
 PyFITS_ and matplotlib_ is recommended.
+Windows users may also need to install Readline_.
 
 Mark Calabretta's WCSLIB_ does not need to be installed separately anymore.
 Its code is now included in the Kapteyn Package under the
@@ -102,6 +103,7 @@ GNU Lesser General Public License.
 .. _NumPy: http://numpy.scipy.org/
 .. _PyFITS: http://www.stsci.edu/resources/software_hardware/pyfits
 .. _matplotlib: http://matplotlib.sourceforge.net/
+.. _Readline: http://newcenturycomputers.net/projects/readline.html
 
 .. index:: download
 
@@ -116,7 +118,7 @@ the package's homepage: http://www.astro.rug.nl/software/kapteyn/
 Installing
 ----------
 
-First unpack the downloaded kapteyn.tar.gz and go to the
+First unpack the downloaded .tar.gz or .zip file and go to the
 resulting directory. Then one of the following options can be chosen:
 
 #. Install into your Python system (you usually need root permission
@@ -138,6 +140,7 @@ resulting directory. Then one of the following options can be chosen:
    install it as follows::
 
       python setup.py install --install-lib $gip_exe
+
 
 Contact
 -------

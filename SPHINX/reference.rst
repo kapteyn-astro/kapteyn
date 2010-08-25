@@ -13,5 +13,5 @@ Module reference
    rulers
    shapes
    Module tabarray: fast handling of tables in text files <tabarray>
-   Module mplutil: event handling utility for matplotlib <mplutil>
+   Module mplutil: utilities for use with matplotlib <mplutil>
    scipy
