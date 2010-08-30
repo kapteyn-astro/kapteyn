@@ -116,6 +116,7 @@ Class Insidelabels
 from kapteyn import wcs        # The Kapteyn Python binding to WCSlib, including celestial transformations
 from kapteyn.positions import parsehmsdms, unitfactor
 from kapteyn import rulers
+from kapteyn.celestial import skyparser
 from types import TupleType, ListType, StringType
 from string import join, letters
 from random import choice
@@ -1293,6 +1294,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 :param offsety:     Same as *offsetx* but now for the left plot axis.
 :type offsety:      *None* or Boolean
 
+:param unitsx:      Units for first offset axis
+:type unitsx:       String
+
+:param unitsy:      Units for second offset axis
+:type unitsy:       String
+
+
 :raises:
    :exc:`ValueError` *Could not find enough (>1) valid world coordinates in this map!*
       User wanted to let the constructor estimate what the ranges in
@@ -1477,6 +1485,14 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 .. attribute:: ystarts
    
                   Same for the y-axis
+
+.. attribute:: skyout
+
+                  Unformatted copy of input parameter *skyout*
+
+.. attribute:: spectrans
+
+                  Unformatted copy of input parameter *spectrans*
 
 
 :Examples:        Example to show how to use a custom made header to
@@ -2034,7 +2050,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             spectrans = graticuledata.spectrans
          if skyout == None:
             skyout = graticuledata.skyout
-         
+         if alter =='':
+            alter = graticuledata.alter
+            
+
+      self.skyout = skyout
+      self.spectrans = spectrans
       # Try to get two axis numbers if none are given
       if axnum == None:
          naxis = header['NAXIS']
@@ -2053,7 +2074,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          raise Exception, "Need two different axis numbers"
 
       # Start values could be strings with hms or dms
-      #!!!!!  TODO startxy kan meerdere posities bvatten - loopen dus
+      #!!!!!  TODO startxy kan meerdere posities bevatten - loopen dus
       #!!!!!!!!
       if type(startx) == StringType:
          wor, err = parsehmsdms(startx)
@@ -2137,20 +2158,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          self.gmap = gmap
       self.gmap.allow_invalid = True
       
-      # For the labeling format (hms/dms) we need to know the sky system.
-      # If the input was a tuple, then it must be equatorial or ecliptical
-      if type(proj.skyout) == TupleType:
-         s = proj.skyout[0]
-         try:
-            if s < 4:              # Vervangen door len(xxx)
-               # This is a sky system
-               self.__skysys = s
-            else:
-               self.__skysys = 0
-         except:
-               self.__skysys = 0
-      else:
-         self.__skysys = proj.skyout
+
+
+      # The next line is added at 28-08-2010 and is necessary because
+      # the sky system does not need to be an integer number anymore.
+      # It can also be a string. Many tests however are based on the integer
+      # number so we convert the sky system first to a number.
+      self.__skysys, refin, epochin, epobs = skyparser(proj.skyout)
 
       # Now we have a projection object available and we want the limits of the axes in 
       # world coordinates. If nothing is specified for the constructor, we have
@@ -2302,18 +2316,19 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if self.gmap.types[aa] in [None, 'spectral']:
             annot[aa] += self.gmap.ctype[aa].split('-')[0] + ' (' + units + ')'
          else:        # Must be spatial
-            if self.radoffsetx or self.radoffsety:
+            if (aa == 0 and (self.radoffsetx or self.offsetx)) or\
+               (aa == 1 and (self.radoffsety or self.offsety)):
                if self.gmap.types[aa] == 'longitude':
                   olab = 'Radial offset lon.'
                else:
                   olab = 'Radial offset lat.'
-               if self.radoffsetx and unitsx:
+               if (self.radoffsetx or self.offsetx) and unitsx:
                   olab += '('+unitsx+')'
-               if self.radoffsety and unitsy:
+               if (self.radoffsety or self.offsety) and unitsy:
                      olab += '('+unitsy+')'
-               if (aa == 0 and self.radoffsetx):
+               if (aa == 0 and (self.radoffsetx or self.offsetx)):
                      annot[aa] = olab
-               elif (aa == 1 and self.radoffsety):
+               elif (aa == 1 and (self.radoffsety or self.offsety)):
                      annot[aa] = olab
             else:
                if self.gmap.types[aa] == 'longitude':
@@ -2322,6 +2337,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   elif self.__skysys == wcs.ecliptic:
                      annot[aa] = 'Ecliptic longitude'  + ' (' + epoch + ')'
                   elif self.__skysys == wcs.galactic:
+                     
                      annot[aa] = 'Galactic longitude'
                   elif self.__skysys == wcs.supergalactic:
                      annot[aa] = 'Supergalactic longitude'
@@ -2334,7 +2350,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                      annot[aa] = 'Galactic latitude'
                   elif self.__skysys == wcs.supergalactic:
                      annot[aa] = 'Supergalactic latitude'
-
 
       self.graticule = []   # Initialize the list with graticule lines
       if not skipx:
@@ -2577,7 +2592,11 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   visible = obj.visible
                except:
                   visible = True
-               obj.plot(framebase)
+               # Previously: obj.plot(framebase)
+               # We want the labels on top of the graticule lines.
+               # Then they must be plotted in the frame of the inside labels
+               # and not in the base frame, because that frame is not on top.
+               obj.plot(frame2)
       framebase.figure.sca(framebase)    # back to frame from calling environment
 
 
@@ -2822,6 +2841,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.figsize = (xcm/2.54/fw, ycm/2.54/fh)
       self.aspectratio = aspectratio
       return aspectratio
+
 
 
    def setp_tick(self, wcsaxis=None, plotaxis=None, position=None,

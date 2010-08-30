@@ -42,7 +42,7 @@ Some of the package's features:
       and transformations between different sky systems.  Spectral
       translations (e.g., between frequencies and velocities) are supported
       and also mixed coordinates.  (Modules wcs and celestial, Module wcs
-      uses Mark Calabretta's WCSLIB.)
+      uses Mark Calabretta's WCSLIB which is distributed with the package.)
 
     * Versatile tools for writing small and dedicated applications for
       the inspection of FITS headers, the extraction and display of (FITS)

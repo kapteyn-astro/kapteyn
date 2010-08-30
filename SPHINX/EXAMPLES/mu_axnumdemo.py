@@ -42,6 +42,7 @@ graticule4.Insidelabels(wcsaxis=0, constval='20h34m',
                         rotation=90, fontsize=10,
                         color='r', ha='right')
 graticule4.Insidelabels(wcsaxis=1, fontsize=10, fmt="%.2f", color='b')
+mplim4.Minortickmarks(graticule4)
 
 #Apply new aspect ratio for the XV maps
 mplim2.set_aspectratio(newaspect)

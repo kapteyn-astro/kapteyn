@@ -25,7 +25,7 @@ One can plot spatial rulers which show offsets of constant
 distance whatever the projection of the map is. We will also demonstrate how to
 create a so called :term:`all-sky plot`
 
-The module combines the functionality in modules 
+The module combines the functionality in modules
 :mod:`wcs` and :mod:`celestial` from the Kapteyn package, together with Matplotlib,
 into a powerful module for the extraction and display of FITS image data or external
 data described by a FITS header or a Python dictionary with FITS keywords
@@ -435,7 +435,7 @@ a red, green and blue component. In this case you need to create an
 object first. The data associated with this image can be used
 to draw e.g. contours, while the parameters of the method
 :meth:`maputils.FITSimage.Annotatedimage.rgbimage` compose the
-RGB image. 
+RGB image.
 
 **Example: mu_rgbdemo.py - display RGB image**
 
@@ -454,7 +454,7 @@ make a :class:`maputils.FITSimage.Annotatedimage` object. The three
 :meth:`maputils.FITSimage.Annotatedimage.rgbimage` to set the individual
 components of a RGB image. The shapes are displayed in the colour that
 corresponds to the component that was used. The overlapping regions show
-composed colours as expected in an RGB image. 
+composed colours as expected in an RGB image.
 
 This script also displays a message in the message toolbar with information
 about mouse positions and the corresponding image value. For an RGB image,
@@ -611,7 +611,7 @@ For a R.A.-Dec. graticule one should enter for this FITS file:
 >>> f.set_imageaxes(3,2)
 
 
-.. note:: 
+.. note::
 
    If a FITS file has data which has more than two dimensions or
    it has two dimensions but you want to swap the x- and y axis then you need
@@ -723,6 +723,11 @@ Graticule lines
    :include-source:
    :align: center
 
+.. note::
+
+      If you don't want to plot graticule lines, then use
+      method :meth:`wcsgrat.setp_gratline` with attribute
+      *visible* set to *False*.
 
 Graticule tick labels
 ......................
@@ -769,6 +774,42 @@ Graticule offset axes
 .. plot:: EXAMPLES/mu_offsetaxes.py
    :include-source:
    :align: center
+
+
+Graticule minor tick marks
+.............................
+
+**Example: mu_minorticks.py - Graticule with minor tick marks**
+
+.. plot:: EXAMPLES/mu_minorticks.py
+   :include-source:
+   :align: center
+
+**Explanation**
+
+Minor tick marks are created in the same way as major tick marks. They are
+created as a by-product of the instantiation of an object from class
+:class:`wcsgrat.Graticule`. The method :meth:`maputils.Annotatedimage.Minortickmarks`
+copies some properties of the major ticks graticule and then creates
+a new graticule object. The example shows 4 plots representing the same image in the sky.
+
+  1. The default plot with minor tick marks
+  2. Minor tick marks can also be applied on offset axes
+  3. We selected another sky system for our graticule. The tick marks
+     are now applied to the galactic coordinate system.
+  4. This is the tricky plot. First of all we observe that the center of
+     the offset axis is not in the middle of the bottom plot axis. This is because
+     the Galactic sky system is plotted upon an equatorial system and therefore it
+     is (at least for this part of the sky) rotated which causes the limits
+     in world coordinates to be stretched. The start of the offset axis is
+     calculated for the common limits in world coordinates and not just those
+     along a plot axis.
+     Secondly, one should observe that the graticule lines for the longitude
+     follow the tick mark positions on the offset axis.
+     And third, the offset seems to have different sign when compared
+     to the Equatorial system. The reason for this is that we took a part
+     of the sky where the Galactic system's longitude runs in an opposite direction.
+
 
 
 
@@ -842,8 +883,8 @@ the appropriate class descriptions (http://matplotlib.sourceforge.net).
 Changing the default aspect ratio
 ..................................
 
-For images and graticules representing spatial data it is important that the aspect 
-ratio (CDELTy/CDELTx) remains constant if you resize the plot. 
+For images and graticules representing spatial data it is important that the aspect
+ratio (CDELTy/CDELTx) remains constant if you resize the plot.
 A graticule object initializes itself with an aspect ratio based on the pixel
 sizes found in (or derived from) the header. It also calculates an appropriate
 figure size and size for the actual plot window in normalized device coordinates
@@ -908,15 +949,15 @@ method :meth:`maputils.Annotatedimage.Pixellabels`.
      longitudes and latitudes for the equatorial system.
    * Method :meth:`wcsgrat.Graticule.setp_tickmark`
      sets for both plot axis (0 == x axis, 1 = y axis)
-     the tick length with *markersize*. The value is negative to force a 
-     tick that points outwards. Also the color and the font size of the tick labels 
+     the tick length with *markersize*. The value is negative to force a
+     tick that points outwards. Also the color and the font size of the tick labels
      is set. Note that these are Matplotlib keyword arguments.
    * With :meth:`wcsgrat.Graticule.setp_axislabel` we allow galactic coordinate labels and ticks
      to be plotted along the top and right plot axis. By default, the labels along these axes
      are set to be invisible, so we need to make them visible with keyword argument *visible=True*.
      Also a title is set for these axes.
      
-.. note:: 
+.. note::
    
      There is a difference between plot axes and wcs axes. The first always represent a
      rectangular
@@ -931,7 +972,7 @@ Spectral translations
 .....................
 
 To demonstrate what is possible with spectral coordinates and module :mod:`wcsgrat`
-we use real interferometer data from a set called *mclean.fits*. A summary of what can be 
+we use real interferometer data from a set called *mclean.fits*. A summary of what can be
 found in its header::
    
    Axis  1: RA---NCP  from pixel 1 to   512  {crpix=257 crval=178.779 cdelt=-0.0012 (DEGREE)}
@@ -961,7 +1002,7 @@ We require the frequencies to be expressed as wavelengths.
     Note that we omitted a code for the conversion algorithm and instead entered three
     question marks so that the *spectra()* method tries to find the appropriate code.
   * The tick labels along the x axis (the wavelengths) are formatted. The S.I. unit is
-    meter, but we want it to be plotted in cm. A function to convert the values is 
+    meter, but we want it to be plotted in cm. A function to convert the values is
     given with `fun=lambda x: x*100`. A format for the printed numbers is given with:
     `fmt="%.3f"`
 
@@ -988,9 +1029,9 @@ For the next example we use the same FITS file (mclean.fits).
 **Explanation:**
 
   * With PyFITS we open the FITS file on disk and read its header
-  * We created a :class:`wcs.Projection` object for this header to get a 
+  * We created a :class:`wcs.Projection` object for this header to get a
     list with allowed spectral translations (attribute *altspec*). We need
-    this list before we create the graticules 
+    this list before we create the graticules
   * Matplotlib Figure- and Axes instances are made
   * The native FREQ axis (top figure) differs from the FREQ axis in the
     next plot, because a legacy header was found and its freqencies were transformed
@@ -1007,7 +1048,7 @@ follow graticule lines).
 A ruler plots ticks and labels and the *spatial* distance between any two ticks is
 a constant. This makes rulers ideal to put nearby a feature in your map to
 give an idea of the physical size of that feature. Rulers can be plotted in maps
-with one or two spatial axes. 
+with one or two spatial axes.
 
 .. note::
 
@@ -1265,9 +1306,9 @@ For both options we show an example.
    Manipulated headers and data can be written to a FITS file with method
    :meth:`maputils.FITSimage.writetofits`. Its documentation shows how
    to manipulate the format in which the data is written.
-   Also have a look at this example which creates a FITSobject from an external header 
+   Also have a look at this example which creates a FITSobject from an external header
    and external data. It then writes the object to a FITS file. The first time in the original
-   data format with the original comments and  history cards. The second time it 
+   data format with the original comments and  history cards. The second time it
    writes to a file with BITPIX=-32 and it skips all comment and history information::
    
       from kapteyn import maputils
@@ -1277,7 +1318,7 @@ For both options we show an example.
       edata = fitsobject.dat
       f = maputils.FITSimage(externalheader=header, externaldata=edata)
       
-      f.writetofits(history=True, comment=True, 
+      f.writetofits(history=True, comment=True,
                     bitpix=fitsobject.bitpix,
                     bzero=fitsobject.bzero,
                     bscale=fitsobject.bscale,
@@ -1409,7 +1450,7 @@ There are two practical problems we have to address:
    * The CRVAL's for a Mercator projection must be 0.0. If we don't
      change them, the projection will be oblique.
    * We don't know how big the result must be (in terms of pixels)
-     to fit the result. 
+     to fit the result.
 
 These problems are solved by creating an intermediate FITSimage object
 with the new header where CRVAL is set to 0 and where the values
@@ -1632,10 +1673,10 @@ Before you make a hardcopy, it is possible to fine tune the colors because
 for each plot both mouse and key interaction is added with
 :meth:`maputils.Annotatedimage.interact_imagecolors`.
 Some channels seem not to contain any signal but when you fine tune the colors
-you discover that they show features. 
+you discover that they show features.
 For inspection one can set
 histogram equalization on/off for each plot separately. Special attention
-is paid to put labels in the plots with velocity information. 
+is paid to put labels in the plots with velocity information.
 
 Also this example turns out to be a small but practical tool to inspect data.
 
@@ -1732,7 +1773,7 @@ Adding messages with position information
 Method :meth:`maputils.Annotatedimage.interact_toolbarinfo` connects
 movements of your mouse to messages in the toolbar of your canvas.
 The message shows pixel position, the corresponding world coordinates,
-and the image value of the pixel. 
+and the image value of the pixel.
 
 .. note::
    
@@ -1809,7 +1850,7 @@ both represent the same area in the sky.
       a circle or an ellipse for the new image and the deviation
       in geometry appears in the other image(s).
       This does not apply to the situation where we duplicate
-      shapes in pixel coordinates. 
+      shapes in pixel coordinates.
 
 For these areas the flux can be calculated.
 By default the flux is given by the (lambda) expression *s/a* where
@@ -1896,7 +1937,7 @@ has a big color map and there you don't see these transitions.
 
    The default length of a color map is 256. With this length the effect of
    steps in the color gradient is less obvious but still there. You should only
-   extend your color map if a high resolution is required. 
+   extend your color map if a high resolution is required.
  
 
 Reuse of modified colormap
@@ -1943,7 +1984,7 @@ Blanks
 An image can contain some 'bad pixels'. A bad pixel is a location where a
 physical value is missing. These pixels are represented by the value
 *NaN*. For FITS files where the data are integers (i.e. keyword BITPIX has a
-positive value) one needs to set an integer value for 
+positive value) one needs to set an integer value for
 a bad pixel with FITS keyword *BLANK*. For the extraction of data the package *PyFITS* is
 used. PyFITS should take care of blanks automatically.
 
@@ -1960,8 +2001,8 @@ user interaction with :meth:`maputils.Annotatedimage.interact_imagecolors`.
 
 .. literalinclude:: EXAMPLES/mu_imagewithblanks.py
 
-If you change the input FITS file from *blanksetmin32.fits* to 
-*blankset16.fits*, then you get the same image and the same blanks, which proves that 
+If you change the input FITS file from *blanksetmin32.fits* to
+*blankset16.fits*, then you get the same image and the same blanks, which proves that
 the blanks can also be read from a FITS file with scaled data.
 
 

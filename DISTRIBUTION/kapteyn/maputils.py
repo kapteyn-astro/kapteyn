@@ -476,6 +476,96 @@ def dispcoord(longitude, latitude, disp, direction, angle):
    return lonout, latout
 
 
+def split_polygons(plons, plats, splitlon):
+#-----------------------------------------------------------
+   """
+   Given a set coordinates which form a polygon,
+   we need to return a list of polygons. The polygons
+   that should be distinghuised are those on one side
+   of a split meridian (splitlon) and those on the other side.
+
+   We need this if polygons are plotted near the edges
+   (in longitudes) of allsky plots with cylindrical
+   (at least: non-zenithal) projections.
+   Then we need to split up the polygon. But this polygon
+   can be complicated. For example it is possible that
+   the polygon must be splitted in more than two parts.
+
+   This algorith works only for those polygons that, when
+   sliced by 'splitlon' fall apart in two pieces.
+
+   Returns:
+
+   lon1, lat1, lon2, lat2
+   The longitudes and latitudes of first and second object.
+   The lists could be empty if the polygon is contained in the
+   range splitlon+epsilon to splitlon-epsilon
+
+   Intersections:
+   
+   Line through: (a1,d1), (a2,d2). At which d3 is a3?
+   lambda = (a3-a1)/(a2-a1). Then when a = a3 -->
+   d3 = d1 + lambda *(d2-d1) 
+   """
+#-----------------------------------------------------------
+   epsilon = 0.00000001
+   # Find intersections with 'splitlon' meridian
+   ilons = []; ilats = []
+   prevlon = None; prevlat = None
+   lons = list(plons); lons.append(lons[0])
+   lats = list(plats); lats.append(lats[0])
+   lon1 = []; lat1 = []
+   lon2 = []; lat2 = []
+   right2left = False
+   left2right = False
+   lastlat = None
+   changedborder = 0
+   intersectlon = [None, None]
+   intersectlat = [None, None]
+   for lon, lat in zip(lons, lats):
+      if not prevlon is None:
+         crossed = False
+         if prevlon < splitlon:
+            lon1.append(prevlon); lat1.append(prevlat)
+            eps = -epsilon
+            if lon > splitlon:
+               crossed = True;
+         else:
+            lon2.append(prevlon); lat2.append(prevlat)
+            eps = epsilon
+            if lon <= splitlon:
+               # Intersection from left to right
+               crossed = True
+         if crossed:
+            # Intersection from right to left
+            if prevlon == lon:
+               d3 = prevlat
+            else:
+               Lambda = (splitlon-prevlon)/(lon-prevlon)
+               d3 = prevlat + Lambda*(lat-prevlat)
+               intersectlon[changedborder] = splitlon + eps  # i.e. +/-epsilon
+               intersectlat[changedborder] = d3
+               changedborder += 1
+         # Now we have to close the separate parts of the polygon
+         if changedborder == 2:
+            dlats = numpy.linspace(0,1,20)
+            for dlat in dlats:
+                if eps > 0.0:
+                   ds = intersectlat[0]; de = intersectlat[1]
+                else:
+                   ds = intersectlat[1]; de = intersectlat[0]
+                d = ds + dlat*(de-ds)
+                lon1.append(splitlon-epsilon)
+                lat1.append(d)
+                d = de + dlat*(ds-de)
+                lon2.append(splitlon+epsilon)
+                lat2.append(d)
+            changedborder = 0    # Reset
+      prevlon = lon; prevlat = lat
+   return lon1, lat1, lon2, lat2
+
+
+
 def change_header(hdr, **kwargs):
 #-----------------------------------------------------------
    """
@@ -946,7 +1036,8 @@ the alternate header.
    # prompted to enter a character from a list with allowed
    # characters. Currently an alternate header is found if
    # there is a CRPIX1 followed by a character A..Z
-   if alter == None:
+   print "Alter=", alter
+   if alter == '':
       alternates = []
       hdr = hdulist[hnr].header
       for a in letters[:26]:
@@ -955,7 +1046,7 @@ the alternate header.
             print "Found alternate header:", a.upper()
             alternates.append(a)
    
-      alter = ''
+      #alter = ''
       if len(alternates):
          while True:
             p = raw_input("Enter char. for alternate header: ...... [No alt. header]:")
@@ -969,6 +1060,7 @@ the alternate header.
                else:
                   print "Character not in list with allowed alternates!"
 
+   print "Return alter=", alter
    return hdulist, hnr, filename, alter
 
 
@@ -1588,7 +1680,6 @@ class Contours(object):
       #--------------------------------------------------------------------
       if tex and kwargs.has_key('fmt'):
          kwargs['fmt'] = r'$'+kwargs['fmt']+'$'
-      print "newkwargs = ", kwargs
       if levels == None:
          self.commonlabelkwargs = kwargs
       else:
@@ -1759,14 +1850,34 @@ class Beam(object):
       self.vertices = zip(xp,yp)
       self.p2 = Polygon(self.vertices, facecolor='g', alpha=0.5)
       """
+      self.p1 = None
+      self.p2 = None
       lon_new, lat_new = dispcoord(xc, yc, r, -1, phi+pa)
-      xp, yp = projection.topixel((lon_new, lat_new))
-      self.vertices = zip(xp, yp)
-      self.kwargs = kwargs
+      splitlon = projection.crval[0] + 180.0
+      lon1, lat1, lon2, lat2 = split_polygons(lon_new, lat_new, splitlon)
+      """for lo,la in zip(lon1,lat1):
+         print lo, lo
+      for lo,la in zip(lon2,lat2):
+         print lo, lo
+      """
+      #print zip(lon1,lat1)
+      #print zip(lon2,lat2)
+      if len(lon1):
+         xp, yp = projection.topixel((lon1, lat1))
+         self.p1 = Polygon(zip(xp, yp), **kwargs)
+      if len(lon2):
+         xp, yp = projection.topixel((lon2, lat2))
+         self.p2 = Polygon(zip(xp, yp), **kwargs)
+      #xp, yp = projection.topixel((lon_new, lat_new))
+      #self.vertices = zip(xp, yp)
+      #self.kwargs = kwargs
 
    def plot(self, frame):
-      p = Polygon(self.vertices, **self.kwargs)
-      frame.add_patch(p)
+      #p = Polygon(self.vertices, **self.kwargs)
+      if not self.p1 is None:
+         frame.add_patch(self.p1)
+      if not self.p2 is None:
+         frame.add_patch(self.p2)
       #frame.add_patch(self.p2)
 
 
@@ -2277,8 +2388,9 @@ this class.
 
    """
 #--------------------------------------------------------------------
-   def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, skyout, spectrans,
-                mixpix=None, aspect=1, slicepos=None, basename=None,
+   def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm,
+                skyout, spectrans, alter='',
+                mixpix=None,  aspect=1, slicepos=None, basename=None,
                 cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None):
       #-----------------------------------------------------------------
       """
@@ -2302,6 +2414,7 @@ this class.
       self.axperm = axperm
       self.skyout = skyout
       self.spectrans = spectrans
+      self.alter = alter
       self.box = (self.pxlim[0]-0.5, self.pxlim[1]+0.5, self.pylim[0]-0.5, self.pylim[1]+0.5)
       self.image = None                          # A Matplotlib instance made with imshow()
       self.aspect = aspect
@@ -3031,7 +3144,7 @@ this class.
       """
       #-----------------------------------------------------------------
       class Gratdata(object):
-         def __init__(self, hdr, axperm, pxlim, pylim, mixpix, skyout, spectrans):
+         def __init__(self, hdr, axperm, pxlim, pylim, mixpix, skyout, spectrans, alter):
             self.hdr = hdr
             self.axperm = axperm
             self.pxlim = pxlim
@@ -3039,12 +3152,132 @@ this class.
             self.mixpix = mixpix
             self.skyout = skyout
             self.spectrans = spectrans
+            self.alter = alter
 
-      gratdata = Gratdata(self.hdr, self.axperm, self.pxlim, self.pylim, self.mixpix, self.skyout, self.spectrans)
+      gratdata = Gratdata(self.hdr, self.axperm, self.pxlim, self.pylim,
+                          self.mixpix, self.skyout, self.spectrans, self.alter)
       graticule = wcsgrat.Graticule(graticuledata=gratdata, **kwargs)
       graticule.visible = visible     # A new attribute only for this context
       self.objlist.append(graticule)
       return graticule
+
+
+
+   def Minortickmarks(self, graticule, partsx=10, partsy=10, **kwargs):
+      #-------------------------------------------------------------
+      """
+      Drawing minor tick marks is as easy or as difficult as finding
+      the positions of major tick marks. Therefore we decided that
+      the best way to draw minor tick marks is to calculate a new
+      (but invisible) graticule object. Only the tick marks are visible.
+
+      :param graticule:
+         Graticule object from which we change the step size
+         between tick marks to create a new Graticule object for which
+         most components (graticule lines, labels, ...) are made invisible.
+      :type graticule:
+         Object from class :class:`wcsgrat.Graticule`
+      :param partsx:
+         Divide major tick marks in this number of parts.
+         This method forces this number to be an integer between 2 and 20
+         If the input is None then nothing is plotted. For example for maps with
+         only one spatial axis, one can decide to plot tick marks for only
+         one of the axes.
+      :type partsx:
+         Integer or None
+      :param partsx:
+         See description for parameter *partsx*
+      :type partsx:
+         Integer or None
+      :param kwargs:
+         Parameters for changing the attributes of the tick mark symbols.
+         Useful keywords are *color*, *markersize* and *markeredgewidth*.
+      :type kwargs:
+         Matplotlib keyword arguments related to a Line2D object.
+   
+      :Notes:
+   
+         Minor tick marks are also plotted at the positions of major tick marks.
+         By default this will not be visible. It is visible if you user
+         a longer marker size, a different color or a marker with increased
+         width.
+   
+         The default marker size is set to 2.
+   
+      :Returns:
+   
+         This method returns a graticule object. Its properties can be
+         changed in the calling environment with the appropriate methods
+         (e.g. :meth:`wcsgrat.Graticule.setp_tickmark`).
+   
+      :Examples:
+   
+         ::
+   
+            from kapteyn import maputils
+            from matplotlib import pyplot as plt
+            fitsobj = maputils.FITSimage("m101.fits")
+            mplim = fitsobj.Annotatedimage()
+            grat = mplim.Graticule()
+            grat2 = grat.minortickmarks()
+            mplim.plot()
+            plt.show()
+   
+         Adding parameters to change attributes:
+   
+            >>> grat2 = grat.minortickmarks(3, 5,
+                     color="#aa44dd", markersize=3, markeredgewidth=2)
+   
+         Minor tick marks only along x axis:
+   
+            >>> grat2 = minortickmarks(grat, 3, None)
+      """
+      #-------------------------------------------------------------
+      # Get the position of the first label in the original graticule
+      startx = graticule.xstarts[0]
+      starty = graticule.ystarts[1]
+      skyout = graticule.skyout
+      spectrans=graticule.spectrans
+      wxlim = graticule.wxlim
+      wylim = graticule.wylim
+      # Separate the kwargs to be able to set just one of them
+      # to invisible (partsx/y == None)
+      if not kwargs.has_key('markersize'):
+         kwargs.update(markersize=2)
+      kwargs1 = kwargs.copy()
+      kwargs2 = kwargs.copy()
+      # Get the steps along the axes
+      deltax = graticule.delta[0]
+      deltay = graticule.delta[1]
+      # Adjust the steps.
+      if partsx is None:
+         deltax = None
+         kwargs1.update(visible=False)
+      else:
+         deltax /= float(max(2,min(20,int(abs(partsx)))))
+      if partsy is None:
+         deltay = None
+         kwargs2.update(visible=False)
+      else:
+         deltay /= float(max(2,min(20,int(abs(partsy)))))
+      # Build the new graticule
+      minorgrat = self.Graticule(startx=startx, starty=starty,
+                                 deltax=deltax, deltay=deltay,
+                                 wxlim=wxlim, wylim=wylim,
+                                 skyout=skyout, spectrans=spectrans)
+      # Make unnecessary elements invisible
+      minorgrat.setp_gratline(wcsaxis=[0,1], visible=False)
+      minorgrat.setp_ticklabel(wcsaxis=[0,1], visible=False)
+      minorgrat.setp_axislabel(plotaxis=[0,1,2,3], visible=False)
+      # Change attributes of tick mark (i.e. a Matplotlib Line2D object)
+      minorgrat.setp_tickmark(wcsaxis=0, **kwargs1)
+      minorgrat.setp_tickmark(wcsaxis=1, **kwargs2)
+      # Return the graticule so that its attributes can also be changed with
+      # methods in the calling environment.
+      # Note that there is need to store the new object because
+      # method Graticule() has aready done that.
+      return minorgrat
+
 
 
    def Pixellabels(self, **kwargs):
@@ -4481,7 +4714,8 @@ class FITSaxis(object):
 #-----------------------------------------------------------------
    """
 This class defines objects which store WCS information from a FITS
-header.
+header. It includes axis number and alternate header information
+in a FITS keyword.
     
 :param axisnr:
    FITS axis number. For this number the relevant keys in the header
@@ -4501,31 +4735,39 @@ header.
 
    """  
 #--------------------------------------------------------------------
-   def __init__(self, axisnr, hdr):
-      ax = "CTYPE%d" % (axisnr,)
+    
+   def __init__(self, axisnr, hdr, alter):
+      def makekey(key, alternate=True):
+         s = "%s%d" %(key, axisnr)
+         if alter != '' and alternate:
+            s += alter
+         return s
+       
+      ax = makekey("CTYPE")
       self.ctype = 'Unknown'
       self.axname = 'Unknown'
       if hdr.has_key(ax):
          self.ctype = hdr[ax].upper()
          self.axname = string_upper(hdr[ax].split('-')[0])
-      ai = "NAXIS%d" % (axisnr,)
+      
+      ai = makekey("NAXIS", alternate=False)
       self.axlen = hdr[ai]
       self.axisnr = axisnr
       self.axstart = 1
       self.axend = self.axlen
       self.cdelt = 0.0
-      ai = "CDELT%d" % (axisnr,)
+      ai = makekey("CDELT")
       if hdr.has_key(ai):
          self.cdelt = hdr[ai]
-      ai = "CRVAL%d" % (axisnr,)
+      ai = makekey("CRVAL")
       self.crval = hdr[ai]
       self.cunit = 'Unknown'
-      ai = "CUNIT%d" % (axisnr,)    # Is sometimes omitted, so check first.
+      ai = makekey("CUNIT")          # Is sometimes omitted, so check first.
       if hdr.has_key(ai):
          self.cunit = hdr[ai]
-      ai = "CRPIX%d" % (axisnr,)
+      ai = makekey("CRPIX")
       self.crpix = hdr[ai]
-      ai = "CROTA%d" % (axisnr,)    # Not for all axes
+      ai = makekey("CROTA")          # Not for all axes
       self.crota = 0
       if hdr.has_key(ai):
          self.crota = hdr[ai]
@@ -4928,7 +5170,7 @@ to know the properties of the FITS data beforehand.
          # the axis number (i+1)
          # The axinf dictionary has this axis number as key values 
          axisnr = i + 1
-         axinf[axisnr] = FITSaxis(axisnr, self.hdr)
+         axinf[axisnr] = FITSaxis(axisnr, self.hdr, self.alter)
       self.axisinfo = axinf
 
       slicepos = []                  # Set default positions (CRPIXn) on axes outside image for slicing data
@@ -5689,7 +5931,6 @@ to know the properties of the FITS data beforehand.
 
       if self.skyout != None:
          self.convproj.skyout = self.skyout
-   
 
 
    def set_limits(self, pxlim=None, pylim=None, promptfie=None):
@@ -7005,6 +7246,7 @@ to know the properties of the FITS data beforehand.
       mplimage = Annotatedimage(frame, self.hdr, self.pxlim, self.pylim, self.boxdat,
                                 self.convproj, self.axperm,
                                 skyout=self.skyout, spectrans=self.spectrans,
+                                alter=self.alter,
                                 mixpix=self.mixpix, aspect=ar, slicepos=self.slicepos,
                                 basename=basename, **kwargs)
       # The kwargs are for cmap, blankcolor, clipmin, clipmax for which
