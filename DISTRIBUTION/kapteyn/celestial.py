@@ -3064,6 +3064,15 @@ a suffix '_' which may be follwed by arbitrary characters.
        sky system then silently FK4 is assumed.
    """
 #----------------------------------------------------------------------
+   epochin    = None
+   epochinset = None
+   refin = None
+   epobs = None
+   sysin = None
+   first = True
+   if skyin == None:      # Nothing to parse
+      return sysin, refin, epochin, epobs
+
    if type(skyin) not in [types.TupleType, types.StringType]:
       try:
          skyin = tuple([skyin])
@@ -3072,17 +3081,9 @@ a suffix '_' which may be follwed by arbitrary characters.
    if type(skyin) == types.StringType:
       skyin = parseskydef(skyin)
 
-   epochin    = None
-   epochinset = None
-   refin = None
-   epobs = None
-   sysin = None
-   first = True
-   if skyin == None:
-      return sysin, refin, epochin, epobs
-   if type(skyin) != types.TupleType:
+   #if type(skyin) != types.TupleType:
       # Promote to tuple:
-      skyin = tuple([skyin])
+   #   skyin = tuple([skyin])
    if len(skyin) > 4:
       raise ValueError, "Too many elements in sky definition (max. 4)!"
 
