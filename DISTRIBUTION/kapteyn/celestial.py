@@ -3080,7 +3080,8 @@ a suffix '_' which may be follwed by arbitrary characters.
          raise ValueError, "Sky definition is not a string nor a tuple or a scalar!"
    if type(skyin) == types.StringType:
       skyin = parseskydef(skyin)
-
+      if skyin is None:   # e.g. input was '{}' then parseskydef returns None
+         return None, None, None, None
    #if type(skyin) != types.TupleType:
       # Promote to tuple:
    #   skyin = tuple([skyin])

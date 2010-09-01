@@ -673,7 +673,6 @@ def parseskysystem(skydef):
    Helper function for skyparser()
    """
    #--------------------------------------------------------------------
-   sky = skyparser(skydef)
    try:
       sky = skyparser(skydef)
       return sky, ""
