@@ -1,0 +1,37 @@
+Kapteyn Package 2.0.2 Release
+
+We are pleased to announce the release of version 2.0.2 of the Kapteyn Package.
+
+The Kapteyn Package is a collection of Python modules developed by the
+computer group of the Kapteyn Astronomical Institute, University of
+Groningen, The Netherlands. 
+
+Some of the package's features:
+
+- The handling of spatial and spectral coordinates, WCS projections and
+  transformations between different sky systems.  Spectral translations
+  (e.g., between frequencies and velocities) are supported and also mixed
+  coordinates. For WCS, Dr. Mark Calabretta's WCSLIB is used.
+
+- Versatile tools for writing small and dedicated applications for the
+  inspection of FITS headers, the extraction and display of (FITS) data,
+  interactive inspection of this data and for the creation
+  of plots with world coordinate information.
+
+- Utilities for use with Matplotlib such as obtaining coordinate
+  information from plots, interactively modifiable colormaps and timer
+  events; tools for parsing and interpreting coordinate information
+  entered by the user. 
+
+- A class for the efficient reading, writing and manipulating simple
+  table-like structures in text files. 
+
+Currently supported architectures are Linux, Apple Mac OS X and
+Microsoft Windows.
+
+Documentation and download instructions can be found at
+http://www.astro.rug.nl/software/kapteyn/
+
+We look forward to your feedback,
+
+Hans Terlouw and Martin Vogelaar
