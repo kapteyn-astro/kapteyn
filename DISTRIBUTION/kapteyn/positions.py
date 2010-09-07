@@ -486,8 +486,8 @@ def issequence(obj):
 def usermessage(token, errmes):
    return "Error in '%s': %s" % (token, errmes)
 
-def readcolumn(filename, col=0, rows=None, comment="!#",
-               sepchar=', t', lines=None, bad=0.0,
+def readcolumn(filename, col=0, fromline=None, toline=None, rows=None, comment="!#",
+               sepchar=', t', bad=0.0,
                rowslice=(None, ), colslice=(None, )):
    #-------------------------------------------------------------
    """
@@ -504,6 +504,9 @@ def readcolumn(filename, col=0, rows=None, comment="!#",
    if rows != None:
       if not issequence(rows):
          rows = [rows]
+   lines = None
+   if not fromline is None or not toline is None:
+      lines = (fromline, toline)
    c = readColumns(filename=filename, comment=comment, cols=column, sepchar=sepchar,
                rows=rows, lines=lines, bad=bad, rowslice=rowslice, colslice=colslice)
    return list(c.flatten())
