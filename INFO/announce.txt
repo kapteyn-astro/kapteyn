@@ -16,7 +16,9 @@ Some of the package's features:
 - Versatile tools for writing small and dedicated applications for the
   inspection of FITS headers, the extraction and display of (FITS) data,
   interactive inspection of this data and for the creation
-  of plots with world coordinate information.
+  of plots with world coordinate information. A unique feature is the
+  possibility to make plots with mixed coordinates, e.g. where one axis
+  is spatial and the other one is spectral.
 
 - Utilities for use with Matplotlib such as obtaining coordinate
   information from plots, interactively modifiable colormaps and timer

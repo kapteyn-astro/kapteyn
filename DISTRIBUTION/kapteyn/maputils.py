@@ -427,18 +427,18 @@ Formula for distance on sphere accurate over entire sphere
 def dispcoord(longitude, latitude, disp, direction, angle):
    #--------------------------------------------------------------------
    """
-   INPUT:   longitude: enter in degrees.
-            latitude:  enter in degrees.
+   INPUT:   longitude: numpy array, enter in degrees.
+            latitude:  numpy array, enter in degrees.
             disp:      the displacement in the sky entered
-                        in degrees. The value can also be
-                        negative to indicate the opposite
-                        direction
+                       in degrees. The value can also be
+                       negative to indicate the opposite
+                       direction
             angle:     the angle wrt. a great circle of
-                        constant declination entered in
-                        degrees.
+                       constant declination entered in
+                       degrees.
             direction: If the longitude increases in the -X
-                        direction (e.q. RA-DEC) then direction
-                        is -1. else direction = +1
+                       direction (e.q. RA-DEC) then direction
+                       is -1. else direction = +1
 
    Assume a triangle on a sphere with side b(=disp) connec-
    ting two positions along a great circle and sides 90-d1,
@@ -460,6 +460,7 @@ def dispcoord(longitude, latitude, disp, direction, angle):
    b,alpha and d2 are known -> a2.
    """
    #--------------------------------------------------------------------
+   add360 = longitude >= 360.0
    Pi = numpy.pi
    b = abs(disp*Pi/180.0)
    a1 = longitude * Pi/180.0
@@ -473,6 +474,10 @@ def dispcoord(longitude, latitude, disp, direction, angle):
    a2 = a1 - dH
    lonout = a2*180.0/Pi
    latout = d2*180.0/Pi
+   """if add360:
+      lonout += 360
+   print lonout, latout
+   """
    return lonout, latout
 
 
@@ -1879,6 +1884,149 @@ class Beam(object):
       if not self.p2 is None:
          frame.add_patch(self.p2)
       #frame.add_patch(self.p2)
+
+
+class Skypolygon(object):
+#--------------------------------------------------------------------
+   """
+   This class defines objects that can only be plotted onto
+   spatial maps.
+   """
+#--------------------------------------------------------------------
+   def __init__(self, projection, prescription=None,
+                xc=None, yc=None,
+                major=None, minor=None,
+                nangles=6, pa=0.0,
+                units=None,
+                lons=None, lats=None,
+                **kwargs):
+
+      self.ptype = "Skypolygon"
+      self.p1 = self.p2 = None        # Shape could be splitted into two parts
+      splitlon = projection.crval[0] + 180.0
+      if splitlon >= 360.0:
+         splitlon -= 360.0
+
+      if prescription is None:
+         if lons is None and lats is None:
+            raise ValueError("No prescription entered nor longitudes and latitudes")
+         elif lons is None or lats is None:
+            raise ValueError("No prescription entered and missing longitudes or latitudes")
+      else:    # Test minimal set of required parameters
+         if xc is None or yc is None:
+            raise ValueError("Missing value for center xc or yc!")
+         if major is None and minor is None:
+            raise ValueError("Both major and minor axes are not specified!")
+         if major is None:
+            major = minor
+         if minor is None:
+            minor = major
+         if units != None:
+            uf, errmes = unitfactor('degree', units)
+            if uf is None:
+               raise ValueError(errmes)
+            else:
+               major /= uf
+               minor /= uf
+         Pi = numpy.pi
+         if prescription[0].upper() == 'E':
+            semimajor = major / 2.0
+            semiminor = minor / 2.0
+            startang, endang, delta = (0.0, 360.0, 1.0)
+            sinP = numpy.sin( pa*Pi/180.0 )
+            cosP = numpy.cos( pa*Pi/180.0 )
+            phi  = numpy.arange( startang, endang+delta, delta, dtype="f") 
+            cosA = numpy.cos( phi*Pi/180.0 )
+            sinA = numpy.sin( phi*Pi/180.0 )
+            d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
+            r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
+            lons, lats = dispcoord(xc, yc, r, -1, phi+pa)
+            # for lo,la in zip(lons,lats):
+            #    print "%.1f %.1f"%(lo,la)
+         elif prescription[0].upper() == 'R':
+            # Create rectangle with Major as the long side and aligned with North
+            xs = minor/2.0
+            ys = -major/2.0
+            samples = 50
+            deltax = minor/float(samples)
+            deltay = major/float(samples)
+            x = numpy.zeros(samples)
+            y = numpy.zeros(samples)
+            for i in range(samples):
+               x[i] = xs
+               y[i] = ys + i *deltax
+            phi1 = numpy.arctan2(y,x)
+            r1 = numpy.hypot(x,y)
+            xs = minor/2.0
+            ys = major/2.0
+            for i in range(samples):
+               x[i] = xs - i * deltax
+               y[i] = ys
+            phi2 = numpy.arctan2(y,x)
+            r2 = numpy.hypot(x,y)
+            xs = -minor/2.0
+            ys =  major/2.0
+            for i in range(samples):
+               x[i] = xs
+               y[i] = ys - i *deltay
+            phi3 = numpy.arctan2(y,x)
+            r3 = numpy.hypot(x,y)
+            xs = -minor/2.0
+            ys = -major/2.0
+            for i in range(samples):
+               x[i] = xs + i  * deltax
+               y[i] = ys
+            phi4 = numpy.arctan2(y,x)
+            r4 = numpy.hypot(x,y)
+            phi = numpy.concatenate((phi1, phi2, phi3, phi4))*180/Pi+90 # dispcoord wants it in degs.
+            r = numpy.concatenate((r1, r2, r3, r4))
+            lons, lats = dispcoord(xc, yc, r, -1, phi+pa)
+            
+         elif prescription[0].upper() == 'P':
+            if nangles < 3:
+               raise ValueError("Number of angles in regular polygon must be > 2!")
+            nsamples = 360.0/nangles
+            psi = numpy.linspace(0, 360, nangles+1)
+            radius = major/2.0;
+            xs = radius;  ys = 0.0    # Start value
+            first = True
+            for ang in psi[1:]:
+               xe = radius * numpy.cos(ang*Pi/180)
+               ye = radius * numpy.sin(ang*Pi/180)
+               lambd = numpy.arange(0.0, 1.0, 1.0/nsamples)
+               x = xs + lambd * (xe - xs)
+               y = ys + lambd * (ye - ys)
+               Phi = numpy.arctan2(y,x)*180.0/Pi
+               R = numpy.hypot(x,y)
+               xs = xe
+               ys = ye
+               if first:
+                  phi = Phi.copy()
+                  r = R.copy()
+                  first = False
+               else:
+                  phi = numpy.concatenate((phi, Phi))
+                  r = numpy.concatenate((r, R))
+            lons, lats = dispcoord(xc, yc, r, -1, phi+pa)
+               
+      if lons is None or lats is None:
+         raise ValueError("Unknown prescription")
+      
+      lon1, lat1, lon2, lat2 = split_polygons(lons, lats, splitlon)
+      #lon1 = lons; lat1 = lats; lon2=[];lat2=[]
+      if len(lon1):
+         xp, yp = projection.topixel((lon1, lat1))
+         self.p1 = Polygon(zip(xp, yp), closed=False, **kwargs)
+      if len(lon2):
+         xp, yp = projection.topixel((lon2, lat2))
+         self.p2 = Polygon(zip(xp, yp), closed=False, **kwargs)
+
+   def plot(self, frame):
+      if not self.p1 is None:
+         frame.add_patch(self.p1)
+      if not self.p2 is None:
+         frame.add_patch(self.p2)
+
 
 
 
@@ -3432,6 +3580,43 @@ this class.
       return beam
 
 
+   def Skypolygon(self, prescription=None, xc=None, yc=None,
+                  cpos=None, major=None, minor=None,
+                  nangles=6, pa=0.0,
+                  units=None, lons=None, lats=None, **kwargs):
+   #-----------------------------------------------------------------
+      """
+      :param prescription:
+         How should the polygon be created? The prescriptions are
+         "ellipse", "rectangle", "polygon"
+         
+      """
+   #-----------------------------------------------------------------
+      if cpos != None:
+         poswp = str2pos(cpos, self.projection, mixpix=self.mixpix)
+         if poswp[3] != "":
+            raise Exception, poswp[3]
+         world = poswp[0][0]      # Only first element is used
+      else:
+         world = (xc, yc)
+      spatials = [self.projection.lonaxnum, self.projection.lataxnum]
+      spatialmap = self.axperm[0] in spatials and self.axperm[1] in spatials
+      if not spatialmap:
+         raise Exception, "Can only plot a sky polygon in a spatial map"
+
+      spoly = Skypolygon(projection=self.projection,
+                         prescription=prescription,
+                         xc=world[0], yc=world[1],
+                         major=major, minor=minor,
+                         nangles=nangles, pa=pa,
+                         units=units, 
+                         lons=lons, lats=lats,
+                         **kwargs)
+
+      self.objlist.append(spoly)
+      return spoly
+
+
    def Marker(self, pos=None, x=None, y=None, mode='', **kwargs):
       #-----------------------------------------------------------------
       """
@@ -3648,7 +3833,8 @@ this class.
             pt = obj.ptype
          except:
             raise Exception, "Unknown object. Cannot plot this!"
-         if pt in ["Image", "Contour", "Graticule", "Pixellabels", "Beam", "Marker", "Ruler"]:
+         if pt in ["Image", "Contour", "Graticule", "Pixellabels", "Beam",
+                   "Marker", "Ruler", "Skypolygon"]:
             try:
                visible = obj.visible
             except:
@@ -4619,30 +4805,60 @@ this class.
       self.cidclick = AxesCallback(self.on_click, self.frame, 'button_press_event')
 
 
-   def positionsfromfile(self, filename, comment, **kwargs):
+   def positionsfromfile(self, filename, comment, skyout=None, **kwargs):
       #--------------------------------------------------------------------
       """
       Read positions from a file with world coordinates and convert them to
       pixel coordinates. The interface is exactly the same as from method
       :meth:`tabarray.readColumns()`
 
-      It expects that the first column contains the longitudes and
-      the second column the latitudes.
+      It expects that the first column you specify contains the longitudes and
+      the second column that is specified the latitudes.
+
+      :param filename:
+         Name (and pahth if necessary) of the file which contains longitudes
+         and latitudes.
+      :type filename:
+         String
+      :param comment:
+         Comment characters. If a line starts with a comment character,
+         it will be skipped.
+      :type comment:
+         String
+      :param skyout:
+         Tell the system in what sky system your longitudes and latitudes are.
+      :type skyout:
+         Sky definition
+      :param kwargs:
+         Keywords for Tabarray's method readColumns.
+      :type kwargs:
+         Python keyword arguments
 
       :Examples:
       
       >>> fn = 'smallworld.txt'
       >>> xp, yp = annim.positionsfromfile(fn, 's', cols=[0,1])
       >>> frame.plot(xp, yp, ',', color='#FFDAAA')
+
+      Or: your graticule is equatorial but the coordinates in the file are
+      galactic:
+      
+      >>> xp, yp = annim.positionsfromfile(fn, 's', skyout='ga', cols=[0,1])
       """
       #--------------------------------------------------------------------
       ainv = self.projection.allow_invalid
+      if not skyout is None:
+         skyout_old = self.projection.skyout
+         self.projection.skyout = skyout
       self.projection.allow_invalid = True
       lon, lat= readColumns(filename, comment, **kwargs)
       xp, yp = self.projection.topixel((lon,lat))
       xp = numpy.ma.masked_where(numpy.isnan(xp) | (xp > self.pxlim[1]) | (xp < self.pxlim[0]), xp)
       yp = numpy.ma.masked_where(numpy.isnan(yp) | (yp > self.pylim[1]) | (yp < self.pylim[0]), yp)
       self.projection.allow_invalid = ainv       # Reset status for invalid transformations
+      if not skyout is None:
+          # Restore
+         self.projection.skyout = skyout_old
       return xp, yp
 
 

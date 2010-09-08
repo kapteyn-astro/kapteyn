@@ -25,6 +25,10 @@ include_dirs.append(ipath)
 include_dirs.append('src')
 include_dirs.append(wcslib_dir)
 
+short_descr = """Kapteyn Package: Python modules for astronomical applications:
+coordinate transformations, World Coordinate System (WCS), FITS image
+plotting and display with Matplotlib, mixed coordinates."""
+
 description = """The Kapteyn Package is a collection of Python modules
 and applications developed by the computer group of the Kapteyn
 Astronomical Institute, University of Groningen, The Netherlands.  The
@@ -74,6 +78,8 @@ classifiers = [
    'Operating System :: Microsoft :: Windows'
    ]   
 
+download_url = "http://www.astro.rug.nl/software/kapteyn/kapteyn-%s.tar.gz" % version
+
 kapteyn_src = [
    "ascarray.c",
    "eterms.c",
@@ -122,11 +128,11 @@ if sys.platform == 'win32':
 setup(
    name="kapteyn",
    version=version,
-   description='Kapteyn Package',
+   description=short_descr,
    author='J.P. Terlouw, M.G.R. Vogelaar',
    author_email='gipsy@astro.rug.nl',
    url='http://www.astro.rug.nl/software/kapteyn/',
-   download_url = "http://www.astro.rug.nl/software/kapteyn/kapteyn.tar.gz",
+   download_url = download_url,
    long_description=description,
    platforms = ['Linux', 'Mac OSX', 'Windows'],
    license = 'BSD',

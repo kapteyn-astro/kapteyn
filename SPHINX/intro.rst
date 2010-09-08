@@ -141,6 +141,22 @@ resulting directory. Then one of the following options can be chosen:
 
       python setup.py install --install-lib $gip_exe
 
+Windows installer
+.................
+
+An experimental installer for Microsoft Windows (together with other
+packages that the Kapteyn Package depends on) is also available.
+Currently only for Python 2.6 on 32-bit systems.
+http://www.astro.rug.nl/software/kapteyn_windows/
+
+Scisoft problem
+...............
+
+If you have Scisoft installed on your computer, it may interfere with
+the installation of the Kapteyn Package.  To install it properly,
+disable the setup of Scisoft in your startup file (e.g. ~/.cshrc,
+.profile) by commenting it out. 
+
 
 Contact
 -------

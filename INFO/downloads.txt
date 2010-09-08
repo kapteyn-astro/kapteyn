@@ -134,5 +134,5 @@ ALMA - Atacama Large Millimeter Array @ 200.2.0.30
 New Mexico State University @ 128.123.5.24
 Universidad Nacional de Cordoba (Argentina) @ 200.16.16.13
 
-tot:  Fri Sep  3 13:10:40 CEST 2010
+tot:  Wed Sep  8 11:07:24 CEST 2010
 
