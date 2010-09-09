@@ -1982,7 +1982,7 @@ class Skypolygon(object):
             r = numpy.concatenate((r1, r2, r3, r4))
             lons, lats = dispcoord(xc, yc, r, -1, phi+pa)
             
-         elif prescription[0].upper() == 'P':
+         elif prescription[0].upper() == 'N':
             if nangles < 3:
                raise ValueError("Number of angles in regular polygon must be > 2!")
             nsamples = 360.0/nangles
