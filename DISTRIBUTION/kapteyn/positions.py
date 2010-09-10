@@ -513,6 +513,57 @@ def readcolumn(filename, col=0, fromline=None, toline=None, rows=None, comment="
    return list(c.flatten())
 
 
+def readhms(filename, col1=0, col2=1, col3=2,
+            fromline=None, toline=None, rows=None, comment="!#",
+            sepchar=', t', bad=0.0,
+            rowslice=(None, ), colslice=(None, )):
+   #-------------------------------------------------------------
+   """
+   Utility to prepare a call to tabarray's readColumns() function
+   We created a default for the 'comment' argument and changed the
+   column argument to accept only one column.
+   """
+   #-------------------------------------------------------------
+   column = [col1, col2, col3]
+   if rows != None:
+      if not issequence(rows):
+         rows = [rows]
+   lines = None
+   if not fromline is None or not toline is None:
+      lines = (fromline, toline)
+   c = readColumns(filename=filename, comment=comment, cols=column, sepchar=sepchar,
+               rows=rows, lines=lines, bad=bad, rowslice=rowslice, colslice=colslice)
+   h = c[0]; m = c[1]; s = c[2]
+   vals = (h+m/60.0+s/3600.0)*15.0
+   return vals
+
+
+def readdms(filename, col1=0, col2=1, col3=2,
+            fromline=None, toline=None, rows=None, comment="!#",
+            sepchar=', t', bad=0.0,
+            rowslice=(None, ), colslice=(None, )):
+   #-------------------------------------------------------------
+   """
+   Utility to prepare a call to tabarray's readColumns() function
+   We created a default for the 'comment' argument and changed the
+   column argument to accept only one column.
+   """
+   #-------------------------------------------------------------
+   column = [col1, col2, col3]
+   if rows != None:
+      if not issequence(rows):
+         rows = [rows]
+   lines = None
+   if not fromline is None or not toline is None:
+      lines = (fromline, toline)
+   c = readColumns(filename=filename, comment=comment, cols=column, sepchar=sepchar,
+               rows=rows, lines=lines, bad=bad, rowslice=rowslice, colslice=colslice)
+   d = c[0]; m = c[1]; s = c[2]
+   vals = (d+m/60.0+s/3600.0)
+   return vals
+
+
+
 def minmatch(userstr, mylist, case=0):
    """--------------------------------------------------------------
    Purpose:    Given a list 'mylist' with strings and a search string
@@ -1073,11 +1124,14 @@ class Coordparser(object):
       readcolfie = "READCOL"
       headfie = "HEADER"
       # Column from file
-      if currenttoken.upper().startswith(readcolfie):
+      doreadcol = currenttoken.upper().startswith("READCOL")
+      doreadhms = currenttoken.upper().startswith("READHMS")
+      doreaddms = currenttoken.upper().startswith("READDMS")
+      if doreadcol or doreadhms or doreaddms:
          # Then evaluate the local version readcolumn() which forces
          # reading only one column and returns a list instead of
          # a numpy array
-         try:
+         if 1: #try:
             # We want to allow a user to enter the file name argument
             # without quotes as in:
             # readcol(lasfootprint.txt, 0,1,64)
@@ -1087,9 +1141,14 @@ class Coordparser(object):
                args = argstr.split(',', 1) # Split only until first comma
                argstr = '"'+args[0]+'",'+args[1]
             #pstr = "readcolumn(%s)"%currenttoken[len(readcolfie)+1:-1]
-            pstr = "readcolumn(%s)"%argstr
+            if doreadcol:
+               pstr = "readcolumn(%s)"%argstr
+            elif doreadhms:
+               pstr = "readhms(%s)"%argstr
+            elif doreaddms:
+               pstr = "readdms(%s)"%argstr
             number = eval(pstr)
-         except Exception, message:
+         else: #except Exception, message:
             self.errmes = usermessage(currenttoken, message)
             return None, 'x', 0                  # 'x' means hopeless
       # Number from header item
