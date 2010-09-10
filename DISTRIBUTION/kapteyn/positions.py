@@ -486,6 +486,7 @@ def issequence(obj):
 def usermessage(token, errmes):
    return "Error in '%s': %s" % (token, errmes)
 
+
 def readcolumn(filename, col=0, fromline=None, toline=None, rows=None, comment="!#",
                sepchar=', t', bad=0.0,
                rowslice=(None, ), colslice=(None, )):
@@ -1077,7 +1078,16 @@ class Coordparser(object):
          # reading only one column and returns a list instead of
          # a numpy array
          try:
-            pstr = "readcolumn(%s)"%currenttoken[len(readcolfie)+1:-1]
+            # We want to allow a user to enter the file name argument
+            # without quotes as in:
+            # readcol(lasfootprint.txt, 0,1,64)
+            # But the function itself needs it as a string
+            argstr = currenttoken[len(readcolfie)+1:-1]
+            if argstr.count('"') == 0:
+               args = argstr.split(',', 1) # Split only until first comma
+               argstr = '"'+args[0]+'",'+args[1]
+            #pstr = "readcolumn(%s)"%currenttoken[len(readcolfie)+1:-1]
+            pstr = "readcolumn(%s)"%argstr
             number = eval(pstr)
          except Exception, message:
             self.errmes = usermessage(currenttoken, message)
