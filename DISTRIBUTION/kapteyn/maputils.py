@@ -1903,6 +1903,7 @@ class Skypolygon(object):
 
       self.ptype = "Skypolygon"
       self.p1 = self.p2 = None        # Shape could be splitted into two parts
+      self.patch = None
       splitlon = projection.crval[0] + 180.0
       if splitlon >= 360.0:
          splitlon -= 360.0
@@ -2016,17 +2017,18 @@ class Skypolygon(object):
       #lon1 = lons; lat1 = lats; lon2=[];lat2=[]
       if len(lon1):
          xp, yp = projection.topixel((lon1, lat1))
-         self.p1 = Polygon(zip(xp, yp), closed=False, **kwargs)
+         self.p1 = Polygon(zip(xp, yp), closed=True, **kwargs)
       if len(lon2):
          xp, yp = projection.topixel((lon2, lat2))
-         self.p2 = Polygon(zip(xp, yp), closed=False, **kwargs)
+         self.p2 = Polygon(zip(xp, yp), closed=True, **kwargs)
 
    def plot(self, frame):
       if not self.p1 is None:
          frame.add_patch(self.p1)
+         self.patch = self.p1
       if not self.p2 is None:
          frame.add_patch(self.p2)
-
+         self.patch = self.p2
 
 
 
@@ -2045,6 +2047,7 @@ class Marker(object):
       self.xp = xp
       self.yp = yp
       self.kwargs = kwargs
+      self.patch = None
 
 
    def plot(self, frame):
@@ -2054,8 +2057,10 @@ class Marker(object):
          self.xp = [self.xp]
       if not issequence(self.yp):
          self.yp = [self.yp]
-      frame.plot(self.xp, self.yp, 'o', **self.kwargs)  # Set default marker symbol to prevent connections
+      self.patch = frame.plot(self.xp, self.yp, 'o', **self.kwargs)  # Set default marker symbol to prevent connections
+      self.patch = self.patch[0]
 
+      
 
 class Gridframe(object):
    """
