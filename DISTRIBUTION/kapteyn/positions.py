@@ -423,16 +423,16 @@ Which has the same syntax as *READDMS()*.
 
    
 
-    * filename – a string with the name of a text file containing the table.
-    * fromline – Start line to be read from file (first is 1).
+    * filename - a string with the name of a text file containing the table.
+    * fromline - Start line to be read from file (first is 1).
     * toline - Last line to be read from file. If not specified, the end of the file is assumed.
-    * comment – a string with characters which are used to designate comments in the input file. The occurrence of any of these characters on a line causes the rest of the line to be ignored. Empty lines and lines containing only a comment are also ignored.
-    * col – a scalar with one column number.
-    * sepchar – a string containing the column separation characters to be used. Columns are separated by any combination of these characters.
-    * rows – a tuple or list containing the row numbers to be extracted.
-    * bad – a number to be substituted for any field which cannot be decoded as a number.
-    * rowslice – a tuple containing a Python slice indicating which rows should be selected. If this argument is used in combination with the argument rows, the latter should be expressed in terms of the new row numbers after slicing. Example: rowslice=(10, None) selects all rows, beginning with the eleventh (the first row has number 0) and rowslice=(10, 13) selects row numbers 10, 11 and 12.
-    * colslice – a tuple containing a Python slice indicating which columns should be selected. If this argument is used in combination with the argument cols, the latter should be expressed in terms of the new column numbers after slicing. Selection is analogous to rowslice.
+    * comment - a string with characters which are used to designate comments in the input file. The occurrence of any of these characters on a line causes the rest of the line to be ignored. Empty lines and lines containing only a comment are also ignored.
+    * col - a scalar with one column number.
+    * sepchar - a string containing the column separation characters to be used. Columns are separated by any combination of these characters.
+    * rows - a tuple or list containing the row numbers to be extracted.
+    * bad - a number to be substituted for any field which cannot be decoded as a number.
+    * rowslice - a tuple containing a Python slice indicating which rows should be selected. If this argument is used in combination with the argument rows, the latter should be expressed in terms of the new row numbers after slicing. Example: rowslice=(10, None) selects all rows, beginning with the eleventh (the first row has number 0) and rowslice=(10, 13) selects row numbers 10, 11 and 12.
+    * colslice - a tuple containing a Python slice indicating which columns should be selected. If this argument is used in combination with the argument cols, the latter should be expressed in terms of the new column numbers after slicing. Selection is analogous to rowslice.
 
 
 There is a difference between the *rows=* and the *fromline=* , *endline=*
