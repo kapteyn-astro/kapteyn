@@ -9,29 +9,33 @@ Groningen, The Netherlands.
 Some of the package's features:
 
 - The handling of spatial and spectral coordinates, WCS projections and
-  transformations between different sky systems.  Spectral translations
-  (e.g., between frequencies and velocities) are supported and also mixed
-  coordinates. For WCS, Dr. Mark Calabretta's WCSLIB is used.
+  transformations between different sky systems. Spectral translations
+  (e.g. between frequencies and velocities) are supported as well as
+  mixed coordinates. For WCS, Dr. Mark Calabretta's WCSLIB is used.
 
 - Versatile tools for writing small and dedicated applications for the
-  inspection of FITS headers, the extraction and display of (FITS) data,
-  interactive inspection of this data and for the creation
-  of plots with world coordinate information. A unique feature is the
-  possibility to make plots with mixed coordinates, e.g. where one axis
-  is spatial and the other one is spectral.
+  inspection of FITS headers, the extraction, display and interactive
+  inspection of (FITS) data and for the creation of plots with world
+  coordinate information, including all-sky plots.
+  A unique feature is the possibility to make plots with mixed
+  coordinates, e.g. where one axis is spatial and the other one is
+  spectral. Matplotlib and PyFITS are used.
+
+- Tools for parsing and interpreting coordinate information entered by
+  the user. 
 
 - Utilities for use with Matplotlib such as obtaining coordinate
   information from plots, interactively modifiable colormaps and timer
-  events; tools for parsing and interpreting coordinate information
-  entered by the user. 
+  events (to facilitate movie loops).
 
-- A class for the efficient reading, writing and manipulating simple
+- A class for the efficient reading, writing and manipulating of simple
   table-like structures in text files. 
 
 Currently supported architectures are Linux, Apple Mac OS X and
 Microsoft Windows.
 
-Documentation and download instructions can be found at
+Extensive documentation, including tutorial and background information,
+as well as download and installation instructions can be found at
 http://www.astro.rug.nl/software/kapteyn/
 
 We look forward to your feedback,

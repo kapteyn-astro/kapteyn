@@ -345,24 +345,104 @@ Here are some examples:
 >>> pos = "{B1983.5} 11h55m07.008s {} -53d39m18.0s"
 
 
-Reading from file with function *READCOL()*
-.............................................
+Reading from file with function *READCOL()*, *READHMS()* and *READDMS()*
+..........................................................................
 
-We introduced a command *readcolumn* to read a column from a file on disk.
-The arguments follow those in :func:`tabarray.readColumns` with the exception that
-argument *cols=* is replaced by *col=*. One should enter just one value to read
-one column from file.
+Coordinates can also be read from file. Either we want to be able to read just
+one column, or we want to combine three columns into one if the columns represent
+hours/degrees, minutes and seconds.
+The arguments of these functions are derived from those in
+:func:`tabarray.readColumns` with the exception that
+argument *cols=* is replaced by *col=* for function *READCOL()* and
+for *READHMS()* and *READDMS()* the *cols=* argument is replaced by
+arguments *col1=, col2=, col3=*.
+Filenames can be specified either with or without double quotes.
 
->>> pos= 'readcol("test123positions.txt", col=0)
-                               readcolumn("test123positions.txt", col=2)'
+Columns start with 0.
+Lines with 1.
 
-Note a subtle difference compared to previous examples. The *readcol()*
-function requires a filename. Usually quotes are used to group some numbers
-and when you use a single quote then it will not be copied for evaluation.
-Here we need a filename as a string. In the evaluation we need this as a string
-and therefore one needs to use double quotes which are copied to the final string.
-The entire position needs to be also a string. That's the reason why we enclosed
-the position between single quotes.
+Some examples:
+
+Assume we have a file on disk called 'lasfootprint' which stores two sets
+of positions separated by an empty line. If we want to read
+the positions given by column 0 and 1 of the second segment (starting with line 66)
+and column 1 is given in decimal hours, then you need the command:
+   
+>>> pos=  'readcol("lasfootprint", 0,66,0) HMShour readcol("lasfootprint", 1,66,0) deg'
+
+The coordinate is followed by a unit (deg) so it is a world coordinate.
+It was also possible to prepend the second coordinate with {} as in:
+
+>>> pos=  'readcol("lasfootprint", 0,1,64) HMShour {} readcol("lasfootprint", 1,0,64)'
+
+If columns 2 and 3 are galactic longitudes and latitudes, but
+our basemap is equatorial, then we could have read the positions
+with an alternative sky system as in:
+
+>>> pos=  '{ga} readcol("lasfootprint", 2,1,64)  {} readcol("lasfootprint", 3,0,64)'
+
+The second sky definition is empty which implies a copy of the first
+definition (i.e. {ga}).
+
+Now assume you have an ASCII file on disk with 6 columns representing
+sexagesimal coordinates. Assume file *hmsdms.txt* contains equatorial
+coordinates in 'hours minutes seconds degrees minutes seconds' format,
+then read this data with:
+
+>>> pos= '{} readhms(hmsdms.txt,0,1,2) {} readdms(hmsdms.txt,3,4,5)'
+
+Or with explicit lines:
+
+>>> pos= '{} readhms(hmsdms.txt,0,1,2,1,64) {} readdms(hmsdms.txt,3,4,5,1,64)'
+
+What if the format is 'd m s d m s' and the coordinates are galactic.
+Then we should enter;
+   
+>>> pos= 'ga readdms(hmsdms.txt,0,1,2) ga readdms(hmsdms.txt,3,4,5)'
+
+if your current sky system is galactic then it also possible to enter:
+
+>>> pos= 'readdms(hmsdms.txt,0,1,2) deg  readdms(hmsdms.txt,3,4,5) deg'
+
+If the columns are not in the required order use the keyword names:
+
+>>> pos= 'readdms(hmsdms.txt,col3=0,col2=1,col3=2) deg  readdms(hmsdms.txt,3,4,5) deg'
+
+**syntax**
+
+>>> readcol(filename, col=0, fromline=None, toline=None, rows=None, comment="!#",
+            sepchar=', t', bad=0.0,
+            rowslice=(None, ), colslice=(None, )
+
+>>> readhms(filename, col1=0, col2=1, col3=2,
+            fromline=None, toline=None, rows=None, comment="!#",
+            sepchar=', t', bad=0.0,
+            rowslice=(None, ), colslice=(None, )):
+
+Which has the same syntax as *READDMS()*.
+
+   
+
+    * filename – a string with the name of a text file containing the table.
+    * fromline – Start line to be read from file (first is 1).
+    * toline - Last line to be read from file. If not specified, the end of the file is assumed.
+    * comment – a string with characters which are used to designate comments in the input file. The occurrence of any of these characters on a line causes the rest of the line to be ignored. Empty lines and lines containing only a comment are also ignored.
+    * col – a scalar with one column number.
+    * sepchar – a string containing the column separation characters to be used. Columns are separated by any combination of these characters.
+    * rows – a tuple or list containing the row numbers to be extracted.
+    * bad – a number to be substituted for any field which cannot be decoded as a number.
+    * rowslice – a tuple containing a Python slice indicating which rows should be selected. If this argument is used in combination with the argument rows, the latter should be expressed in terms of the new row numbers after slicing. Example: rowslice=(10, None) selects all rows, beginning with the eleventh (the first row has number 0) and rowslice=(10, 13) selects row numbers 10, 11 and 12.
+    * colslice – a tuple containing a Python slice indicating which columns should be selected. If this argument is used in combination with the argument cols, the latter should be expressed in terms of the new column numbers after slicing. Selection is analogous to rowslice.
+
+
+There is a difference between the *rows=* and the *fromline=* , *endline=*
+keywords. The first reads the specified rows from parsed contents of the
+file, while the line keywords specify which lines you want to read from file.
+Usually comment characters '#' and '!' are used. If you expect another comment
+character then change this keyword.
+Keyword *sepchar=* sets the separation character and *bad=* is the value
+that is substituted for values that could not be parsed.
+
 
 You can run 'main' (i.e. execute the module) to experiment with positions.
 First it will display
@@ -487,9 +567,9 @@ def usermessage(token, errmes):
    return "Error in '%s': %s" % (token, errmes)
 
 
-def readcolumn(filename, col=0, fromline=None, toline=None, rows=None, comment="!#",
-               sepchar=', t', bad=0.0,
-               rowslice=(None, ), colslice=(None, )):
+def readcol(filename, col=0, fromline=None, toline=None, rows=None, comment="!#",
+            sepchar=', t', bad=0.0,
+            rowslice=(None, ), colslice=(None, )):
    #-------------------------------------------------------------
    """
    Utility to prepare a call to tabarray's readColumns() function
@@ -1129,10 +1209,10 @@ class Coordparser(object):
       doreadhms = currenttoken.upper().startswith("READHMS")
       doreaddms = currenttoken.upper().startswith("READDMS")
       if doreadcol or doreadhms or doreaddms:
-         # Then evaluate the local version readcolumn() which forces
+         # Then evaluate the local version readcol() which forces
          # reading only one column and returns a list instead of
          # a numpy array
-         if 1: #try:
+         try:
             # We want to allow a user to enter the file name argument
             # without quotes as in:
             # readcol(lasfootprint.txt, 0,1,64)
@@ -1141,15 +1221,15 @@ class Coordparser(object):
             if argstr.count('"') == 0:
                args = argstr.split(',', 1) # Split only until first comma
                argstr = '"'+args[0]+'",'+args[1]
-            #pstr = "readcolumn(%s)"%currenttoken[len(readcolfie)+1:-1]
+            #pstr = "readcol(%s)"%currenttoken[len(readcolfie)+1:-1]
             if doreadcol:
-               pstr = "readcolumn(%s)"%argstr
+               pstr = "readcol(%s)"%argstr
             elif doreadhms:
                pstr = "readhms(%s)"%argstr
             elif doreaddms:
                pstr = "readdms(%s)"%argstr
             number = eval(pstr)
-         else: #except Exception, message:
+         except Exception, message:
             self.errmes = usermessage(currenttoken, message)
             return None, 'x', 0                  # 'x' means hopeless
       # Number from header item
@@ -1779,14 +1859,30 @@ def dotest():
    s = "! Test file for Ascii data and the FILE command\n"
    f.write(s)
    for i in range(10):
-      f1 = 1.0* i; f2 = f1 * 2.0; f3 = f2 * 10.0; f4 = f3 * 2.0
+      f1 = 1.0* i; f2 = f1 * 2.0; f3 = f2 * 1.5; f4 = f3 * 2.5
       s = "%f %.12f %f %.12f\n" % (f1, f2, f3, f4)
       f.write(s)
    f.close()
 
+
+   asciifile = "hmsdms.txt"
+   f = open(asciifile, 'w')
+   s = "! Test file for Ascii data and the READHMS/READDMS command\n"
+   f.write(s)
+   s = "11 57 .008 53 39 18.0\n"; f.write(s)
+   s = "11 58 .008 53 39 17.0\n"; f.write(s)
+   s = "11 59 .008 53 39 16.0\n"; f.write(s)
+   f.close()
+
    print "--------- Reading from file ----------\n"
    proj = origproj.sub((1,2))
-   userpos = [ 'readcol("test123positions.txt", col=0) readcol("test123positions.txt", col=2)']
+   userpos = [ 'readcol(test123positions.txt, col=0) readcol(test123positions.txt, col=2)',
+               '{} readcol(test123positions.txt, col=0) {} readcol(test123positions.txt, col=2)',
+               'ga readcol(test123positions.txt, col=0) ga readcol(test123positions.txt, col=2)',
+               'readcol(test123positions.txt, col=0) deg readcol(test123positions.txt, col=2) deg',
+               '{} readhms(hmsdms.txt,0,1,2) {} readdms(hmsdms.txt,3,4,5)',
+               '{} readhms(hmsdms.txt,col1=0, col3=1, col2=2) {} readdms(hmsdms.txt,3,4,5)',
+             ]
    for postxt in userpos:
       wp = str2pos(postxt, proj)
       printpos(postxt, wp)
