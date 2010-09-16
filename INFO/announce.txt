@@ -1,4 +1,4 @@
-Kapteyn Package 2.0.2 Release
+Kapteyn Package 2.0.2 released
 
 We are pleased to announce the release of version 2.0.2 of the Kapteyn Package.
 
@@ -38,6 +38,6 @@ Extensive documentation, including tutorial and background information,
 as well as download and installation instructions can be found at
 http://www.astro.rug.nl/software/kapteyn/
 
-We look forward to your feedback,
+We look forward to your feedback.
 
 Hans Terlouw and Martin Vogelaar

@@ -1,0 +1,34 @@
+Version 2.0.3 (in development)
+==============================
+
+* Added release notes (still being compiled)
+
+Version 2.0.2 (Sep 16, 2010)
+============================
+
+* Function mplutil.gipsy_connect() connects GIPSY keyword events
+  to Matplotlib event loop.
+
+* Added Microsoft Windows support.
+
+
+Version 2.0.1 (Aug 11, 2010)
+============================
+
+* Separately installed WCSLIB is not required anymore.
+
+Version 2.0 (Jul 16, 2010)
+==========================
+
+Version 1.9.2 (Jul 12, 2010)
+============================
+
+* Included slightly modified SciPy interpolation module
+
+Version 1.9.1 (Feb 25, 2010)
+============================
+
+Version 1.9 (Jan 16, 2010)
+==========================
+
+* First public release.

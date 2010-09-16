@@ -10,3 +10,5 @@ Obtaining and using the package
    gettingstarted
 
    license
+
+   changes
