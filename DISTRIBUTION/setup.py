@@ -25,9 +25,7 @@ include_dirs.append(ipath)
 include_dirs.append('src')
 include_dirs.append(wcslib_dir)
 
-short_descr = """Kapteyn Package: Python modules for astronomical applications:
-coordinate transformations, World Coordinate System (WCS), FITS image
-plotting and display with Matplotlib, mixed coordinates."""
+short_descr = "Kapteyn Package: Python modules for astronomical applications"
 
 description = """The Kapteyn Package is a collection of Python modules
 and applications developed by the computer group of the Kapteyn

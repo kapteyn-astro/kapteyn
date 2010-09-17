@@ -6,6 +6,12 @@ Version 2.0.3 (in development)
 Version 2.0.2 (Sep 16, 2010)
 ============================
 
+* Class wcs.Projection:
+
+  * allow for FITS headers that incorrectly represent EQUINOX as a string
+
+  * added support for AIPS keyword VELREF
+
 * Function mplutil.gipsy_connect() connects GIPSY keyword events
   to Matplotlib event loop.
 
@@ -20,13 +26,44 @@ Version 2.0.1 (Aug 11, 2010)
 Version 2.0 (Jul 16, 2010)
 ==========================
 
+* Class wcs.Projection:
+
+  * added method *inside()*
+
 Version 1.9.2 (Jul 12, 2010)
 ============================
 
-* Included slightly modified SciPy interpolation module
+* Function wcs.coordmap(): added arguments *dst_shape*, *dst_offset*
+  and *src_offset*.
+
+* Class wcs.Projection:
+
+  * fixed bug in class WrappedHeader.
+
+  * allow for WSRT files with topocentric frequencies (via class WrappedHeader)
+
+  * added attribute *altspecarg*
+
+* Included SciPy modules *filters* and *interpolation*. The latter was slightly
+  modified.
+
 
 Version 1.9.1 (Feb 25, 2010)
 ============================
+
+* Class wcs.Projection:
+
+  * added attribute *euler*
+
+  * fixed bug in method *mixed()*
+
+* Class mplutil.VariableColormap:
+
+  * added NumPy array as possible source
+
+  * added method *set_length()*
+
+
 
 Version 1.9 (Jan 16, 2010)
 ==========================
