@@ -26,6 +26,7 @@ gr2 = annim.Graticule(deltax=7.5/60, deltay=5.0/60,
                       visible=True)
 gr2.setp_axislabel(plotaxis=("top","right"), label="Galactic l,b",
                   color='g', visible=True)
+gr2.setp_axislabel(plotaxis=("left", "bottom"), visible=False)
 gr2.set_tickmode(plotaxis=("top","right"), mode="Native")
 gr2.set_tickmode(plotaxis=("left","bottom"), mode="NO")
 gr2.setp_ticklabel(wcsaxis=(0,1), color='g')

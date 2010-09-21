@@ -14,6 +14,7 @@ f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule()
 grat2 = annim.Graticule(skyout='Galactic')
+grat2.setp_axislabel(plotaxis=("left", "bottom"), visible=False)
 grat.setp_ticklabel(plotaxis="bottom", position="20h34m", fmt="%g",
                     color='r', rotation=30)
 grat.setp_ticklabel(plotaxis='left', color='b', rotation=20,
