@@ -149,7 +149,7 @@ WCSinvalid for situations where a partial result may be available.
 
 from c_wcs cimport wcsprm, wcsini, wcsset, wcsfree, wcsp2s, wcss2p, wcsmix, \
                    wcs_errmsg, wcssub, wcssptr, wcsprt, wcsutrn, celprm,\
-                   unitfix, celfix, spcfix, wcsfix_errmsg
+                   unitfix, celfix, spcfix, wcsfix_errmsg, prj_categories
 from c_numpy cimport import_array, npy_intp, NPY_DOUBLE, PyArray_DATA, \
                      ndarray, PyArray_SimpleNewFromData, NPY_OWNDATA
 
@@ -691,6 +691,12 @@ The following attributes contain values which are parameters to
 WCSLIB, *after* interpretation. So they can differ from the values
 in the source object. These attributes should not be modified.
 
+.. attribute:: category
+
+   The projection category: one of the strings
+   ``undefined``, ``zenithal``, ``cylindrical``, ``pseudocylindrical``,
+   ``conventional``, ``conic``, ``polyconic``, ``quadcube``, ``HEALPix``.
+
 .. attribute:: ctype
 
    A tuple with the axes' types in the axis order of the object.
@@ -1193,6 +1199,11 @@ Example::
          self.euler = []
          for i in range(5):
             self.euler.append(param.cel.euler[i])
+
+         #---------------------------------
+         #    Projection category
+         #---------------------------------
+         self.category = prj_categories[param.cel.prj.category]
 
          #---------------------------------
          #    Sky system

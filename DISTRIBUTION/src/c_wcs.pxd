@@ -4,6 +4,11 @@
 
 cdef extern from "wcs.h":
 
+   cdef char prj_categories[9][32]
+
+   cdef struct prjprm:
+      int category
+
    cdef struct pvcard:
       int i
       int m
@@ -15,6 +20,7 @@ cdef extern from "wcs.h":
       char value[72]
 
    cdef struct celprm:
+      prjprm prj
       double euler[5]
 
    cdef struct wcsprm:
