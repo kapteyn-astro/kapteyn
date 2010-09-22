@@ -1,11 +1,7 @@
 from distutils.core import setup, Extension
 from distutils.sysconfig import get_python_inc, get_python_lib
 from kapteyn import __version__ as version
-
-wcslib_version = '4.5'            # === must be changed for other version ===
-
-wcslib_dir = 'src/wcslib-%s/C/' % wcslib_version # WCSLIB source directory
-
+from glob import glob
 import sys, os
 
 try:
@@ -15,6 +11,15 @@ except:
 -- Error.
 The Kapteyn Package requires NumPy, which seems to be unavailable here.
 Please check your Python installation.
+'''
+   sys.exit(1)
+
+try:
+   wcslib_dir = glob('src/wcslib*/C/')[0]
+except:
+   print '''
+-- Error.
+Unable to find WCSLIB source distribution.
 '''
    sys.exit(1)
 
@@ -78,8 +83,7 @@ classifiers = [
 
 download_url = "http://www.astro.rug.nl/software/kapteyn/kapteyn-%s.tar.gz" % version
 
-kapteyn_src = [
-   "ascarray.c",
+wcsmod_src = [
    "eterms.c",
    "wcs.c",
    "xyz.c"
@@ -114,7 +118,7 @@ scipy_src = [
    "ni_support.c",
 ]
 
-wcs_src       = (   ['src/'        + source for source in kapteyn_src]
+wcs_src       = (   ['src/'        + source for source in wcsmod_src]
                   + [wcslib_dir    + source for source in wcslib_src]  )
 
 _nd_image_src = ['src/scipy/'  + source for source in scipy_src]
