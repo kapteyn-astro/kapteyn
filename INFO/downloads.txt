@@ -135,6 +135,10 @@ New Mexico State University @ 128.123.5.24
 Universidad Nacional de Cordoba (Argentina) @ 200.16.16.13
 NRAO Socorro @ 146.88.4.117
 California Institute of Technology @ 134.4.24.101
+Katholieke Universiteit Leuven @ 134.58.253.57
+UW Milwaukee  @ 129.89.61.29
+Oregon State University Open Source Lab @ 140.211.166.168
 
-tot:  Mon Sep 20 10:59:38 CEST 2010
+tot:  Fri Sep 24 10:59:11 CEST 2010
+
 

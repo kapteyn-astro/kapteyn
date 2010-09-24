@@ -1,11 +1,13 @@
 Version 2.0.3 (in development)
 ==============================
 
-* Added release notes (still being compiled)
+* Added release notes (*still being compiled*)
 
 * Class wcs.Projection:
 
   * added attribute *category*
+
+* Changed to WCSLIB 4.5.3 (from 4.5)
 
 
 Version 2.0.2 (Sep 16, 2010)
