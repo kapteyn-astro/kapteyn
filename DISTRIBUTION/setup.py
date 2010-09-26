@@ -126,6 +126,7 @@ _nd_image_src = ['src/scipy/'  + source for source in scipy_src]
 define_macros = []
 if sys.platform == 'win32':
     define_macros.append(('YY_NO_UNISTD_H', None))
+    define_macros.append(('_CRT_SECURE_NO_WARNINGS', None))
 
 setup(
    name="kapteyn",
