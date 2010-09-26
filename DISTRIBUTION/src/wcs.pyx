@@ -1710,7 +1710,8 @@ Example::
       if npnan==2 and self.reverse:              # no pixels, only world
          world2world(self.reverse, wldout,
                      world.n, world.ndims, param.lng, param.lat)
-      if status:
+      if status and npnan!=2:
+         # npnan!=2: suppress WCSLIB error when spatial pixels are both NaN
          if status==8:
             flag_invalid(wldout, world.n, world.ndims, stat, numpy.NaN)
             self.invalid = True
