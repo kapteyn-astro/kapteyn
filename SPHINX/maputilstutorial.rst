@@ -396,7 +396,7 @@ then we need very few lines of code as we show in the next example.
 
 This is a simple script that displays an image using the defaults for the axes,
 the limits, the color map and many other properties.
-From an object from class :class:`maputils.FITSimage` an
+>From an object from class :class:`maputils.FITSimage` an
 object from class :class:`maputils.FITSimage.Annotatedimage`
 is derived.
 
@@ -1266,6 +1266,132 @@ the marker symbols. The most important are:
    :align: center
 
    
+Sky polygons
+-------------
+
+Sometimes one needs to plot a shape which represents an area in the sky.
+Such a shape can be a small ellipse which represents the beam of a radio telescope
+or it is a rectangle representing a footprint of a survey.
+These shapes (ellipse, circle, rectangle, square, regular polygon) have a prescription.
+For example a circle is composed of a number of vertices with a constant 
+distance to a center and all the vertices define a different angle. If you want
+to plot such a shape onto a projection of a sphere you need to recalculate the vertices
+so that for a given center (lon_c,lat_c) the set of distances and angles are preserved
+on the sphere. By distances we mean the distance along a great circle and not along a parallel.
+
+So what we do is calculate vertices of an ellipse/rectangle/regular polygon 
+in a plane and the center of the shape is at (0,0).
+For a sample of points on the shape we calculate the distance of the perimeter
+as function of the angle.
+Then with spherical trigonometry we solve for the missing (lon,lat) in the triangle
+(lon_c,lat_c)-Pole-(lon,lat). This is the position for which the distance along a great
+circle is the required one and also the angle is the required one.
+
+
+Assume a triangle on a sphere connecting two positions
+*Q1* with :math:`(\alpha_1, \delta1)` and *Q2* with :math:`(\alpha_2, \delta2)`
+and on the sphere *Q2* is situated to the left of *Q1*.
+*Q1* is the new center of the polygon. *P* is the pole and *Q2* the position
+we need to find. This position has distance *d* along a great circle connecting
+*Q1* and *Q2* and the angle *PQ1Q2* is the required angle
+:math:`\alpha`. The sides of the triangle are :math:`(90-\delta_1)` and
+:math:`(90-\delta_2)`
+
+Then the distance between *Q1* and *Q2* is given by:
+
+.. math::
+   :label: distance
+   
+   \cos(d)=\cos(90-\delta_1)\cos(90-\delta_2)+\sin(90-\delta_1)\sin(90-\delta_2)\cos(\alpha_2-\alpha_1)
+
+from which we calculate :math:`\cos(\alpha_2-\alpha_1)`
+
+Angle *Q1PQ2* is equal to :math:`\alpha_2-\alpha_1`.
+For this angle we have the sine formula:
+
+.. math::
+   :label: sinerule
+   
+   \frac{\sin(d)}{\sin(\alpha_2-\alpha_1)} = \frac{\sin(90-\delta_2)}{\sin(\alpha)}
+
+so that:
+   
+.. math::
+   :label: a2mina1
+
+   \sin(\alpha_2-\alpha_1) = \frac{\sin(d)\sin(\alpha)}{\cos(\delta_2)}
+
+>From :math:`\cos(\alpha_2-\alpha_1)` and the value of :math:`\sin(\alpha_2-\alpha_1)`
+we derive an unambiguous value for :math:`\alpha_2-\alpha_1` and because we
+started with :math:`\alpha_1` we derive a value for :math:`\alpha_2`.
+
+
+The angle *PQ1Q2* is :math:`\alpha`. This is not the astronomical 
+convention, but that doesn't matter because we use the same definition for 
+an angle in the 'flat space' polygon.
+For this situation we have another cosine rule:
+
+.. math::
+   :label: cosinerule
+
+   \cos(90-\delta_2) = \cos(d)cos(90-\delta_1)+\sin(d)\sin(90-\delta_1)\cos(\alpha)
+
+or:
+
+.. math::
+   :label: declination2
+   
+   \sin(\delta_2) = \cos(d)\sin(\delta_1)+\sin(d)\cos(\delta_1)\cos(\alpha)
+
+which gives :math:`\delta_2`
+and we found longitude and latitude :math:`(\alpha_2,\delta_2)` of the transformed 
+'flat space' coordinate.
+The set of transformed vertices in world coordinates are then transformed to 
+pixels which involves the projection of a map.
+
+The next example shows some shapes plotted in a map of a part of the sky.
+ 
+**Example: mu_skypolygons.py - 'Sky polygons' in M101**
+
+.. plot:: EXAMPLES/mu_skypolygons.py
+   :include-source:
+   :align: center
+
+
+In 'all sky' plots the results can be a little surprising. For the family of cylindrical
+projections we give a number of examples.
+
+**Example: mu_skypolygons_allsky.py - 'Sky polygons' in a number of cylindrical projections**
+
+.. plot:: EXAMPLES/mu_skypolygons_allsky.py
+   :include-source:
+   :align: center
+
+The code shows a number of lines with ``try`` and ``except`` clauses. This is to
+catch problems for badly chosen origins or polygon parameters.
+We also provide examples of similar polygons in a number of zenithal projections.
+The scaling is unaltered so different projections fill the plot differently.
+
+**Example: mu_skypolygons_zenith.py - 'Sky polygons' in a number of zenithal projections**
+
+.. plot:: EXAMPLES/mu_skypolygons_zenith.py
+   :include-source:
+   :align: center
+
+
+Note that some polygons could not be plotted for the NCP projection, simply because  
+it is defined from declination 90 to 0 only.
+To avoid problems with divergence we limit the world coordinates to a declination
+of -30 degrees. The sky polygons are not aware of this limit and are plotted as long
+conversions between pixel- and world coordinates are possible.
+The ZPN example is a bit special. First, it is not possible to center a shape onto the pole
+(at least with the set of PV elements defined in the code) and second, we have a
+non zero PV2_0 element which breaks the relation between CRPIX and CRVAL.
+
+For a detailed description of the input parameters of the used *Skypolygon* method, read
+:meth:`maputils.Annotatedimage.Skypolgon`.
+
+
 
 Combining different plot objects
 --------------------------------

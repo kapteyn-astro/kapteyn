@@ -189,6 +189,11 @@ Class Beam
 
 .. autoclass:: Beam
 
+Class Skypolygon
+----------------
+
+.. autoclass:: Skypolygon
+
 
 Class Marker
 ------------
@@ -335,6 +340,27 @@ def randomlabel(base=''):
    return label
 
 
+def get_splitlon(projection):
+   #--------------------------------------------------------------------
+   """
+   Assumed is a two dimensional map with two spatial axes.
+   The projection is extracted from the ctype of the first axis.
+   Then a decision is made whether we have a border in an all sky plot in
+   longitude or not.
+   """
+   #--------------------------------------------------------------------
+   if projection.category not in ['undefined', 'zenithal']:
+      # then possible border problem for polygons
+      splitlon = projection.crval[0] + 180.0
+      if splitlon >= 360.0:
+         splitlon -= 360.0
+      if splitlon <= -360.0:
+         splitlon += 360.0
+   else:
+      splitlon = None
+   return splitlon
+
+
 def getnumbers(prompt):
    #--------------------------------------------------------------------
    """
@@ -460,7 +486,6 @@ def dispcoord(longitude, latitude, disp, direction, angle):
    b,alpha and d2 are known -> a2.
    """
    #--------------------------------------------------------------------
-   add360 = longitude >= 360.0
    Pi = numpy.pi
    b = abs(disp*Pi/180.0)
    a1 = longitude * Pi/180.0
@@ -474,10 +499,7 @@ def dispcoord(longitude, latitude, disp, direction, angle):
    a2 = a1 - dH
    lonout = a2*180.0/Pi
    latout = d2*180.0/Pi
-   """if add360:
-      lonout += 360
-   print lonout, latout
-   """
+
    return lonout, latout
 
 
@@ -1849,41 +1871,29 @@ class Beam(object):
       sinA = numpy.sin( phi*Pi/180.0 )
       d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
       r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
-      """
-      X = r*sinA+xc; Y = r*cosA+yc
-      xp, yp = projection.topixel((X,Y))
-      self.vertices = zip(xp,yp)
-      self.p2 = Polygon(self.vertices, facecolor='g', alpha=0.5)
-      """
+
       self.p1 = None
       self.p2 = None
       lon_new, lat_new = dispcoord(xc, yc, r, -1, phi+pa)
-      splitlon = projection.crval[0] + 180.0
-      lon1, lat1, lon2, lat2 = split_polygons(lon_new, lat_new, splitlon)
-      """for lo,la in zip(lon1,lat1):
-         print lo, lo
-      for lo,la in zip(lon2,lat2):
-         print lo, lo
-      """
-      #print zip(lon1,lat1)
-      #print zip(lon2,lat2)
+      splitlon = get_splitlon(projection)
+      if splitlon is None:
+         lon1, lat1 = lon_new, lat_new
+         lon2 = lat2 = []
+      else:
+         lon1, lat1, lon2, lat2 = split_polygons(lon_new, lat_new, splitlon)
+
       if len(lon1):
          xp, yp = projection.topixel((lon1, lat1))
          self.p1 = Polygon(zip(xp, yp), **kwargs)
       if len(lon2):
          xp, yp = projection.topixel((lon2, lat2))
          self.p2 = Polygon(zip(xp, yp), **kwargs)
-      #xp, yp = projection.topixel((lon_new, lat_new))
-      #self.vertices = zip(xp, yp)
-      #self.kwargs = kwargs
 
    def plot(self, frame):
-      #p = Polygon(self.vertices, **self.kwargs)
       if not self.p1 is None:
          frame.add_patch(self.p1)
       if not self.p2 is None:
          frame.add_patch(self.p2)
-      #frame.add_patch(self.p2)
 
 
 class Skypolygon(object):
@@ -1891,6 +1901,9 @@ class Skypolygon(object):
    """
    This class defines objects that can only be plotted onto
    spatial maps.
+   Usually the parameters will be provided by method
+   :meth:`Annotatedimage.Skypolygon`
+   
    """
 #--------------------------------------------------------------------
    def __init__(self, projection, prescription=None,
@@ -1904,9 +1917,7 @@ class Skypolygon(object):
       self.ptype = "Skypolygon"
       self.p1 = self.p2 = None        # Shape could be splitted into two parts
       self.patch = None
-      splitlon = projection.crval[0] + 180.0
-      if splitlon >= 360.0:
-         splitlon -= 360.0
+      splitlon = get_splitlon(projection)
 
       if prescription is None:
          if lons is None and lats is None:
@@ -2012,9 +2023,12 @@ class Skypolygon(object):
                
       if lons is None or lats is None:
          raise ValueError("Unknown prescription")
-      
-      lon1, lat1, lon2, lat2 = split_polygons(lons, lats, splitlon)
-      #lon1 = lons; lat1 = lats; lon2=[];lat2=[]
+
+      if splitlon is None:
+         lon1, lat1 = lons, lats
+         lon2 = lat2 = []
+      else:
+         lon1, lat1, lon2, lat2 = split_polygons(lons, lats, splitlon)
       if len(lon1):
          xp, yp = projection.topixel((lon1, lat1))
          self.p1 = Polygon(zip(xp, yp), closed=True, **kwargs)
@@ -2528,6 +2542,7 @@ this class.
 .. automethod:: Beam
 .. automethod:: Marker
 .. automethod:: Ruler
+.. automethod:: Skypolygon
 .. automethod:: plot
 .. automethod:: toworld
 .. automethod:: topixel
@@ -3591,10 +3606,92 @@ this class.
                   units=None, lons=None, lats=None, **kwargs):
    #-----------------------------------------------------------------
       """
+      Construct an object that represents an area in the sky.
+      Usually this is an ellipse, rectangle or regular polygon with
+      given center and other parameters to define its size or number
+      of angles and the position angle. The object is plotted in a
+      way that the sizes and angles, as defined on a sphere, are
+      preserved.
+      The objects need a 'prescription'. This is a recipe to calculate
+      a distance to a center point (0,0) as function of an angle
+      in a linear and flat system. Then the object perimeter is
+      re-calculated for a given center (xc,yc) and for corresponding
+      angles and distances on a sphere.
+
+      If *prescription=None*, then this method expects two arrays
+      *lons* and *lats*.  These are copied unaltered as vertices for
+      an irregular polygon.
+
+      For cylindrical projections it is possible that a polygon in a
+      all sky plot
+      crosses a boundary (e.g. 180 degrees longitude if the projection
+      center is at 0 degrees). Then the object is splitted into two parts
+      one for the region 180-phi and one for the region 180+phi where phi
+      is an arbitrary positive angle.
+      This splitting is done for objects with and without a prescription.
+
       :param prescription:
          How should the polygon be created? The prescriptions are
-         "ellipse", "rectangle", "polygon"
-         
+         "ellipse", "rectangle", "npolygon" or None.
+         This method only checks the first character of the string.
+      :type prescription:
+         String or None
+      :param xc:
+         Coordinate in degrees to set the center of the shape in X
+      :type xc:
+         Floating point number
+      :param yc:
+         Coordinate in degrees to set the center of the shape in Y
+      :type yc:
+         Floating point number
+      :param cpos:
+         Instead of a position in world coordinates (xc, yc),
+         supply a string with a position. The syntax is described
+         in the positions module. For example:
+         ``cpos='20h30m10s -10d10m20.23s`` or ``cpos=ga 110.3 ga 33.4``
+      :type cpos:
+         String
+      :param major:
+         Major axis of ellipse in degrees. This parameter is also used as
+         height for rectangles and as radius for regular polygons.
+      :type major:
+         Floating point number
+      :param minor:
+        Minor axis of ellipse in degrees. This parameter is also used as
+         width for rectangles. If the prescription is an ellipse then
+         a circle is defined if *major*=*minor*
+      :type minor:
+         Floating point number
+      :param nangles:
+         The number of angles in a regular polygon. The radius of this
+         shape is copied from parameter *major*.
+      :type nangles:
+         Integer
+      :param pa:
+         Position angle. This is an astronomical angle i.e. with respect
+         to the north in the direction of the east. For an ellipse the angle is
+         between the north and the major axis. For a rectangle it is the
+         angle between the north and the parameter that represents the height.
+         For a regular polygon, it is the angle between the north and the line that
+         connects the center with the first angle in the polygon.
+      :type pa:
+         Floating point number
+      :param units:
+         A case insensitive minimal matched string that sets the units for the
+         values in *major* and *minor* (e.g. arcmin, arcsec).
+      :type units:
+         String
+      :param lons:
+         Sequence with longitudes in degrees that (together with matching
+         latitudes) are used to define the vertices of a polygon.
+         If nothing is entered for *prescription* or *prescription=None*
+         then these positions are used unaltered.
+      :type lons:
+         Sequence of floating point numbers.
+      :param lats:
+         See description at *lons*.
+      :type lats:
+         Sequence of floating point numbers.
       """
    #-----------------------------------------------------------------
       if cpos != None:
