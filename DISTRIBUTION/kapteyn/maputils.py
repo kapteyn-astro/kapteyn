@@ -190,7 +190,7 @@ Class Beam
 .. autoclass:: Beam
 
 Class Skypolygon
-----------------
+-----------------
 
 .. autoclass:: Skypolygon
 
@@ -232,8 +232,18 @@ Class MovieContainer
 # .. plot:: /Users/users/vogelaar/MAPMAKER/maputils.intro.1.py
 #
 
-#from matplotlib import use
-#use('qt4agg')
+"""
+# Use this to change the default backend
+from matplotlib import use
+use('qt4agg')
+"""
+
+"""
+# Use this to find iquire the backend
+from matplotlib import rcParams
+backend = rcParams['backend']
+print "Backend=",backend
+"""
 
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
 from matplotlib.pyplot import figure, show
@@ -278,12 +288,6 @@ __version__ = '1.9'
 (left,bottom,right,top) = (wcsgrat.left, wcsgrat.bottom, wcsgrat.right, wcsgrat.top)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = (wcsgrat.native, wcsgrat.notnative, wcsgrat.bothticks, wcsgrat.noticks) 
 
-
-# The plot canvas has a toolbar and in that toolbar
-# one can display messages. We modified the default use
-# of this toolbar so that it does not display its own
-# message while we are in pan- or zoom mode.
-messenger = None
 
 # Each object of class Annotatedimage is stored in a list.
 # This list is used by function 'showall()' to plot
@@ -744,7 +748,7 @@ class Positionmessage(object):
          vals += (missingspatial,)
       s = ''
       for atyp, val in zip(self.axtype, vals):
-         if val == None:
+         if val is None:
             coord = "NaN"
          else:
             if self.hmsdms:
@@ -1007,7 +1011,7 @@ the alternate header.
 #--------------------------------------------------------------------
    while True:
       try:
-         if defaultfile == None:
+         if defaultfile is None:
             filename = ''
             s = "Enter name of FITS file: "
          else:
@@ -1037,7 +1041,7 @@ the alternate header.
    hdulist.info()
    # Note that an element of this list can be accessed either
    # by integer number or by name of the extension.
-   if hnr == None:
+   if hnr is None:
       n = len(hdulist)
       if  n > 1:
          while True:
@@ -1168,7 +1172,7 @@ translation.
    """
 #-----------------------------------------------------------------------
    n = fitsobj.naxis
-   if (axnum1 == None or axnum2 == None):
+   if (axnum1 is None or axnum2 is None):
       a1 = axnum1; a2 = axnum2
       ax1 = a1; ax2 = a2
       unvalid = True
@@ -1179,10 +1183,10 @@ translation.
             axnamelist += ','
       axnamelist += ')'
       while unvalid:
-         if axnum1 == None:
+         if axnum1 is None:
             a1 = 1
             ax1 = -1
-         if axnum2 == None:
+         if axnum2 is None:
             a2 = 2
             ax2 = -1
          deflt = "%s,%s" % (fitsobj.axisinfo[a1].axname, fitsobj.axisinfo[a2].axname)
@@ -1215,7 +1219,7 @@ translation.
    # Retrieve pixel positions on axes outside image
    # To facilitate the parsing of defaults one needs to allow 
    # pre-defined values for slicepos.
-   if slicepos == None:
+   if slicepos is None:
       slicepos = []
       if n > 2:
          for i in range(n):
@@ -1413,7 +1417,7 @@ Ask user to enter the output sky system if the data is a spatial map.
             except:
                unvalid = True
 
-   if skysys == None:
+   if skysys is None:
       skyout = None
    else:
       skyout = []
@@ -1515,7 +1519,7 @@ class Image(object):
 
       """
       #--------------------------------------------------------------------
-      if self.data == None:
+      if self.data is None:
          raise Exception, "Cannot plot image because image data is not available!"
       self.frame = frame
       # In the following call to imshow() it seems to be necessary to set the
@@ -1599,10 +1603,10 @@ class Contours(object):
       :meth:`Annotatedimage.plot` but it can also be used separately.
       """
       #--------------------------------------------------------------------
-      if self.data == None:
+      if self.data is None:
          raise Exception, "Cannot plot image because image data is not available!"
       self.frame = frame
-      if self.clevels == None:
+      if self.clevels is None:
          if self.filled:
             self.frame.contourf(self.data, cmap=self.cmap, norm=self.norm, **self.kwargs)
          self.CS = self.frame.contour(self.data, cmap=self.cmap, norm=self.norm, **self.kwargs)
@@ -1657,10 +1661,10 @@ class Contours(object):
       >>> cont.setp_contour(levels=11000, color='g', linewidth=3)
       """
       #--------------------------------------------------------------------
-      if levels == None:
+      if levels is None:
          self.commoncontourkwargs = kwargs
       else:
-         if self.clevels == None:
+         if self.clevels is None:
             raise Exception, "Contour levels not set so I cannot identify contours"
          # Change only contour properties for levels in parameter 'levels'.
          if not issequence(levels):
@@ -1707,10 +1711,10 @@ class Contours(object):
       #--------------------------------------------------------------------
       if tex and kwargs.has_key('fmt'):
          kwargs['fmt'] = r'$'+kwargs['fmt']+'$'
-      if levels == None:
+      if levels is None:
          self.commonlabelkwargs = kwargs
       else:
-         if self.clevels == None:
+         if self.clevels is None:
             raise Exception, "Contour levels not set so I cannot identify contours"
          # Change only contour properties for levels in parameter 'levels'.
          if not issequence(levels):
@@ -1806,7 +1810,7 @@ class Colorbar(object):
          self.cb.add_lines(CS.levels, tcolors, tlinewidths)
       self.colorbarticks()    # Set font size given in kwargs or use default
       if self.label != None:
-         if self.labelkwargs == None:
+         if self.labelkwargs is None:
             self.cb.set_label(self.label)
          else:
             self.cb.set_label(self.label, **self.labelkwargs)
@@ -1854,7 +1858,7 @@ class Beam(object):
 
       if units != None:
          uf, errmes = unitfactor('degree', units)
-         if uf == None:
+         if uf is None:
             raise ValueError(errmes)
          else:
             fwhm_major /= uf
@@ -2181,7 +2185,7 @@ class Pixellabels(object):
       self.ptype = "Pixellabels"       # not a gridframe object
       defkwargs = {'fontsize':7}
       defkwargs.update(kwargs)
-      if plotaxis == None:
+      if plotaxis is None:
          plotaxis = [2,3]
 
       px = [0,0]; py = [0,0]
@@ -2564,7 +2568,6 @@ this class.
       """
       """
       #-----------------------------------------------------------------
-      global messenger
       self.ptype = "Annotatedimage"
       self.hdr = header
       self.projection = projection
@@ -2593,10 +2596,11 @@ this class.
       self.objlist = []
       self.frame = self.adjustframe(frame)
       self.figmanager = plt_get_current_fig_manager()
-      if messenger == None:
+      self.messenger = None
+      if 1: # messenger is None:
          try:
             # Initialize only once because we have only one toolbar
-            messenger = self.figmanager.toolbar.set_message
+            self.messenger = self.figmanager.toolbar.set_message
             self.figmanager.toolbar.set_message=lambda x: None
          except:
             pass
@@ -2617,15 +2621,15 @@ this class.
          # an image and therefore discard inf, -inf and nan to find the clip values.
          mask = numpy.isfinite(self.data)
          if numpy.any(mask):    # At least one must be a valid number
-            if self.clipmin == None:
+            if self.clipmin is None:
                self.clipmin = self.data[mask].min()
             self.clipmax = clipmax
-            if self.clipmax == None:
+            if self.clipmax is None:
                self.clipmax = self.data[mask].max()
       # Give defaults if clips are still None:
-      if self.clipmin == None:
+      if self.clipmin is None:
          self.clipmin = 0.0
-      if self.clipmax == None:
+      if self.clipmax is None:
          self.clipmax = 1.0
          
       self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax, clip=True)
@@ -2636,7 +2640,7 @@ this class.
       self.blurfac = (self.pxlim[1]-self.pxlim[0]+1)/200.0
       self.blurindx = 0
       self.data_orig = self.data                 # So we can toggle between image versions
-      if basename == None:
+      if basename is None:
          self.basename = "Unknown"               # Default name for file with colormap lut data
       else:
          self.basename = basename
@@ -2761,7 +2765,7 @@ this class.
 
       """
       #-----------------------------------------------------------------
-      if cmap == None:
+      if cmap is None:
          cmap = 'jet'
       if isinstance(cmap, Colormap):
          self.cmap = cmap                           # Either a string or a Colormap instance
@@ -2901,13 +2905,13 @@ this class.
       nx, ny are the sigma's for the gaussian kernel.
       """
       #-----------------------------------------------------------------
-      if ny == None:
+      if ny is None:
          ny = nx
-      if self.data == None:
+      if self.data is None:
          raise Exception, "Cannot plot image because image data is not available!"
-      #if self.data_orig == None:
+      #if self.data_orig is None:
       #   self.data_orig = self.data
-      if self.data_blur == None:
+      if self.data_blur is None:
          self.data_blur = self.data.copy()
       #g = gauss_kern(nx, sizey=ny)
       #self.data_blur = convolve2d(self.data, g, mode='valid')
@@ -2925,7 +2929,7 @@ this class.
       The histogram equalized data is stored in attribute *data_hist*.
       """
       #-----------------------------------------------------------------
-      if self.data == None:
+      if self.data is None:
          raise Exception, "Cannot plot image because image data is not available!"
       # Algorithm by Jan Erik Solem
       im = self.data
@@ -3409,7 +3413,7 @@ this class.
       wxlim = graticule.wxlim
       wylim = graticule.wylim
       # Separate the kwargs to be able to set just one of them
-      # to invisible (partsx/y == None)
+      # to invisible (partsx/y is None)
       if not kwargs.has_key('markersize'):
          kwargs.update(markersize=2)
       kwargs1 = kwargs.copy()
@@ -3890,7 +3894,7 @@ this class.
          try:
             pt = obj.ptype
             if pt == "Colorbar":
-               if obj.frame == None:             # No frame set by user
+               if obj.frame is None:             # No frame set by user
                   needresize = True
                   orientation = obj.kwargs['orientation']
                else:
@@ -4058,7 +4062,7 @@ this class.
       xw = yw = None
       missingspatial = None
       try:
-         if (self.mixpix == None):
+         if (self.mixpix is None):
             xw, yw = self.projection.toworld((xp, yp))
          else:
             if issequence(xp):
@@ -4117,7 +4121,7 @@ this class.
       #--------------------------------------------------------------------
       x = y = None
       try:
-         if (self.mixpix == None):
+         if (self.mixpix is None):
             x, y = self.projection.topixel((xw, yw))
          else:
             # Note that we have a fixed grid for the missing spatial axis,
@@ -4380,7 +4384,7 @@ this class.
          if len(s)*charw > messagemax:
             l = int(messagemax/charw)
             s = s[:l]
-         messenger(s)
+         self.messenger(s)
          
          #self.figmanager.toolbar.set_message(s)
 
@@ -4497,7 +4501,7 @@ this class.
       #--------------------------------------------------------------------      
       if axesevent.event.button == 3:
          x, y = axesevent.xdata, axesevent.ydata
-         if self.image.im == None:               # There is no image to adjust
+         if self.image.im is None:               # There is no image to adjust
             return
          # 1. event.xdata and event.ydata are the coordinates of the mouse location in
          # data coordinates (i.e. in screen pixels)
@@ -4545,16 +4549,16 @@ this class.
             if self.cmindx < 0:
                self.cmindx = lm - 1
          newcolormapstr = colormaps[self.cmindx]
-         messenger(newcolormapstr)
+         self.messenger(newcolormapstr)
          self.cmap.set_source(newcolormapstr)     # Keep original object, just change the lut
          #self.cmap.update()
       # Request for another scale, linear, logarithmic etc.
       elif axesevent.event.key in scales:
          key = axesevent.event.key 
-         messenger(scales[key])
+         self.messenger(scales[key])
          self.cmap.set_scale(scales[key])
          mes = "Color map scale set to '%s'" % scales[key]
-         messenger(mes)
+         self.messenger(mes)
       # Invert the color map colors
       #elif axesevent.event.key.upper() == 'I':
       elif axesevent.event.key == '9':
@@ -4566,12 +4570,12 @@ this class.
             self.cmap.set_inverse(True)
             self.cmapinverse = True
             mes = "Color map inverted!"
-         messenger(mes)
+         self.messenger(mes)
       # Reset all color map parameters
       #elif axesevent.event.key.upper() == 'R':
       elif axesevent.event.key == '0':
          self.cmap.auto = False      # Postpone updates of the canvas.
-         messenger('Reset color map to default')
+         self.messenger('Reset color map to default')
          #self.cmap.set_source(self.startcmap)
          self.cmap.set_source(colormaps[self.startcmindx])
          self.cmap.modify(1.0, 0.0)
@@ -4606,24 +4610,24 @@ this class.
          self.blankcol = blankcols[indx]
          self.cmap.set_bad(self.blankcol)
          mes = "Color of bad pixels changed to '%s'" % self.blankcol
-         messenger(mes)
+         self.messenger(mes)
       elif axesevent.event.key.upper() == 'M':
          stamp = datetime.now().strftime("%d%m%Y_%H%M%S")
          filename = self.basename + "_" + stamp + ".lut"
          self.write_colormap(filename)
          mes = "Save color map to file [%s]" % filename
-         messenger(mes)
+         self.messenger(mes)
       elif axesevent.event.key.upper() == 'H':
          # Set data to histogram equalized version
          if self.histogram:
             # Back to normal
             self.set_histogrameq(False)
-            messenger('Original image displayed')
+            self.messenger('Original image displayed')
          else:
-            if self.data_hist == None:
-               messenger('Calculating histogram')
+            if self.data_hist is None:
+               self.messenger('Calculating histogram')
             self.set_histogrameq()
-            messenger('Histogram eq. image displayed')
+            self.messenger('Histogram eq. image displayed')
       elif axesevent.event.key.upper() == 'X':
          # Change the smooting factor and go to blur mode.
          self.blurindx += 1
@@ -4631,19 +4635,19 @@ this class.
             self.blurindx = 1
          self.blurfac = self.blurindx * (self.pxlim[1]-self.pxlim[0]+1) / 200.0
          mes = "Blur index: %d blur sigma: %g" % (self.blurindx, self.blurfac)
-         messenger(mes)
+         self.messenger(mes)
          self.set_blur(nx=self.blurfac, new=True)
       elif axesevent.event.key.upper() == 'Z':
          # Set data to blurred version
          if self.blurred:
             # Back to normal
             self.set_blur(False)
-            messenger('Original image displayed')
+            self.messenger('Original image displayed')
          else:
-            if self.data_blur == None:
-               messenger('Calculating smoothed version')
+            if self.data_blur is None:
+               self.messenger('Calculating smoothed version')
             self.set_blur(nx=self.blurfac)
-            messenger('Smoothed eq. image displayed')
+            self.messenger('Smoothed eq. image displayed')
 
    def set_histogrameq(self, on=True):
       if not on:
@@ -4651,7 +4655,7 @@ this class.
          self.data = self.data_orig
          self.histogram = False
       else:
-         if self.data_hist == None:
+         if self.data_hist is None:
             #self.data_hist = self.histeq()
             self.histeq()         # It sets attribute data_hist to new image
          self.data = self.data_hist
@@ -4672,7 +4676,7 @@ this class.
          self.data = self.data_orig
          self.blurred = False
       else:
-         if self.data_blur == None or new:
+         if self.data_blur is None or new:
             self.blur(nx, ny)
          self.data = self.data_blur
          self.blurred = True
@@ -5410,13 +5414,13 @@ to know the properties of the FITS data beforehand.
       else:
          # Not an external header, so a file is given or user wants to be prompted.
          if promptfie:
-            if memmap == None:  # Use default of current PyFITS version
+            if memmap is None:  # Use default of current PyFITS version
                hdulist, hdunr, filename, alter = promptfie(filespec, prompt, hdunr, alter)
             else:
                hdulist, hdunr, filename, alter = promptfie(filespec, prompt, hdunr, alter, memmap)
          else:
             try:
-               if memmap == None:
+               if memmap is None:
                   hdulist = pyfits.open(filespec, **parms)
                else:
                   hdulist = pyfits.open(filespec, memmap=memmap, **parms)
@@ -5427,7 +5431,7 @@ to know the properties of the FITS data beforehand.
             except:
                print "Cannot open file, unknown error!"
                raise
-            if hdunr == None:
+            if hdunr is None:
                hdunr = 0
          self.hdunr = hdunr
          hdu = hdulist[hdunr]
@@ -5582,7 +5586,7 @@ to know the properties of the FITS data beforehand.
       """
       #-----------------------------------------------------------------
       # Is there something to do?
-      if self.slicepos == None:
+      if self.slicepos is None:
          return None, None
       pix = []
       units = []
@@ -5751,7 +5755,7 @@ to know the properties of the FITS data beforehand.
          will be raised.
       """
    #------------------------------------------------------------
-      if axnum == None:
+      if axnum is None:
          axnum = range(1, self.naxis+1)
       if not issequence(axnum):
          axnum = [axnum]
@@ -5882,7 +5886,7 @@ to know the properties of the FITS data beforehand.
              break
 
       # Check on validity
-      if axnumber == None:
+      if axnumber is None:
          raise ValueError("Axis name [%s] is not found in the header"%axname)
       return axnumber
 
@@ -6020,13 +6024,13 @@ to know the properties of the FITS data beforehand.
       axnr2 = self.getaxnumberbyname(axnr2)
       n = self.naxis
       if n >= 2:
-         if (axnr1 == None or axnr2 == None) and promptfie == None:
-            if (axnr1 == None and axnr2 == None):
+         if (axnr1 is None or axnr2 is None) and promptfie is None:
+            if (axnr1 is None and axnr2 is None):
                axnr1 = self.axperm[0]
                axnr2 = self.axperm[1]
             else:
                raise Exception, "One axis number is missing and no prompt function is given!"
-         if slicepos == None and promptfie == None:
+         if slicepos is None and promptfie is None:
             slicepos = self.slicepos
 
       # If there is a spectral axis in the FITS file, then get allowed
@@ -6190,8 +6194,8 @@ to know the properties of the FITS data beforehand.
       if not isspectral:
          return         # Silently
    
-      if promptfie == None:
-         #if spectrans == None:
+      if promptfie is None:
+         #if spectrans is None:
          #   raise Exception, "No spectral translation given!"
          #else:
          # Allow for None
@@ -6239,8 +6243,8 @@ to know the properties of the FITS data beforehand.
       if not spatialmap:
          return         # Silently
       
-      if promptfie == None:
-         if skyout == None:
+      if promptfie is None:
+         if skyout is None:
             raise Exception, "No definition for the output sky is given!"
          else:
             self.skyout = skyout
@@ -6291,14 +6295,14 @@ to know the properties of the FITS data beforehand.
       n2 = self.axisinfo[self.axperm[1]].axlen
       npxlim = [None,None]
       npylim = [None,None]
-      if pxlim == None:
+      if pxlim is None:
          npxlim = [1, n1]
       else:
          if not issequence(pxlim):
             raise Exception, "pxlim must be tuple or list!"
          npxlim[0] = pxlim[0]
          npxlim[1] = pxlim[1]
-      if pylim == None:
+      if pylim is None:
          npylim = [1, n2]
       else:
          if not issequence(pylim):
@@ -6395,7 +6399,7 @@ to know the properties of the FITS data beforehand.
          aspectratio = nx/ny
       extraspace = 3.0  # cm
 
-      if xsize == None and ysize == None:
+      if xsize is None and ysize is None:
          if abs(nx*cdeltx) >= abs(ny*cdelty):
             xsize = 21.0        # A4 width
          else:
@@ -6625,7 +6629,7 @@ to know the properties of the FITS data beforehand.
             # not available, then put them in the header and flag the header as
             # altered.
 
-            if cdeltlon == None:
+            if cdeltlon is None:
                cdeltlon = cdeltlon_cd
                key = "CDELT%d" % lonaxnum
                # Create new one if necessary
@@ -6634,7 +6638,7 @@ to know the properties of the FITS data beforehand.
                else:
                   hdr.update(key, cdeltlon, comment)
                hdrchanged = True
-            if cdeltlat == None:
+            if cdeltlat is None:
                cdeltlat = cdeltlat_cd
                key = "CDELT%d" % lataxnum
                if dicttype:
@@ -6642,7 +6646,7 @@ to know the properties of the FITS data beforehand.
                else:
                   hdr.update(key, cdeltlat, comment)
                hdrchanged = True
-            if crota == None:
+            if crota is None:
                crota = crota_cd
                key = "CROTA%d" % lataxnum
                if dicttype:
@@ -7023,10 +7027,10 @@ to know the properties of the FITS data beforehand.
       lonaxnum2 = p2.lonaxnum; lataxnum2 = p2.lataxnum
       shapenew = [0]*naxis
       # Uitbreiden met meer flexibiliteit
-      if pxlim_dst == None:
+      if pxlim_dst is None:
          pxlim_dst = [1]*2
          pxlim_dst[1] = lenXnew
-      if pylim_dst == None:
+      if pylim_dst is None:
          pylim_dst = [1]*2
          pylim_dst[1] = lenYnew
       nx = pxlim_dst[1] - pxlim_dst[0] + 1
@@ -7037,7 +7041,7 @@ to know the properties of the FITS data beforehand.
       # outside the spatial map). See the documentation for what
       # is allowed to enter
       if naxisout > 0:
-         if plimLO == None or plimHI == None:
+         if plimLO is None or plimHI is None:
             plimLO = [0]*(naxis-2)
             plimHI = [0]*(naxis-2)
             for i, axnr in enumerate(axnum_out):
@@ -7432,7 +7436,7 @@ to know the properties of the FITS data beforehand.
             f.writetofits(history=False, comment=False)
       """
    #---------------------------------------------------------------------
-      if filename == None:
+      if filename is None:
          filename = getfilename('mu', 'fits')
          append = False      # Cannot append if FITS file does not exists
 
@@ -7462,14 +7466,14 @@ to know the properties of the FITS data beforehand.
       if bitpix != None:
          # User wants to scale
          code = hdu.NumCode[bitpix]   # Undocumented PyFITS function
-         if bzero == None and bscale == None:
+         if bzero is None and bscale is None:
             # Option below does not work for (at least) int16
             # because PyFITS (1.3) has a bug in its scaling method. 
             hdu.scale(code, option='minmax')
          else:
-            if bzero == None:
+            if bzero is None:
                bzero = 0.0
-            if bscale == None:
+            if bscale is None:
                bscale = 1.0
             hdu.scale(code, bzero=bzero, bscale=bscale)
          if blank != None:
@@ -7558,7 +7562,7 @@ to know the properties of the FITS data beforehand.
       ar = self.get_pixelaspectratio()
       basename = self.filename.rsplit('.')[0]
       # Note the use of self.boxdat  instead of self.dat !!
-      if frame == None:
+      if frame is None:
          fig = figure()
          frame = fig.add_subplot(1,1,1)
       mplimage = Annotatedimage(frame, self.hdr, self.pxlim, self.pylim, self.boxdat,
@@ -7691,7 +7695,7 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
 
       """
    #---------------------------------------------------------------------
-      if self.fig == None:
+      if self.fig is None:
          raise Exception, "No matplotlib.figure instance available!"
       if len(self.annimagelist) == 0:
          raise Exception, "No objects in container!"
