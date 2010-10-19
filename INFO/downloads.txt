@@ -139,6 +139,9 @@ Katholieke Universiteit Leuven @ 134.58.253.57
 UW Milwaukee  @ 129.89.61.29
 Oregon State University Open Source Lab @ 140.211.166.168
 l'Observatoire de Paris @ 145.238.177.33
+University of St Andrews @ 138.251.254.157
+Lund Observatory @ 130.235.102.178
 
-tot:  Mon Oct 11 11:02:47 CEST 2010
+tot:  Mon Oct 18 13:16:16 CEST 2010
+
 
