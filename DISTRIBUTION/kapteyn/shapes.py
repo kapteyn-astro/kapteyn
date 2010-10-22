@@ -1467,9 +1467,6 @@ class Shapecollection(object):
       if self.toolbar.mode != '':
          return
       currentimage = self.getimage(event)
-      if currentimage != None:
-         s = currentimage.positionmessage(event.xdata, event.ydata)
-         self.toolbar.set_message(s)
       if not self.activeobject:
          return
 

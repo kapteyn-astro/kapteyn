@@ -239,7 +239,7 @@ use('qt4agg')
 """
 
 """
-# Use this to find iquire the backend
+# Use this to find inquire the backend
 from matplotlib import rcParams
 backend = rcParams['backend']
 print "Backend=",backend
@@ -294,6 +294,8 @@ __version__ = '1.9'
 # all the objects in each Annotatedimage object.
 annotatedimage_list = []
 
+globalfigmanager = None
+globalmessenger = None
 
 def showall():
    #--------------------------------------------------------------------
@@ -2597,11 +2599,24 @@ this class.
       self.frame = self.adjustframe(frame)
       self.figmanager = plt_get_current_fig_manager()
       self.messenger = None
-      try:
-        self.messenger = self.figmanager.toolbar.set_message
-        self.figmanager.toolbar.set_message=lambda x: None
-      except:
-        pass
+      # The next lines need some explanation. The toolbar message
+      # is bound to a figure(manager). If a figure changes, then we need
+      # new toolbar message function. For multiple frames in one figure
+      # we want to use the same toolbar message function.
+      # To disable Matplotlib interference with this function we
+      # set the function to None with lambda x: None
+      # This makes it necessary to maintain two global variables.
+      # One to keep track of the figure(manager) and one that
+      # store the last message function (the messenger).
+      global globalfigmanager, globalmessenger
+      if not (self.figmanager is globalfigmanager):
+         try: # Sphinx does something with the figure manager, so we need a try
+            globalfigmanager = self.figmanager
+            globalmessenger = self.figmanager.toolbar.set_message
+            self.figmanager.toolbar.set_message=lambda x: None
+         except:
+           pass
+      self.messenger = globalmessenger
 
       # Related to color maps:
       self.set_colormap(cmap)

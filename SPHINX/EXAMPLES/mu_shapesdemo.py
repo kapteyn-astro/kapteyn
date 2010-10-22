@@ -37,9 +37,9 @@ im1.set_blankcolor('k')
 im2 = Reprojfits.Annotatedimage(frame2)
 im1.Image(); im1.Graticule()
 im2.Image(); im2.Graticule()
+im1.plot(); im2.plot()
 im1.interact_imagecolors(); im1.interact_toolbarinfo()
 im2.interact_imagecolors(); im2.interact_toolbarinfo()
-im1.plot(); im2.plot()
 #im1.fluxfie = lambda s, a: s/a
 #im2.fluxfie = lambda s, a: s/a
 im1.pixelstep = 0.2
