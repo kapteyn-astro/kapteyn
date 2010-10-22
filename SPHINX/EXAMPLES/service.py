@@ -116,12 +116,6 @@ def doplot(frame, fignum, annim, grat, title,
          plotcoast('WDB/world.txt', frame, grat, col='r', lim=50, 
                     decim=20, plotsym=',', sign=-1)
 
-   # Plot alternative borders
-   if perimeter != None:
-      p = plt.Polygon(perimeter, facecolor='#d6eaef', lw=2)
-      frame.add_patch(p)
-      Xp, Yp = zip(*perimeter)
-      frame.plot(Xp, Yp, color='r')
 
    if lon_constval == None:
       lon_constval = 0.0    # Reasonable for all sky plots
@@ -132,8 +126,8 @@ def doplot(frame, fignum, annim, grat, title,
    if lat_fmt == None:
       lat_fmt = 'Dms'
    # Plot labels inside graticule if required
-   labkwargs0.update({'fontsize':fsize})
-   labkwargs1.update({'fontsize':fsize})
+   #labkwargs0.update({'fontsize':fsize})
+   #labkwargs1.update({'fontsize':fsize})
    ilabs1 = grat.Insidelabels(wcsaxis=0, 
                         world=lon_world, constval=lat_constval, 
                         deltapx=deltapx0, deltapy=deltapy0, 
@@ -158,6 +152,17 @@ def doplot(frame, fignum, annim, grat, title,
       t = frame.set_title(title, color='g', fontsize=13, linespacing=1.5)
    t.set_y(titlepos)
    annim.plot()
+   
+   # Plot alternative borders. Do this after the graticule is plotted
+   # Only then you know the frame of the graticule and plotting in that
+   # frame will overwrite graticule lines so that the borders look better
+   if perimeter != None:
+      p = plt.Polygon(perimeter, facecolor='#d6eaef', lw=2)
+      frame.add_patch(p)     # Must be in frame specified by user
+      Xp, Yp = zip(*perimeter)
+      grat.frame.plot(Xp, Yp, color='r')
+
    annim.interact_toolbarinfo()
 
    plt.show()
+

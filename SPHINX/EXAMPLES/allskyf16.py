@@ -13,7 +13,7 @@ header = {'NAXIS'  : 2, 'NAXIS1': 100, 'NAXIS2': 80,
             'CRVAL2' : 0.0, 'CRPIX2' : 40, 'CUNIT2' : 'deg', 'CDELT2' : 4.0,
          }
 X = cylrange()
-Y = numpy.arange(-90,100,30.0)
+Y = numpy.arange(-60,90,30.0)
 f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),

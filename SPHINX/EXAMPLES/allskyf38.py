@@ -17,7 +17,7 @@ header = {'NAXIS'  : 2, 'NAXIS1': 512, 'NAXIS2': 512,
           'PV2_1'  : theta_a, 'PV2_2' : eta
          }
 X = numpy.arange(0,390.0,30.0);
-Y = numpy.arange(-90,120,30.0)
+Y = numpy.arange(-60,90,30.0)
 f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),

@@ -37,10 +37,7 @@ lat_world = [0,30,60,dec0]
 lon_world = range(0,360,30)
 addangle0 = -90
 addangle1 = -180
-labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
-labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title, 
        lon_world=lon_world, lat_world=lat_world, 
        lon_constval=lon_constval, lat_constval=lat_constval,
-       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
        addangle0=addangle0, addangle1=addangle1, markerpos=markerpos)

@@ -14,8 +14,7 @@ header = {'NAXIS' : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CRVAL2' : 30.0, 'CRPIX2' : 40, 'CUNIT2' : 'deg', 'CDELT2' : 3.5
          }
 X = numpy.arange(0,360.0,15.0)
-Y = numpy.arange(-90,90,15.0)
-Y[0]= -dec0
+Y = numpy.arange(-75,90,15.0)
 f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),

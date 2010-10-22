@@ -19,7 +19,7 @@ header = {'NAXIS' : 2, 'NAXIS1': 100, 'NAXIS2': 80,
          }
 X = numpy.arange(0,360.0,30.0)
 # Y diverges (this depends on selected parameters). Take save range.
-Y = [-70, -60, -45, -30, 0, 15, 30, 45, 60, 90]
+Y = [-70, -60, -45, -30, 0, 15, 30, 45, 60]
 f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-70,90.0), wxlim=(0,360),

@@ -5,7 +5,7 @@ from service import *
 fignum = 36
 fig = plt.figure(figsize=figsize)
 frame = fig.add_axes((0.1,0.15,0.8,0.75))
-title = 'Mediterranean region in zenithal perspective (AZP). (Cal. fig.36)'
+title = 'Earth in zenithal perspective (AZP). (Cal. fig.36)'
 # The ctype's are TLON, TLAT. These are recognized by WCSlib as longitude and latitude.
 # Any other prefix is also valid.
 header = {'NAXIS'  : 2, 'NAXIS1': 2048, 'NAXIS2': 2048,

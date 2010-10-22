@@ -17,7 +17,7 @@ header = {'NAXIS' : 2, 'NAXIS1': 100, 'NAXIS2': 80,
          }
 lowval = (180.0/numpy.pi)*numpy.arcsin(-1.0/mu) + 0.00001  # Calabretta eq.32
 X = numpy.arange(0,360,15.0)
-Y = numpy.arange(-30,90,15.0); 
+Y = numpy.arange(-30,89,15.0); 
 Y[0] = lowval                    # Add lowest possible Y to array
 f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)

@@ -2387,7 +2387,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                              offsetlabel=offsetlabel,
                              fun=fie, fmt=fmt)
             self.graticule.append(gridl)
-            gridl.kwargs = {'color': 'k', 'lw': 1}
+            gridl.kwargs = {'color': '0.75', 'lw': 1}
       if not skipy:
          for i, y in enumerate(self.ystarts):
             offsetlabel = None
@@ -2408,7 +2408,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                              gridsamples,self.mixpix, self.__skysys,
                              offsetlabel=offsetlabel,
                              fun=fie, fmt=fmt)
-            gridl.kwargs = {'color': 'k', 'lw': 1}
+            gridl.kwargs = {'color': '0.75', 'lw': 1}
             self.graticule.append(gridl)
 
       # Set properties for the rectangle axes.
@@ -2572,6 +2572,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          for line in gridline.linepieces:
             #ppx = numpy.ma.masked_where(numpy.isfinite(line[0]), line[0])
             #ppy = numpy.ma.masked_where(numpy.isfinite(line[1]), line[1])
+            #ppx = numpy.ma.masked_where(numpy.isinf(line[0]), line[0])
+            #ppy = numpy.ma.masked_where(numpy.isinf(line[1]), line[1])
             frame.plot(line[0], line[1], **gridline.kwargs)
             #frame.plot(ppx, ppy, **gridline.kwargs)
       # set the limits of the plot axes

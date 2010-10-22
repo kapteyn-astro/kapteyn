@@ -13,7 +13,7 @@ header = {'NAXIS'  : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CRVAL2' : 0.0, 'CRPIX2' : 40, 'CUNIT2' : 'deg', 'CDELT2' : 4.0
          }
 X = numpy.arange(0,370.0,15.0)
-Y = numpy.arange(-90,100,15.0)
+Y = numpy.arange(-75,90,15.0)
 f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
@@ -25,7 +25,7 @@ perimeter = getperimeter(grat)
 lon_world = range(0,360,30)
 lat_world = [-dec0, -60, -30, 0, 30, 60, dec0]
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
-labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
+labkwargs1 = {'color':'b', 'va':'center', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,
        labkwargs0=labkwargs0, labkwargs1=labkwargs1,

@@ -20,14 +20,14 @@ f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                        startx=X, starty=Y)
-lat_world = [-90, -60,-30, 30, 60]
+lat_world = [-90, -60,-30, 30, 60, dec0]
+# Trick to get the right longs.
 w1 = numpy.arange(0,179,30.0)
-w2 = numpy.arange(180,360,30.0)
-w2[0] = 180 + epsilon
+w2 = numpy.arange(210,360,30.0)
 lon_world = numpy.concatenate((w1, w2))
-labkwargs0 = {'color':'r', 'va':'top', 'ha':'right'}
-labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
+labkwargs0 = {'color':'r', 'va':'bottom', 'ha':'center'}
+labkwargs1 = {'color':'b', 'va':'center', 'ha':'center'}
 doplot(frame, fignum, annim, grat, title,
        lon_world=lon_world, lat_world=lat_world,
        labkwargs0=labkwargs0, labkwargs1=labkwargs1,
-       markerpos=markerpos)
+       lon_fmt='Hms', markerpos=markerpos)

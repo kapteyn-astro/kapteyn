@@ -22,10 +22,8 @@ grat = annim.Graticule(axnum= (1,2),
 lat_constval = -62
 lon_world = range(0,360,30)
 lat_world = range(-50, 10, 10)
-labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
-labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 addangle0 = -90
+labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title, 
        lon_world=lon_world, lat_world=lat_world, lat_constval=lat_constval,
-       labkwargs0=labkwargs0, labkwargs1=labkwargs1,
-       addangle0=addangle0, markerpos=markerpos)
+       addangle0=addangle0, labkwargs1=labkwargs1, markerpos=markerpos)

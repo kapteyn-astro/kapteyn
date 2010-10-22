@@ -13,7 +13,7 @@ header = {'NAXIS'  : 2, 'NAXIS1': 100, 'NAXIS2': 80,
           'CRVAL2' : 0.0, 'CRPIX2' : 40, 'CUNIT2' : 'deg', 'CDELT2' : 5.0
          }
 X = polrange()
-Y = numpy.arange(-90,100,15.0)
+Y = numpy.arange(-75,90,15.0)
 # !!!!!! Let the world coordinates for constant latitude run from 180,180
 # instead of 0,360. Then one prevents the connection between the two points
 # 179.9999 and 180.0001 which is a jump, but smaller than the definition of

@@ -17,7 +17,7 @@ header = {'NAXIS'  : 2, 'NAXIS1': 512, 'NAXIS2': 512,
           'LONPOLE' : -30.0
          }
 X = numpy.arange(-180,180.0,15.0);
-Y = numpy.arange(-90,120,15.0) 
+Y = numpy.arange(-75,90,15.0) 
 # Here we demonstrate how to avoid a jump at the right corner boundary 
 # of the plot by increasing the value of 'gridsamples'.
 f = maputils.FITSimage(externalheader=header)
@@ -33,7 +33,7 @@ header['CRVAL1'] = 0.0
 header['CRVAL2'] = 0.0
 header['LONPOLE'] = 999
 border = annim.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
-                         startx=(180-epsilon, -180+epsilon), starty=(-90,90))
+                         startx=(180-epsilon, -180+epsilon), starty=(-89.5,))
 border.setp_gratline((0,1), color='g', lw=2)
 border.setp_plotaxis((0,1,2,3), mode='no_ticks', visible=False)
 lon_world = range(0,360,30)
