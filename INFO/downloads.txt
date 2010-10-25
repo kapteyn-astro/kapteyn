@@ -141,7 +141,7 @@ Oregon State University Open Source Lab @ 140.211.166.168
 l'Observatoire de Paris @ 145.238.177.33
 University of St Andrews @ 138.251.254.157
 Lund Observatory @ 130.235.102.178
+University of Hawaii, Institute for Astronomy @ 128.171.2.200
+Stockholms universitet @ 77.238.53.44
 
-tot:  Mon Oct 18 13:16:16 CEST 2010
-
-
+tot:  Mon Oct 25 13:09:20 CEST 2010

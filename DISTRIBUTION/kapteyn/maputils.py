@@ -2607,7 +2607,7 @@ this class.
       # set the function to None with lambda x: None
       # This makes it necessary to maintain two global variables.
       # One to keep track of the figure(manager) and one that
-      # store the last message function (the messenger).
+      # stores the last message function (the messenger).
       global globalfigmanager, globalmessenger
       if not (self.figmanager is globalfigmanager):
          try: # Sphinx does something with the figure manager, so we need a try
@@ -3060,8 +3060,8 @@ this class.
          A RGB image does not interact with a colormap. Interacting with a colormap
          (e.g. after adding annim.interact_imagecolors() in the example below)
          is not forbidden but it gives weird results. To rescale the data, for
-         instance for a better view, you need to enter a function or Lambda expression
-         with parameter *fun*.
+         instance for a better view of interesting data, you need to enter a
+         function or Lambda expression with parameter *fun*.
 
       :Example:
 
@@ -3106,7 +3106,8 @@ this class.
       if dx == 0.0:
          dx = 1.0
       rgbim = (rgbim - dmin)/dx
-      # Apply the function or lambda expression if any is given
+      # Apply the function or lambda expression if any is given, to
+      # rescale the data.
       if not fun is None:
          rgbim = fun(rgbim)
       image = Image(rgbim, self.box, self.cmap, self.norm, **kwargs)
