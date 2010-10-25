@@ -14,7 +14,6 @@ f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule()
 grat2 = annim.Graticule(skyout='Galactic')
-grat2.setp_axislabel(plotaxis=("left", "bottom"), visible=False)
 grat.setp_ticklabel(plotaxis="bottom", position="20h34m", fmt="%g",
                     color='r', rotation=30)
 grat.setp_ticklabel(plotaxis='left', color='b', rotation=20,
@@ -25,6 +24,7 @@ grat.setp_axislabel(plotaxis='left', xpos=-0.25, ypos=0.5)
 # Rotation is inherited from previous setting 
 grat2.setp_gratline(color='g')
 grat2.setp_ticklabel(visible=False)
+grat2.setp_axislabel(visible=False)
 
 annim.plot()
 plt.show()
