@@ -153,6 +153,11 @@ setup(
          include_dirs=include_dirs
       ),
       Extension(
+         "fitting",
+         ["src/fitting.c", "src/gauestd.c"],
+         include_dirs=include_dirs
+      ),
+      Extension(
          "_nd_image", _nd_image_src,
          include_dirs=include_dirs
       )
