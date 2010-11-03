@@ -108,7 +108,7 @@ wcslib_src = [
    "flexed/wcsutrn.c"
 ]
 
-scipy_src = [
+ndimg_src = [
    "nd_image.c",
    "ni_filters.c",
    "ni_fourier.c",
@@ -121,7 +121,7 @@ scipy_src = [
 wcs_src       = (   ['src/'        + source for source in wcsmod_src]
                   + [wcslib_dir    + source for source in wcslib_src]  )
 
-_nd_image_src = ['src/scipy/'  + source for source in scipy_src]
+_nd_image_src = ['src/ndimg/'  + source for source in ndimg_src]
 
 define_macros = []
 if sys.platform == 'win32':
