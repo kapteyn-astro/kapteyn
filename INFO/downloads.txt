@@ -143,5 +143,11 @@ University of St Andrews @ 138.251.254.157
 Lund Observatory @ 130.235.102.178
 University of Hawaii, Institute for Astronomy @ 128.171.2.200
 Stockholms universitet @ 77.238.53.44
+Observatorio Nacional - Rio de Janeiro, RJ - Brasil @ 200.20.187.15
+Sacramento State @ 130.86.205.153
+Australian National University @ 150.203.88.145
+Fraunhofer-Institut fuer Integrierte Systeme @ 153.96.116.4
+University of Canterbury, Christchurch NZ @ 132.181.43.60
+iVEC (Western Australia) @ 192.102.250.84
 
-tot:  Mon Oct 25 13:09:20 CEST 2010
+tot:  Mon Nov  1 14:24:19 CET 2010
