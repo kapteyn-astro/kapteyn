@@ -354,7 +354,11 @@ int   gauestd_c( double   *y ,                 /* profile data */
    r = findga( y, work, *n, iwlo, iwhi, *cutoff, *minsig );
    if (r > MAXPAR) r = MAXPAR;                  /* this  should neven happen */
    if (r > 1) qsort( pars, r, sizeof( par_struct ), compar );
+#if 0 /* original */
    for (l = 0, m = 0; m < (*np); l++) {
+#else
+   for (l = 0, m = 0; l < (*np); l++) {
+#endif
       if (l < r) {                              /* still something in list */
          p[m++] = pars[l].a;                    /* the amplitude */
          p[m++] = pars[l].c;                    /* the centre */
