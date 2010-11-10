@@ -14,4 +14,5 @@ Module reference
    shapes
    Module tabarray: fast handling of tables in text files <tabarray>
    Module mplutil: utilities for use with matplotlib <mplutil>
+   fitting
    scipy

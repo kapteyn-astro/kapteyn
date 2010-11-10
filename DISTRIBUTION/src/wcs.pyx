@@ -556,11 +556,14 @@ class WrappedHeader(dict):
       self.naxis = header['NAXIS']
 
    def freqtype(self):            # change special frequency types into 'FREQ'
-      for i in range(1,self.naxis+1):
-         key = 'CTYPE%d'%i + self.alter
-         if self.header[key] in (self.optical+self.radio):
-            self[key] = 'FREQ'
-            break
+      try:
+         for i in range(1,self.naxis+1):
+            key = 'CTYPE%d'%i + self.alter
+            if self.header[key] in (self.optical+self.radio):
+               self[key] = 'FREQ'
+               break
+      except KeyError:
+         pass
 
    def wsrt_topo(self):           # WSRT file with topocentric frequencies?
       try:

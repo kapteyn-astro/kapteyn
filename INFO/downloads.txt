@@ -149,5 +149,8 @@ Australian National University @ 150.203.88.145
 Fraunhofer-Institut fuer Integrierte Systeme @ 153.96.116.4
 University of Canterbury, Christchurch NZ @ 132.181.43.60
 iVEC (Western Australia) @ 192.102.250.84
+New York University @ 128.122.53.78
+Institut d'Astrophysique Spatiale @ 129.175.65.113
+Departament d'Astronomia i Meteorologia (Barcelona) @ 161.116.78.54
 
-tot:  Mon Nov  1 14:24:19 CET 2010
+tot:  Mon Nov  8 10:34:49 CET 2010

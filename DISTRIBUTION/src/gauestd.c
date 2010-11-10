@@ -23,7 +23,8 @@ Use:          INTEGER GAUESTD( Y ,      Input     DOUBLE PRECISION ARRAY
                                RMS ,    Input     DOUBLE PRECISION
                                CUTAMP , Input     DOUBLE PRECISION
                                CUTSIG , Input     DOUBLE PRECISION
-                               Q )      Input     INTEGER
+                               Q,       Input     INTEGER
+                               SMODE )  Input     INTEGER
 
               GAUESTD       Returns number of gaussians found.
               Y             Data points on profile (dimension N).
@@ -40,15 +41,20 @@ Use:          INTEGER GAUESTD( Y ,      Input     DOUBLE PRECISION ARRAY
                             units multiply by the grid separation.
                             The centre is in units of pixel offset
                             (relative to first pixel in Y).
-              NP            Maximum number of parameters which can be
+              NP            Maximum number of gauss components which can be
                             stored in P.
               RMS           The  r.m.s. noise level of the profile.
               CUTAMP        Critical amplitude of gaussian. Gaussians
                             below this amplitude will be discarded.
-              CUTSIG        Critical displersion of gaussian.
+              CUTSIG        Critical dispersion of gaussian.
               Q             Smoothing parameter used in calculating the
                             second derivative of the profile. Q must be
                             greater than zero.
+              SMODE         Sorting mode, the order in which the gauss 
+                            components are delivered:
+                            0 - decreasing amplitude
+                            1 - decreasing dispersion
+                            2 - decreasing flux
 
 Description:  Double precision version of gauest, using the entire 
               profile as signal region.  The second derivative of
@@ -60,7 +66,8 @@ Description:  Double precision version of gauest, using the entire
 
 Updates:      Mar 12, 1991: KGB Document created.
               Jul 08, 1999: VOG Double precision version. Window method
-                                removed. 
+                                removed.
+              Nov 10, 2010: JPT Derived from GIPSY function gauestd().
                                 
 
 #<
@@ -70,7 +77,7 @@ Fortran to C interface:
 @integer function gauestd( double precision, double precision,
 @                          integer, double precision, integer,
 @                          double precision, double precision,
-@                          double precision, integer )
+@                          double precision, integer, integer )
 
 */
 
@@ -97,13 +104,14 @@ typedef struct {
 
 static  par_struct      pars[MAXPAR];           /* contains the parameters */
 
+
 
 /*
- * compar returns 1 if the amplitude of component 1 (first argument)
+ * compar_a returns 1 if the amplitude of component 1 (first argument)
  * is greater than component 2 (second argument). compar is called by qsort.
  */
 
-static  int     compar( const void *v1, const void *v2 )
+static  int     compar_a( const void *v1, const void *v2 )
 {
    par_struct   *p1, *p2;                       /* the types */
 
@@ -117,6 +125,39 @@ static  int     compar( const void *v1, const void *v2 )
       return( 0 );
    }
 }
+
+static  int     compar_s( const void *v1, const void *v2 )
+{
+   par_struct   *p1, *p2;                       /* the types */
+
+   p1 = (par_struct *) v1;                      /* assign component 1 */
+   p2 = (par_struct *) v2;                      /* assign component 2 */
+   if (p1->s > p2->s) {                         /* one > two */
+      return( -1 );
+   } else if (p1->s < p2->s) {                  /* one < two */
+      return( 1 );
+   } else {                                     /* one == two */
+      return( 0 );
+   }
+}
+
+static  int     compar_f( const void *v1, const void *v2 )
+{
+   par_struct   *p1, *p2;                       /* the types */
+
+   p1 = (par_struct *) v1;                      /* assign component 1 */
+   p2 = (par_struct *) v2;                      /* assign component 2 */
+   if (p1->a*p1->s > p2->a*p2->s) {             /* one > two */
+      return( -1 );
+   } else if (p1->a*p1->s < p2->a*p2->s) {      /* one < two */
+      return( 1 );
+   } else {                                     /* one == two */
+      return( 0 );
+   }
+}
+
+static int (*compar[])(const void *, const void *)
+   = { compar_a, compar_s, compar_f};
 
 
 /*
@@ -333,7 +374,8 @@ int   gauestd_c( double   *y ,                 /* profile data */
                   double   *rms ,               /* rms noise level */
                   double   *cutoff ,            /* cutoff level */
                   double   *minsig ,            /* minimum width of gaussians */
-                  int     *q )                 /* smoothing parameter */
+                  int      *q,                  /* smoothing parameter */
+                  int      *smode )             /* sorting mode */
 {
    int         iwhi, iwlo;                     /* window limits */
    int         l, m;                           /* loop counters */
@@ -353,12 +395,8 @@ int   gauestd_c( double   *y ,                 /* profile data */
    findc2( y, work, *n, iwlo, iwhi, *q );       /* get second derivative */
    r = findga( y, work, *n, iwlo, iwhi, *cutoff, *minsig );
    if (r > MAXPAR) r = MAXPAR;                  /* this  should neven happen */
-   if (r > 1) qsort( pars, r, sizeof( par_struct ), compar );
-#if 0 /* original */
-   for (l = 0, m = 0; m < (*np); l++) {
-#else
+   if (r > 1) qsort( pars, r, sizeof( par_struct ), compar[*smode] );
    for (l = 0, m = 0; l < (*np); l++) {
-#endif
       if (l < r) {                              /* still something in list */
          p[m++] = pars[l].a;                    /* the amplitude */
          p[m++] = pars[l].c;                    /* the centre */
@@ -371,52 +409,3 @@ int   gauestd_c( double   *y ,                 /* profile data */
    }
    return( r );                                 /* return number of gaussians */
 }
-
-#if     defined(TESTBED)
-
-#define NPAR    9
-#define NPTS    100
-
-void    main( )
-{
-   int         q = 1;
-   int         r;
-   int         n = NPTS;
-   int         np = NPAR;
-   double       rms = 0.5;
-   double       cutoff= 1.0;
-   double       minsig = 0.5;
-   double       par[NPAR];
-   double       w[NPTS];
-   double       y[NPTS];
-
-   par[0] = 5.0; par[1] = 45.0; par[2] = 1.1;
-   par[3] = 4.0; par[4] = 50.0; par[5] = 1.1;
-   par[6] = 6.0; par[7] = 55.0; par[8] = 1.1;
-   {
-      int      i, j;
-
-      for (i = 0; i < n; i++) {
-         y[i] = 0.0;
-         for (j = 0; j < np; j += 3) {
-            if (par[j] != 0.0) {
-               double    a = par[j];
-               double    c = (par[j+1] - (double) i);
-               double    s = par[j+2];
-
-               y[i] += a * exp( -0.5 * c / s * c / s );
-            }
-         }
-      }
-   }
-   r = gauestd_c( y, w, &n, par, &np, &rms, &cutoff, &minsig, &q );
-   printf( "gauest = %d\n", r );
-   if (r > 0) {
-      int      i;
-
-      for (i = 0; i < (3*r); i += 3) {
-         printf( "A = %f, C = %f, S = %f\n", par[i], par[i+1], par[i+2] );
-      }
-   }
-}
-#endif
