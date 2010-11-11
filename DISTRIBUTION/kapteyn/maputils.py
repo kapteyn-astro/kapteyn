@@ -254,15 +254,13 @@ from matplotlib.patches import Polygon
 from matplotlib.ticker import MultipleLocator
 import matplotlib.nxutils as nxutils
 import pyfits
-import warnings
 import numpy
 from kapteyn import wcs, wcsgrat
 from kapteyn.celestial import skyrefsystems, epochs, skyparser, lon2hms, lat2dms, lon2dms
 from kapteyn.tabarray import tabarray, readColumns
 from kapteyn.mplutil import AxesCallback, VariableColormap, TimeCallback, KeyPressFilter
 from kapteyn.positions import str2pos, mysplit, unitfactor
-#from scipy.ndimage.interpolation import map_coordinates
-from kapteyn.interpolation import map_coordinates
+from kapteyn.interpolation import map_coordinates  # original from scipy.ndimage.interpolation
 from kapteyn.filters import gaussian_filter 
 from kapteyn import rulers
 import readline
@@ -276,7 +274,7 @@ from re import split as re_split
 from datetime import datetime
 import time
 try:
-   from gipsy import anyout
+   from gipsy import anyout, typecli
    gipsymod = True
 except:
    gipsymod = False
@@ -1069,7 +1067,6 @@ the alternate header.
    # prompted to enter a character from a list with allowed
    # characters. Currently an alternate header is found if
    # there is a CRPIX1 followed by a character A..Z
-   print "Alter=", alter
    if alter == '':
       alternates = []
       hdr = hdulist[hnr].header
@@ -1093,7 +1090,6 @@ the alternate header.
                else:
                   print "Character not in list with allowed alternates!"
 
-   print "Return alter=", alter
    return hdulist, hnr, filename, alter
 
 
@@ -4807,16 +4803,23 @@ this class.
       s = ''
       if self.figmanager.toolbar.mode == '':
          x, y = axesevent.xdata, axesevent.ydata
-         s = self.positionmessage(x, y, axesevent.posobj)
+         if axesevent.gipsy and gipsymod and axesevent.typecli:
+            x -= self.pixoffset[0]; y -= self.pixoffset[1]
+            s = "%g %g "%(x,y)
+         else:
+            s = self.positionmessage(x, y, axesevent.posobj)
       if s != '':
          if axesevent.gipsy and gipsymod:
-            anyout(s)
+            if axesevent.typecli:
+               typecli(s) # Write to Hermes command line
+            else:
+               anyout(s)  # Write to Hermes log file
          else:
             print s       # Write to terminal
 
 
    def interact_writepos(self, pixfmt="%.1f", wcsfmt="%.3g", zfmt="%.3e",
-                         hmsdms=True, dmsprec=1, gipsy=False):
+                         hmsdms=True, dmsprec=1, gipsy=False, typecli=False):
       #--------------------------------------------------------------------
       """
       Add mouse interaction (left mouse button) to write the position
@@ -4880,7 +4883,7 @@ this class.
       posobj.hmsdms = hmsdms
       posobj.dmsprec = dmsprec
       self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame,
-                           'button_press_event', gipsy=gipsy, posobj=posobj)
+                           'button_press_event', gipsy=gipsy, typecli=typecli, posobj=posobj)
 
 
    def motion_events(self):
@@ -5078,36 +5081,48 @@ in a FITS keyword.
          if alter != '' and alternate:
             s += alter
          return s
-       
+
       ax = makekey("CTYPE")
       self.ctype = 'Unknown'
       self.axname = 'Unknown'
       if hdr.has_key(ax):
          self.ctype = hdr[ax].upper()
          self.axname = string_upper(hdr[ax].split('-')[0])
-      
+      else:
+         self.ctype = "X%d"%axisnr
+         self.axname = self.ctype
+
       ai = makekey("NAXIS", alternate=False)
       self.axlen = hdr[ai]
       self.axisnr = axisnr
       self.axstart = 1
       self.axend = self.axlen
-      self.cdelt = 0.0
+
       ai = makekey("CDELT")
       if hdr.has_key(ai):
          self.cdelt = hdr[ai]
+      else:
+         self.cdelt = 1.0
       ai = makekey("CRVAL")
-      self.crval = hdr[ai]
-      self.cunit = 'Unknown'
+      if hdr.has_key(ai):
+         self.crval = hdr[ai]
+      else:
+         self.crval = 1.0
       ai = makekey("CUNIT")          # Is sometimes omitted, so check first.
       if hdr.has_key(ai):
          self.cunit = hdr[ai]
+      else:
+         self.unit = '?'
       ai = makekey("CRPIX")
-      self.crpix = hdr[ai]
+      if hdr.has_key(ai):
+         self.crpix = hdr[ai]
+      else:
+         self.crpix = self.axlen/2
       ai = makekey("CROTA")          # Not for all axes
       self.crota = 0
       if hdr.has_key(ai):
          self.crota = hdr[ai]
-      
+
       self.wcstype = None
       self.wcsunits = None
       self.outsidepix = None
@@ -5336,7 +5351,13 @@ to know the properties of the FITS data beforehand.
        A string that sets the spectra translation. If one uses the prompt function
        for the image axes, then you will get a list of possible translations for the
        spectral axis in your image.
-       
+
+    .. attribute:: proj
+
+       An object from :class:`wcs.Projection`. This object is the result of the call:
+       ``proj = wcs.Projection(self.hdr)``, so it is the Projection object that involves all
+       the axes in the FITS header.
+    
     .. attribute:: convproj
 
        An object from :class:`wcs.Projection`. This object is needed to
@@ -5423,7 +5444,7 @@ to know the properties of the FITS data beforehand.
       if externalheader != None:
          self.hdr = externalheader
          self.bitpix, self.bzero, self.bscale, self.blank = getscale(self.hdr)
-         self.filename = "Header dictionary"
+         self.filename = "Out"
          self.dat = externaldata
       else:
          # Not an external header, so a file is given or user wants to be prompted.
@@ -6095,6 +6116,13 @@ to know the properties of the FITS data beforehand.
          # With shape: boxdat.shape = (n1,n2)
          if self.dat != None:
             self.boxdat = self.dat[sl].squeeze()
+            # Squeeze gets rid of the axes that have length 1.
+            # If one of the other axes of the map also has length 1
+            # then this axis should not be squeezed. So we restore
+            # to the right shape, which must always be two-dimensional.
+            if len(self.boxdat.shape) == 1:
+               newshape = (1, self.boxdat.shape[0])
+               self.boxdat.shape = newshape
       else:
          self.boxdat = self.dat
 
@@ -7574,7 +7602,11 @@ to know the properties of the FITS data beforehand.
       """
    #---------------------------------------------------------------------
       ar = self.get_pixelaspectratio()
-      basename = self.filename.rsplit('.')[0]
+      if not kwargs.has_key('basename'):      
+         basename = self.filename.rsplit('.')[0]
+         kwargs['basename'] = basename      # Append because it must be available
+      else:
+        basename = kwargs['basename']
       # Note the use of self.boxdat  instead of self.dat !!
       if frame is None:
          fig = figure()
@@ -7584,7 +7616,7 @@ to know the properties of the FITS data beforehand.
                                 skyout=self.skyout, spectrans=self.spectrans,
                                 alter=self.alter,
                                 mixpix=self.mixpix, aspect=ar, slicepos=self.slicepos,
-                                basename=basename, **kwargs)
+                                **kwargs)
       # The kwargs are for cmap, blankcolor, clipmin, clipmax for which
       # a FITSimage object does not need to set defaults because they
       # are used in another context (e.g. image display).
