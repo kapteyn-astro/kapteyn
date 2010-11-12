@@ -770,7 +770,7 @@ class Positionmessage(object):
 class Colmaplist(object):
 #-----------------------------------------------------------
    """
-   This class provides an object which  stores
+   This class provides an object which stores
    the names of all available colormaps.
    The method *add()* adds external colormaps to
    this list. The class is used in the context of
@@ -796,6 +796,7 @@ class Colmaplist(object):
          self.colormaps.insert(0,c)
 
 cmlist = Colmaplist()
+cmlist.add(VariableColormap.luts())      # Add luts from lut directory of the fKapteyn Package
 colormaps = cmlist.colormaps
 
 
@@ -2767,7 +2768,8 @@ this class.
 
          >>> annim = fitsobj.Annotatedimage(frame, cmap="spectral", clipmin=10000, clipmax=15500)
 
-         Get extra lookup tables from Kapteyn Package:
+         Get extra lookup tables from Kapteyn Package (by default, these
+         luts are appended at creation tome of cmlist)
       
          >>> extralist = mplutil.VariableColormap.luts()
          >>> maputils.cmlist.add(extralist)
