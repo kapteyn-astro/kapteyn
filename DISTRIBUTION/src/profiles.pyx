@@ -1,16 +1,15 @@
 """
-==============
-Module fitting
-==============
+===============
+Module profiles
+===============
 
 .. moduleauthor:: Hans Terlouw <J.P.Terlouw@astro.rug.nl>
 .. highlight:: python
    :linenothreshold: 5
 
-**NOTICE** the name of this module is subject to change.
 
-Functions
----------
+Function
+--------
 
 .. autofunction:: gauest(y, rms, cutamp, cutsig, q [, ncomp=200, smode=0])
 
@@ -70,7 +69,7 @@ def gauest(y, rms, cutamp, cutsig, q, ncomp=200, smode=0, window=False):
    greater than zero.
 :param ncomp:
    maximum number of gaussian components to be found.
-   It should be :math:`\leq 0`.
+   It should be :math:`\geq 1`.
 :param smode:
    order in which gaussian components are delivered. 0: decreasing amplitude,
    1: decreasing dispersion, 2: decreasing flux.

@@ -380,7 +380,14 @@ int   gauestd_c( double   *y ,                 /* profile data */
    int         iwhi, iwlo;                     /* window limits */
    int         l, m;                           /* loop counters */
    int         r = 0;                          /* return value */
-   static double        BLANK = 0.0/0.0;       /* BLANK value: NaN */
+   double      BLANK; 
+   
+   union {
+      long i;
+      float f;
+   } nanval;
+   nanval.i = 0x7fc00000;
+   BLANK = nanval.f;                           /* BLANK value: NaN */
 
 
 #ifdef  WITHWINDOW

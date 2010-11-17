@@ -152,5 +152,9 @@ iVEC (Western Australia) @ 192.102.250.84
 New York University @ 128.122.53.78
 Institut d'Astrophysique Spatiale @ 129.175.65.113
 Departament d'Astronomia i Meteorologia (Barcelona) @ 161.116.78.54
+University of Toronto @ 128.100.88.42
+Rutherford Appleton Laboratory @ 130.246.253.48
 
-tot:  Mon Nov  8 10:34:49 CET 2010
+
+tot:  Mon Nov 15 14:01:52 CET 2010
+

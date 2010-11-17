@@ -153,8 +153,8 @@ setup(
          include_dirs=include_dirs
       ),
       Extension(
-         "fitting",
-         ["src/fitting.c", "src/gauestd.c"],
+         "profiles",
+         ["src/profiles.c", "src/gauestd.c"],
          include_dirs=include_dirs
       ),
       Extension(
