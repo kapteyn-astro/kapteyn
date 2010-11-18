@@ -261,7 +261,8 @@ from kapteyn.tabarray import tabarray, readColumns
 from kapteyn.mplutil import AxesCallback, VariableColormap, TimeCallback, KeyPressFilter
 from kapteyn.positions import str2pos, mysplit, unitfactor
 from kapteyn.interpolation import map_coordinates  # original from scipy.ndimage.interpolation
-from kapteyn.filters import gaussian_filter 
+from kapteyn.filters import gaussian_filter
+# Original location was: from scipy.ndimage.filters import gaussian_filter
 from kapteyn import rulers
 import readline
 from types import TupleType as types_TupleType
@@ -2901,7 +2902,7 @@ this class.
       helptext += "Colour scales: 0=reset 1=linear 2=logarithmic"
       helptext += "3=exponential 4=square-root 5=square 9=inverse\n"
       helptext += "h: Toggle histogram equalization & raw image -- "
-      helptext += "z: Toggle smooth & raw image\n"
+      helptext += "z: Toggle smooth & raw image -- x: Increase smooth factor\n"
       helptext += "m: Save current colour map to disk -- "
       helptext += "b: Change colour of bad pixels"   # Last line has no line feed (bottom aligned)
       return helptext
@@ -2918,19 +2919,11 @@ this class.
       #-----------------------------------------------------------------
       if ny is None:
          ny = nx
-      if self.data is None:
+      if self.data is None:       # Current data
          raise Exception, "Cannot plot image because image data is not available!"
-      #if self.data_orig is None:
-      #   self.data_orig = self.data
-      if self.data_blur is None:
-         self.data_blur = self.data.copy()
-      #g = gauss_kern(nx, sizey=ny)
-      #self.data_blur = convolve2d(self.data, g, mode='valid')
+      if self.data_blur is None:  # Blurred data
+         self.data_blur = numpy.zeros(self.data.shape)
       gaussian_filter(self.data_orig, sigma=(nx,ny), order=0, output=self.data_blur, mode='reflect', cval=0.0)
-      #self.min = self.data.min()
-      #self.datmax = self.data.max()
-      #u = {'vmin':self.datmin, 'vmax':self.datmax}
-      #self.kwargs.update(u)
 
        
    def histeq(self, nbr_bins=256):
@@ -5478,7 +5471,7 @@ to know the properties of the FITS data beforehand.
 
          # If an input array is of type integer then it is converted to
          # float32. Then we can use NaN's in the data as a replacement for BLANKS
-         # Note that if scaled data is read than the scaling is applied first
+         # Note that if scaled data is read then the scaling is applied first
          # and the type is converted to float32
          # Due to added code in PyFITS 1.3 to deal with
          # blanks, the conversion also takes place if we have
