@@ -2796,6 +2796,10 @@ this class.
       self.cmapinverse = False
       if blankcolor != None:
          self.set_blankcolor(blankcolor)
+      try:
+         self.cmap.auto = False
+      except:
+         pass
 
 
    def write_colormap(self, filename):
@@ -3926,7 +3930,6 @@ this class.
             obj.plot(self.cbframe)
 
 
-
    def toworld(self, xp, yp, matchspatial=False):
       #--------------------------------------------------------------------
       """
@@ -4734,6 +4737,14 @@ this class.
       #--------------------------------------------------------------------
       self.imagecolorskey = AxesCallback(self.key_imagecolors, self.frame, 'key_press_event')
       self.imagecolorsmouse = AxesCallback(self.mouse_imagecolors, self.frame, 'motion_notify_event')
+      # Set interaction with colormap on. We postponed this until now because
+      # setting it before plot operations ruins your graticule frames with versions
+      # of Matplotlib >= 0.99. This seems to be caused by an unvoluntary canvas.draw()
+      # in module mplutil for color map updates for a sequence of images with the same
+      # color map (subsets/slices). The constructor of the Annotatedimage class
+      # sets auto to False. Here we set it to True because only here we require
+      # interaction.
+      self.cmap.auto = True
 
 
    def mouse_writepos(self, axesevent):

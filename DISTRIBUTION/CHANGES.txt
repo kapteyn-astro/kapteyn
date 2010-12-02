@@ -29,8 +29,10 @@ Version 2.0.3 (in development)
 
 * Module mplutil:
 
-  * work-around for missing 'pageup' and 'pagedown' keys in matplotlib's
-    Qt4Agg backend.
+  * work-around for special keys which are defined in matplotlib's GTKAgg
+    backend but 'missing' from the Qt4Agg backend.
+    The following keys are made available: 'pageup', 'pagedown',
+    'left', 'right', 'up', 'down', 'home', 'end'.
 
 * Module positions:
 

@@ -54,8 +54,14 @@ GIPSY keyword event connection
 try:
    from PyQt4 import QtCore
    from matplotlib.backends.backend_qt4 import FigureCanvasQT
-   FigureCanvasQT.keyvald[QtCore.Qt.Key_PageUp] = 'pageup'
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_PageUp]   = 'pageup'
    FigureCanvasQT.keyvald[QtCore.Qt.Key_PageDown] = 'pagedown'
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_Left]     = 'left'
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_Right]    = 'right'
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_Up]       = 'up'
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_Down]     = 'down'
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_Home]     = 'home'
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_End]      = 'end'
 except:
    pass
    
