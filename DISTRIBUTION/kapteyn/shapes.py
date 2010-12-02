@@ -7,8 +7,12 @@
 # AUTHOR:  M.G.R. Vogelaar, University of Groningen, The Netherlands
 # DATE:    April 25, 2010
 # UPDATE:  April 25, 2010
+#          Nov 28, Changed transformxy routine so that it can also
+#                  work with maps with only one spatial axis.
+#                  Changed toolbar output to messenger() which is
+#                  a method of the Annotated image object.
 #
-# VERSION: 1.0
+# VERSION: 1.1
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -31,6 +35,7 @@ polygon, ellipse, circle, rectangle or spline.
 The strength of this module is that it duplicates a shape in different
 images using transformations to world coordinates. This enables one to compare
 flux in two images with different WCS systems.
+It works with both spatial maps and maps with mixed axes (e.g. position-velocity maps)
  
 .. autoclass:: Shapecollection
 
@@ -49,6 +54,7 @@ import matplotlib.nxutils as nxutils
 import numpy
 from kapteyn.maputils import AxesCallback
 from sys import stdout, exit
+from types import TupleType
 from kapteyn.mplutil import KeyPressFilter
 try:
    from gipsy import finis, anyout
@@ -56,8 +62,11 @@ try:
 except:
    gipsymod = False
 
+__version__ = '1.1'
 
+# Allow the use of these keys for resize the screen (f) and plot grid lines (g)
 KeyPressFilter.allowed = ['f', 'g']
+
 
 def button_setcolor(btnobj, c):
    """
@@ -194,7 +203,7 @@ def cubicspline(xyu, nsamples):
 
 
 class Poly(Polygon):
-   def __init__(self, frame, framenr, active, markers, x0, y0, type=None, acolor='b', 
+   def __init__(self, frame, framenr, active, markers, x0, y0, type=None, acolor='y', 
                 spline=False, **kwargs):
       # Either initialize object with one marker at x0, y0 or
       # initialize with a sequence of markers copied from an  existing object.
@@ -224,6 +233,8 @@ class Poly(Polygon):
          self.frame.add_patch(self.spline)
       if self.active:
          self.set_active(markers)
+      else:
+         self.set_inactive()
 
 
    def copy(self, frame, framenr, x0, y0, xy, active, markers):
@@ -249,7 +260,7 @@ class Poly(Polygon):
 
    def set_active(self, markers=False):
       self.active = True
-      alpha = 0.1
+      alpha = 0.5
       if self.markers:
          self.markers.set_visible(markers)
       if self.spline != None:
@@ -783,6 +794,7 @@ class Shapecollection(object):
       self.gipsy = gipsy
       self.wcs = wcs
       self.activeobject = None
+      self.showactivestate = True
       self.currenttype = 0
       self.canvas = ifigure.canvas
       self.numberoftypes = 5
@@ -819,36 +831,37 @@ class Shapecollection(object):
       self.frameresult.set_title("Flux as function of shape and image")
       self.results = False
 
+      ypos = 0.96; yhei = 0.03
       self.graycol = 'chartreuse'
-      quit_button = self.figure.add_axes([0.01, 0.94, 0.11, 0.05])
+      quit_button = self.figure.add_axes([0.01, ypos, 0.11, yhei])
       b0 = Button(quit_button, 'Quit')
       b0.on_clicked(self.doquit)
 
-      result_button = self.figure.add_axes([0.13, 0.94, 0.11, 0.05])
+      result_button = self.figure.add_axes([0.13, ypos, 0.11, yhei])
       b1 = Button(result_button, 'Plot Flux')
       b1.on_clicked(self.plotresults)
 
-      save_button = self.figure.add_axes([0.25, 0.94, 0.11, 0.05])
+      save_button = self.figure.add_axes([0.25, ypos, 0.11, yhei])
       b2 = Button(save_button, 'Save Flux')
       b2.on_clicked(self.saveresults)
 
-      pol_button = self.figure.add_axes([0.74, 0.94, 0.05, 0.05])
+      pol_button = self.figure.add_axes([0.74, ypos, 0.05, yhei])
       b3 = Button(pol_button, 'Pol.')
       b3.on_clicked(self.setpoly)
 
-      ell_button = self.figure.add_axes([0.79, 0.94, 0.05, 0.05])
+      ell_button = self.figure.add_axes([0.79, ypos, 0.05, yhei])
       b4 = Button(ell_button, 'Ell.')
       b4.on_clicked(self.setellipse)
 
-      cir_button = self.figure.add_axes([0.84, 0.94, 0.05, 0.05])
+      cir_button = self.figure.add_axes([0.84, ypos, 0.05, yhei])
       b5 = Button(cir_button, 'Cir.')
       b5.on_clicked(self.setcircle)
 
-      rec_button = self.figure.add_axes([0.89, 0.94, 0.05, 0.05])
+      rec_button = self.figure.add_axes([0.89, ypos, 0.05, yhei])
       b6 = Button(rec_button, 'Rec.')
       b6.on_clicked(self.setrectangle)
 
-      spl_button = self.figure.add_axes([0.94, 0.94, 0.05, 0.05])
+      spl_button = self.figure.add_axes([0.94, ypos, 0.05, yhei])
       b7 = Button(spl_button, 'Spl.')
       b7.on_clicked(self.setspline)
 
@@ -864,7 +877,7 @@ class Shapecollection(object):
       helptxt = "SHAPES:\n"
       helptxt += "n=start new object -- a=add point -- d=delete point -- i=insert point\n"
       helptxt += "c=copy object -- e=erase object -- [=next shape in group -- ]=prev in gr.\n"
-      helptxt += "w=write shapes to disk -- r=read shapes from disk\n"
+      helptxt += "w=write shapes to disk -- r=read shapes from disk -- u=toggle markers\n"
       helptxt += "Mouse-left=drag and/or change shape --- Mouse-middle=select shape"
       
       ifigure.text(0.01,0.01, helptxt, tdict)
@@ -973,16 +986,18 @@ class Shapecollection(object):
          for obj in self.shapes[self.currenttype][cindx]:
             if not (obj is self.activeobject):
                if self.wcs:
-                  proj1 = self.currentimage.projection
-                  proj2 = self.images[obj.framenr].projection
-                  obj.spline.xy = self.transformXY(self.activeobject.spline.xy, proj1, proj2)
+                  #proj1 = self.currentimage.projection
+                  #proj2 = self.images[obj.framenr].projection
+                  im1 = self.currentimage
+                  im2 = self.images[obj.framenr]
+                  obj.spline.xy = self.transformXY(self.activeobject.spline.xy, im1, im2)
                else:
                   obj.spline.xy = self.activeobject.spline.xy
 
 
 
-   def transformXY(self, xy1, proj1, proj2):
-   #----------------------------------------------------------
+   def transformXY(self, xy1, im1, im2):
+      #----------------------------------------------------------
       """
       Given one or a sequence of positions in pixels *xy* that belong
       to an image with world coordinate system *proj1*, we want
@@ -997,17 +1012,49 @@ class Shapecollection(object):
         sky system of the second system.
       * Transform the world coordinates into pixels in the
         second system. These world coordinates are now given
-        in the sky system of the second world coordinate system. 
+        in the sky system of the second world coordinate system.
       """
-   #----------------------------------------------------------
+      #----------------------------------------------------------
+      proj1 = im1.projection
+      proj2 = im2.projection
+      mixpix = im1.mixpix
+      
       if proj1.skyout != proj2.skyout:
          proj1.skyout = proj2.skyout
-   
-      xyworld1 =  proj1.toworld(xy1)
-      xy2 = proj2.topixel(xyworld1)
-      stdout.flush()
+
+      # We enter with a set of pixel coordinates belonging to an image
+      # with sky definition skyout1 (proj1.skyout). When the axes of the image
+      # are both spatial, then we make world coordinates of the current pixels
+      # but these world coordinates are returned in the sky definition of
+      # the second image skyout2 (proj2.skyout). These world coordinates
+      # are now transformed to pixel coordinates using the projection
+      # system of the second image (proj2)
+      if mixpix is None:
+         xyworld1 =  proj1.toworld(xy1)
+         xy2 = proj2.topixel(xyworld1)
+      else:
+         # Add the pixel that sets the position on the 'missing'
+         # spatial axis of the first set. Then transform x,y,z to
+         # world coordinates. Strip the z value afterwards before
+         # returning.
+         if type(xy1) == TupleType and len(xy1) == 2:
+            x = xy1[0]; y = xy1[1]; z = mixpix
+            t = (x, y, z)
+            xyworld1 =  proj1.toworld(t)
+            x, y, z = proj2.topixel(xyworld1)
+            xy2 = (x, y)
+         else:
+            z = numpy.zeros(len(xy1)) + mixpix
+            x, y = zip(*xy1)
+            t = zip(x, y, z)
+            xyworld1 =  proj1.toworld(t)
+            xyz = proj2.topixel(xyworld1)
+            x, y, z = zip(*xyz)
+            xy2 = zip(x, y)
+         
       proj1.skyout = None                           # Reset
       return xy2
+
 
 
    def addnewobject(self, shapetype, x, y, framenr):
@@ -1049,16 +1096,18 @@ class Shapecollection(object):
                      xpb, ypb, type=self.currenttype, r1=maj, r2=min)
       baseobj.updatexy(zip(x, y))                # The position to start with
       if self.wcs:
-         xyworld = self.images[framenr].projection.toworld(baseobj.xy)
-      proj1 = self.images[framenr].projection
+         xyworld = self.images[framenr].toworld(baseobj.xy[:,0], baseobj.xy[:,1])
+      #proj1 = self.images[framenr].projection
+      im1 = self.images[framenr]
 
       for i in range(self.numberofimages):
          active = True
          markers = False
          if i != baseobj.framenr:
             if self.wcs:
-               proj2 = self.images[i].projection
-               xy = self.transformXY(baseobj.xy, proj1, proj2)
+               #proj2 = self.images[i].projection
+               im2 = self.images[i]
+               xy = self.transformXY(baseobj.xy, im1, im2)
             else:
                xy = baseobj.xy
             obj = baseobj.copy(self.frames[i], i, xpb, ypb, xy, active, markers)
@@ -1094,11 +1143,18 @@ class Shapecollection(object):
          return
       xpb = event.xdata; ypb = event.ydata
       if self.wcs:
-         xw, yw = self.currentimage.projection.toworld((xpb,ypb))
-      
+         #xw, yw = self.currentimage.projection.toworld((xpb,ypb))
+         xw, yw = self.currentimage.toworld(xpb,ypb)
+
+
+
+      # We disabled the code for the selection of shapes because
+      # one can select it with gui buttons and second, the numbers are
+      # already reserved by the colour editor.
+      """
       if event.key.isdigit():
-         """User pressed a number 1, 2, 3, .. (i.e. it does not start with 0)
-            This number corresponds to one of the supported types"""
+         # User pressed a number 1, 2, 3, .. (i.e. it does not start with 0)
+         # This number corresponds to one of the supported types
          newtype = int(event.key) - 1                         # Bring user selected type in range 0..number of shape types -1
          if newtype < 0 or newtype >= len(self.shapetypes):   # Does not represent a shape
             return
@@ -1120,8 +1176,9 @@ class Shapecollection(object):
                else:
                   obj.set_active()
          self.canvas.draw()
+      """
 
-      elif event.key in ['n', 'c']:
+      if event.key in ['n', 'c']:
          if event.key == 'c':
             if not self.activeobject:       # User want a copy but from what?
                return
@@ -1167,8 +1224,8 @@ class Shapecollection(object):
                          xpb, ypb, type=self.currenttype, r1=maj, r2=min)
             xyshift = baseobj.xy   # Not shifted here
             if self.wcs:
-               xyworld = self.getimage(event).projection.toworld(xyshift)
-            
+               #xyworld = self.getimage(event).projection.toworld(xyshift)
+               xyworld = self.getimage(event).toworld(xyshift[:,0], xyshift[:,1])
          
          if event.key == 'c':
             # Make single and copy this later for other images
@@ -1181,15 +1238,14 @@ class Shapecollection(object):
             active = True
             markers = False
             if not self.frames[i].contains(event)[0]:
+               active = False
                if self.wcs:
-                  # NOTE: The current system assumes that the images for which
-                  # the shapes should be copied, have all the same sky system.
-                  # If we want to extend this to different systems we need a
-                  # sky transformation first (using the skysystem of the other image)
-                  proj1 = self.images[framenr].projection
-                  proj2 = self.images[i].projection
-                  xy = self.transformXY(xyshift, proj1, proj2)
-                  x0, y0 = self.transformXY((xpb, ypb), proj1, proj2)
+                  #proj1 = self.images[framenr].projection
+                  #proj2 = self.images[i].projection
+                  im1 = self.images[framenr]
+                  im2 = self.images[i]
+                  xy = self.transformXY(xyshift, im1, im2)
+                  x0, y0 = self.transformXY((xpb, ypb), im1, im2)
                else:
                   xy = xyshift
                   x0, y0 = xpb, ypb
@@ -1263,9 +1319,11 @@ class Shapecollection(object):
                if not obj is self.activeobject:
                   setmarker = False
                   if self.wcs:
-                     proj1 = self.images[framenr].projection
-                     proj2 = self.images[obj.framenr].projection
-                     xp, yp = self.transformXY((xpb,ypb), proj1, proj2)
+                     #proj1 = self.images[framenr].projection
+                     #proj2 = self.images[obj.framenr].projection
+                     im1 = self.images[framenr]
+                     im2 = self.images[obj.framenr]
+                     xp, yp = self.transformXY((xpb,ypb), im1, im2)
                   else:
                      xp, yp = xpb, ypb
                   obj.addvertex(xp, yp, setmarker)
@@ -1300,9 +1358,11 @@ class Shapecollection(object):
                if obj == self.activeobject:
                   xp, yp = xpb, ypb
                else:
-                  proj1 = self.images[framenr].projection
-                  proj2 = self.images[obj.framenr].projection
-                  xp, yp = self.transformXY((xpb,ypb), proj1, proj2)
+                  #proj1 = self.images[framenr].projection
+                  #proj2 = self.images[obj.framenr].projection
+                  im1 = self.images[framenr]
+                  im2 = self.images[obj.framenr]
+                  xp, yp = self.transformXY((xpb,ypb), im1, im2)
                obj.insertmarker(xp, yp, indx)
             if self.currenttype == self.spline:
                self.updatesplines()
@@ -1353,9 +1413,16 @@ class Shapecollection(object):
          f = open(filename, 'w')
          stamp = datetime.now().strftime("! Saved at %A %d/%m/%Y %H:%M:%S\n")
          f.write(stamp)
-         iminfo = "! Data saved for image: %s\n" % self.currentimage.basename
+         iminfo = "! Data saved for image: %s\n" % self.currentimage.sourcename
          f.write(iminfo)
-         f.write('! Format: Shape - object number - x pixel - y pixel - x world - y world\n')
+         if self.currentimage.slicepos is None:
+            iminfo = "! Image was not a slice from N-dim. data source (N>2)"
+         else:
+            iminfo = "! Slice position(s): %s\n"%self.currentimage.slicepos
+         f.write(iminfo)
+         f.write('! Format of this file:\n')
+         f.write('! Shape # - object# - x pixel - y pixel - x world - y world\n')
+         f.write('! ---------------------------------------------------------\n')
          for sh in self.shapes:
             for ol, objlist in enumerate(sh):
                for obj in objlist:
@@ -1370,15 +1437,16 @@ class Shapecollection(object):
                         f.write('%d %d %12f %12f %12f %12f\n' % (obj.shapetype, ol, mx, my, xw, yw))
          f.close()
          mes = "Wrote shape data to file: %s" % filename
-         self.toolbar.set_message(mes)
-
+#         self.toolbar.set_message(mes)
+         self.currentimage.messenger(mes)
 
       elif event.key == 'r':
          # Read data from file. Select between pixel- or world
          # coordinates. First number in the file is an index for
          # the polygon the data belongs to.
          if self.inputfilename == None:
-            self.toolbar.set_message("No input file name specified!")
+            #self.toolbar.set_message("No input file name specified!")
+            self.currentimage.messenger("No input file name specified!")
             return
          im = self.currentimage
          framenr = self.getframenr(event)
@@ -1404,12 +1472,27 @@ class Shapecollection(object):
                if len(xlist):
                   self.addnewobject(sh, xlist, ylist, framenr) 
          mes = "Read data from file %s" % self.inputfilename
-         self.toolbar.set_message(mes)
+         #self.toolbar.set_message(mes)
+         self.currentimage.messenger(mes)
+
+
+      elif event.key == 'u':    # Toggle visibility markers etc. for plot purposes
+         if self.activeobject:
+            if self.showactivestate:
+               self.activeobject.set_inactive()
+               self.active = True
+               self.showactivestate = False
+            else:
+               self.activeobject.set_active(markers=True)
+               self.showactivestate = True
+            self.canvas.draw()
+
+            
 
    def button_press(self, event):
       # -A position pointed with the mouse could be within a polygon
       # Then activate that polygon and the associated polygons (group)
-      if not event.inaxes: 
+      if not event.inaxes:
          return
       if self.toolbar.mode != '':         # Must be in zoom or pan mode, so do nothing
          return
@@ -1462,7 +1545,7 @@ class Shapecollection(object):
 
    def motion_notify(self, event):
       """ Move one marker or the whole object"""
-      if not event.inaxes: 
+      if not event.inaxes:
          return
       if self.toolbar.mode != '':
          return
@@ -1506,9 +1589,11 @@ class Shapecollection(object):
             return
          for obj in self.shapes[self.currenttype][group]:        # Copy to other images
             if self.wcs:                                         # Is a transformation needed?
-               proj1 = self.currentimage.projection
-               proj2 = self.images[obj.framenr].projection
-               xp, yp = self.transformXY((event.xdata,event.ydata), proj1, proj2)
+               #proj1 = self.currentimage.projection
+               #proj2 = self.images[obj.framenr].projection
+               im1 = self.currentimage
+               im2 = self.images[obj.framenr]
+               xp, yp = self.transformXY((event.xdata,event.ydata), im1, im2)
             if indx == -1:
                # This was a position inside the polygon but not close enough to a marker.
                # Then move all markers
@@ -1520,9 +1605,11 @@ class Shapecollection(object):
                if not self.wcs or self.currenttype in (self.polygon, self.spline):
                   obj.movemarker(xp, yp, indx)
                else:
-                  proj1 = self.currentimage.projection
-                  proj2 = self.images[obj.framenr].projection
-                  xy = self.transformXY(self.activeobject.xy, proj1, proj2)
+                  #proj1 = self.currentimage.projection
+                  #proj2 = self.images[obj.framenr].projection
+                  im1 = self.currentimage
+                  im2 = self.images[obj.framenr]
+                  xy = self.transformXY(self.activeobject.xy, im1, im2)
                   obj.updatexy(xy)
          if self.currenttype == self.spline:
             self.updatesplines()
@@ -1663,7 +1750,8 @@ class Shapecollection(object):
                   f.write('  %4d %4d %4d %16g %16g %16g\n' % (obj.shapetype, ol, obj.framenr, obj.sum, obj.area, obj.flux))
       f.close()
       mes = "Wrote flux results to file: %s" % filename
-      self.toolbar.set_message(mes)
+      #self.toolbar.set_message(mes)
+      self.currentimage.messenger(mes)
       if self.gipsy and gipsymod:
          anyout(mes)
 
@@ -1714,7 +1802,7 @@ def main():
    frames[3].set_xlim(0,8)
    frames[3].set_ylim(0,7)
    
-   names = ['m101', 'M1', 'L1', 'NGC2323']
+   names = ['m101', 'M1', 'L1', 'NGC2323']  # Just dummies
    
    class Projection(object):
       def __init__(self, name):

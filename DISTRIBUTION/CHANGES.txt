@@ -9,8 +9,6 @@ Version 2.0.3 (in development)
 
   * minimal FITS headers are now accepted
 
-* Changed to WCSLIB 4.6 (from 4.5)
-
 * Module maputils:
 
   * added new class *Skypolygon* for plotting shapes like ellipses,
@@ -19,11 +17,48 @@ Version 2.0.3 (in development)
     This class can be used for example to draw footprints on all-sky
     plots or a beam to show the resolution of an instrument.
 
+  * improved position information in toolbar.  Message format can be
+    changed by user/programmer. 
+  
+  * support for RGB images. RGB values are displayed in message toolbar.
+  
+  * class *FITSimage*: improved versions of header2classic() and
+    reproject_to() methods;
+    new slice2world method prints information about
+    slice positions (annotate 2d maps from a 3d data cube).
+
+* Module mplutil:
+
+  * work-around for missing 'pageup' and 'pagedown' keys in matplotlib's
+    Qt4Agg backend.
+
+* Module positions:
+
+  * units 1/...  and /...  also recognized.  Can be used for spectral
+    translations that transform to e.g.  AWAV. 
+
+* Module shapes:
+
+  * messages for toolbar improved.
+  
+  * changed conversion routine to support shapes on maps with only one
+    spatial axis (e.g.  position-velocity maps).
+    
+  * GUI improved.
+  
+  * Improved writing shape data to file.
+
+* Module wcsgrat:
+
+  * fixed bug with precision in seconds.
+  
 * New module profiles:
 
   * added function *gauest()* for estimating gaussian components in
     a profile. These estimates can e.g. subsequently be used as initial
     estimates for a least squares fit.
+
+* WCSLIB: changed to version 4.6 (from 4.5)
 
 
 Version 2.0.2 (Sep 16, 2010)

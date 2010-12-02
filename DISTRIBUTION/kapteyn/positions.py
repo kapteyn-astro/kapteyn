@@ -525,6 +525,7 @@ Functions
 
 .. autofunction:: str2pos
 .. autofunction:: parsehmsdms
+.. autofunction:: unitfactor
 
 """
 
@@ -687,6 +688,32 @@ def unitfactor(unitfrom, unitto):
 #-----------------------------------------------------------------------------------
    """
    Return the factor for a conversion of numbers between two units.
+
+   :param unitfrom:
+      Units to convert from. Strings with '1/unit' or '/unit' are
+      also allowed.
+   :type unitfrom: String
+   :param unitto:
+      Units to convert to. Strings with '1/unit' or '/unit' are
+      also allowed.
+   :type axtype: String
+
+   :Returns:
+
+      The conversion factor to convert a number in 'unitsfrom'
+      to a number in 'unitsto'.
+
+   :Notes:
+   
+   :Examples:
+
+      >>> print unitfactor('1/m', '1/km')
+      (1000.0, '')
+      >>> print positions.unitfactor('1/mile', '1/km')
+      (0.62137119223733395, '')
+      >>> print positions.unitfactor('mile', 'km')
+      (1.6093440000000001, '')
+
    """
 #-----------------------------------------------------------------------------------
    units = {'DEGREE' :      (1,                        1.0),
@@ -743,6 +770,21 @@ def unitfactor(unitfrom, unitto):
             'ERG':          (10,                       1.0e-7),
             'RY' :          (10,                       2.179872e-18)
            }
+   # There is a special case for units like 1/m or /m
+   # Then the factor needs to be inverted.
+   inverse = inversefrom = inverseto = False
+   if unitfrom.startswith('/') or unitfrom.startswith('1/'):
+      inversefrom = True
+   if unitto.startswith('/') or unitto.startswith('1/'):
+      inverseto = True
+   if (inversefrom and not inverseto) or (inverseto and not inversefrom): 
+      errmes = "[%s] cannot be converted to [%s]" % (unitfrom, unitto)
+      return None, errmes
+   inverse = inversefrom and inverseto
+   if inverse:
+      unitfrom = unitfrom.split('/')[1]
+      unitto = unitto.split('/')[1]
+      
    mylist = units.keys()
    i = minmatch(unitfrom, mylist)
    errmes = ''
@@ -775,7 +817,9 @@ def unitfactor(unitfrom, unitto):
    else:
       errmes = "Cannot convert between [%s] and [%s]" % (unitfrom, unitto)
       return None, errmes
-   
+
+   if inverse:
+      unitfactor = 1.0/unitfactor
    return unitfactor, errmes
 
 
@@ -1547,6 +1591,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None, gipsy=False):
       # to deal with these situations.
       try:
          wor, pix = newproj.mixed(tuple(wcoord), tuple(gcoord))
+         # print wor, pix
       except wcs.WCSerror, message:
          errmes = str(message[1])  # element 0 is error number
          # Restore to the original projection object

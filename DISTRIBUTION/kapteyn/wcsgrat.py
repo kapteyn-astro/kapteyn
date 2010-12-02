@@ -391,8 +391,11 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
    if hms:
       if Hlab:
          if tex:
+            # We keep busy with the problem of the h in superscript
+            # which lowers the entire label.
             #lab += r"%.2d^h"%Ihours
             lab += r"%d^h"%Ihours
+            #lab += r"%dh"%Ihours
          else:
             lab += "%d^h"%Ihours
          if Slab:
@@ -423,8 +426,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
          lab += fsec
       if not tex:
          lab += 's'
-   #if tex:
-   #   lab = r"$" + lab + "$"
+
    return lab
 
 
@@ -3010,6 +3012,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                     if fmt != None: t.fmt = fmt
                     if fun != None: t.fun = fun
                     if tex != None: t.tex = tex
+                    # There are defaults for the precision in seconds for each axis
+                    # If the user sets a format with precision in seconds (e.g. HMS.SS)
+                    # then we need to tell this to different methods that dela with this.
+                    if not fmt is None and fmt.find('%') == -1:   # Not a common format, must be a HMS/DMS format
+                       s2 = fmt.split('.')
+                       if len(s2) > 1:
+                          self.prec[gridline.wcsaxis] = len(s2[1])
            else:      # One or more positions are given. Find the right index.
               for pos in posn:
                  if type(pos) == StringType:

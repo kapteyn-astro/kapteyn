@@ -9,7 +9,7 @@
 # DATE:    April 17, 2008
 # UPDATE:  May 17, 2008
 #          June 30, 2009; Docstrings converted to Sphinx format
-# VERSION: 1.0
+# VERSION: 1.10
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -18,9 +18,7 @@
 #
 # Todo:
 # Positionmessage offsets laten laten tonen.
-# -positionmessage moet nog +inf, -inf onderscheiden
-# -Blanksgedrag beschrijven
-# -Iets doen met figuresize? Opruimen get_aspectratio in FITSimage
+#
 #----------------------------------------------------------------------
 
 """
@@ -228,18 +226,12 @@ Class MovieContainer
 .. autoclass:: MovieContainer
 
 """
-# In case we want to use the plot directive, we have an example here
-# .. plot:: /Users/users/vogelaar/MAPMAKER/maputils.intro.1.py
-#
 
 """
 # Use this to change the default backend
 from matplotlib import use
 use('qt4agg')
-"""
-
-"""
-# Use this to find inquire the backend
+# Use this to find the current backend
 from matplotlib import rcParams
 backend = rcParams['backend']
 print "Backend=",backend
@@ -282,7 +274,7 @@ except:
 
 KeyPressFilter.allowed = ['f', 'g']
 
-__version__ = '1.9'
+__version__ = '1.10'
 
 (left,bottom,right,top) = (wcsgrat.left, wcsgrat.bottom, wcsgrat.right, wcsgrat.top)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = (wcsgrat.native, wcsgrat.notnative, wcsgrat.bothticks, wcsgrat.noticks) 
@@ -2563,12 +2555,14 @@ this class.
    def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm,
                 skyout, spectrans, alter='',
                 mixpix=None,  aspect=1, slicepos=None, basename=None,
-                cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None):
+                cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None,
+                sourcename='unknownsource'):
       #-----------------------------------------------------------------
       """
       """
       #-----------------------------------------------------------------
       self.ptype = "Annotatedimage"
+      self.sourcename = sourcename
       self.hdr = header
       self.projection = projection
       self.pxlim = pxlim
@@ -2922,7 +2916,7 @@ this class.
       if self.data is None:       # Current data
          raise Exception, "Cannot plot image because image data is not available!"
       if self.data_blur is None:  # Blurred data
-         self.data_blur = numpy.zeros(self.data.shape)
+         self.data_blur = numpy.zeros(self.data.shape) # Prevent byte order problems
       gaussian_filter(self.data_orig, sigma=(nx,ny), order=0, output=self.data_blur, mode='reflect', cval=0.0)
 
        
@@ -3906,37 +3900,12 @@ this class.
                   self.cbframe = obj.frame
          except:
             raise Exception, "Unknown object. Cannot plot this!"
-
+      
       if needresize:                             # because a colorbar must be included
          self.cbframe = make_axes(self.frame, orientation=orientation)[0]
-         # A frame is created for the colorbar, but for vertical bars, the
-         # bar is often too high, so we want to adjust the height then.
+         # A frame is created for the colorbar. The original frame has been changed too.
+         # Make sure that it gets the same properties as before the change.
          self.frame = self.adjustframe(self.frame)
-         ### The apply_aspect is necessary otherwise we cannot obtain
-         # the final position and size of the adjusted frame.
-         # However this disturbs the frame of other objects like the graticule.
-         # So, if we need a trick to improve the default size of the
-         # colorbar, we cannot use apply_aspect()
-         """
-         # self.frame.apply_aspect()
-         print "aspect=", self.frame.get_aspect()
-         print "adjust", self.frame.get_adjustable()
-         print "autoscale", self.frame.get_autoscale_on()
-         xxyy = self.frame.get_position().get_points()
-         cbf = self.cbframe.get_position().get_points()
-         x0 = cbf[0,0]; y0 = cbf[0,1]
-         if orientation == 'vertical':
-            yylo = xxyy[0,1]; yyhi = xxyy[1,1]
-            newhei = abs(yyhi - yylo)
-            wid = abs(cbf[1,0] - x0)
-            newpos = (x0, yylo, wid, newhei)
-         else:
-            xxlo = xxyy[0,0]; xxhi = xxyy[1,0]
-            newwid = abs(xxhi - xxlo)
-            hei = abs(cbf[1,1] - y0)
-            newpos = (xxlo, y0, newwid, hei)
-         self.cbframe.set_position(newpos)
-         """
       self.cmap.add_frame(self.frame)
 
       for obj in self.objlist:
@@ -5429,7 +5398,7 @@ to know the properties of the FITS data beforehand.
 
 #--------------------------------------------------------------------
    def __init__(self, filespec=None, promptfie=None, prompt=True, hdunr=None, alter='', memmap=None,
-                externalheader=None, externaldata=None, **parms):
+                externalheader=None, externaldata=None, externalname="artificial", **parms):
       #----------------------------------------------------
       # Usually the required header and data are extracted
       # from a FITS file. But it is also possible to provide
@@ -5439,7 +5408,7 @@ to know the properties of the FITS data beforehand.
       if externalheader != None:
          self.hdr = externalheader
          self.bitpix, self.bzero, self.bscale, self.blank = getscale(self.hdr)
-         self.filename = "Out"
+         self.filename = externalname
          self.dat = externaldata
       else:
          # Not an external header, so a file is given or user wants to be prompted.
@@ -5568,7 +5537,7 @@ to know the properties of the FITS data beforehand.
       self.figsize = None      # TODO is dit nog belangrijk??
       
 
-   def slice2world(self, skyout=None, spectra=None):
+   def slice2world(self, skyout=None, spectra=None, userunits=None):
       #-----------------------------------------------------------------
       """
       Given the pixel coordinates of a slice, return the world
@@ -5583,13 +5552,20 @@ to know the properties of the FITS data beforehand.
          Set current projection object in new output sky mode
       :type skyout:
          String or tuple representing sky definition
-      
 
       :param spectra:
          Use this spectral translation for the output world coordinates
       :type spectra:
          String
-         
+
+      :param userunits:
+         A sequence of units as the user wants to have it appear
+         in the slice info string. The order of these units must
+         be equal to the order of the axes outside the slice/subset.
+         Both the world coordinates and the units are adjusted. 
+      :type userunits:
+         String
+          
       :Returns:
          A tuple with two elements: *world* and *units*.
          Element *world* is either an empty list or a list with
@@ -5613,6 +5589,9 @@ to know the properties of the FITS data beforehand.
       
          >>> vel, uni = fitsobj.slice2world(spectra="VOPT-???")
          >>> velinfo = "ch%d = %.1f km/s" % (ch, vel[0]/1000.0)
+
+         or:
+         >>> vel, uni = fitsobj.slice2world(spectra="VOPT-???", userunits="km/s")
       """
       #-----------------------------------------------------------------
       # Is there something to do?
@@ -5643,7 +5622,30 @@ to know the properties of the FITS data beforehand.
             units.append(newproj.cunit[i])
       if skyout != None:
          self.proj.skyout = skyout_old
-      return world, units
+
+      # This method accepts a tuple with units given by a user.
+      # The units are entered in the same order as the axes outside a subset/slice
+      # Scaled versions
+      if not userunits is None:
+         sworld = []
+         sunits = []
+         if not issequence(userunits):
+            userunits = [userunits]
+         for w, u, uu in zip(world, units, userunits):
+            if not uu is None:
+               uf, errmes = unitfactor(u, uu)
+               if uf is None:
+                  raise ValueError(errmes)
+               else:
+                  w *= uf
+                  u = uu
+            sworld.append(w)
+            sunits.append(u)
+      else:
+         # The original (native) values and units
+         sworld = world
+         sunits = units
+      return sworld, sunits
 
 
    def get_dataminmax(self, box=False):
@@ -7611,7 +7613,7 @@ to know the properties of the FITS data beforehand.
                                 skyout=self.skyout, spectrans=self.spectrans,
                                 alter=self.alter,
                                 mixpix=self.mixpix, aspect=ar, slicepos=self.slicepos,
-                                **kwargs)
+                                sourcename=self.filename, **kwargs)
       # The kwargs are for cmap, blankcolor, clipmin, clipmax for which
       # a FITSimage object does not need to set defaults because they
       # are used in another context (e.g. image display).
