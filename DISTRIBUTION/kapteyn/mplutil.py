@@ -45,9 +45,20 @@ GIPSY keyword event connection
 ------------------------------
 
 .. autofunction:: gipsy_connect
-
  
 """
+
+# Work-around for the qt4 backend which does not support the PageUp
+# and PageDown keys.
+#
+try:
+   from PyQt4 import QtCore
+   from matplotlib.backends.backend_qt4 import FigureCanvasQT
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_PageUp] = 'pageup'
+   FigureCanvasQT.keyvald[QtCore.Qt.Key_PageDown] = 'pagedown'
+except:
+   pass
+   
 # ==========================================================================
 #                             class AxesCallback
 # --------------------------------------------------------------------------

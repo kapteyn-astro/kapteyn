@@ -85,10 +85,10 @@ def shapes(proj, fig, plnr, crval2=0.0, **pv):
 
    grat.Insidelabels(wcsaxis=0,
                      world=range(0,360,30), constval=0, fmt='Hms', 
-                     color='b', fontsize=7)
+                     color='b', fontsize=5)
    grat.Insidelabels(wcsaxis=1,
                      world=[-60, -30, 30, 60], constval=0, fmt='Dms', 
-                     color='b', fontsize=7)
+                     color='b', fontsize=5)
    annim.interact_toolbarinfo()
    annim.interact_writepos(wcsfmt="%f",zfmt=None, pixfmt=None, hmsdms=False)
    frame.set_title(proj, y=0.8)
