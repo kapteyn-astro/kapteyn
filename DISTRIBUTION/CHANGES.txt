@@ -22,9 +22,9 @@ Version 2.0.3 (in development)
   
   * support for RGB images. RGB values are displayed in message toolbar.
   
-  * class *FITSimage*: improved versions of header2classic() and
-    reproject_to() methods;
-    new slice2world method prints information about
+  * class FITSimage: improved versions of *header2classic()* and
+    *reproject_to()* methods;
+    new *slice2world()* method prints information about
     slice positions (annotate 2d maps from a 3d data cube).
 
 * Module mplutil:

@@ -396,7 +396,7 @@ then we need very few lines of code as we show in the next example.
 
 This is a simple script that displays an image using the defaults for the axes,
 the limits, the color map and many other properties.
->From an object from class :class:`maputils.FITSimage` an
+From an object from class :class:`maputils.FITSimage` an
 object from class :class:`maputils.FITSimage.Annotatedimage`
 is derived.
 
@@ -1323,7 +1323,7 @@ so that:
 
    \sin(\alpha_2-\alpha_1) = \frac{\sin(d)\sin(\alpha)}{\cos(\delta_2)}
 
->From :math:`\cos(\alpha_2-\alpha_1)` and the value of :math:`\sin(\alpha_2-\alpha_1)`
+From :math:`\cos(\alpha_2-\alpha_1)` and the value of :math:`\sin(\alpha_2-\alpha_1)`
 we derive an unambiguous value for :math:`\alpha_2-\alpha_1` and because we
 started with :math:`\alpha_1` we derive a value for :math:`\alpha_2`.
 
@@ -2195,3 +2195,4 @@ Glossary
    CRVAL
       The reference world coordinate that corresponds to a reference pixel.
       Its value is extracted from a FITS header or a Python dictionary.
+

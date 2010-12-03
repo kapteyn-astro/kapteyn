@@ -154,7 +154,10 @@ Institut d'Astrophysique Spatiale @ 129.175.65.113
 Departament d'Astronomia i Meteorologia (Barcelona) @ 161.116.78.54
 University of Toronto @ 128.100.88.42
 Rutherford Appleton Laboratory @ 130.246.253.48
+RWTH Aachen University @ 134.130.4.243
+EPFL Lausanne @ 128.178.174.229
+Carnegie Institution for Science - The Observatories @ 192.91.178.155
+Observatory Meteorology Aeronomy Brussel @ 193.190.231.130
 
-
-tot:  Mon Nov 15 14:01:52 CET 2010
+tot:  Thu Dec  2 20:00:03 CET 2010
 
