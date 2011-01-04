@@ -158,6 +158,14 @@ RWTH Aachen University @ 134.130.4.243
 EPFL Lausanne @ 128.178.174.229
 Carnegie Institution for Science - The Observatories @ 192.91.178.155
 Observatory Meteorology Aeronomy Brussel @ 193.190.231.130
+INAF - Istituto Nazionale di Astrofisica @ 192.167.38.157
+University of Rochester (Department of Physics and Astronomy) @ 128.151.144.140
+Victoria University of Wellington @ 130.195.160.55
+Swinburne University of Technology @ 136.186.24.104
+NASA Goddard Space Flight Center @ 198.119.56.43
+Yale University @ 128.36.139.138
+Lynchburg College @ 161.115.120.67
+Armagh Observatory @ 193.63.77.194
 
-tot:  Thu Dec  2 20:00:03 CET 2010
+tot:  Tue Jan  4 14:41:41 CET 2011
 
