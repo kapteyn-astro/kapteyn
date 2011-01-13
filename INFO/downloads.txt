@@ -167,5 +167,5 @@ Yale University @ 128.36.139.138
 Lynchburg College @ 161.115.120.67
 Armagh Observatory @ 193.63.77.194
 
-tot:  Tue Jan  4 14:41:41 CET 2011
+tot:  Mon Jan 10 11:11:18 CET 2011
 
