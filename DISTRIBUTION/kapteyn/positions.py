@@ -21,25 +21,32 @@ Module positions
 In module :mod:`wcs` we provided two methods of the Projection object for
 transformations between pixels and world coordinates. These methods are
 :meth:`wcs.Projection.topixel` and :meth:`wcs.Projection.toworld` and they
-allow only numbers as their input parameters. Also the transformations apply to
+allow (only) numbers as their input parameters. These transformations methods apply to
 the native coordinate system, i.e. it expects that world coordinates
-are given for the system that is described by the Projection object.
+are given for the system that is described by the Projection object
+from module :mod:`wcs`.
 
 Often one wants more flexibility. For instance in interaction with the user, positions
-can be used to plot markers on a map. But what if you have positions
-from a FK5 catalog and your map is in Galactic coordinates or you want to know
+can be used to plot markers on a map or to set the location of labels and
+graticule lines. But what to do if you have positions that need to be marked and the
+positions are from a FK5 catalog while your current map is given in
+Galactic coordinates? Or what to do if you need to know
 what the optical velocity is, given a radio velocity, for a spectral axis
-which has frequency as its primary type?
+which has frequency as its primary type? For these situations we
+wrote this module.
 
 This module enables a user/programmer to specify positions in either
 pixel- or world coordinates. Its functionality is provided by a parser
 which converts strings with position information into pixel coordinates
 and world coordinates. Let's list some options with examples how to use
-method :meth:`str2pos`.
+method :meth:`str2pos` which is the most important method in this module.
 
 Assume we have a projection object *pr* and you
 want to know the world coordinates *w* and the pixels *p* for a given
-string (*u* are the units of the world coordinates and *e* is an error message):
+string. Further, assume *u* are the units of the world coordinates
+and *e* is an error message. Here are some examples how to use
+:meth:`str2pos`. We will give detailed descriptions of the options
+in later sections.
 
    * Expressions for the input of numbers.
      Example: ``w,p,e = str2pos('[pi]*3, [e**2]*3`', pr)``
@@ -64,29 +71,37 @@ string (*u* are the units of the world coordinates and *e* is an error message):
    * Units, sky definitions and spectral translations are minimal matched
      to the full names.
 
+**Example: mu_markers.py - Demonstrate the use of strings for a position**
+
+.. literalinclude:: EXAMPLES/mu_markers.py
+
 
 Introduction
 ------------
 
 Physical quantities in a data structure that represents a physical measurement are usually
-measurements at fixed positions in the sky or at spectral positions such as
+measurements at fixed positions in the sky or at spectral locations such as in
 Doppler shifts, frequencies or velocities. These positions are examples of so called
 **World Coordinates**. In these data structures the quantities are identified by their
-pixel coordinates. Following the rules for FITS files, a pixel coordinate starts with
-1 for the first pixel on an axis and runs to *NAXISn* which is a header item
-that sets the length of the n-th axis in the structure.
+pixel coordinates. Following the rules for FITS files, the first pixel on an axis
+is labeled with coordinate 
+1 and it runs to *NAXISn* which is a header item
+that sets the length of the n-th axis in the FITS data structure.
 
 Assume you have a data structure representing an optical image of a part of the sky
 and you need to mark a certain feature in the image or need to retrieve the intensity
-of a certain pixel. Then usually it is easy to identify the pixel using
+of a pixel at a certain location. Then usually it is easy to identify the pixel using
 pixel coordinates. But sometimes you have positions (e.g. from external sources like
 catalogs) given in world coordinates and then it would be convenient if you could specify
-positions in those coordinates. Module :mod:`wcs` provides methods for conversions between
+positions exactly in those coordinates.
+
+This module uses two other modules from the Kapteyn Package:
+Module :mod:`wcs` provides methods for conversions between
 pixel coordinates and world coordinates given a description of the world coordinate
-system (as defined in a header). Module :mod:`celestial` converts world coordinates
+system as defined in a (FITS) header). Module :mod:`celestial` converts world coordinates
 between different sky- and reference systems and/or epochs.
 In this module we combined the functionality of :mod:`wcs` and :mod:`celestial`
-to write a position parser.
+to write a coordinate parser.
 Note that a description of a world coordinate system can be either a FITS header or
 a Python dictionary with FITS keywords.
 
@@ -96,12 +111,12 @@ How to use this module
 
 This module is included in other modules of the Kapteyn Package, but
 it can also be imported in your own scripts so that you are able to convert
-positions in a string to pixel- and world coordinates.
-It is also possible to use it as a test application (on the command line
-type: ``python positions.py`` where you can add your own strings for conversion.
+positions given in a string to pixel- and world coordinates.
+It is also possible to use it as a test application (then, on the command line
+type: ``python positions.py`` and add your own strings for conversion.
 The source of this test run can be found in function :func:`dotest` in this module.
 
-To get the idea, we list a short example::
+To get the idea, we list a short example starting with the definition of a header::
 
    from kapteyn import wcs, positions
 
@@ -125,6 +140,8 @@ Its output is::
    pixels: [[ 5.  6.]]
    world coordinates: [[ 178.7792   53.655 ]] ('deg', 'deg')
 
+The meaning of the variables 'w', 'p' etc are explained in a previous section.
+
 
 Position syntax
 ---------------
@@ -139,18 +156,64 @@ One can enter 1 position or a sequence of positions as in:
 >>> pos="0,1  4,5  2,3"
 
 Numbers are separated either by a space or a comma.
+
+So both:
+
+>>> pos="0 1 4 5 2 3"
+>>> pos="0,1,4,5,2,3"
+
+give the same result.
+
+
+Numbers as expressions
+.......................
+
+Numbers can be given as valid (Python) expressions.
+All functions and operators known to Pythons 'math' module can be used.
+We added two from module NumPy (arange and linspace).
+To get information about these functions you have to read the Python documentation
+(e.g. on the command line type: ``ipython``. On the ipython command line
+type: ``import numpy; help(numpy.linspace)``).
+Examples:
+
+>>> pos = "degrees(pi) e"                 # pixel coordinates: 180, 2.71828183
+>>> pos = "degrees(atan2(1,1)) abs(-10)"  # pixel coordinates: 45, 10.
+
+
+Grouping of numbers
+....................
+
 Coordinates can also be **grouped**. Elements in a group are processed in one pass
-and they represent one coordinate in a position.
-They can be prepended by a modifier or appended by a unit. The position above
-could also have been written as:
+and they represent only one coordinate in a position.
+A group of numbers can be prepended by a modifier or appended by a unit.
+Then the unit applies to all the elements in the group. We will see examples of this
+in one of the next sections.
+For the first example we could have grouped the coordinates as follows:
 
 >>> pos="'0,4,2' '1,5,3'"
 
-Coordinates enclosed by single quotes are parsed by Python's expression evaluator,
-*eval()*.
+or, perhaps more familiar, as:
+
+>>> pos="[0,4,2] [1,5,3]"
+
+Coordinates enclosed by single quotes or square brackets are parsed
+by Python's expression evaluator *eval()*  as one expression.
+As a result of this, the elements in a group can also be expressions.
+If square brackets are part of the expression, the expression represents
+a list. Also Pythons list comprehension and the list operators '*' and '+'
+are allowed:
+
+>>> pos = "[2*pi,3]+[4,5] [1,2,3,4]"
+>>> pos = "[3]*3 [1,2,3]"
+>>> pos = "[sin(x) for x in range(10)], range(10)",
+
+
+Python's *eval()* function requires that the elements in an expression
+are separated by a comma.
+
 The arguments of this function are separated by comma's only.
 Other examples of grouping are listed in the section about reading data from
-disk with *READCOL()* and in the section about the *EVAL()* function.
+disk with *readcol()* and in the section about the *eval()* function.
 
 
 Pixel coordinates
@@ -167,7 +230,7 @@ For the examples below you should use function :func:`str2pos` to test the conve
 However, for this function you need a (FITS) header. In the description at :func:`str2pos`
 you will find an example of its use.
 
-Two pixel coordinates in a two dimensional wcs:
+Examples of two pixel coordinates in a two dimensional world coordinate system (wcs):
    
 >>> pos = "10 20"       # Pixel position 10, 20
 >>> pos = "10 20 10 30" # Two pixel positions
@@ -184,6 +247,17 @@ Lists and list comprehension is allowed.
 >>> pos = "atan2(2,3), 192",
 >>> pos = "atan2(2,3)  192",
 >>> pos = "[pi]*3, [e**2]*3"
+
+All functions and symbols from Python's math module are allowed. Besides those
+we added two functions from the numpy module: ``arange`` and ``linspace``.
+Both are used to set a range of floating point numbers (which cannot be done with
+``range``.
+
+Example: For a set of one dimensional. positions on a spatial axis use:
+
+>>> pos = "arange(178.7792, 178.7796, 0.0002) deg"
+>>> pos = "linspace(178.7792, 178.7796, 4) deg"
+
 
 Constants
 ..........
@@ -222,12 +296,18 @@ coordinate is:
 
    * a coordinate followed by a (compatible) unit. Note that the
      units of the world coordinate are given in the (FITS) header in keyword *CUNIT*.
+     If there is no CUNIT in the header or it is an empty string or you
+     don't remember the units then use either:
+
+       * The wildcard symbol '?'
+       * A case insensitive minimal match for the string 'UNITS'
+       
    * a coordinate prepended by a definition for a sky system or a spectral system.
    * a coordinate entered in sexagesimal notation. (hms/dms)
 
 .. note::
 
-   One can mix pixel- and world coordinates in a description of a position.
+   One can mix pixel- and world coordinates in a position.
 
 **Units**
 
@@ -238,23 +318,36 @@ we can enter a position in world coordinates as:
 
 But we can also use compatible units:
 
->>> pos = "178.7792*60 arcmin  53.655 deg"   # Use of a compatible unit if CUNIT is "DEGREE"
->>> pos = "0 1.41541820e+09 Hz"              # Mix of pixel coordinate and world coordinate
->>> pos = "0 1.41541820 GHz"                 # Same position as previous using a compatible unit
+>>> pos = "178.7792*60 arcmin  53.655 deg"    # Use of a compatible unit if CUNIT is "DEGREE"
+>>> pos = "10 1.41541820e+09 Hz"              # Mix of pixel coordinate and world coordinate
+>>> pos = "10 1.41541820 GHz"                 # Same position as previous using a compatible unit
 
 Units are minimal matched against a list with known units. The parsing of units
 is case insensitive. The list with known units is:
 
-   * angles: ['DEGREE','ARCMIN', 'ARCSEC', 'MAS', 'RADIAN'
-     'CIRCLE', 'DMSSEC', 'DMSMIN', 'DMSDEG', 'HMSSEC', 'HMSMIN', 'HMSHOUR']
-   * distances: ['METER', 'ANGSTROM', 'NM', 'MICRON', 'MM', 'CM',
-     'INCH', 'FOOT', 'YARD', 'M', 'KM', 'MILE', 'PC', 'KPC', 'MPC', 'AU', 'LYR']
-   * time: ['TICK', 'SECOND', 'MINUTE', 'HOUR', 'DAY', 'YR']
-   * frequency: ['HZ', 'KHZ','MHZ', 'GHZ']
-   * velocity: ['M/S', 'MM/S', 'CM/S', 'KM/S']
-   * temperature: ['K', 'MK']
-   * flux (radio astr.): ['W/M2/HZ', 'JY', 'MJY']
-   * energy: ['J', 'EV', 'ERG', 'RY']
+   * angles: 'DEGREE','ARCMIN', 'ARCSEC', 'MAS', 'RADIAN'
+     'CIRCLE', 'DMSSEC', 'DMSMIN', 'DMSDEG', 'HMSSEC', 'HMSMIN', 'HMSHOUR'
+   * distances: 'METER', 'ANGSTROM', 'NM', 'MICRON', 'MM', 'CM',
+     'INCH', 'FOOT', 'YARD', 'M', 'KM', 'MILE', 'PC', 'KPC', 'MPC', 'AU', 'LYR'
+   * time: 'TICK', 'SECOND', 'MINUTE', 'HOUR', 'DAY', 'YR'
+   * frequency: 'HZ', 'KHZ','MHZ', 'GHZ'
+   * velocity: 'M/S', 'MM/S', 'CM/S', 'KM/S'
+   * temperature: 'K', 'MK'
+   * flux (radio astr.): 'W/M2/HZ', 'JY', 'MJY'
+   * energy: 'J', 'EV', 'ERG', 'RY'
+
+It is also possible to convert between inverse units like the wave number's 1/m
+which, for  example, can be converted to 1/cm.
+
+For a unit, one can also substitute the wildcard symbol '?'. This is the same as
+setting the units from the header (conversion factor is 1.0). The symbol is
+handy to set coordinates to world coordinates. But it is essential if there are
+no units in the header like the unitless STOKES axis. One can also use the string
+*units* which has the same role as '?'.
+
+>>> pos = "[0, 3, 4] ?"
+>>> pos = 7 units
+>>> pos = [5, 6.3] U
 
 **Sky definitions**
 
@@ -263,12 +356,13 @@ A sky definition is either a case insensitive minimal match from the list::
 
   'EQUATORIAL','ECLIPTIC','GALACTIC','SUPERGALACTIC'
 
-or it is a definition between curly brackets which can contain
-the sky system, the reference system, equinox and epoch of observation.
+or it is a definition between curly brackets which can contain one or
+more items from the list
+sky system, reference system, equinox and epoch of observation.
 The documentation for sky definitions is found in module :mod:`celestial`.
 Epochs are described in :mod:`celestial.epochs`.
 
-An empty string between curly brackets (e.g. {}) followed by a number
+An empty string between curly brackets e.g. {}, followed by a number,
 implies a world coordinate in the native sky system. 
 
 Examples:
@@ -333,9 +427,9 @@ in a compatible spectral system:
    World coordinates followed by a unit, are supposed to be compatible
    with the Projection object. So if you have a header with spectral type FREQ but
    with a spectral translation set to VOPT, then ``"{} 53.655 1.415418199417E+09 hz"``
-   is invalid, ``10.0 , vopt 1050000 m/s`` is ok but
+   is invalid, ``10.0 , vopt 1050000 m/s`` is ok and
    also ``{} 53.655 FREQ 1.415418199417e+09"`` is correct.
-   
+
 **Sexagesimal notation**
 
 Read the documentation at :func:`parsehmsdms` for the details.
@@ -343,130 +437,252 @@ Here are some examples:
 
 >>> pos = "11h55m07.008s 53d39m18.0s"
 >>> pos = "{B1983.5} 11h55m07.008s {} -53d39m18.0s"
+>>> pos = -33d 0d
 
 
-Reading from file with function *READCOL()*, *READHMS()* and *READDMS()*
+Reading from file with function *readcol()*, *readhms()* and *readdms()*
 ..........................................................................
 
-Coordinates can also be read from file. Either we want to be able to read just
-one column, or we want to combine three columns into one if the columns represent
-hours/degrees, minutes and seconds.
+Often one wants to plot markers at positions that are stored in an Ascii
+file (text file) on disk.
+
+In practice one can encounter many formats for coordinates in Ascii files.
+Usually these coordinates are written in columns. For example one can expect
+longitudes in degrees in the first column and latitudes in degrees in the second.
+But what do these coordinates represent? Are they galactic or ecliptic positions?
+If your current plot represents an equatorial system can we still plot the markers
+from the file if these are given in the galactic sky system? And there are more
+questions:
+
+  * Assume you have a file with three columns with hours, minutes and seconds as longitude
+    and three columns with degrees, minutes and seconds as latitude. Is it possible
+    to read these columns and combine them into longitudes and latitudes?
+    Assume you have a file and the Right Ascensions are given in decimal hours,
+    is it possible to convert those to degrees?
+  * Assume your file has numbers that are in a unit that is not the same unit
+    as the axis unit in your plot. Is it possible to change the units of the
+    data of the column in the text file?
+  * Assume you have several (hundreds of) thousands marker positions.
+    Is reading the marker positions fast?
+  * If a file has comment lines that start with another symbol than '!' or '#',
+    can one still skip the comment lines?
+  * If a file has columns separated by something else than whitespace,
+    is it still possible then to read a column?
+
+All these questions are answered with *yes* if you use this module.
+We provided three functions: *readcol()*, *readhms()* and *READDMS()*.
+These functions are based on module :mod:`tabarray`. The routines in this
+module are written in C and as a result, reading data from file is very fast.
 The arguments of these functions are derived from those in
 :func:`tabarray.readColumns` with the exception that
-argument *cols=* is replaced by *col=* for function *READCOL()* and
-for *READHMS()* and *READDMS()* the *cols=* argument is replaced by
+argument *cols=* is replaced by *col=* for function *readcol()* because
+we want to read only one column per coordinate to keep the syntax
+easy and flexible.
+In the functions *readhms()* and *readdms()*, which are
+also based on :func:`tabarray.readColumns`, the *cols=* argument is replaced by
 arguments *col1=, col2=, col3=*.
-Filenames can be specified either with or without double quotes.
-
-Columns start with 0.
-Lines with 1.
-
-Some examples:
-
-Assume we have a file on disk called 'lasfootprint' which stores two sets
-of positions separated by an empty line. If we want to read
-the positions given by column 0 and 1 of the second segment (starting with line 66)
-and column 1 is given in decimal hours, then you need the command:
-   
->>> pos=  'readcol("lasfootprint", 0,66,0) HMShour readcol("lasfootprint", 1,66,0) deg'
-
-The coordinate is followed by a unit (deg) so it is a world coordinate.
-It was also possible to prepend the second coordinate with {} as in:
-
->>> pos=  'readcol("lasfootprint", 0,1,64) HMShour {} readcol("lasfootprint", 1,0,64)'
-
-If columns 2 and 3 are galactic longitudes and latitudes, but
-our basemap is equatorial, then we could have read the positions
-with an alternative sky system as in:
-
->>> pos=  '{ga} readcol("lasfootprint", 2,1,64)  {} readcol("lasfootprint", 3,0,64)'
-
-The second sky definition is empty which implies a copy of the first
-definition (i.e. {ga}).
-
-Now assume you have an ASCII file on disk with 6 columns representing
-sexagesimal coordinates. Assume file *hmsdms.txt* contains equatorial
-coordinates in 'hours minutes seconds degrees minutes seconds' format,
-then read this data with:
-
->>> pos= '{} readhms(hmsdms.txt,0,1,2) {} readdms(hmsdms.txt,3,4,5)'
-
-Or with explicit lines:
-
->>> pos= '{} readhms(hmsdms.txt,0,1,2,1,64) {} readdms(hmsdms.txt,3,4,5,1,64)'
-
-What if the format is 'd m s d m s' and the coordinates are galactic.
-Then we should enter;
-   
->>> pos= 'ga readdms(hmsdms.txt,0,1,2) ga readdms(hmsdms.txt,3,4,5)'
-
-if your current sky system is galactic then it also possible to enter:
-
->>> pos= 'readdms(hmsdms.txt,0,1,2) deg  readdms(hmsdms.txt,3,4,5) deg'
-
-If the columns are not in the required order use the keyword names:
-
->>> pos= 'readdms(hmsdms.txt,col3=0,col2=1,col3=2) deg  readdms(hmsdms.txt,3,4,5) deg'
 
 **syntax**
 
->>> readcol(filename, col=0, fromline=None, toline=None, rows=None, comment="!#",
-            sepchar=', t', bad=0.0,
-            rowslice=(None, ), colslice=(None, )
+>>> readcol(filename, col=1, fromline=None, toline=None, rows=None, comment="!#",
+            sepchar=', t', bad=999.999, fromrow=None, torow=None, rowstep=None)
 
 >>> readhms(filename, col1=0, col2=1, col3=2,
             fromline=None, toline=None, rows=None, comment="!#",
             sepchar=', t', bad=0.0,
             rowslice=(None, ), colslice=(None, )):
 
-Which has the same syntax as *READDMS()*.
+Function *readdms()* has the same syntax as *readhms()*
 
-   
+
+The parameters are:
 
     * filename - a string with the name of a text file containing the table.
+      The string can be entered with or without double quotes.
+    * col - a scalar that sets the column number.
     * fromline - Start line to be read from file (first is 1).
     * toline - Last line to be read from file. If not specified, the end of the file is assumed.
     * comment - a string with characters which are used to designate comments in the input file. The occurrence of any of these characters on a line causes the rest of the line to be ignored. Empty lines and lines containing only a comment are also ignored.
-    * col - a scalar with one column number.
     * sepchar - a string containing the column separation characters to be used. Columns are separated by any combination of these characters.
     * rows - a tuple or list containing the row numbers to be extracted.
     * bad - a number to be substituted for any field which cannot be decoded as a number.
-    * rowslice - a tuple containing a Python slice indicating which rows should be selected. If this argument is used in combination with the argument rows, the latter should be expressed in terms of the new row numbers after slicing. Example: rowslice=(10, None) selects all rows, beginning with the eleventh (the first row has number 0) and rowslice=(10, 13) selects row numbers 10, 11 and 12.
-    * colslice - a tuple containing a Python slice indicating which columns should be selected. If this argument is used in combination with the argument cols, the latter should be expressed in terms of the new column numbers after slicing. Selection is analogous to rowslice.
+    * fromrow - number of row from the set of lines with real data to start reading
+    * torow - number of row from the set of lines with real data to end reading. The *torow* line
+      is included.
+    * rowstep - Step size in rows. Works also if no values are given for *fromrow* and *torow*.
 
-
-There is a difference between the *rows=* and the *fromline=* , *endline=*
-keywords. The first reads the specified rows from parsed contents of the
-file, while the line keywords specify which lines you want to read from file.
+There is a difference between the *rows=* and the *fromline=* , *toline=*
+keywords. The first reads the specified rows from the *parsed* contents
+of the file( (*parsed* contents are lines that are not comment lines), while the line keywords specify which lines you want to read from file.
 Usually comment characters '#' and '!' are used. If you expect another comment
 character then change this keyword.
-Keyword *sepchar=* sets the separation character and *bad=* is the value
-that is substituted for values that could not be parsed.
+Keyword *sepchar=* sets the separation character. The default is a comma,
+a space and a tab. *bad=* is the value
+that is substituted for values that could not be parsed so that they can be
+easily identified.
+
+.. note::
+      
+      * Numbering of columns start with 1.
+      * Numbering of rows start with 1.
+      * Numbering of lines start with 1.
+      * Filenames can be specified either with or without double quotes.
+
+   
+Some examples:
+
+Assume a text file on disk with a number of rows with 2 dimensional marker positions
+in pixel coordinates. The text file is called *pixmarks.txt*.
+Then the simplest line to read this data is:
+
+>>> pos = 'readcol(pixmarks.txt) readcol(pixmarks.txt,2)'
+>>> annim.Marker(pos=pos, marker='o', markersize=10, color='r')
+
+All parameters have defaults except the filename parameter.
+The default column is 1, i.e. the first column.
+For readability we prefer to write the positions as:
+
+>>> pos = 'readcol(pixmarks.txt, col=1) readcol(pixmarks.txt,col=2)'
+
+If you want all the data up to line 30 (and line 30 including) you should write:
+
+>>> pos = 'readcol(pixmarks.txt, col=1, toline=30) readcol(pixmarks.txt,col=2, toline=30)'
+
+If your file has relevant data from line 30 to the end of the file, one should write:
+
+>>> pos = 'readcol(pixmarks.txt, col=1, fromline=30) readcol(pixmarks.txt,col=2, fromline=30)'
+
+As stated earlier, we distinguish *lines* and *rows* in a file.
+Lines are also those which are empty or which start with a comment.
+Rows are only those lines with data. So if you want to read only the first
+5 rows of data, then use:
+
+>>> pos = 'readcol(pixmarks.txt, col=1, torow=5) readcol(pixmarks.txt,col=2, torow=5)'
+
+Note that the parameters *toline* and *torow* include the given value. You can specify
+a range of rows including a step size with:
+
+>>> pos = 'readcol(pixmarks.txt, col=1, fromrow=10, torow=44, rowstep=2), .....'
+
+to get row number 10, 12, ..., 44. Note that it is not possible to set a
+step size if you use the *fromline* or *toline* parameter.
+
+In some special circumstances you want to be able to read only
+pre selected rows from the data lines. Assume a user needs rows 1,3,7,12,44.
+Then the position string should be:
+
+>>> pos = 'readcol(pixmarks.txt, col=1, rows=[1,3,7,12,44]), .....'
+
+Perhaps you wonder why you need to repeat the *readcol* function for
+each coordinate. It is easier to use it once and specify two columns instead
+of one. We did not implement this feature because usually one will read world coordinates
+from file and often we want to add units or a sky- or spectral conversion.
+Then you must be able to read the data for each column separately. 
+Assume we have a file on disk called 'lasfootprint' which stores two sets
+of 2 dimensional positions (i.e. 4 coordinates) separated by an empty line.
+
+::
+
+   #  RA J2000  Dec      l         b         eta     lambda
+      8.330    -1.874   225.624    19.107   -36.250   300.000
+      8.663    -2.150   228.598    23.268   -36.250   305.000
+      8.996    -2.409   231.763    27.369   -36.250   310.000
+      9.329    -2.651   235.170    31.394   -36.250   315.000
+      9.663    -2.872   238.878    35.320   -36.250   320.000
+      .....     ......
+      .....
 
 
-You can run 'main' (i.e. execute the module) to experiment with positions.
-First it will display
-a couple of examples before it prompts for user input. Then your are prompted
-to enter a string (no need to enclose it with quotes).
- 
->>> python position.py
+It has a blank line at line 63. The first column represents Right Ascensions in
+decimal hours.
+If we want to read the positions given by column 1 and 2 of the second
+segment (starting with line 66)
+and column 1 is given in decimal hours, then you need the command:
+   
+>>> pos=  'readcol(lasfootprint, col=1,fromline=64) HMShour readcol("lasfootprint", col=2,fromline=64) deg'
 
-We assumed you copied the module from the site packages directory to you current
-working directory.
+The first coordinate is followed by a unit, so it is a world coordinate.
+We have a special unit that converts from decimal hours to degrees (*HMSHOUR*).
+The last coordinate is followed by a unit (deg) so it is a world coordinate.
+It was also possible to prepend the second coordinate with {} and omit the unit as in:
+Between the brackets there is nothing specified. This means that we assume
+the coordinates in the file (J2000) match the sky system of the world
+coordinate system of your map.
 
-Note that if the module is used in the GIPSY context then you can use
-GIPSY's functions and constants. Python parsing then, is done with the *eval()*
-command. For reading data from files you can either use GIPSY's *file()* command
-or command *readcol()*.
+>>> pos=  'readcol(lasfootprint, 1,64) HMShour {} readcol(lasfootprint, 2,64)'
 
-Using Python's evaluation function with *EVAL()*
+Note that the third parameter is the *fromline* parameter.
+If columns 3 and 4 in the file are galactic longitudes and latitudes, but
+our basemap is equatorial, then we could have read the positions
+with an alternative sky system as in (now we read the first data segment):
+
+>>> pos=  '{ga} readcol(lasfootprint, 3, toline=63)  {} readcol(lasfootprint, 4, toline=63)'
+
+The second sky definition is empty which implies a copy of the first
+definition (i.e. {ga}).
+
+.. note::
+
+   The sky definition must describe the world coordinate system of the
+   data on disk. It will be automatically converted to a position in
+   the sky system of the Projection object which is associated with
+   your map or axis.
+
+Some files have separate columns for hour, degrees, minutes and seconds.
+Assume you have an ASCII file on disk with 6 columns representing
+sexagesimal coordinates. For example:
+
+::
+
+   ! Test file for Ascii data and the READHMS/READDMS command
+   11 57 .008 53 39 18.0
+   11 58 .008 53 39 17.0
+   11 59 .008 53 39 16.0
+   ....
+
+Assume that this file is called *hmsdms.txt* and it contains equatorial
+coordinates in *'hours minutes seconds degrees minutes seconds'* format,
+then read this data with:
+
+>>> pos= '{} readhms(hmsdms.txt,1,2,3) {} readdms(hmsdms.txt,4,5,6)'
+
+Or with explicit choice of which lines to read:
+
+>>> pos= '{} readhms(hmsdms.txt,1,2,3,toline=63) {} readdms(hmsdms.txt,4,5,6,toline=63)'
+
+The data is automatically converted to degrees.
+What if the format is **'d m s d m s'** and the coordinates are galactic.
+Then we should enter;
+   
+>>> pos= 'ga readdms(hmsdms.txt,1,2,3) ga readdms(hmsdms.txt,4,5,6)'
+
+if your current sky system is galactic then it also possible to enter:
+
+>>> pos= 'readdms(hmsdms.txt,1,2,3) deg  readdms(hmsdms.txt,4,5,6) deg'
+
+If the columns are not in the required order use the keyword names:
+
+>>> pos= 'readdms(hmsdms.txt,col3=0,col2=1,col3=2) deg  readdms(hmsdms.txt,4,5,6) deg'
+
+
+
+Reading header items with function *header()*
+..............................................
+
+Command *header* reads an item from the header that was used to create the Projection
+object. The header item must represent a number.
+
+>>> pos= "header('crpix1') header('crpix2')"
+
+
+Using Python's evaluation function with *eval()*
 .................................................
 
 One can always force the parser to use Python's expression evaluation.
 We defined function *eval()* for this. The argument is one expression
 or a sequence of expressions separated by a comma. This allows you to
 use spaces in an expression because a space is not a separator symbol
-in the context of *EVAL()*.
+in the context of *eval()*.
 For example:
       
 >>> pos="eval(atan2(3, 2) , 11 /2) eval([10,20])"
@@ -475,18 +691,11 @@ works while
 
 >>> pos="atan2(3, 2),  11 /2 10,20"
 
-does not. Also one should note that the *EVAL()* function groups data.
+does not. Also one should note that the *eval()* function groups data.
 So in ``eval(atan2(3, 2) , 11 /2)`` the two values represent the X-coordinate
 and not a position!
 
 
-Reading header items with function *HEADER()*
-..............................................
-
-Command *header* reads an item from the header that was used to create the Projection
-object. The header item must represent a number.
-
->>> pos= "header('crpix1') header('crpix2')"
 
 
 Structure of output
@@ -520,6 +729,27 @@ but that seems inherent to parsers. If a number is wrong, the parser tries
 to parse it as a sky system or a unit. If it fails, it will complain about
 the sky system or the unit and not about the number.
 
+
+Testing the parser
+...................
+
+You can run the module's 'main' (i.e. execute the module) to test pre installed
+expressions and to experiment with your own positions entered at a prompt.
+Please copy the module *positions.py* to your working directory first!
+The program will display
+a couple of examples before it prompts for user input. Then your are prompted
+to enter a string (no need to enclose it with quotes because it is read as a string).
+Enter positions for a two dimensional data structure with axes R.A. and Dec.
+Start the test with:
+
+>>> python position.py
+
+Note that if the module is used in the GIPSY context then you can use
+GIPSY's functions and constants. Python parsing then, is done with the *eval()*
+command. For reading data from files you can either use GIPSY's *file()* command
+or command *readcol()*.
+
+
 Functions
 ---------
 
@@ -532,6 +762,8 @@ Functions
 # Imports
 from __future__ import division
 from math import *                               # For Pythons 'eval()' function
+from numpy import arange as n_arange
+from numpy import linspace as n_linspace
 from types import ListType, TupleType
 from re import split as re_split
 from re import findall as re_findall
@@ -560,6 +792,12 @@ M_ = 1.9891e+30     # Mass of Sun in kg
 P_ = 3.08567758066631e+16 # Parsec in m
 
 
+def arange(*kw):
+   return list(n_arange(*kw))
+   
+def linspace(*kw):
+   return list(n_linspace(*kw))
+
 def issequence(obj):
   return isinstance(obj, (list, tuple, ndarray))
 
@@ -568,86 +806,115 @@ def usermessage(token, errmes):
    return "Error in '%s': %s" % (token, errmes)
 
 
-def readcol(filename, col=0, fromline=None, toline=None, rows=None, comment="!#",
-            sepchar=', t', bad=0.0,
-            rowslice=(None, ), colslice=(None, )):
-   #-------------------------------------------------------------
+def readcol(filename, col=1, fromline=None, toline=None, rows=None, comment="!#",
+            sepchar=', t', bad=999.999, fromrow=None, torow=None, rowstep=None):
+#-------------------------------------------------------------
    """
    Utility to prepare a call to tabarray's readColumns() function
    We created a default for the 'comment' argument and changed the
    column argument to accept only one column.
    """
-   #-------------------------------------------------------------
+#-------------------------------------------------------------
    if issequence(col):
       column = col[0]
    else:
       column = col
-   column = [column]
+   column = [column-1]  # First column is 1 but for readColumns it must be 0
    if rows != None:
       if not issequence(rows):
          rows = [rows]
+      rows = [i-1 for i in rows] 
    lines = None
    if not fromline is None or not toline is None:
+      if fromline is None:
+         fromline = 0
+      if toline is None:
+         toline = 0
       lines = (fromline, toline)
+   rowslice = (None, )
+   if not fromrow is None or not torow is None or not rowstep is None:
+      if not fromrow is None:
+         fromrow -= 1
+      rowslice = (fromrow, torow, rowstep)
+   colslice = (None, )
    c = readColumns(filename=filename, comment=comment, cols=column, sepchar=sepchar,
                rows=rows, lines=lines, bad=bad, rowslice=rowslice, colslice=colslice)
    return list(c.flatten())
 
 
-def readhms(filename, col1=0, col2=1, col3=2,
+def readhmsdms(filename, col1=1, col2=2, col3=3,
             fromline=None, toline=None, rows=None, comment="!#",
-            sepchar=', t', bad=0.0,
-            rowslice=(None, ), colslice=(None, )):
-   #-------------------------------------------------------------
+            sepchar=', t', bad=0.0, fromrow=None, torow=None, rowstep=None, mode='hms'):
+#-------------------------------------------------------------
+   """
+   Helper function for readhms() and readdms()
+   """   
+#-------------------------------------------------------------
+   column = [col1-1, col2-1, col3-1]    # Make it zero based for readColumns()
+   if rows != None:
+      if not issequence(rows):
+         rows = [rows]
+      rows = [i-1 for i in rows]
+   lines = None
+   if not fromline is None or not toline is None:
+      if fromline is None:
+         fromline = 0
+      if toline is None:
+         toline = 0
+      lines = (fromline, toline)
+   rowslice = (None, )
+   if not fromrow is None or not torow is None or not rowstep is None:
+      if not fromrow is None:
+         fromrow -= 1
+      rowslice = (fromrow, torow, rowstep)
+   colslice = (None, )
+   c = readColumns(filename=filename, comment=comment, cols=column, sepchar=sepchar,
+               rows=rows, lines=lines, bad=bad, rowslice=rowslice, colslice=colslice)
+   if mode == 'hms':
+      h = c[0]; m = c[1]; s = c[2]
+      vals = (h+m/60.0+s/3600.0)*15.0
+   else:
+      d = c[0]; m = c[1]; s = c[2]
+      # Take care of negative declinations
+      vals = sign(d)*(abs(d)+abs(m)/60.0+abs(s)/3600.0)
+   return vals
+
+
+def readhms(filename, col1=1, col2=2, col3=3,
+            fromline=None, toline=None, rows=None, comment="!#",
+            sepchar=', t', bad=0.0, fromrow=None, torow=None, rowstep=None):
+#-------------------------------------------------------------
    """
    Utility to prepare a call to tabarray's readColumns() function
    We created a default for the 'comment' argument and changed the
    column argument to accept only one column.
    """
-   #-------------------------------------------------------------
-   column = [col1, col2, col3]
-   if rows != None:
-      if not issequence(rows):
-         rows = [rows]
-   lines = None
-   if not fromline is None or not toline is None:
-      lines = (fromline, toline)
-   c = readColumns(filename=filename, comment=comment, cols=column, sepchar=sepchar,
-               rows=rows, lines=lines, bad=bad, rowslice=rowslice, colslice=colslice)
-   h = c[0]; m = c[1]; s = c[2]
-   vals = (h+m/60.0+s/3600.0)*15.0
-   return vals
+#-------------------------------------------------------------
+   return readhmsdms(filename=filename, col1=col1, col2=col2, col3=col3,
+                     fromline=fromline, toline=toline, rows=rows, comment=comment,
+                     sepchar=sepchar, bad=bad, fromrow=fromrow, torow=torow, rowstep=rowstep,
+                     mode='hms')
+   
 
-
-def readdms(filename, col1=0, col2=1, col3=2,
+def readdms(filename, col1=1, col2=2, col3=3,
             fromline=None, toline=None, rows=None, comment="!#",
-            sepchar=', t', bad=0.0,
-            rowslice=(None, ), colslice=(None, )):
-   #-------------------------------------------------------------
+            sepchar=', t', bad=0.0, fromrow=None, torow=None, rowstep=None):
+#-------------------------------------------------------------
    """
    Utility to prepare a call to tabarray's readColumns() function
    We created a default for the 'comment' argument and changed the
    column argument to accept only one column.
    """
-   #-------------------------------------------------------------
-   column = [col1, col2, col3]
-   if rows != None:
-      if not issequence(rows):
-         rows = [rows]
-   lines = None
-   if not fromline is None or not toline is None:
-      lines = (fromline, toline)
-   c = readColumns(filename=filename, comment=comment, cols=column, sepchar=sepchar,
-               rows=rows, lines=lines, bad=bad, rowslice=rowslice, colslice=colslice)
-   d = c[0]; m = c[1]; s = c[2]
-   # Take care of negative declinations
-   vals = sign(d)*(abs(d)+abs(m)/60.0+abs(s)/3600.0)
-   return vals
-
+#-------------------------------------------------------------
+   return readhmsdms(filename=filename, col1=col1, col2=col2, col3=col3,
+                     fromline=fromline, toline=toline, rows=rows, comment=comment,
+                     sepchar=sepchar, bad=bad, fromrow=fromrow, torow=torow, rowstep=rowstep,
+                     mode='dms')
 
 
 def minmatch(userstr, mylist, case=0):
-   """--------------------------------------------------------------
+#--------------------------------------------------------------
+   """
    Purpose:    Given a list 'mylist' with strings and a search string
               'userstr', find a -minimal- match of this string in
                the list.
@@ -661,7 +928,8 @@ def minmatch(userstr, mylist, case=0):
    Returns:    1) None if nothing could be matched
                2) -1 if more than one elements match
                3) >= 0 the index of the matched list element
-   ------------------------------------------------------------------"""
+   """
+#--------------------------------------------------------------
    indx = None
    if case == 0:
       ustr = userstr.upper()
@@ -691,7 +959,12 @@ def unitfactor(unitfrom, unitto):
 
    :param unitfrom:
       Units to convert from. Strings with '1/unit' or '/unit' are
-      also allowed.
+      also allowed. If this parameter is '?' then the incoming
+      unit is a wildcard character and the conversion factor 1.0
+      is returned. The same holds for a case insensitive minimum match
+      of the string 'UNITS'. This option is necessary for the option
+      to use world coordinates when there are no units given in the header
+      of the data (i.e. there is no CUNITn keyword or its contents is empty).
    :type unitfrom: String
    :param unitto:
       Units to convert to. Strings with '1/unit' or '/unit' are
@@ -716,6 +989,16 @@ def unitfactor(unitfrom, unitto):
 
    """
 #-----------------------------------------------------------------------------------
+   errmes = ''
+   # Process the wildcard options
+   if unitfrom == '?':
+      # Then the wildcard was used to set the unit
+      return 1.0, errmes
+   i = minmatch(unitfrom, ['UNITS'])
+   if i != None and i >= 0:
+      # Then user entered a string that sets the conversion factor to 1
+      return 1.0, errmes
+
    units = {'DEGREE' :      (1,                        1.0),
             'ARCMIN' :      (1,                        1.0/60.0),
             'ARCSEC' :      (1,                        1.0/3600.0),
@@ -768,8 +1051,10 @@ def unitfactor(unitfrom, unitto):
             'J' :           (10,                       1.0),
             'EV':           (10,                       1.60217733e-19),
             'ERG':          (10,                       1.0e-7),
-            'RY' :          (10,                       2.179872e-18)
+            'RY' :          (10,                       2.179872e-18),
+            'UNITS':        (11,                       1.0)
            }
+
    # There is a special case for units like 1/m or /m
    # Then the factor needs to be inverted.
    inverse = inversefrom = inverseto = False
@@ -787,7 +1072,6 @@ def unitfactor(unitfrom, unitto):
       
    mylist = units.keys()
    i = minmatch(unitfrom, mylist)
-   errmes = ''
    if i != None:
       if i >= 0:
          key = units.keys()[i]
@@ -901,11 +1185,12 @@ def parsehmsdms(hmsdms, axtyp=None):
       >>> hmsdms = '60d9m13.996s'
       >>> hmsdms = '20h34m52.2997'     # Omit 's' for seconds
       >>> hmsdms = '60d9m13.996'
-      >>> hmsdms = '20h34m60-7.7003'   # Expression allowed because Pythons eval() is used
+      >>> hmsdms = '20h34m60-7.7003'   # Expression NOT allowed
       >>> hmsdms = '-51.28208458d0m'   # Negative value for latitude
 
       * The 's' for seconds is optional
-      * Expressions in numbers are allowed
+      * Expressions in numbers are not allowed because we cannot use Python's
+        eval() function. This function cannot cope with expressions like '08'.
       * dms format always allowed, hms only for longitude axes.
         Both minutes and seconds are optional. The numbers
         need not to be integer.
@@ -1021,7 +1306,7 @@ def mysplit(tstring):
 
 class Coordparser(object):
    """--------------------------------------------------------------------
-   Purpose: Parse a string wich represents position(s). Return an object
+   Purpose: Parse a string which represents position(s). Return an object
    with the sorted input grids and world coordinates.
    
    First a pre parser finds the tokens in the string. Tokens are
@@ -1036,9 +1321,9 @@ class Coordparser(object):
    3) GIPSY lists, e.g. POS=[0::2 3:5]
    4) expressions for Python's eval() parser
 
-   strings between single quotes are parsed unalterd. Except the quotes themselves.
+   strings between single quotes are parsed unaltered. Except the quotes themselves.
    They are removed.
-   Strings between double quotes are parsed unalterd. This includes the double quotes.
+   Strings between double quotes are parsed unaltered. This includes the double quotes.
    This is necessary to pass file names
    
    Description of the token parser:
@@ -1113,7 +1398,6 @@ class Coordparser(object):
       # This means that data between single quotes and curly brackets
       # are stored as one token, so that the evaluation can be postponed
       # and processed by special evaluators
-
       tokstr = tokenstr.strip() + ' #'
       tokens = mysplit(tokstr)
 
@@ -1232,11 +1516,7 @@ class Coordparser(object):
       #-------------------------------------------------------------------
       # Allow a different unit if the unit is changed by a spectral translation
       #
-      # Examples for GIPSY (For other examples see test in main)
-      # POS=file(asciipos.txt,1,1:4) 0::3 0 0     # 3 numbers (one comment) from file, three times grid 0
-      #                                           # followed by two grids 0
       # POS='0 1 4'  '242 243 244' km/s           # Grouping of 3 grids and 3 world coordinates with unit
-      # POS= 0::2 '-243 244' km/s                 # Equivalent to next statement
       # POS= 0 -243 km/s 0 -244 km/s
       #-------------------------------------------------------------------
       tryother = False
@@ -1264,7 +1544,9 @@ class Coordparser(object):
             argstr = currenttoken[len(readcolfie)+1:-1]
             if argstr.count('"') == 0:
                args = argstr.split(',', 1) # Split only until first comma
-               argstr = '"'+args[0]+'",'+args[1]
+               argstr = '"'+args[0]+'"'
+               if len(args) > 1:   # If there was more than the filename then append
+                  argstr += ',' + args[1]
             #pstr = "readcol(%s)"%currenttoken[len(readcolfie)+1:-1]
             if doreadcol:
                pstr = "readcol(%s)"%argstr
@@ -1310,8 +1592,8 @@ class Coordparser(object):
             number = x
          except Exception, message:
             self.errmes = usermessage(currenttoken, message)
-            # Obviously a mistake in an eval expression. This cannot
-            # imply something else. So return.
+            # Obviously a mistake in an eval expression. This can
+            # imply that it was not an expression after all. So return.
             return None, 'x', 0
       else:
          # Not one of the known functions
@@ -1348,7 +1630,8 @@ class Coordparser(object):
          candidate = (h_ind >= 0 or d_ind >= 0) and not (h_ind >= 0 and d_ind >= 0)
          if candidate:
             m_ind = tokupper.find('M')
-            candidate = (m_ind >= 0 and m_ind > h_ind and m_ind > d_ind)
+            if m_ind >= 0:
+               candidate = (m_ind > h_ind and m_ind > d_ind)
          if candidate:
             world, errmes = parsehmsdms(currenttoken, self.types[coordindx])
             if errmes == '':
@@ -1396,7 +1679,7 @@ class Coordparser(object):
             siunit = self.siunits[coordindx]
          unitfact = None
          unitfact, message = unitfactor(nexttoken, siunit)
-         if unitfact == None:
+         if unitfact is None:
              self.errmes = usermessage(nexttoken, message)
          else:
             world = [w*unitfact for w in number]
@@ -1448,7 +1731,7 @@ class Coordparser(object):
             if self.prevsky != None:
                skydef = self.prevsky
          else:
-            skydef = sk         # Copy PARSED sky definition!
+            skydef = sk         # Copy the PARSED sky definition!
       except Exception, message:
          skydef = None
          self.errmes = usermessage(currenttoken, message)
@@ -1591,7 +1874,6 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None, gipsy=False):
       # to deal with these situations.
       try:
          wor, pix = newproj.mixed(tuple(wcoord), tuple(gcoord))
-         # print wor, pix
       except wcs.WCSerror, message:
          errmes = str(message[1])  # element 0 is error number
          # Restore to the original projection object
@@ -1621,7 +1903,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None, gipsy=False):
    return asarray(r_world), asarray(r_pixels), subsetunits, errmes
 
 
-def str2pos(postxt, subproj, mixpix=None):
+def str2pos(postxt, subproj, mixpix=None, usegipsy=False):
    #-------------------------------------------------------------------
    """
    This method accepts a string that represents a position in the
@@ -1716,6 +1998,7 @@ def str2pos(postxt, subproj, mixpix=None):
    r_world = []
    r_pixels = []
 
+   usegipsy = usegipsy and gipsymod
    parsedpositions = Coordparser(postxt,         # Text containing positions as entered by user
                                  subdim,         # The number of coordinates in 1 position
                                  subproj.units,  # Units (for conversions) in order of subset axes
@@ -1723,7 +2006,9 @@ def str2pos(postxt, subproj, mixpix=None):
                                  subproj.crpix,  # Crpix values for 'PC' (projection center)
                                  subproj.naxis,  # Axis lengths for center 'AC'
                                  subproj.altspec,# List with allowed spectral translations
-                                 subproj.source) # Get access to header
+                                 subproj.source, # Get access to header
+                                 usegipsy=usegipsy)
+                                 
 
    if parsedpositions.errmes:
       if postxt != '':
@@ -1733,7 +2018,7 @@ def str2pos(postxt, subproj, mixpix=None):
                                               subproj,
                                               subdim,
                                               mixpix,
-                                              gipsy=False)
+                                              gipsy=usegipsy)
       if errmes != '':
          return [], [], [], errmes
 
@@ -1801,6 +2086,33 @@ def dotest():
       printpos(postxt, wp)
    print ''
 
+
+   print "-------------- Examples of 1 spatial axis and a missing spatial--------------\n"
+   proj = origproj.sub((1,2))
+   mixpix = 6
+   userpos = ["(3*4)",
+              "10",
+              "178.7792*60 arcmin",
+              "{} 178.7792",
+              "{B2000} 178.7792",  # Not allowed
+              "'178.7792, 178.7794, 178.7796' deg",
+              "[178.7792, 178.7794, 178.7796] deg",
+              "arange(178.7792, 178.7796, 0.0002) deg",
+              "linspace(178.7792, 178.7796, 4) deg",
+              "linspace(178.7792, 178.7796, 4) ?",
+              "linspace(178.7792, 178.7796, 4) Units",
+              "linspace(178.7792, 178.7796, 4) Un",
+              "eq 178.7792",  # Not allowed
+              "11h55m07.008s",
+              "178d40m",
+              "178d"
+             ]
+   for postxt in userpos:
+      wp = str2pos(postxt, proj, mixpix=mixpix)
+      printpos(postxt, wp)
+   print ''
+
+
    print "-------------- Examples of units, spectral translations and grouping -----------\n"
    proj = origproj.sub((3,))
    userpos = ["7",
@@ -1811,6 +2123,11 @@ def dotest():
               "vopt 1050 km/s",
               "vopt 0",
               "vrad 1.05000000e+06",
+              # f/c is lambda. For this f (=CRVAL3) this gives lambda:
+              # 299792458.0/1.415418199417E+09 = 0.21180486313054489
+              # The wave number is 1/lambda. If we use this as world coordinate
+              # then it should convert to crpix (=7)
+              "wavn [100/21.18048631305/100, 4.76/100, 4.2/100] 1/cm",
               "FREQ 1.415418199417E+09",
               "0 7 10 20",
               "'1.41, 1.415418199417, 1.42, 1.43' Ghz",
@@ -1822,6 +2139,7 @@ def dotest():
    print ''
 
    print "--------- Output of previous coordinates in terms of VOPT:----------\n"
+   proj2 = proj.spectra('VOPT-???')
    userpos = ["7",
               "freq 1.415418199417E+09 hz",
               "fr 1.415418199417E+03 Mhz",
@@ -1835,7 +2153,6 @@ def dotest():
               "FREQ '1.41, 1.415418199417, 1.42, 1.43' Ghz",
               "FR [1.41, 1.415418199417, 1.42, 1.43] Ghz"
               ]
-   proj2 = proj.spectra('VOPT-???')
    for postxt in userpos:
       wp = str2pos(postxt, proj2)
       printpos(postxt, wp)
@@ -1855,6 +2172,7 @@ def dotest():
               "{B1983.5} 11h55m07.008s {} 53d39m18.0s",
               "{eq, B1950,fk4, J1983.5} 178.12830409  {} 53.93322241",
               "ga 140.52382927 ga  61.50745891",
+              "ga 140.52382927 {}  61.50745891",
               "su 61.4767412, su 4.0520188",
               "ec 150.73844942 ec 47.22071243",
               "{} 178.7792 6.0",
@@ -1903,7 +2221,14 @@ def dotest():
    f = open(asciifile, 'w')
    s = "! Test file for Ascii data and the FILE command\n"
    f.write(s)
+   s = "! Extra comment to distinguish between lines and rows\n"
+   f.write(s)
    for i in range(10):
+      f1 = 1.0* i; f2 = f1 * 2.0; f3 = f2 * 1.5; f4 = f3 * 2.5
+      s = "%f %.12f %f %.12f\n" % (f1, f2, f3, f4)
+      f.write(s)
+   f.write("\n")
+   for i in range(10,15):
       f1 = 1.0* i; f2 = f1 * 2.0; f3 = f2 * 1.5; f4 = f3 * 2.5
       s = "%f %.12f %f %.12f\n" % (f1, f2, f3, f4)
       f.write(s)
@@ -1921,12 +2246,24 @@ def dotest():
 
    print "--------- Reading from file ----------\n"
    proj = origproj.sub((1,2))
-   userpos = [ 'readcol(test123positions.txt, col=0) readcol(test123positions.txt, col=2)',
-               '{} readcol(test123positions.txt, col=0) {} readcol(test123positions.txt, col=2)',
-               'ga readcol(test123positions.txt, col=0) ga readcol(test123positions.txt, col=2)',
-               'readcol(test123positions.txt, col=0) deg readcol(test123positions.txt, col=2) deg',
-               '{} readhms(hmsdms.txt,0,1,2) {} readdms(hmsdms.txt,3,4,5)',
-               '{} readhms(hmsdms.txt,col1=0, col3=1, col2=2) {} readdms(hmsdms.txt,3,4,5)',
+   userpos = [ 'readcol(test123positions.txt) readcol(test123positions.txt,3)',
+               'readcol(test123positions.txt, col=1) readcol(test123positions.txt, col=3)',
+               'readcol("test123positions.txt", col=1) readcol("test123positions.txt", col=3)',
+               'readcol(test123positions.txt, col=1, toline=5) readcol(test123positions.txt, col=3, toline=5)',
+               # There is an empty line at line 13
+               'readcol(test123positions.txt, col=1, toline=14) readcol(test123positions.txt, col=3, toline=14)',
+               'readcol(test123positions.txt, col=1, fromline=5) readcol(test123positions.txt, col=3, fromline=5)',
+               'readcol(test123positions.txt, col=1, fromrow=5) readcol(test123positions.txt, col=3, fromrow=5)',
+               'readcol(test123positions.txt, col=1, torow=5) readcol(test123positions.txt, col=3, torow=5)',
+               'readcol(test123positions.txt, col=1, torow=12) readcol(test123positions.txt, col=3, torow=12)',
+               'readcol(test123positions.txt, col=1, rowstep=2) readcol(test123positions.txt, col=3, rowstep=2)',
+               'readcol(test123positions.txt, col=1, rows=[2,4,14]) readcol(test123positions.txt, col=3, rows=[2,4,14])',
+               'readcol(test123positions.txt, col=1, fromrow=4, torow=14, rowstep=2) linspace(0,1,6)',
+               '{} readcol(test123positions.txt, col=1) {} readcol(test123positions.txt, col=3)',
+               'ga readcol(test123positions.txt, col=1) ga readcol(test123positions.txt, col=3)',
+               'readcol(test123positions.txt, col=1) deg readcol(test123positions.txt, col=3) deg',
+               '{} readhms(hmsdms.txt,1,2,3) {} readdms(hmsdms.txt,4,5,6)',
+               '{} readhms(hmsdms.txt,col1=1, col3=2, col2=3) {} readdms(hmsdms.txt,4,5,6)',
              ]
    for postxt in userpos:
       wp = str2pos(postxt, proj)
