@@ -9,7 +9,7 @@
 
 body {
     font-family: {{ theme_bodyfont }};
-    font-size: 100%;
+    font-size: 90%;
     background-color: {{ theme_footerbgcolor }};
     color: #000;
     margin: 0;
@@ -188,9 +188,14 @@ div.body h2 { font-size: 160%; }
 div.body h3,
 div.body h4,
 div.body h5,
-div.body h6 { border-top: 1px solid {{ theme_sidebarbgcolor }}; }
+div.body h6 { border-top: 0px;
+              border-bottom: 0px;
+              background-image: url("background.png");
+              color: black;
+              font-weight: bold;
+            }
 
-div.body h3 { font-size: 120%; }
+div.body h3 { font-size: 110%; }
 div.body h4 { font-size: 110%; }
 div.body h5 { font-size: 110%; }
 div.body h6 { font-size: 100%; }
@@ -218,17 +223,18 @@ div.admonition p.admonition-title + p {
 }
 
 div.note {
-    background-color: #eee;
+    background-color: #efe;
     border: 1px solid #ccc;
 }
 
 div.seealso {
-    background-color: #ffc;
-    border: 1px solid #ff6;
+    background-color: #ffd;
+    border: 1px solid #ddd;
 }
 
 div.topic {
     background-color: #eee;
+    border: 1px solid #ddd;
 }
 
 div.warning {
@@ -249,15 +255,13 @@ pre {
     background-color: {{ theme_codebgcolor }};
     color: {{ theme_codetextcolor }};
     line-height: 120%;
-    border: 1px solid #ac9;
-    border-left: none;
-    border-right: none;
+    border: 1px solid #ddd;
 }
 
 tt {
     background-color: #ecf0f3;
     padding: 0 1px 0 1px;
-    font-size: 0.95em;
+    font-size: 110%;
 }
 
 img.align-center {
