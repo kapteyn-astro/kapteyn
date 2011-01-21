@@ -1,5 +1,4 @@
-Naval Research Laboratory (Paul S. Ray)
----
+Naval Research Laboratory (Paul S. Ray) - op verzoek vervroegd toegezonden
 Observatoire Midi Pyrenees @ 195.83.21.123
 National Aeronautics and Space Administration (NASA) @ 128.158.1.165
 Columbia University @ 128.59.171.104
@@ -166,6 +165,7 @@ NASA Goddard Space Flight Center @ 198.119.56.43
 Yale University @ 128.36.139.138
 Lynchburg College @ 161.115.120.67
 Armagh Observatory @ 193.63.77.194
+Deutsches Elektronen-Synchrotron @ 131.169.139.62
 
-tot:  Mon Jan 10 11:11:18 CET 2011
+tot:  Mon Jan 17 10:32:15 CET 2011
 

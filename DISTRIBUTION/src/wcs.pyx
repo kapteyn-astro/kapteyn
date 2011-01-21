@@ -266,6 +266,17 @@ cdef coordfix(double *world, n, ndims, lonindex, latindex):
          world[latindex] += 1.0e-12
 
 # --------------------------------------------------------------------------
+#                             pixoff
+# --------------------------------------------------------------------------
+cdef pixoff(double *pixin, double *pixout, int n, wcsprm *param, int direction):
+   cdef double *crpix = param.crpix
+   cdef int naxis = param.naxis
+   cdef int i
+   
+   for i in range(n*naxis):
+      pixout[i] = pixin[i]+direction*crpix[i%naxis]
+
+# --------------------------------------------------------------------------
 #                             coordmap
 # --------------------------------------------------------------------------
 #   return a coordinate map to be used in calls to the function
@@ -1819,6 +1830,20 @@ Example::
       if len(result)==1:
          result = result[0]
       return result
+
+   def pix2grid(self, source, dir=-1):
+      cdef wcsprm *param = <wcsprm*>void_ptr(self.wcsprm)
+      cdef double *grid
+      coord = Coordinate(source, self.rowvec)
+      grid = <double*>malloc(coord.n*coord.ndims*sizeof(double))
+      pixoff(<double*>void_ptr(coord.data), grid, coord.n, param, dir)
+      result = coord.result(<long>grid)
+      if coord.dyn:
+         free(grid)
+      return result
+      
+   def grid2pix(self, source):
+      return self.pix2grid(source, +1)
 
    def __setaxtypes(self):
       cdef wcsprm *param
