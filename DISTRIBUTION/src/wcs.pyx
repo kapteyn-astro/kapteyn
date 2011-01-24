@@ -266,15 +266,19 @@ cdef coordfix(double *world, n, ndims, lonindex, latindex):
          world[latindex] += 1.0e-12
 
 # --------------------------------------------------------------------------
-#                             pixoff
+#                             pix2grd
 # --------------------------------------------------------------------------
-cdef pixoff(double *pixin, double *pixout, int n, wcsprm *param, int direction):
+#   Convert pixel coordinates (dir=-1) to grid coordinates or grid coordinates
+#   to pixel coordinates (dir=+1). In this context, grid coordinates are
+#   simply CRPIXi-relative pixel coordinates.
+#
+cdef pix2grd(double *pixin, double *pixout, int n, wcsprm *param, int dir):
    cdef double *crpix = param.crpix
    cdef int naxis = param.naxis
    cdef int i
    
    for i in range(n*naxis):
-      pixout[i] = pixin[i]+direction*crpix[i%naxis]
+      pixout[i] = pixin[i]+dir*crpix[i%naxis]
 
 # --------------------------------------------------------------------------
 #                             coordmap
@@ -795,7 +799,8 @@ The attributes
 *skyout*,
 *allow_invalid*,
 *rowvec*,
-*epobs* and
+*epobs*,
+*gridmode* and
 *usedate*
 can be modified at any time.
 The others are read-only.
@@ -847,6 +852,12 @@ The others are read-only.
    by the function epochs() in the module 'celestial' and consequently be
    part of the arguments *sky_in* and *sky_out* when creating a
    Transformation object. 
+
+.. attribute:: gridmode
+
+   True or False. If True, the object will use grid coordinates instead
+   of pixel coordinates. Grid coordinates are CRPIXi-relative pixels
+   coordinates, e.g. used in GIPSY.
 
 .. attribute:: allow_invalid
 
@@ -945,7 +956,7 @@ Example::
 
 
    def __init__(self, source=None, rowvec=False, skyout=None,
-                      usedate=False, alter=''):
+                      usedate=False, gridmode=False, alter=''):
 
       dict_type, undef_type = range(2)
       source_type = undef_type
@@ -959,6 +970,7 @@ Example::
       self.altspecarg = None
       self.allow_invalid = False
       self.rowvec = rowvec
+      self.gridmode = gridmode
       if alter in [' ', None]:
          alter = ''
       self.alter = alter
@@ -1475,7 +1487,7 @@ Example::
       invalid positions will have the value ``numpy.NaN`` ("not a number")."""
 
       cdef wcsprm *param
-      cdef double *imgcrd, *phi, *theta, *world, *c_xyz
+      cdef double *imgcrd, *phi, *theta, *world, *pixel, *c_xyz
       cdef int *stat
       if source is None:
          if self.world is not None:
@@ -1495,9 +1507,15 @@ Example::
       theta  = <double*>malloc(coord.n*sizeof(double))
       world  = <double*>malloc(coord.n*coord.ndims*sizeof(double))
       stat   = <int*>malloc(coord.n*sizeof(int))
-      status = wcsp2s(param, coord.n, coord.ndims,
-                      <double*>void_ptr(coord.data),
+      if self.gridmode:
+         pixel = <double*>malloc(coord.n*coord.ndims*sizeof(double))
+         pix2grd(<double*>void_ptr(coord.data), pixel, coord.n, param, +1)
+      else:
+         pixel = <double*>void_ptr(coord.data)
+      status = wcsp2s(param, coord.n, coord.ndims, pixel,
                       imgcrd, phi, theta, world, stat)
+      if self.gridmode:
+         free(pixel)
       if self.forward is not None:
          world2world(self.forward, world, coord.n, coord.ndims,
                      param.lng, param.lat)
@@ -1560,6 +1578,8 @@ Example::
       if status==9:
          flag_invalid(pixel, coord.n, coord.ndims, stat, numpy.NaN)
          self.invalid = True
+      if self.gridmode:
+         pix2grd(pixel, pixel, coord.n, param, -1)
       result = coord.result(<long>pixel)
       if coord.dyn:
          free(pixel)
@@ -1662,7 +1682,11 @@ Example::
       pixout = <double*>malloc(pixel.n*param.naxis*sizeof(double))
       wldout = <double*>malloc(pixel.n*param.naxis*sizeof(double))
       wldin  = <double*>void_ptr(world.data)
-      pixin  = <double*>void_ptr(pixel.data)
+      if self.gridmode:
+         pixin = <double*>malloc(pixel.n*param.naxis*sizeof(double))
+         pix2grd(<double*>void_ptr(pixel.data), pixin, pixel.n, param, +1)
+      else:
+         pixin  = <double*>void_ptr(pixel.data)
       stat   = <int*>malloc(pixel.n*sizeof(int))
 
       nwnan = int(numpy.isnan(wldin[param.lng])) +\
@@ -1773,6 +1797,9 @@ Example::
          if not wldnan[i_c%param.naxis]:
             wldout[i_c] = wldin[i_c]
 
+      if self.gridmode:
+         pix2grd(pixout, pixout, pixel.n, param, -1)
+         free(pixin)
       result = (world.result(<long>wldout), pixel.result(<long>pixout))
       if world.dyn:
          free(wldout)
@@ -1831,19 +1858,19 @@ Example::
          result = result[0]
       return result
 
-   def pix2grid(self, source, dir=-1):
+   def pixel2grid(self, source, dir=-1):
       cdef wcsprm *param = <wcsprm*>void_ptr(self.wcsprm)
       cdef double *grid
       coord = Coordinate(source, self.rowvec)
       grid = <double*>malloc(coord.n*coord.ndims*sizeof(double))
-      pixoff(<double*>void_ptr(coord.data), grid, coord.n, param, dir)
+      pix2grd(<double*>void_ptr(coord.data), grid, coord.n, param, dir)
       result = coord.result(<long>grid)
       if coord.dyn:
          free(grid)
       return result
       
-   def grid2pix(self, source):
-      return self.pix2grid(source, +1)
+   def grid2pixel(self, source):
+      return self.pixel2grid(source, +1)
 
    def __setaxtypes(self):
       cdef wcsprm *param
@@ -2014,3 +2041,4 @@ __all__ = ['equatorial', 'ecliptic', 'galactic', 'supergalactic',
            'WCSinvalid', 'Projection', 'Transformation',
            'lontype', 'lattype', 'spectype', 'coordmap']
 __version__ = '1.3'
+
