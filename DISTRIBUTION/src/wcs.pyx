@@ -45,7 +45,7 @@ NumPy arrays and matrices will always be returned as type 'f8' (64 bit).
 
 Class Projection
 ----------------
-.. autoclass:: Projection(source[, rowvec=False, skyout=None, usedate=False, alter=''])
+.. autoclass:: Projection(source[, rowvec=False, skyout=None, usedate=False, gridmode=False, alter=''])
 
 Class Transformation
 --------------------
@@ -688,6 +688,10 @@ class Projection(object):
 :param usedate:
       indicates whether the date of observation is to be used for the
       appropriate celestial transformations. True or False.
+:param gridmode:
+      True or False. If True, the object will use grid coordinates instead
+      of pixel coordinates. Grid coordinates are CRPIXi-relative pixel
+      coordinates, e.g. used in GIPSY.
 :param alter:
       an optional letter from 'A' through 'Z', indicating an alternative
       WCS axis description.
@@ -856,7 +860,7 @@ The others are read-only.
 .. attribute:: gridmode
 
    True or False. If True, the object will use grid coordinates instead
-   of pixel coordinates. Grid coordinates are CRPIXi-relative pixels
+   of pixel coordinates. Grid coordinates are CRPIXi-relative pixel
    coordinates, e.g. used in GIPSY.
 
 .. attribute:: allow_invalid
