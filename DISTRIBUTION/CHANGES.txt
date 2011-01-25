@@ -9,6 +9,9 @@ Version 2.0.3 (in development)
 
   * minimal FITS headers are now accepted
 
+  * added support for *grid coordinates*, i.e., CRPIX-relative pixel
+    coordinates
+
 * Module maputils:
 
   * added new class *Skypolygon* for plotting shapes like ellipses,

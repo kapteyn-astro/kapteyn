@@ -270,7 +270,7 @@ cdef coordfix(double *world, n, ndims, lonindex, latindex):
 # --------------------------------------------------------------------------
 #   Convert pixel coordinates (dir=-1) to grid coordinates or grid coordinates
 #   to pixel coordinates (dir=+1). In this context, grid coordinates are
-#   simply CRPIXi-relative pixel coordinates.
+#   simply CRPIX-relative pixel coordinates.
 #
 cdef pix2grd(double *pixin, double *pixout, int n, wcsprm *param, int dir):
    cdef double *crpix = param.crpix
@@ -690,7 +690,7 @@ class Projection(object):
       appropriate celestial transformations. True or False.
 :param gridmode:
       True or False. If True, the object will use grid coordinates instead
-      of pixel coordinates. Grid coordinates are CRPIXi-relative pixel
+      of pixel coordinates. Grid coordinates are CRPIX-relative pixel
       coordinates, e.g. used in GIPSY.
 :param alter:
       an optional letter from 'A' through 'Z', indicating an alternative
@@ -860,7 +860,7 @@ The others are read-only.
 .. attribute:: gridmode
 
    True or False. If True, the object will use grid coordinates instead
-   of pixel coordinates. Grid coordinates are CRPIXi-relative pixel
+   of pixel coordinates. Grid coordinates are CRPIX-relative pixel
    coordinates, e.g. used in GIPSY.
 
 .. attribute:: allow_invalid
