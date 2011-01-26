@@ -706,6 +706,8 @@ class Projection(object):
 .. automethod:: sub([axes=None, nsub=None])
 .. automethod:: spectra(ctype[, axindex=None])
 .. automethod:: inside(coords, mode)
+.. automethod:: pixel2grid(pixel)
+.. automethod:: grid2pixel(grid)
 
 **WCSLIB-related attributes:**
 
@@ -1863,6 +1865,14 @@ Example::
       return result
 
    def pixel2grid(self, source, dir=-1):
+      """
+      Pixel-to-grid conversion.
+      *pixel* is an object containing one or more pixel coordinates and
+      a similar object with the corresponding grid coordinates will be
+      returned.
+      Grid coordinates are CRPIX-relative pixel coordinates,
+      e.g. used in GIPSY.
+      """
       cdef wcsprm *param = <wcsprm*>void_ptr(self.wcsprm)
       cdef double *grid
       coord = Coordinate(source, self.rowvec)
@@ -1874,6 +1884,14 @@ Example::
       return result
       
    def grid2pixel(self, source):
+      """ 
+      Grid-to-pixel conversion.
+      *grid* is an object containing one or more grid coordinates and
+      a similar object with the corresponding pixel coordinates will be
+      returned.
+      Grid coordinates are CRPIX-relative pixel coordinates,
+      e.g. used in GIPSY.
+      """
       return self.pixel2grid(source, +1)
 
    def __setaxtypes(self):
