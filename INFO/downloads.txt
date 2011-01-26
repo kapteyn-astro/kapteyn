@@ -166,6 +166,7 @@ Yale University @ 128.36.139.138
 Lynchburg College @ 161.115.120.67
 Armagh Observatory @ 193.63.77.194
 Deutsches Elektronen-Synchrotron @ 131.169.139.62
+University of Hertfordshire @ 147.197.230.213
 
-tot:  Mon Jan 17 10:32:15 CET 2011
+tot:  Mon Jan 24 13:36:51 CET 2011
 
