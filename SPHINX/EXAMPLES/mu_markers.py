@@ -1,6 +1,5 @@
-from kapteyn import maputils
+from kapteyn import maputils, tabarray
 from matplotlib import pyplot as plt
-from kapteyn import tabarray
 import numpy
 
 f = maputils.FITSimage("m101.fits")
@@ -21,12 +20,16 @@ annim.Marker(pos="{eq,fk4-no-e,B1950,F24/04/55} 210.360200881 {} 54.587072397",
              alpha=0.4)
 
 # Use pos= keyword argument to enter sequence of
-# positions in pixel coordinates
-pos = "[200+20*sin(x/20) for x in range(100,200)], range(100,200)"
+# positions in pixel coordinates. The syntax is described
+# in the module positions.py
+pos = "200+20*sin([100:199]/20), range(100,200)"
+
 annim.Marker(pos=pos, marker='o', color='r')
 
 # Use x= and y= keyword arguments to enter sequence of
-# positions in pixel coordinates
+# positions in pixel coordinates. Note that this is not parsed by
+# module positions.py. Here we need list comprehension to
+# get the same effect.
 xp = [400+20*numpy.sin(x/20.0) for x in range(100,200)]
 yp = range(100,200)
 annim.Marker(x=xp, y=yp, mode='pixels', marker='o', color='g')
