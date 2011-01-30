@@ -396,7 +396,7 @@ then we need very few lines of code as we show in the next example.
 
 This is a simple script that displays an image using the defaults for the axes,
 the limits, the color map and many other properties.
-From an object from class :class:`maputils.FITSimage` an
+>From an object from class :class:`maputils.FITSimage` an
 object from class :class:`maputils.FITSimage.Annotatedimage`
 is derived.
 
@@ -431,11 +431,11 @@ RGB image
 
 It is possible to compose an image from three separate images which represent
 a red, green and blue component. In this case you need to create an
-:class:`maputils.FITSimage.Annotatedimage`
+:class:`maputils.Annotatedimage`
 object first. The data associated with this image can be used
 to draw e.g. contours, while the parameters of the method
-:meth:`maputils.FITSimage.Annotatedimage.RGBimage` compose the
-RGB image. The :meth:`RGBimage` method creates a new data array and inserts
+:meth:`maputils.Annotatedimage.RGBimage` compose the
+RGB image. The :meth:`maputils.Annotatedimage.RGBimage` method creates a new data array and inserts
 your R, G & B images in the right place. Then it scales the composed data
 to a range between 0 and 1. For an RGB image we don't apply interactive color bar
 editing, but allow for the use of a function or lambda expression to rescale the
@@ -470,7 +470,7 @@ This script also displays a message in the message tool bar with information
 about mouse positions and the corresponding image value. For an RGB image,
 all three image values (z values) are displayed.
 The format of the message is changed with parameters in
-:meth:`maputils.FITSimage.Annotatedimage.interact_toolbarinfo`
+:meth:`maputils.Annotatedimage.interact_toolbarinfo`
 as in:
 
 >>> annim.interact_toolbarinfo(wcsfmt=None, zfmt="%g")
@@ -811,6 +811,90 @@ a new graticule object. The example shows 4 plots representing the same image in
      And third, the offset seems to have different sign when compared
      to the Equatorial system. The reason for this is that we took a part
      of the sky where the Galactic system's longitude runs in an opposite direction.
+
+
+Graticule label positions 
+.............................
+
+There are many options to control the labeling along each axis in a plot.
+There are options in the contructor of a Graticule object
+to give a start value (*startx*, *starty*, in grids or world coordinates) for
+the first label along an axis. This label is the label that is written
+with all relevant information. Other labels are derived from this one.
+If a step size is given (*deltax* or *deltay*) then this will be used as step between
+labels. A sequence of start values are used to plot labels at their corresponding
+positions (a value of the step size is overruled). Values for the label positions
+in *startx*, *starty* given as a string follow the rules described in :mod:`positions`.
+Step sizes, given as a string, can be appended by a unit.
+
+
+**Example: mu_labelsspatial.py - Tricks to improve labeling of spatial axes**
+
+.. plot:: EXAMPLES/mu_labelsspatial.py
+   :include-source:
+   :align: center
+
+**Explanation**
+
+   1. Default
+   2. Plot labels with start position and increment. Note the use of a special unit 'hmssec'.
+      ``grat = annim.Graticule(startx='11h55m', deltax="15 hmssec", deltay="3 arcmin")``
+   3. The LaTeX labeling is jumpy. Try it without superscripts (``texsexa=False``):
+
+      >>> grat = annim.Graticule(startx='11h55m 11h54m30s')
+      >>> grat.setp_tick(plotaxis="bottom", texsexa=False)
+
+   4. Force the y axis NOT to plot seconds. Force the x axis to plot in degrees.
+
+      >>> grat = annim.Graticule(startx="178.75 deg", deltax="6 arcmin", unitsx="degree")
+      >>> grat.setp_ticklabel(plotaxis="left", fmt="s")
+
+      More information about plotting in sexagesimal format is found in
+      :func:`wcsgrat.makelabel`
+
+
+**Example: mu_labelsspectral.py - Tricks to improve labeling of spectral and offset axes**
+
+.. plot:: EXAMPLES/mu_labelsspectral.py
+   :include-source:
+   :align: center
+
+**Explanation**
+
+
+   1. The default labeling of the frequency axis is too crowded. We apply the trick
+      to rotate the axis labels ``grat.setp_tick(plotaxis="bottom", rotation=90)``
+   2. Here we selected a start value and a step size for the label positions:
+      ``grat = annim.Graticule(startx="1.378 Ghz", deltax="2 Mhz", starty="53d42m")``.
+      We use a special format syntax (*%+9e*) to tell the plot routines to format
+      the numbers with an exponential:
+      ``grat.setp_tick(plotaxis="bottom", fontsize=7, fmt='%.3f%+9e')``
+   3. The spectral axis can be translated into a wave length axis using
+      parameter *spectrans*. The units change from Hz to m. In the Graticule
+      contructor we use strings for the start value and step size. Then we
+      can use compatible units enter the values. Note that the y axis in
+      our spectral plots is by default an offset axis. For spatial offset
+      axes the reference (value 0) is at the middle of an axis. One can
+      enter a value in grids or world coordinate (enter it as a string) to change
+      this reference point:
+      ``grat = annim.Graticule(spectrans="WAVE", startx="21.74 cm", deltax="0.04 cm", starty="0.5")``
+   4. In this plot we use another spectral translation (optical velocity)
+      with a start value and a step size. We changed the units of the
+      offset axis to seconds of arc.
+      ``grat = annim.Graticule(spectrans="VOPT", startx="9120 km/s", deltax="400 km/s", unitsy="arcsec")``
+   5. Again with a spectral translation. But the units along the
+      x axis are Km/s. Note that the default units (si units) are used
+      for label positions if there are no units entered. This implies
+      that the value in *unitsx* does not change the units for *startx*.
+      It is always save to enter explicit units for *startx*:
+      ``grat = annim.Graticule(spectrans="VOPT", startx="9000 km/s", deltax="400 km/s", unitsx="km/s")``
+   6. You can get even more control if you enter a function or a
+      lambda expression for parameter *fun*. You have to change the
+      default axis title with method :meth:`maputils.Graticule.setp_axislabel`.
+
+      >>> grat.setp_tick(plotaxis="bottom", fmt='%g', fun=lambda x:x/1000.0)
+      >>> grat.setp_axislabel(plotaxis="bottom", label="Optical velocity (Km/s)")
+
 
 
 
@@ -1323,7 +1407,7 @@ so that:
 
    \sin(\alpha_2-\alpha_1) = \frac{\sin(d)\sin(\alpha)}{\cos(\delta_2)}
 
-From :math:`\cos(\alpha_2-\alpha_1)` and the value of :math:`\sin(\alpha_2-\alpha_1)`
+>From :math:`\cos(\alpha_2-\alpha_1)` and the value of :math:`\sin(\alpha_2-\alpha_1)`
 we derive an unambiguous value for :math:`\alpha_2-\alpha_1` and because we
 started with :math:`\alpha_1` we derive a value for :math:`\alpha_2`.
 
@@ -2195,4 +2279,3 @@ Glossary
    CRVAL
       The reference world coordinate that corresponds to a reference pixel.
       Its value is extracted from a FITS header or a Python dictionary.
-

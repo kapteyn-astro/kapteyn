@@ -114,7 +114,7 @@ Class Insidelabels
 """
 
 from kapteyn import wcs        # The Kapteyn Python binding to WCSlib, including celestial transformations
-from kapteyn.positions import parsehmsdms, unitfactor
+from kapteyn.positions import str2pos, parsehmsdms, unitfactor
 from kapteyn import rulers
 from kapteyn.celestial import skyparser
 from types import TupleType, ListType, StringType
@@ -289,6 +289,26 @@ def gethmsdms(a, prec, axtype, skysys, eqlon=None):
    return Ihours, Ideg, Imin, Isec, Fsec, sign
 
 
+def makeexplab(fmt, x):
+#-------------------------------------------------------------------------------
+   """
+   Format exponentials
+   """
+#-------------------------------------------------------------------------------
+   # The format string contains two formats. 
+   if 1: #try:
+      c = fmt.rfind('%')
+      fmt1 = fmt[:c]
+      fmt2 = fmt[c:]
+      n = fmt2[1:fmt2.index('e')]
+      ex = int(n)
+      val = x/10.**ex
+      lab = fmt1%val+"\cdot10^{%s}"%(str(ex)) + fmt2[fmt2.index('e')+1:]
+   else: #except:
+      raise TypeError("Wrong format (%s) for numbers in exponential LaTeX format"%fmt)
+   return lab
+
+
 def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
    #-------------------------------------------------------------------------------
    """
@@ -358,11 +378,12 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
       >>> # Plot labels in Degrees even if the axis is an equatorial longitude.
    """
    #-------------------------------------------------------------------------------
+      
    Ihours, Ideg, Imin, Isec, Fsec, sign = hmsdms
    hms = False
    if Ihours != None:
       hms = True
-   if fmt != None:
+   if not fmt is None:
       if fmt.find('%') == -1:   # Not a common format, must be a HMS/DMS format
          if fmt.find('H') != -1:
             Hlab = True
@@ -397,7 +418,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
             lab += r"%d^h"%Ihours
             #lab += r"%dh"%Ihours
          else:
-            lab += "%d^h"%Ihours
+            lab += "%dh"%Ihours
          if Slab:
             Mlab = True
    else:
@@ -426,7 +447,8 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
          lab += fsec
       if not tex:
          lab += 's'
-
+   if sign == -1 and not Dlab:
+      lab = "-"+lab
    return lab
 
 
@@ -481,6 +503,7 @@ class WCStick(object):
       self.prec = None        # The precision of the seconds in a hms/dms format
       self.delta = None       # The step between two ticks for this wcs axis
       self.tex = None         # Format label in TeX?
+      self.texsexa = None     # Format the sexagesimal numbers
       self.kwargs = {}        # Keyword arguments to set plot attributes
       self.markkwargs = {}    # Keyword arguments to set plot attributes for the markers
 
@@ -492,7 +515,7 @@ def createlabels(Tlist):
    the same axis and the same wcs axis.
    -------------------------------------------------------------------------------
    """
-   Hprev = Dprev = Mprev = Sprev = None
+   Hprev = Dprev = Mprev = Sprev = signprev = None
    dirprev = None; Labprev = None
    H = D = M = S = True
    first = True
@@ -502,7 +525,7 @@ def createlabels(Tlist):
          (t.fmt == None or t.fmt.find('%') == -1):
          if t.axtype == 'longitude' and t.fmt != None and 'D' in t.fmt.upper():
             # This is a equatorial longitude axis for which one wants
-            # DMS formatting not HMS formatting. Useful for all sky plots
+            # DMS formatting not HMS formatting. Useful for "all sky" plots
             eqlon = False
          else:
             eqlon = None
@@ -520,9 +543,15 @@ def createlabels(Tlist):
                Sprev += Fsecprev
             dirprev = direction
          H = (Ihours != Hprev); D = (Ideg != Dprev); M = (Imin != Mprev); S = (Isec+Fsec != Sprev)
-         Hprev = Ihours; Dprev = Ideg; Mprev = Imin; Sprev = Isec+Fsec
+         Hprev = Ihours; Dprev = Ideg; Mprev = Imin; Sprev = Isec+Fsec; signprev = sign
          Labprev = t.labval
-         lab = makelabel(hmsdms, H, D, M, S, t.prec, t.fmt, t.tex)
+         texsexa = t.texsexa
+         if texsexa is None:
+            if t.tex:
+               texsexa = True
+            else:
+               texsexa = False
+         lab = makelabel(hmsdms, H, D, M, S, t.prec, t.fmt, texsexa)
       else:
          if t.fun == None:
             val = t.labval
@@ -531,10 +560,14 @@ def createlabels(Tlist):
          if t.fmt == None:
             lab = "%g" % val
          else:
-            try:
-               lab = t.fmt % val
-            except:
-               raise TypeError("Wrong format (%s) for numbers"%t.fmt)
+            if t.tex and t.fmt.count("%") == 2:
+               # There are two formats given so the user wants an exponential format
+               lab = makeexplab(t.fmt, val)
+            else:
+               try:
+                  lab = t.fmt % val
+               except:
+                  raise TypeError("Wrong format (%s) for numbers"%t.fmt)
       if t.tex:
          lab = r"$%s$" % lab
       t.label = lab
@@ -726,8 +759,11 @@ class Gratline(object):
          unknown += numpy.nan
          zp = numpy.zeros(linesamples) + mixgrid
          world = (xw, yw, unknown)
+         #print "WCSGRAT world=", world
          pixel = (unknown, unknown, zp)
+         #print "WCSGRAT pixel=", pixel
          (world, pixel) = gmap.mixed(world, pixel)
+         # print gmap.ctype
       if wcsaxis == 0 or wcsaxis == 1:
          self.axtype = gmap.types[wcsaxis]
       else:
@@ -820,6 +856,7 @@ class Gratline(object):
 
       if countin > 0:                   # Store what is left over
          self.linepieces.append( (x,y) )
+
 
 
 class PLOTaxis(object):
@@ -1042,9 +1079,92 @@ class Insidelabels(object):
       frame.set_ylim((ylo,yhi))
 
 
+def getlambda(pixel, lo, hi):
+#-----------------------------------------------------------------------------
+   """
+   Small utility to calculate lambda on a line for given position
+   in pixels
+   """
+#-----------------------------------------------------------------------------
+   if pixel is None:
+      return 0.5
+   delta = hi - lo
+   if delta == 0.0:
+      return 0.5
+   return (pixel-lo)/(delta)
+
+
+def getStarts(startvals, proj, i, axnum, wcstype, mixpix=None):
+#------------------------------------------------------------------------------
+   """
+   Helper function for Graticule contructor.
+   This function converts user supplied positions on an axis to numbers
+   if the values are given as one string. It extends the functionality
+   of function str2pos(). Its main purpose is to set one or more values for
+   axis labels if a user does not want the default values as calculated
+   in the constructor of class Graticule.
+
+   Notes:
+
+   The projection object 'proj' represents two axes of the map if
+   the map is either spatial or does not have any spatial axis.
+   If the map has only one spatial axis then a third axis is added
+   to the projection object and the valye of mixpix is set. Note that
+   function str2pos() diminishes the dimensionality with one is
+   the value of mixpix is set.
+
+   So distinguish three options:
+   1) This function is called with an axis that can be represented by
+      a projection object with one axis like a spectral axis or a linear axis.
+   2) This function is called with a spatial axis and the other axis in the map
+      is not spatial. The value of mixpix should be set.
+   3) This function is called with a spatial axis and the other axis in the map
+      is also spatial. The value of mixpix is not set in this case.
+  
+   """
+#------------------------------------------------------------------------------
+   if startvals is None:
+      # This is the default. Do nothing
+      return startvals, None, ""
+
+   if type(startvals) != StringType:
+      # Perhaps the values are one or more floating point numbers
+      return startvals, None, ""
+
+   spatial = wcstype in ['lo', 'la']
+   if spatial:
+      # If the is a value for mixpix then the map had only one spatial axis.
+      # The missing spatial axis is then always the last.
+      if not mixpix is None:
+         subaxnum = (i+1, 3)
+      else:
+         # But we need a mixpix here and None was given.
+         if i == 0:
+            mixpix = proj.crpix[1]
+            subaxnum = (1,2)
+         else:
+            mixpix = proj.crpix[0]
+            subaxnum = (2,1)
+   else:
+      # We need only one. i is either 0 (first axis) or 1 (second axis)
+      subaxnum = (i+1,)   # Make tuple
+      mixpix = None       # Prevent str2pos() to decrease dimensionality !
+   subproj = proj.sub(subaxnum)
+   world, pixels, units, errmes = str2pos(startvals, subproj, mixpix=mixpix)
+   if errmes != '':
+      return None, None, errmes
+   #w = world.flatten()
+   w = world[:,0]  # Get rid of extra spatial if there is one
+   p = pixels[:,0]
+   if len(w) == 1:
+      w = w[0]         # No longer a sequence but a real start value.
+      p = p[0]
+   return w, p, ""
+
+
 
 class Graticule(object):
-   #-----------------------------------------------------------------
+#-----------------------------------------------------------------
    """
 Creates an object that defines a graticule
 A (spatial) graticule consists of parallels and  meridians. We extend this to
@@ -1085,6 +1205,14 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   like ``axnum=(1,3)`` Then the input is a tuple
                   or a list.
 :type axnum:      None, Integer or sequence of Integers
+
+:param wcstypes:  List with the type of the used axes. These types are
+                  derived from the projection object axis types (attribute
+                  wcstype) but are translated into a string: The strings
+                  are 'lo' for a longitude axis, 'la' for a latitude axis,
+                  'sp; for a spectral axis and 'li_xxx' for a linear axis
+                  where 'xxx' is the ctype for that axis.
+:type wcstypes:   List of strings
 
 :param pxlim:     The values of this parameter together with
                   the values in pylim define a rectangular frame.
@@ -1229,9 +1357,17 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   with a default distance calculated by this method.
                   If *None* is set, then a suitable value will be
                   calculated.
-                  For longitudes and latitudes the parameter can also be
-                  a string representing a sexagesimal number.
-                  The syntax is explained in :func:`positions.parsehmsdms`.
+                  The input can also be a string which is parsed by
+                  the positions module. This enables the use of
+                  units etc.
+                  Examples (see also module :mod:`positions`:
+                  
+                    * For a frequency axis: startx="linspace(1.4240,1.4250,4) Ghz"
+                    * For a frequency axis: startx="arange(1.4240,1.4250,0.0005) Ghz"
+                    * For a spectral translation to WAVE: startx="'0.2105, 0.2104' m"
+                    * Two labels on a longitude axis: startx="3h00m20s 3h00m30s"
+
+
 :type startx:     *None* or 1 floating point number or a sequence
                   of floating point numbers or a string.
 
@@ -1243,10 +1379,18 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 :param deltax:    Step in **world coordinates** along the x-axis
                   between two subsequent graticule lines.
-:type deltax:     *None* or a floating point number
+                  It can also be a string with an expression and optionally
+                  a unit. Note that the expression cannot contain any spaces.
+                  Example:
+                  
+                    * deltax = 5*6/6 dmsmin
+                    
+:type deltax:     *None* or a floating point number or a string
 
 :param deltay:    Same as deltax but now as step in y direction.
-:type deltay:     *None* or a floating point number
+                  It can also be a string with an expression and optionally
+                  a unit.
+:type deltay:     *None* or a floating point number or a string.
 
 :param skipx:     Do not calculate the graticule lines with the
                   constant world coordinate that is associated
@@ -1296,10 +1440,14 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 :param offsety:     Same as *offsetx* but now for the left plot axis.
 :type offsety:      *None* or Boolean
 
-:param unitsx:      Units for first offset axis
+:param unitsx:      Units for first axis. Applies both to regular and offset axes.
+                    If this parameter sets a unit other than the default,
+                    then a conversion function will be used to display the
+                    labels in the new units. The unit in the default axis label
+                    will be replaced by the new units.
 :type unitsx:       String
 
-:param unitsy:      Units for second offset axis
+:param unitsy:      Units for second axis.
 :type unitsy:       String
 
 
@@ -1466,6 +1614,11 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   Same for the y-axis.
                   Default: *yaxnum=2*
 
+.. attribute:: wcstypes
+
+                  List with strings that represent the wcs axis type
+                  of the axes.
+                  
 .. attribute:: gmap
 
                   The wcs projection object for this graticule.
@@ -2023,6 +2176,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 
    def __init__(self, header=None, graticuledata=None, axnum=None,
+                wcstypes=None,
                 pxlim=None, pylim=None, 
                 mixpix=None, spectrans=None, skyout=None, alter='', 
                 wxlim=None, wylim=None,
@@ -2047,6 +2201,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          pxlim  = graticuledata.pxlim
          pylim  = graticuledata.pylim
          mixpix = graticuledata.mixpix
+         wcstypes = graticuledata.wcstypes
          # Allow these to be overwritten
          if spectrans == None:
             spectrans = graticuledata.spectrans
@@ -2058,6 +2213,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
       self.skyout = skyout
       self.spectrans = spectrans
+      self.labelsintex = labelsintex
+      if wcstypes is None:
+         raise Exception, "Need a list with wcs types for these axes"
+      self.wcstypes = wcstypes
       # Try to get two axis numbers if none are given
       if axnum == None:
          naxis = header['NAXIS']
@@ -2074,23 +2233,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
            self.yaxnum = axnum[1]
       if (self.xaxnum == self.yaxnum):
          raise Exception, "Need two different axis numbers"
-
-      # Start values could be strings with hms or dms
-      #!!!!!  TODO startxy kan meerdere posities bevatten - loopen dus
-      #!!!!!!!!
-      if type(startx) == StringType:
-         wor, err = parsehmsdms(startx)
-         if err != '':
-            raise Exception, err
-         else:
-            startx = wor[0]
-      if type(starty) == StringType:
-         wor, err = parsehmsdms(starty)
-         if err != '':
-            raise Exception, err
-         else:
-            starty = wor[0]
-            
+      
       # Get the axes limits in pixels. The default is copied from
       # the values of NAXISn in the header. Note that there are no alternative
       # keywords for NAXIS.
@@ -2136,9 +2279,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          self.matchingaxnum = proj.lonaxnum 
          mix = True
       if mix:
-         if mixpix == None:
+         if mixpix is None:
             mixpix = proj.source['CRPIX'+str(self.matchingaxnum)+proj.alter]
-         if mixpix == None:
+         if mixpix is None:
             raise Exception, "Could not find a grid for the missing spatial axis"
          ok = proj.lonaxnum != None and proj.lataxnum != None 
          if not ok:
@@ -2159,8 +2302,23 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       else:
          self.gmap = gmap
       self.gmap.allow_invalid = True
-      
 
+      # We arrived at the stage that we have a Projection object (called 'gmap')
+      # which represents the current projection system and/or spectral system.
+      # For maps with only one spatial axis, a matching axis is given. We already
+      # know the pixel limits for the axes in a map (pxlim, pylim).
+      # The positions module provides a useful function (str2pos) to convert
+      # strings to positions.
+      
+      # Note that the getStarts function gets a Projection object called
+      # 'gmap' which has always a missing spatial axis added if the image
+      # has only one spatial axis.
+      startx, startpixX, errmes = getStarts(startx, self.gmap, 0, axnum, wcstypes[0], self.mixpix)
+      if errmes != '':
+         raise Exception, errmes
+      starty, startpixY, errmes = getStarts(starty, self.gmap, 1, axnum, wcstypes[1], self.mixpix)
+      if errmes != '':
+         raise Exception, errmes
 
       # The next line is added at 28-08-2010 and is necessary because
       # the sky system does not need to be an integer number anymore.
@@ -2194,8 +2352,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if wylim == None:
             self.wylim = (minmax[2], minmax[3])
 
-      self.labelsintex = labelsintex
-      
+
       # At this point we need to know for which constant positions we need to find a graticule
       # line. We distinguish the following situations:
       # A) The world coordinate is not spatial
@@ -2232,7 +2389,32 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          self.offsety = spatialy and not spatialx
 
       self.prec  = [0, 0]
+
+      # Handle the values for the step in the labels/graticule lines.
       self.delta = [None, None]
+      axisunits = self.gmap.units[0]
+      if not deltax is None and type(deltax) == StringType:
+         # Not empty and the type is a string. Then a unit can follow.
+         parts = deltax.split()
+         if len(parts) > 1:
+            uf, errmes = unitfactor(parts[1], axisunits)
+            if uf == None:
+               raise ValueError(errmes)
+         else:
+            uf =  1.0
+         deltax = uf * eval(parts[0])
+         
+      axisunits = self.gmap.units[1]
+      if not deltay is None and type(deltay) == StringType:
+         # Not empty and the type is a string. Then a unit can follow.
+         parts = deltay.split()
+         if len(parts) > 1:
+            uf, errmes = unitfactor(parts[1], axisunits)
+            if uf == None:
+               raise ValueError(errmes)
+         else:
+            uf =  1.0
+         deltay = uf * eval(parts[0])
 
       self.offsetvaluesx = None
       self.offsetvaluesy = None
@@ -2245,7 +2427,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          xmin = self.pxlim[0] - 0.5
          ymin = self.pylim[0] - 0.5
          x1 = xmin; x2 = xmax; y1 = y2 = ymin
-         ruler = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=0.5, step=deltax)
+         Lambda = getlambda(startpixX, xmin, xmax)
+         ruler = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=Lambda, step=deltax, units=unitsx)
          self.xstarts = ruler.xw
          self.prec[0] = 0
          self.delta[0] = ruler.stepsizeW
@@ -2266,14 +2449,14 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                                         delta=deltax, 
                                                         axtype=self.gmap.types[0], 
                                                         skysys=self.__skysys)
-
       if spatialy and not spatialx and self.offsety:
          # Then the offsets are distances on a sphere
          ymax = self.pylim[1] + 0.5
          xmin = self.pxlim[0] - 0.5
          ymin = self.pylim[0] - 0.5
-         x1 = xmin; x2 = xmin; y1 = ymin; y2 = ymax 
-         ruler = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=0.5, step=deltay)
+         x1 = xmin; x2 = xmin; y1 = ymin; y2 = ymax
+         Lambda = getlambda(startpixY, ymin, ymax)
+         ruler = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=Lambda, step=deltay, units=unitsy)
          self.ystarts = ruler.xw    # NOTE: do not change in yw!
          self.prec[1] = 0
          self.delta[1] = ruler.stepsizeW
@@ -2356,7 +2539,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.graticule = []   # Initialize the list with graticule lines
       if not skipx:
          axisunits = self.gmap.units[0]
-         if (self.radoffsetx or offsetx) and unitsx != None:
+         #if (self.radoffsetx or offsetx) and unitsx != None:
+         if not unitsx is None:
             units = unitsx
             uf, errmes = unitfactor(axisunits, units)
             if uf == None:
@@ -2379,15 +2563,16 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   fmt = "%g^{\circ}"
                else:
                   fmt = "%g"
-               if unitsx != None:
-                  fie = self.funx
-                  fmt = self.fmtx
+            elif not unitsx is None:
+               fie = self.funx
+               fmt = self.fmtx
             gridl = Gratline(0, x, self.gmap,
                              self.pxlim, self.pylim, 
                              self.wxlim, self.wylim, 
                              gridsamples,self.mixpix, self.__skysys,
                              offsetlabel=offsetlabel,
                              fun=fie, fmt=fmt)
+
             self.graticule.append(gridl)
             gridl.kwargs = {'color': '0.75', 'lw': 1}
       if not skipy:
@@ -2404,6 +2589,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   fmt = "%g^{\circ}"
                else:
                   fmt = "%g"
+            elif not unitsy is None:
+               fie = self.funy
+               fmt = self.fmty
             gridl = Gratline(1, y, self.gmap,
                              self.pxlim, self.pylim, 
                              self.wxlim, self.wylim, 
@@ -2849,7 +3037,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 
    def setp_tick(self, wcsaxis=None, plotaxis=None, position=None,
-                 tol=1e-12, fmt=None, fun=None, tex=None,
+                 tol=1e-12, fmt=None, fun=None, tex=None, texsexa=None,
                  markerdict={}, **kwargs):
       #-----------------------------------------------------------------
       """
@@ -2903,7 +3091,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             fmt='HMs'. The characters in the format either force
             (uppercase) a field to be printed, or it suppresses
             (lowercase) a field to be printed.
-            Se also the examples at :func:`wcsgrat.makelabel`.
+            See also the examples at :func:`wcsgrat.makelabel`.
+            To create labels with an exponential, use a second format in
+            the same format string. The syntax is %nne where nn is an
+            integer. This integer, which can be negative, sets the number
+            in the exponential. The number before the exponential is
+            formatted in the usual way e.g. fmt='%.3f%-3e'.
       :type fmt: String
       
       :param fun:
@@ -2921,7 +3114,15 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             property.
       :type tex:
             Boolean
-            
+
+      :param texsexa:
+            If False and parameter *tex* is True, then format the
+            tick label without superscripts for sexagesimal labels.
+            This option can be used if superscripts result in 'jumpy' labels.
+            The reason is that in Matplotlib the TeX labels at the bottom
+            of a plot are aligned at a baseline at the top of the characters.
+      :type tex: Boolean
+
       :param markerdict:
             Properties for the tick marker. Amongst others:
       
@@ -3012,6 +3213,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                     if fmt != None: t.fmt = fmt
                     if fun != None: t.fun = fun
                     if tex != None: t.tex = tex
+                    if not texsexa is None: t.texsexa = texsexa
                     # There are defaults for the precision in seconds for each axis
                     # If the user sets a format with precision in seconds (e.g. HMS.SS)
                     # then we need to tell this to different methods that dela with this.
@@ -3055,6 +3257,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                         gridline.ticks[indx].fun = fun
                     if tex != None:
                         gridline.ticks[indx].tex = tex
+                    if texsexa != None:
+                        gridline.ticks[indx].texsexa = texsexa
 
 
    def setp_tickmark(self, wcsaxis=None, plotaxis=None, position=None,
@@ -3072,7 +3276,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 
    def setp_ticklabel(self, wcsaxis=None, plotaxis=None, position=None,
-                      tol=1e-12, fmt=None, fun=None, tex=None, **kwargs):
+                      tol=1e-12, fmt=None, fun=None, tex=None, texsexa=None,
+                      **kwargs):
       #-----------------------------------------------------------------
       """
       Utility method for :meth:`setp_tick`. It handles the
@@ -3135,13 +3340,22 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             in use.
       :type tex: Boolean
 
+      :param texsexa:
+            If False and parameter *tex* is True, then format the
+            tick label without superscripts for sexagesimal labels.
+            This option can be used if superscripts result in 'jumpy' labels.
+            The reason is that in Matplotlib the TeX labels at the bottom
+            of a plot are aligned at a baseline at the top of the characters.
+      :type tex: Boolean
+
+
       :param `**kwargs`:
             Keyword arguments for plot properties like *color*,
             *visible*, *rotation* etc. The plot attributes are standard
             Matplotlib attributes which can be found in the
             Matplotlib documentation.
       :type `**kwargs`: Matplotlib keyword arguments
-      
+
 
       :note:
             Some projections generate labels that are very close

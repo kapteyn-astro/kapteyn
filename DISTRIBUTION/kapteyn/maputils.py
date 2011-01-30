@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pythonshowall
 #----------------------------------------------------------------------
 # FILE:    maputils.py
 # PURPOSE: Provide methods to extract 2-dim image data from FITS file
@@ -16,7 +16,7 @@
 # Groningen, The Netherlands
 # E: gipsy@astro.rug.nl
 #
-# Todo:
+# TODO:
 # Positionmessage offsets laten laten tonen.
 #
 #----------------------------------------------------------------------
@@ -2402,7 +2402,20 @@ this class.
    Tuple or list with the FITS axis number of the two image axes,
    e.g. axperm=(1,2)
 :type axperm:
-   Tuple with integers
+   Tuple with two integers
+:param wcstypes:
+   In some modules we need to know what the type of an axis in the image is
+   so that for example we can find out whether two different images have swapped axes.
+   The order of this list is the same as the order in the original FITS file.
+   'lo' is longitude axis, 'la' is latitude axis,
+   'sp' is spectral axis, 'li' is a linear axis. Appended to 'li' is an
+   underscore and the ctype of that axis (e.g. 'li_stokes').
+   If the original data has axes (RA, DEC, FREQ, STOKES), then FITSimage.wcstypes
+   = ['lo','la', 'sp', 'li_STOKES'] and when we have an Annotatedimage
+   object with axes (FREQ, DEC) then the axis permutation array is (3, 2) and
+   the wcsypes list is ['sp', 'la'].
+:type wcstypes:
+   List of strings.
 :param skyout:
    A so called sky definition (sky system, reference system, equinox)
    which is used to annotate the world coordinates and to draw
@@ -2552,9 +2565,9 @@ this class.
 
    """
 #--------------------------------------------------------------------
-   def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm,
+   def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, wcstypes,
                 skyout, spectrans, alter='',
-                mixpix=None,  aspect=1, slicepos=None, basename=None,
+                mixpix=None,  aspect=1, slicepos=None, sliceaxnames=None, basename=None,
                 cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None,
                 sourcename='unknownsource'):
       #-----------------------------------------------------------------
@@ -2577,13 +2590,15 @@ this class.
          self.data = imdata
       self.mixpix = mixpix
       self.axperm = axperm
+      self.wcstypes = wcstypes
       self.skyout = skyout
       self.spectrans = spectrans
       self.alter = alter
       self.box = (self.pxlim[0]-0.5, self.pxlim[1]+0.5, self.pylim[0]-0.5, self.pylim[1]+0.5)
       self.image = None                          # A Matplotlib instance made with imshow()
       self.aspect = aspect
-      self.slicepos = slicepos                   # Information about current slice 
+      self.slicepos = slicepos                   # Information about current slice
+      self.sliceaxnames = sliceaxnames
       self.contours = None
       self.colorbar = None
       self.contourset = None
@@ -2902,7 +2917,8 @@ this class.
       helptext += "h: Toggle histogram equalization & raw image -- "
       helptext += "z: Toggle smooth & raw image -- x: Increase smooth factor\n"
       helptext += "m: Save current colour map to disk -- "
-      helptext += "b: Change colour of bad pixels"   # Last line has no line feed (bottom aligned)
+      helptext += "b: Change colour of bad pixels -- "
+      helptext += "Shift MB left: Write pos. to term." # Last line has no line feed (bottom aligned)
       return helptext
 
 
@@ -2938,7 +2954,7 @@ this class.
       ix = numpy.isfinite(im)
       #im = numpy.ma.masked_where(numpy.isfinite(self.data), self.data)
       #get image histogram
-      imhist,bins = numpy.histogram(im[ix].flatten(), nbr_bins, normed=True, new=True,
+      imhist,bins = numpy.histogram(im[ix].flatten(), nbr_bins, normed=True,
                                     range=(self.clipmin, self.clipmax))
       cdf = imhist.cumsum() #cumulative distribution function
       #cdf = 255 * cdf / cdf[-1] #normalize
@@ -3319,7 +3335,7 @@ this class.
       """
       #-----------------------------------------------------------------
       class Gratdata(object):
-         def __init__(self, hdr, axperm, pxlim, pylim, mixpix, skyout, spectrans, alter):
+         def __init__(self, hdr, axperm, wcstypes, pxlim, pylim, mixpix, skyout, spectrans, alter):
             self.hdr = hdr
             self.axperm = axperm
             self.pxlim = pxlim
@@ -3328,8 +3344,9 @@ this class.
             self.skyout = skyout
             self.spectrans = spectrans
             self.alter = alter
+            self.wcstypes = wcstypes
 
-      gratdata = Gratdata(self.hdr, self.axperm, self.pxlim, self.pylim,
+      gratdata = Gratdata(self.hdr, self.axperm, self.wcstypes, self.pxlim, self.pylim,
                           self.mixpix, self.skyout, self.spectrans, self.alter)
       graticule = wcsgrat.Graticule(graticuledata=gratdata, **kwargs)
       graticule.visible = visible     # A new attribute only for this context
@@ -3484,7 +3501,7 @@ this class.
                            In this routine the nearest integer of
                            the input is calculated to ensure that the
                            offset is an integer value.
-      :type offset:        *None* or a floating point number
+      :type offset:        *None* or floating point numbers
 
       Other parameters are related to Matplotlib label attributes.
 
@@ -4514,6 +4531,9 @@ this class.
       scales = {'1': 'linear', '2': 'log', '3': 'exp', '4': 'sqrt', '5': 'square'}
 
 
+      if axesevent.event.key is None:
+         # This can happen when the caps lock is on.
+         return
       # Request for another color map with page up/down keys
       if axesevent.event.key in ['pageup', 'pagedown']:
          lm = len(colormaps)
@@ -4610,7 +4630,7 @@ this class.
          self.blurindx += 1
          if self.blurindx >= 10:
             self.blurindx = 1
-         self.blurfac = self.blurindx * (self.pxlim[1]-self.pxlim[0]+1) / 200.0
+         self.blurfac = self.blurindx * 0.5
          mes = "Blur index: %d blur sigma: %g" % (self.blurindx, self.blurfac)
          self.messenger(mes)
          self.set_blur(nx=self.blurfac, new=True)
@@ -4710,7 +4730,9 @@ this class.
          * **z** (or 'Z') replaces the current data by a **smoothed**
            version of this data. This key is a toggle between
            the original data and the blurred version, smoothed
-           with a value of sigma set by key 'x'
+           with a value of sigma set by key 'x'. Pressing 'x' repeatedly
+           increases the smoothing factor. Note that Not a Number (NaN) values
+           are smoothed to 0.0.
          * **x** (or 'X") increases the smoothing factor. The number of steps is
            10. Then is starts again with step 1.
          * **m** (or 'M') saves current colormap look up data to a file.
@@ -4772,8 +4794,9 @@ this class.
       # if event.inaxes is not self.frame:
       if not numpy.all(event.inaxes.get_position().get_points() == self.frame.get_position().get_points()):
          return
-      """ 
-      if axesevent.event.button != 1:
+      """
+      condition = axesevent.event.button == 1 and axesevent.event.key == 'shift'
+      if not condition:
          return
       s = ''
       if self.figmanager.toolbar.mode == '':
@@ -5288,6 +5311,15 @@ to know the properties of the FITS data beforehand.
 
        Axis permutation array. These are the (FITS) axis numbers of your
        image x & y axis.
+
+    .. attribute:: wcstypes
+
+       Type of the axes in this data. The order is the same as of the axes.
+       The types ara strings and are derived from attribute wcstype of the
+       Projection object. The types are:
+       'lo' is longitude axis. 'la' is latitude axis,
+       'sp' is spectral axis. 'li' is a linear axis. Appended to 'li' is an
+       underscore and the ctype of that axis (e.g. 'li_stokes').
        
     .. attribute:: mixpix
 
@@ -5506,6 +5538,7 @@ to know the properties of the FITS data beforehand.
       self.axisinfo = axinf
 
       slicepos = []                  # Set default positions (CRPIXn) on axes outside image for slicing data
+      sliceaxnames = []
       n = self.naxis
       if (n > 2):
          for i in range(n):
@@ -5519,7 +5552,9 @@ to know the properties of the FITS data beforehand.
                if crpix < 1 or crpix > self.axisinfo[axnr].axlen:
                   crpix = 1
                slicepos.append(crpix)
+               sliceaxnames.append(self.axisinfo[axnr].axname)
       self.slicepos = slicepos
+      self.sliceaxnames = sliceaxnames
 
       n1 = self.axisinfo[self.axperm[0]].axlen
       n2 = self.axisinfo[self.axperm[1]].axlen
@@ -5529,6 +5564,7 @@ to know the properties of the FITS data beforehand.
       self.proj = wcs.Projection(self.hdr, alter=self.alter)
       for i in range(n):
          ax = i + 1
+         # The index for axinfo starts with 1.
          self.axisinfo[ax].wcstype = self.proj.types[i]
          self.axisinfo[ax].wcsunits = self.proj.units[i]
          #self.axisinfo[ax].cdelt = self.proj.cdelt[i]
@@ -5539,8 +5575,23 @@ to know the properties of the FITS data beforehand.
          self.axisinfo[ax].cunit = self.proj.cunit[i]
          self.axisinfo[ax].crpix = self.proj.crpix[i]
 
-      self.spectrans = None   # Set the spectral translation
-      self.skyout = None      # Must be set before call to set_imageaxes
+      # Set the type of axis in the original system.
+      wcstypes = []
+      for i in range(n):
+         ax = i + 1
+         if not self.proj.lonaxnum is None and ax == self.proj.lonaxnum:
+            wcstypes.append('lo')
+         elif not self.proj.lataxnum is None and ax == self.proj.lataxnum:
+            wcstypes.append('la')
+         elif not self.proj.specaxnum is None and ax == self.proj.specaxnum:
+            wcstypes.append('sp')
+         else:
+            # To distinguish linear types we append the ctype of this axis.
+            wcstypes.append('li_' + self.proj.ctype[i])
+      self.wcstypes = wcstypes
+
+      self.spectrans = None    # Set the spectral translation
+      self.skyout = None       # Must be set before call to set_imageaxes
       self.boxdat = self.dat
       self.set_imageaxes(self.axperm[0], self.axperm[1], self.slicepos)
       self.aspectratio = None
@@ -5710,7 +5761,8 @@ to know the properties of the FITS data beforehand.
    #------------------------------------------------------------
       """
       Print the meta information from the selected header.
-      Omit items of type *HISTORY*.
+      Omit items of type *HISTORY*. It prints both real FITS headers
+      and headers given by a dictionary.
 
       :Returns:
          A string with the header keywords
@@ -5741,9 +5793,21 @@ to know the properties of the FITS data beforehand.
       """
    #------------------------------------------------------------
       st = ''
-      for s in self.hdr.ascardlist():
-         if not str(s).startswith('HISTORY'):
-            st += "%s\n" % s
+      if isinstance(self.hdr, dict):
+         keylist = self.hdr.keys()
+         keylist.sort()
+         for k in keylist:
+            s = self.hdr[k]
+            if not str(s).startswith('HISTORY'):
+               if type(s) == types_StringType:
+                  val = "'" + "%-18s"%s + "'"
+               else:
+                  val = "%+20s"%str(s)
+               st += "%-8s"%k + "= " + val + " /\n"
+      else:
+         for s in self.hdr.ascardlist():
+            if not str(s).startswith('HISTORY'):
+               st += "%s\n" % s
       return st
 
 
@@ -5903,7 +5967,7 @@ to know the properties of the FITS data beforehand.
    def getaxnumberbyname(self, axname):
       #--------------------------------------------------------------
       """
-      Given an axis specification 
+      Given an axis specification,  
       convert to the corresponding axis number. If the input was a number,
       then return this number. Note that there is no check on
       multiple matches of the minimal matched string.
@@ -6088,6 +6152,13 @@ to know the properties of the FITS data beforehand.
                self.slicepos = slicepos
             else:
                self.slicepos = [slicepos]
+            k = 0
+            for i in range(n):
+               axnr = i + 1
+               if axnr not in [axnr1, axnr2]:
+                  self.sliceaxnames[k] = self.axisinfo[axnr].axname
+                  k += 1
+                  
 
       axperm = [axnr1, axnr2]
       wcsaxperm = [axnr1, axnr2]
@@ -7619,11 +7690,14 @@ to know the properties of the FITS data beforehand.
       if frame is None:
          fig = figure()
          frame = fig.add_subplot(1,1,1)
+      # Give the axis types in the order of the axes in the Annotatedimage.
+      wcstypes = [self.wcstypes[self.axperm[0]-1], self.wcstypes[self.axperm[1]-1]]
       mplimage = Annotatedimage(frame, self.hdr, self.pxlim, self.pylim, self.boxdat,
-                                self.convproj, self.axperm,
+                                self.convproj, self.axperm, wcstypes,
                                 skyout=self.skyout, spectrans=self.spectrans,
                                 alter=self.alter,
                                 mixpix=self.mixpix, aspect=ar, slicepos=self.slicepos,
+                                sliceaxnames=self.sliceaxnames,
                                 sourcename=self.filename, **kwargs)
       # The kwargs are for cmap, blankcolor, clipmin, clipmax for which
       # a FITSimage object does not need to set defaults because they

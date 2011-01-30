@@ -30,6 +30,16 @@ Version 2.0.3 (in development)
     new *slice2world()* method prints information about
     slice positions (annotate 2d maps from a 3d data cube).
 
+  * catch error if *event.key* is None for Caps Lock keys
+
+  * get rid of 'new' keyword in histogram
+
+  * blur defaults improved
+
+  * *str_header()* method was unable to print dictionary (external) headers.
+    Fixed.
+
+
 * Module mplutil:
 
   * work-around for special keys which are defined in matplotlib's GTKAgg
@@ -42,21 +52,64 @@ Version 2.0.3 (in development)
   * units 1/...  and /...  also recognized.  Can be used for spectral
     translations that transform to e.g.  AWAV. 
 
+  * introduced '?' character as wildcard for units.
+
+  * introduced case insensitive minimal match for 'UNITS' as a replacement
+    for header units.
+
+  * all column, row and line numbers now start with 1.
+
+
 * Module shapes:
 
   * messages for toolbar improved.
   
   * changed conversion routine to support shapes on maps with only one
-    spatial axis (e.g.  position-velocity maps).
+    spatial axis (e.g. position-velocity maps).
     
   * GUI improved.
   
-  * Improved writing shape data to file.
+  * improved writing shape data to file.
+
+  * catch error if *event.key* is None for Caps Lock keys
+
+  * improved moving objects (from within any point within the ellipse)
+
+  * improved rotation ellipse
+
+  * improved sampling on ellipse
+
+  * added rotation to rectangles
+
+  * changed writing position to terminal with left mouse button to combination
+    of left mouse button and shift key. This prevents interference with
+    module shapes where one drags a shape with the left mouse button.
+
 
 * Module wcsgrat:
 
   * fixed bug with precision in seconds.
-  
+
+  * use positions module to evaluate expressions for startx and starty
+    parameter in Graticule class.
+
+  * use positions module to evaluate expressions for deltax and deltay
+    parameter in Graticule class.
+
+  * introduced a syntax to set labels in LaTeX in exponential format.
+
+  * sexagesimal labeling with h, m, s characters or with superscripts with
+    Boolean parameter *texsexa*.
+
+  * allow Graticule parameter *unitsx* and *unitsy* also to be applied to
+    non-offset axes. (Examples in maputils tutorial).
+
+  * minutes and seconds labeling for negative declinations get '-' sign
+
+  * center of offset axis can be changed with parameter *startx*, *starty*
+    and a string as argument.
+
+
 * New module profiles:
 
   * added function *gauest()* for estimating gaussian components in

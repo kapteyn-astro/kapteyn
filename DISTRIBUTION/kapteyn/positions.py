@@ -22,11 +22,8 @@ In module :mod:`wcs` we provided two methods of the Projection object for
 transformations between pixels and world coordinates. These methods are
 :meth:`wcs.Projection.topixel` and :meth:`wcs.Projection.toworld` and they
 allow (only) numbers as their input parameters. These transformation methods apply to
-the native coordinate system, i.e. it expects that world coordinates
-are given for the world coordinate system (WCS) for which the Projection object
-from module :mod:`wcs` is created. For example there is no option to enter
-world coordinates from another sky system.
-
+the coordinate system for which the Projection object is created and it is not
+possible to enter world coordinates from other sky systems or with other units.
 
 Often one wants more flexibility. For instance, in interaction with the user, positions
 can be used to plot markers on a map or to preset the location of labels and
@@ -35,24 +32,24 @@ positions are from a FK5 catalog while your current map is given in
 Galactic coordinates? Or what to do if you need to know,
 given a radio velocity, what the optical velocity is for a spectral axis
 which has frequency as its primary type? For these situations we
-wrote method :meth:`str2pos`.
+wrote function :func:`str2pos`.
 
 This module enables a user/programmer to specify positions in either
 pixel- or world coordinates. Its functionality is provided by a parser
 which converts strings with position information into pixel coordinates
 and world coordinates. Let's list some options with examples how to use
-method :meth:`str2pos` which is the most important method in this module.
+function :func:`str2pos` which is the most important method in this module.
 
 Assume we have a projection object *pr* and you
 want to know the world coordinates *w* and the pixels *p* for a given
 string. Further, assume *u* are the units of the world coordinates
 and *e* is an error message. Both *u* and *e* are output parameters.
 Here are some examples how to use
-:meth:`str2pos`. We will give detailed descriptions of the options
+:func:`str2pos`. We will give detailed descriptions of the options
 in later sections.
 
    * | Expressions for the input of **numbers**.
-     | Example: ``w,p,e = str2pos('[pi**2::3], [1:3]`', pr)``
+     | Example: ``w,p,u,e = str2pos('[pi**2::3], [1:3]', pr)``
    * | Use of **physical constants**.
      | Example: ``w,p,u,e = str2pos('c_/299792458.0,  G_/6.67428e-11', pr)``
    * | Use of **units** to set world coordinates
@@ -111,7 +108,7 @@ Module :mod:`wcs` provides methods for conversions between
 pixel coordinates and world coordinates given a description of the world coordinate
 system as defined in a (FITS) header). Module :mod:`celestial` converts world coordinates
 between different sky- and reference systems and/or epochs.
-In this module we combined the functionality of :mod:`wcs` and :mod:`celestial`
+In this module we combine the functionality of :mod:`wcs` and :mod:`celestial`
 to write a coordinate parser to convert world coordinates to pixel coordinates (and back)
 given a header that describes the WCS.
 Note that a description of a world coordinate system can be either derived from a FITS header or
@@ -157,7 +154,9 @@ Remember, *p* are the pixel coordinates, *w* the world coordinates and *u*
 is a tuple with units.
 We have valid coordinates if the string *e* is empty.
 If it is not empty then there is an error condition and the string is an error message.
-The parser does not raise exceptions. If you want to extract just one position
+The parser does not raise exceptions but it stores a message after an exception
+in the error message. This is to simplify the use of :func:`str2pos`.
+If you want to extract just one position
 then give the index in the output array, for example ``W0 = w[0]``. The x and y coordinates
 are in this case: ``wx = W0[0]; wy = W0[1]``.
 
@@ -168,7 +167,7 @@ The function :func:`str2pos` returns a tuple with four items:
 
       * *w*: an array with positions in world coordinates. One position has
         *n* coordinates and *n* is the dimension of your data structure
-        which 1 for an axis, 2 for a map, 3 for a cube etc.
+        which 1 for structure with one axis, 2 for a map, 3 for a cube etc.
       * *p*: an array with positions in pixel coordinates. It has the same structure
         as *w*.
       * *u*: an array with the units of the world coordinates
@@ -219,10 +218,10 @@ The functions are:
     ln = log10(x)/log10(e), log=log10, deg=degrees, rad=radians
   * arange, linspace
 
-The functions allow an array as argument. This sequence is a
-NumPy array and its definition starts and ends with a square bracket.
+The functions allow a NumPy array as argument. Here its definition starts and
+ends with a square bracket. Its elements are separated by a comma.
 But note, it is not a Python list.
-In addition to the selection of mathematical functions we also included
+In addition to the selection of mathematical functions we also include
 the functions :func:`arange` and :func:`linspace` from NumPy to
 be able to generate arrays.
 
@@ -254,7 +253,7 @@ So it is also valid to write:
    * ``[1,2,3]-100`` -> [-99., -98., -97.]
    * ``[1,2,3]/0.3`` -> [ 3.33333333,   6.66666667,  10.]
 
-The array syntax has been extended to allow for the generation of ranges.
+The array syntax also allows for the generation of ranges.
 A range follows the
 syntax ``start:end:step`` and *start* may be smaller than *end*. Here we deviate
 also from Python. That is, we include always the values *start* and *end* in
@@ -264,11 +263,13 @@ Some examples:
    * ``[1:4]`` -> [ 1.,  2.,  3.,  4.]
    * ``[-1:-5]`` -> [-1., -2., -3., -4., -5.]
    * ``[-1:-5:-2]`` -> [-1., -3., -5.]
+   * ``[5:1:1]`` -> []             # Note that increment is positive
    * ``[1:3, 10:12, 100]`` -> [1.,    2.,    3.,   10.,   11.,   12.,  100.]
    * ``[1*pi:2*pi]`` -> [3.14159265,  4.14159265,  5.14159265,  6.14159265,  7.14159265]
 
 If one prefers the *non-inclusive* Python style ranges, then function :func:`arange` is
-available. Another 'range creating' function is :func:`linspace`.
+available. Another function is :func:`linspace` which generates a (given) number of
+equidistant samples between a start and end value.
 
    * :func:`arange()`. For example ``arange(1,4)**3`` results in an
      array with elements 1, 2, 3 and all these elements are taken to the power of 3
@@ -284,10 +285,10 @@ subsequent colons:
 
 .. note::
 
-   * Functions kan have scalars, lists and arrays as arguments.
+   * Functions can have scalars, lists and arrays as arguments.
    * Mathematical expressions can be applied on all array elements at the same time.
    * Note that x to the power of y is written as x**y and not as
-     x^y which is a *bitwise or*.
+     x^y (which is a *bitwise or*).
 
 
 To get information about NumPy functions you have to read the Python documentation
@@ -332,13 +333,13 @@ a Python list and not an array! Examine the next expressions:
 >>> pos = "'[pi]*3' range(3)"       # [pi, pi, pi]  [0, 1, 2]
 >>> pos = "'[sin(x) for x in range(4)]' range(4)"
 
-In this context the square brackets define a list. In the examples we demonstrated
+In this context the square brackets define a list. In the examples we demonstrate
 the list operator '+' which concatenates lists, '*' which repeats the elements in a list
 and list comprehension.
 Note that Python's :func:`eval()` function requires that the elements in an expression
 are separated by a comma.
 
-It is important to remenber that without quotes, the square brackets define an array.
+It is important to remember that without quotes, the square brackets define an array.
 The list operators '+' and '*' have a different meaning for lists and arrays.
 For arrays they add or multiply element-wise as shown in:
 
@@ -487,26 +488,38 @@ A sky definition is either a case insensitive minimal match from the list::
   'EQUATORIAL','ECLIPTIC','GALACTIC','SUPERGALACTIC'
 
 or it is a definition between curly brackets which can contain one or
-more items from the list
-sky system, reference system, equinox and epoch of observation.
+more items from the following list:
+*sky system, reference system, equinox* and *epoch of observation*.
 
 An empty string between curly brackets e.g. {}, followed by a number,
 implies a world coordinate in the native sky system. 
 
 Examples:
 
->>> pos = "{eq} 178.7792  {} 53.655"                      # As a sky definition between curly brackets
->>> pos = "{} 178.7792 {} 53.655"                         # A world coordinate in the native sky system
->>> pos = "{eq,B1950,fk4} 178.12830409  {} 53.93322241"   # With sky system, reference system and equinox
->>> pos = "{fk4} 178.12830409  {} 53.93322241"            # With reference system only.
->>> pos = "{eq, B1950,fk4, J1983.5} 178.1283  {} 53.933"  # With epoch of observation (FK4 only)
->>> pos = "{eq B1950 fk4 J1983.5} 178.1283  {} 53.933"    # With space as separator
->>> pos = "ga 140.52382927 ga 61.50745891"                # Galactic coordinates
->>> pos = "ga 140.52382927 {} 61.50745891"                # Second definition copies from first
->>> pos = "su 61.4767412, su 4.0520188"                   # Supergalactic
->>> pos = "ec 150.73844942 ec 47.22071243"                # Ecliptic
->>> pos = "{} 178.7792 6.0"                               # Mix world- and pixel coordinate
->>> pos = "5.0, {} 53.655"                                # Mix with world coordinate in native system
+>>> pos = "{eq} 178.7792  {} 53.655"
+    # As a sky definition between curly brackets
+>>> pos = "{} 178.7792 {} 53.655"
+    # A world coordinate in the native sky system
+>>> pos = "{eq,B1950,fk4} 178.12830409  {} 53.93322241"
+    # With sky system, reference system and equinox
+>>> pos = "{fk4} 178.12830409  {} 53.93322241"
+    # With reference system only.
+>>> pos = "{eq, B1950,fk4, J1983.5} 178.1283  {} 53.933"
+    # With epoch of observation (FK4 only)
+>>> pos = "{eq B1950 fk4 J1983.5} 178.1283  {} 53.933"
+    # With space as separator
+>>> pos = "ga 140.52382927 ga 61.50745891"
+    # Galactic coordinates
+>>> pos = "ga 140.52382927 {} 61.50745891"
+    # Second definition copies from first
+>>> pos = "su 61.4767412, su 4.0520188"
+    # Supergalactic
+>>> pos = "ec 150.73844942 ec 47.22071243"
+    # Ecliptic
+>>> pos = "{} 178.7792 6.0"
+    # Mix world- and pixel coordinate
+>>> pos = "5.0, {} 53.655"
+    # Mix with world coordinate in native system
 
 .. note::
 
@@ -522,17 +535,28 @@ and a non-spatial axis (e.g. position velocity diagrams). The conversion functio
 If one of the axes is a spectral axis, then one can enter world coordinates
 in a compatible spectral system:
 
->>> pos = "{} 53.655 1.415418199417E+09 hz"    # Spatial and spectral world coordinate
->>> pos = "{} 53.655 1.415418199417E+03 Mhz"   # Change Hz to MHz
->>> pos = "53.655 deg 1.415418199417 Ghz"      # to GHz
->>> pos = "{} 53.655 vopt 1.05000000e+06"      # Use spectral translation to enter optical velocity
->>> pos = "{} 53.655 , vopt 1050 km/s"         # Change units
->>> pos = "10.0 , vopt 1050000 m/s"            # Combine with a pixel position
->>> pos = "{} 53.655 vrad 1.05000000e+06"      # Radio velocity
->>> pos = "{} 53.655 vrad 1.05000000e+03 km/s" # Radio velocity with different unit
->>> pos = "{} 53.655 FREQ 1.41541820e+09"      # A Frequency
->>> pos = "{} 53.655 wave 21.2 cm"             # A wave length with alternative unit
->>> pos = "{} 53.655 vopt c_/285.51662         # Use speed of light constant to get number in m/s
+>>> pos = "{} 53.655 1.415418199417E+09 hz"
+    # Spatial and spectral world coordinate
+>>> pos = "{} 53.655 1.415418199417E+03 Mhz"
+    # Change Hz to MHz
+>>> pos = "53.655 deg 1.415418199417 Ghz"
+    # to GHz
+>>> pos = "{} 53.655 vopt 1.05000000e+06"
+    # Use spectral translation to enter optical velocity
+>>> pos = "{} 53.655 , vopt 1050 km/s"
+    # Change units
+>>> pos = "10.0 , vopt 1050000 m/s"
+    # Combine with a pixel position
+>>> pos = "{} 53.655 vrad 1.05000000e+06"
+    # Radio velocity
+>>> pos = "{} 53.655 vrad 1.05000000e+03 km/s"
+    # Radio velocity with different unit
+>>> pos = "{} 53.655 FREQ 1.41541820e+09"
+    # A Frequency
+>>> pos = "{} 53.655 wave 21.2 cm"
+    # A wave length with alternative unit
+>>> pos = "{} 53.655 vopt c_/285.51662
+    # Use speed of light constant to get number in m/s
 
 
 .. note::
@@ -554,8 +578,8 @@ in a compatible spectral system:
    World coordinates followed by a unit, are supposed to be compatible
    with the Projection object. So if you have a header with spectral type FREQ but
    with a spectral translation set to VOPT, then ``"{} 53.655 1.415418199417E+09 hz"``
-   is invalid, ``10.0 , vopt 1050000 m/s`` is ok and
-   also ``{} 53.655 FREQ 1.415418199417e+09"`` is correct.
+   is invalid, ``"10.0 , vopt 1050000 m/s"`` is ok and
+   also ``"{} 53.655 FREQ 1.415418199417e+09"`` is correct.
 
 Sexagesimal notation
 ,,,,,,,,,,,,,,,,,,,,,,,
@@ -571,10 +595,10 @@ Here are some examples:
 Reading from file with function *readcol()*, *readhms()* and *readdms()*
 ..........................................................................
 
-Often one wants to plot markers at positions that are stored in an Ascii
-file (text file) on disk.
+Often one wants to plot markers at positions that are stored in a text 
+file (Ascii) on disk.
 
-In practice one can encounter many formats for coordinates in Ascii files.
+In practice one can encounter many formats for coordinates in text files.
 Usually these coordinates are written in columns. For example one can expect
 longitudes in degrees in the first column and latitudes in degrees in the second.
 But what do these coordinates represent? Are they galactic or ecliptic positions?
@@ -610,6 +634,8 @@ In the functions :func:`readhms()` and :func:`readdms()`, which are
 also based on :func:`tabarray.readColumns`, the *cols=* argument is replaced by
 arguments *col1=, col2=, col3=*. These functions read three columns at once and
 combine the columns into one.
+Tabarray routines count with 0 as the first column, first row etc. The routines
+that we describe here count with 1 as the first column or row etc.
 
 **syntax**
 
@@ -699,7 +725,7 @@ to get row number 10, 12, ..., 44. Note that it is not possible to set a
 step size if you use the *fromline* or *toline* parameter.
 
 In some special circumstances you want to be able to read only
-pre selected rows from the data lines. Assume a user needs rows 1,3,7,12,44.
+preselected rows from the data lines. Assume a user needs rows 1,3,7,12,44.
 Then the position string should be:
 
 >>> pos = 'readcol("pixmarks.txt", col=1, rows=[1,3,7,12,44]), .....'
@@ -820,8 +846,8 @@ Parser errors messages
 
 The position parser is flexible but there are some rules. If the input
 cannot be transformed into coordinates then an appropriate message will be
-returned. In some cases the error message seems not related to the problem
-but that seems inherent to parsers. If a number is wrong, the parser tries
+returned. In some cases the error message seems not to be related to the problem
+but that seems often the case with parsers. If a number is wrong, the parser tries
 to parse it as a sky system or a unit. If it fails, it will complain about
 the sky system or the unit and not about the number.
 
@@ -838,7 +864,7 @@ to enter a string (no need to enclose it with quotes because it is read as a str
 Enter positions for a two dimensional data structure with axes R.A. and Dec.
 Start the test with:
 
->>> python position.py
+>>> python positions.py
 
 GIPSY's grids mode
 ......................
@@ -847,15 +873,15 @@ FITS pixel coordinates start with number one and the last pixel
 for axis n is the value of header item *NAXISn*. Pixel value
 *CRPIXn* is the pixel that corresponds to *CRVALn*. The value
 of *CRPIXn* can be non-integer.
-There are also systems that implemented a different numbering.
+There are also systems that implement a different numbering.
 For example the Groningen Image Processing SYstem (GIPSY) uses an offset.
 There we call pixel *CRPIXn* grid 0, so
 grid 0 corresponds to *CRVALn*. It has the advantage that these grid coordinates
-are still valid after resizing the input data. For FITS data we need to change
+are still valid after cropping  the input data. For FITS data we need to change
 the value for *CRPIXn* after slicing the data and writing it to a new FITS file.
 But then your original pixel coordinates for the same positions need to be shifted too.
 The Projection object can be set into GIPSY's grid mode using attribute
-:attr:`gridmode` (Boolean).
+:attr:`gridmode` (True or False).
 
 
 Functions
@@ -1153,7 +1179,7 @@ def minmatch(userstr, mylist, case=0):
 def unitfactor(unitfrom, unitto):
 #-----------------------------------------------------------------------------------
    """
-   Return the factor for a conversion of numbers between two units.
+   Return the conversion factor between two units.
 
    :param unitfrom:
       Units to convert from. Strings with '1/unit' or '/unit' are
@@ -1388,7 +1414,8 @@ def parsehmsdms(hmsdms, axtyp=None):
 
       * The 's' for seconds is optional
       * Expressions in numbers are not allowed because we cannot use Python's
-        eval() function, because this function cannot cope with expressions like '08'.
+        eval() function, because this function interprets expressions like '08'
+        differently (octal).
       * dms format always allowed, hms only for longitude axes.
         Both minutes and seconds are optional. The numbers
         need not to be integer.
@@ -2028,7 +2055,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None):
 def str2pos(postxt, subproj, mixpix=None):
    #-------------------------------------------------------------------
    """
-   This method accepts a string that represents a position in the
+   This function accepts a string that represents a position in the
    world coordinate system defined by *subproj*. If the string
    contains a valid position, it returns a tuple with numbers that
    are the corresponding pixel coordinates and a tuple with
@@ -2242,7 +2269,8 @@ def dotest():
               "eq 178.7792",  # Not allowed
               "11h55m07.008s",
               "178d40m",
-              "178d"
+              "178d",
+              "178d10m 178d20m30.5s"
              ]
    for postxt in userpos:
       wp = str2pos(postxt, proj, mixpix=mixpix)

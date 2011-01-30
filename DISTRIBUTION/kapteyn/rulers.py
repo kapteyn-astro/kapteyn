@@ -432,7 +432,7 @@ class Ruler(object):
       #print "DV", DV(23*15,15, 22*15, 30)*60.0
    
       # Get a step size for nice offsets
-      if step == None:
+      if step is None:
          stepsizeW = nicestep(x1, y1, x2, y2)
       else:
          stepsizeW = step
@@ -443,15 +443,17 @@ class Ruler(object):
       # Look for suitable units (degrees, arcmin, arcsec) if nothing is
       # specified in the call. Note that 'stepsizeW' is in degrees.
       uf = None
-      if fun == None and fmt == None:
-         if units != None:
-            uf, errmes = unitfactor('degree', units)
-            if uf == None:
-               raise ValueError(errmes)
-            if uf != 1.0:
-               fun = lambda x: x*uf
-               # Input in 'units' but must be degrees for further processing
-               stepsizeW /= uf
+
+      if units != None:
+         uf, errmes = unitfactor('degree', units)
+         if uf == None:
+            raise ValueError(errmes)
+         if uf != 1.0:
+            fun = lambda x: x*uf
+            # Input in 'units' but must be degrees for further processing
+            if not step is None:   
+               stepsizeW /= uf  # because step was in units of 'units'. Must be deg.
+         if fmt is None:
             if uf == 1.0:
                if labelsintex:
                   fmt = r"%4.0f^{\circ}"
@@ -470,8 +472,9 @@ class Ruler(object):
                else:
                   fmt = r"%4.0f''"
             else:
-               raise ValueError("Only Degrees, arcmin and arcsec allowed")
-         else:
+               raise ValueError("Only degree, arcmin and arcsec allowed")
+
+      if fun is None and fmt is None:
             if labelsintex:
                fmt = r"%4.0f^{\circ}"
             else:
@@ -490,7 +493,7 @@ class Ruler(object):
                   fmt = r"%4.0f^{\prime\prime}"
                else:
                   fmt = r"%4.0f''"
-      elif fmt == None:          # A function but not a format. Then a default format
+      elif fmt is None:          # A function but not a format. Then a default format
          fmt = '%g'
       # Check whether the start- and end point of the ruler are inside the frame
       start_in = (pxlim[0]-0.5 <= x1 <= pxlim[1]+0.5) and (pylim[0]-0.5 <= y1 <= pylim[1]+0.5)
@@ -571,7 +574,7 @@ class Ruler(object):
                if 0.0 <= lamplusmu <= 1.0:
                   x = x1 + (lamplusmu)*(x2-x1)
                   y = y1 + (lamplusmu)*(y2-y1)
-                  if fun != None:
+                  if fun != None:                     
                      off = fun(offset)
                   else:
                      off = abs(offset)
