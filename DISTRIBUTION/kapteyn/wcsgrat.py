@@ -909,7 +909,7 @@ class Insidelabels(object):
    class Ilabel(object):
       def __init__(self, Xp, Yp, Xw, Yw, labval, rots, axtype,
                    skysys=None, fun=None, fmt=None,
-                   offset=False, prec=0, tex=True, **kwargs):
+                   offset=False, prec=0, tex=True, texsexa=True, **kwargs):
          self.x = Xp
          self.y = Yp
          self.xw = Xw
@@ -924,6 +924,9 @@ class Insidelabels(object):
          self.fun = fun
          self.prec = prec
          self.tex = tex
+         self.texsexa = texsexa
+         if not tex:
+            self.texsexa = False
          self.kwargs = kwargs
 
 
@@ -936,20 +939,25 @@ class Insidelabels(object):
 
 
    def append(self, Xp, Yp, Xw, Yw, labval, rots, axtype, skysys=None,
-              fun=None, fmt=None, offset=False, prec=0, tex=True, **kwargs):
+              fun=None, fmt=None, offset=False, prec=0, tex=True, texsexa=True,
+              **kwargs):
       #-----------------------------------------------------------------
       """
       Append a new 'Ilabel' object to the list
       """
       #-----------------------------------------------------------------
+      if not tex:           # Overrule input if LaTeX is not used
+         texsexa = False
       ilab = self.Ilabel(Xp, Yp, Xw, Yw, labval, rots, axtype,
                          skysys=skysys, fun=fun, fmt=fmt,
-                         offset=offset, prec=prec, tex=tex, **kwargs)
+                         offset=offset, prec=prec, tex=tex, texsexa=texsexa,
+                         **kwargs)
       self.labels.append(ilab)
 
 
    def setp_label(self, position=None,
-                  tol=1e-12, fmt=None, fun=None, tex=None, **kwargs):
+                  tol=1e-12, fmt=None, fun=None, tex=None, texsexa=None,
+                  **kwargs):
       #-----------------------------------------------------------------
       """
       This method handles the
@@ -999,6 +1007,15 @@ class Insidelabels(object):
             in use.
       :type tex: Boolean
 
+      :param texsexa:
+            If False and parameter *tex* is True, then format the
+            tick label without superscripts for sexagesimal labels.
+            This option can be used if superscripts result in 'jumpy' labels.
+            The reason is that in Matplotlib the TeX labels at the bottom
+            of a plot are aligned at a baseline at the top of the characters and
+            not at the bottom, while the height between LaTeX boxes may vary.
+      :type tex: Boolean
+      
       :param `**kwargs`:
             Keyword arguments for plot properties like *color*,
             *visible*, *rotation* etc. The plot attributes are standard
@@ -1014,6 +1031,9 @@ class Insidelabels(object):
             is a parameter of Matplotlib's plot functions.
       """
       #-----------------------------------------------------------------
+      if not tex is None:
+         if not tex:
+            texsexa = False
       if position != None:
          if not issequence(position):
             posn = [position]
@@ -1022,12 +1042,14 @@ class Insidelabels(object):
 
       for label in self.labels:
          if position == None:
-            if fmt != None:
+            if not fmt is None:
                label.fmt = fmt
-            if fun != None:
+            if not fun is None:
                label.fun = fun
-            if tex != None:
+            if not tex is None:
                label.tex = tex
+            if not texsexa is None:
+               label.texsexa = texsexa
             label.kwargs.update(kwargs)
          else:      # One or more positions are given. Find the right index.
             for pos in posn:
@@ -1046,12 +1068,14 @@ class Insidelabels(object):
                else:
                   d = abs(label.yw - pos)
                if d <= tol:
-                  if fmt != None:
+                  if not fmt is None:
                      label.fmt = fmt
-                  if fun != None:
+                  if not fun is None:
                      label.fun = fun
-                  if tex != None:
+                  if not tex is None:
                      label.tex = tex
+                  if not texsexa is None:
+                     label.texsexa = texsexa
                   label.kwargs.update(kwargs)
 
 
@@ -3941,4 +3965,5 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                            fmt=fmt, fun=fun, fliplabelside=fliplabelside, mscale=mscale,
                            labelsintex=labelsintex, **kwargs)
       return ruler
+
 

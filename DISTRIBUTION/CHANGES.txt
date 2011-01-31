@@ -10,7 +10,10 @@ Version 2.0.3 (in development)
   * minimal FITS headers are now accepted
 
   * added support for *grid coordinates*, i.e., CRPIX-relative pixel
-    coordinates
+    coordinates. Methods *pixel2grid()* and *grid2pixel()*.
+
+  * added method *str2pos()* for converting positions represented as strings
+    to world- and pixel coordinates.
 
 * Module maputils:
 

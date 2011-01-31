@@ -708,6 +708,7 @@ class Projection(object):
 .. automethod:: inside(coords, mode)
 .. automethod:: pixel2grid(pixel)
 .. automethod:: grid2pixel(grid)
+.. automethod:: str2pos(postxt, mixpix=None)
 
 **WCSLIB-related attributes:**
 
@@ -1894,6 +1895,46 @@ Example::
       """
       return self.pixel2grid(source, +1)
 
+   def str2pos(self, postxt, mixpix=None):
+      """
+      This method accepts a string that represents a position in the
+      projection object's coordinate system.  If the string contains a
+      valid position, it returns a tuple with numbers that are the
+      corresponding pixel coordinates and a tuple with world coordinates in
+      the system of subproj.  One can also enter a number of positions.  If a
+      position could not be converted then an error message is returned. 
+
+      :param postxt:   The position(s) which must be parsed.
+      :type postxt:    String
+      :param mixpix:   For a world coordinate system with one spatial
+                       axis we need a pixel coordinate for the missing
+                       spatial axis to be able to convert between
+                       world- and pixel coordinates.
+      :type mixpix:    Integer
+
+      :Returns:
+
+      This method returns a tuple with four elements:
+
+      * a NumPy array with the parsed positions in world coordinates 
+      * a NumPy array with the parsed positions in pixel coordinates  
+      * A tuple with the units that correspond to the axes
+        in your world coordinate system.
+      * An error message when a position could not be parsed
+
+      Each position in the input string is returned in the output as an
+      element of a numpy array with parsed positions. A position has the same
+      number of coordinates as there are axes in the data defined by
+      the projection object.
+
+      For its implementation, this method uses the function
+      :func:`projection.str2pos` from module :mod:`projection`.
+      Please refer to that module's documentation for a detailed explanation.
+      """
+      
+      import positions
+      return positions.str2pos(postxt, self, mixpix)
+
    def __setaxtypes(self):
       cdef wcsprm *param
       param = <wcsprm*>void_ptr(self.wcsprm)
@@ -2055,6 +2096,7 @@ in the same way.
       if coord.dyn:
          free(world)
       return result
+
 
 #  names imported by *:
 
