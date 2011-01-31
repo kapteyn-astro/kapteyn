@@ -1928,7 +1928,7 @@ Example::
       the projection object.
 
       For its implementation, this method uses the function
-      :func:`projection.str2pos` from module :mod:`projection`.
+      :func:`positions.str2pos` from module :mod:`positions`.
       Please refer to that module's documentation for a detailed explanation.
       """
       
