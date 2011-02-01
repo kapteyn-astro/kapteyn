@@ -708,7 +708,7 @@ class Projection(object):
 .. automethod:: inside(coords, mode)
 .. automethod:: pixel2grid(pixel)
 .. automethod:: grid2pixel(grid)
-.. automethod:: str2pos(postxt, mixpix=None)
+.. automethod:: str2pos(postxt[, mixpix=None])
 
 **WCSLIB-related attributes:**
 
@@ -1897,20 +1897,19 @@ Example::
 
    def str2pos(self, postxt, mixpix=None):
       """
-      This method accepts a string that represents a position in the
+      This method accepts a string that represents one or more positions in the
       projection object's coordinate system.  If the string contains a
-      valid position, it returns a tuple with numbers that are the
-      corresponding pixel coordinates and a tuple with world coordinates in
-      the system of subproj.  One can also enter a number of positions.  If a
-      position could not be converted then an error message is returned. 
+      valid position, the method returns the arrays with the corresponding
+      world- and pixel coordinates. If a
+      position could not be converted, then an error message is returned. 
 
-      :param postxt:   The position(s) which must be parsed.
-      :type postxt:    String
-      :param mixpix:   For a world coordinate system with one spatial
-                       axis we need a pixel coordinate for the missing
-                       spatial axis to be able to convert between
+      :param postxt:   one or more positions to be parsed.
+      :type postxt:    string
+      :param mixpix:   for a world coordinate system with one spatial
+                       axis, a pixel coordinate for the missing
+                       spatial axis is required to be able to convert between
                        world- and pixel coordinates.
-      :type mixpix:    Integer
+      :type mixpix:    integer or None
 
       :Returns:
 

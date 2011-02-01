@@ -759,11 +759,8 @@ class Gratline(object):
          unknown += numpy.nan
          zp = numpy.zeros(linesamples) + mixgrid
          world = (xw, yw, unknown)
-         #print "WCSGRAT world=", world
          pixel = (unknown, unknown, zp)
-         #print "WCSGRAT pixel=", pixel
          (world, pixel) = gmap.mixed(world, pixel)
-         # print gmap.ctype
       if wcsaxis == 0 or wcsaxis == 1:
          self.axtype = gmap.types[wcsaxis]
       else:
@@ -2563,7 +2560,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.graticule = []   # Initialize the list with graticule lines
       if not skipx:
          axisunits = self.gmap.units[0]
-         #if (self.radoffsetx or offsetx) and unitsx != None:
          if not unitsx is None:
             units = unitsx
             uf, errmes = unitfactor(axisunits, units)
@@ -2599,7 +2595,19 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
             self.graticule.append(gridl)
             gridl.kwargs = {'color': '0.75', 'lw': 1}
+
       if not skipy:
+         axisunits = self.gmap.units[1]
+         if not unitsy is None:
+            units = unitsy
+            uf, errmes = unitfactor(axisunits, units)
+            if uf == None:
+               raise ValueError(errmes)
+            fie = lambda x: x*uf
+            fmt = "%g"
+            self.funy = fie
+            self.fmty = fmt
+
          for i, y in enumerate(self.ystarts):
             offsetlabel = None
             fie = fmt = None
@@ -3257,7 +3265,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                           pos = pos[0]
                     else:
                        raise ValueError("[%s] is entered as a string but does not represent valid HMS or DMS"%pos)
-                    #print "Converted to", pos
                  d0 = None
                  for i, t in enumerate(gridline.ticks):
                     skip = False
@@ -3965,5 +3972,4 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                            fmt=fmt, fun=fun, fliplabelside=fliplabelside, mscale=mscale,
                            labelsintex=labelsintex, **kwargs)
       return ruler
-
 
