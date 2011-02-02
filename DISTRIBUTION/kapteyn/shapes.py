@@ -32,13 +32,21 @@ For each defined area the module :mod:`maputils` calculates the sum of the inten
 the area and some other properties of the data. The shapes are one of
 polygon, ellipse, circle, rectangle or spline.
 
-The strength of this module is that it duplicates a shape in different
+The strength of this module is that it duplicates a shape to other selected
 images using transformations to world coordinates. This enables one to compare
-flux in two images with different WCS systems.
-It works with both spatial maps and maps with mixed axes (e.g. position-velocity maps)
+e.g. flux in two images with different WCS systems.
+It works with spatial maps and maps with mixed axes (e.g. position-velocity maps)
+and maps with linear axes.
+The order of the two axes in a map can be swapped.
  
 .. autoclass:: Shapecollection
 
+
+Utility functions
+-----------------
+
+.. index:: Sample points on an allipse
+.. autofunction:: ellipsesamples
 """
 
 #!/usr/bin/env python
@@ -51,11 +59,22 @@ from matplotlib.widgets import Button, RadioButtons
 from datetime import datetime
 from kapteyn import tabarray
 import matplotlib.nxutils as nxutils
-import numpy
 from kapteyn.maputils import AxesCallback
 from sys import stdout, exit
 from types import TupleType
 from kapteyn.mplutil import KeyPressFilter
+from numpy import pi, array, dot, zeros, sin, cos, asarray, hypot, matrix, concatenate
+from numpy import equal, nonzero, amin, arange
+from numpy import min as Amin
+from numpy import max as Amax
+from numpy import nan as NAN
+# Import a number of functions with scalars as arguments
+# These are faster than their numpy counterparts
+from math import cos as Cos
+from math import sin as Sin
+from math import atan2 as Atan2
+from math import sqrt as Sqrt
+from math import radians, degrees
 try:
    from gipsy import finis, anyout
    gipsymod = True
@@ -82,7 +101,126 @@ def button_setcolor(btnobj, c):
    btnobj.ax.set_axis_bgcolor(c)
    if btnobj.drawon:
       btnobj.ax.figure.canvas.draw()
-Button.setcolor = button_setcolor
+Button.setcolor = button_setcolor        # Global
+
+
+def rotate(x, y, pa):
+   # Rotate (x,y) at angle pa wrt. center (0,0)
+   x = array(x)
+   y = array(y)
+   pa_rad = pa*pi/180.0
+   sinP = sin(pa_rad)
+   cosP = cos(pa_rad)
+   xr = x * cosP - y * sinP
+   yr = x * sinP + y * cosP
+   return xr, yr
+   
+
+def ellipsesamples(xc, yc, major, minor, pa, n):
+#-----------------------------------------------------------------
+   """
+   Get sample positions on ellipse
+   Algorithm from 'Mathematical Elements for Computer Graphics' by
+   Rogers and Adams, section about 'Parametric Representation of an Ellipse'
+   Many methods which calculate sample positions on an ellipse
+   suffer from a reasonable sampling near the positions where the
+   curvature of an ellipse is large.
+   The method we use, finds more sample points near the end points of an ellipse where the
+   curvature is large while the increment between sample points along
+   the sides of the ellipse where the curvature is not large, is small
+
+   For an ellipse centered at (0,0), semimajor axis a and semiminor axis b
+   the parametric representation is given by::
+
+               x = a * cos(th)
+               y = b * sin(th)
+
+   'th' is the parameter and it represents the angle between 0 and 2*pi
+   One can derive a recursive relation::
+
+            x_i+1 =       x_i cos(dth) - (a/b) y_i sin(dth)
+            y_i+1 = (b/a) x_i sin(dth) +       y_i cos(dth)
+
+   dth is a step size in the angle th. It is equal to 2*pi/(n-1)
+   n-1 is the required number or unique points on the ellipse and
+   therefore an input parameter.
+   The routine returns a result which is empty when either a or b is zero.
+
+   The shift of the origin and the rotation of the ellipse can be
+   combined into one matrix::
+
+                  | cos(a)     sin (a)    0 | | 1  0  0 |
+         T =      |-sin(a)     cos (a)    0 | | 0  1  0 |
+                  |     0           0     1 | | xc yc 1 |
+
+   Finally the result is computed with::
+
+            X, Y, dummy = (x, y, 1).T
+
+   The result is a polygon which describes the maximum inscribed area
+   for the given ellipse parameters (Smith, L.B., "Drawing Ellipses, Hyperbolas,
+   or Parabolas With a Fixed Number of Points and Maximum Inscribed Area,"
+   Comp. J., Vol. 14, pp. 81-86, 1969
+
+   :param xc:    Center position of ellipse in x direction
+   :type xc:     float
+
+   :param yc:    Center position of ellipse in y direction
+   :type yc:     float
+
+   :param major: Semi major axis in pixels
+   :type major:  float
+
+   :param minor: Semi minor axis in pixels
+   :type minor:  float
+
+   :param pa:    Position angle in degrees
+   :type pa:     float
+
+   :param n:     Number of sample points
+   :type n:      int
+
+   :Notes:
+      The 'classical' method involves the calculation of many cosine
+      and sine functions. This method avoids that by using a method
+      which calculates a new sample based on the information of a
+      previous sample. However, we didn't find a way to do this properly
+      using NumPy. The classic method is very suitable to do implement
+      in NumPy and is therefore faster than the algorithm here.
+      But the sampling is better and we can do with less samples to
+      get the same result.
+   """
+#-----------------------------------------------------------------
+
+   a = abs(major); b = abs(minor)       # Make it a bit more robust
+   if a == 0 or b == 0.0:               # Empty list if one of the axes is 0
+      return zip([],[])
+   dth = 2*pi/n
+   cosdth = Cos(dth)
+   sindth = Sin(dth)
+   # Rotation matrix
+   pa = radians(pa)
+   cospa = Cos(pa)
+   sinpa = Sin(pa)
+   R = array([[cospa, sinpa, 0.0], [-sinpa, cospa, 0.0], [0.0, 0.0, 1.0]])
+   # Translation matrix
+   Tt = array([[1,0,0], [0,1,0], [xc, yc, 1]])
+   # Composed matrix
+   T = dot(R, Tt)
+   # We reserve three elements for one position. The last value is 1.
+   # This is necessary to be able to apply the rotation-translation
+   # matrix to the positions
+   xy = zeros((n,3))
+   xy[:,2] = 1.0
+   m = array([[cosdth, -a*sindth/b, 0.0], [b*sindth/a, cosdth, 0.0], [0,0,1]])
+   # Start with the point at the end of the semimajor axis of the unrotated ellipse
+   # that is (x1,y1) = (a,0)
+   xy[0] = a, 0.0, 1
+   for i in range(n-1):
+      xy[i+1] = dot(m, xy[i])
+   xy = dot(xy, T)              # Rotation and translation of the result
+   return xy[:,:2]
+
 
 
 def cubicspline(xyu, nsamples):
@@ -116,30 +254,29 @@ def cubicspline(xyu, nsamples):
    """
    np = len(xyu)
    if np < 3:
-      return None                                # Not enough control points to do anything
-   xymin = numpy.min(xyu,0)
-   xymax = numpy.max(xyu,0)
+      return None                 # Not enough control points to do anything
+   xymin = Amin(xyu,0)
+   xymax = Amax(xyu,0)
    scale = float(max(xymax[0]-xymin[0],xymax[1]-xymin[1]))
    if scale == 0.0:
       return None
-   xys = numpy.asarray(xyu)/scale
+   xys = asarray(xyu)/scale
    x, y = zip(*xys)
    x = list(x)
    y = list(y)
-   x.append(x[0])                                # Close polygon
+   x.append(x[0])                 # Close polygon
    y.append(y[0])
    xy = zip(x,y)
-   np += 1                                       # A vertex was added, increase the counter
-   #x,y = zip(*xy)
-   x1 = numpy.array(x[:-1])
-   x2 = numpy.array(x[1:])
-   y1 = numpy.array(y[:-1])
-   y2 = numpy.array(y[1:])
-   t = numpy.hypot(x2-x1,y2-y1)                  # Chord approximation tk. Note that t[0] is t2 in Rogers & Adams
-   M = numpy.zeros((np,np))
-   M[0,0] = M[-1,-1] = 1.0                       # Add outer parts of matrix
-   R = numpy.zeros((np,2))                       # Initialize matrix R in R&A (eq. 5-15)
-   for row in range(1,np-1):                     # Fill matrices M and R
+   np += 1                        # A vertex was added, increase the counter
+   x1 = array(x[:-1])
+   x2 = array(x[1:])
+   y1 = array(y[:-1])
+   y2 = array(y[1:])
+   t = hypot(x2-x1,y2-y1)         # Chord approximation tk. Note that t[0] is t2 in Rogers & Adams
+   M = zeros((np,np))
+   M[0,0] = M[-1,-1] = 1.0        # Add outer parts of matrix
+   R = zeros((np,2))              # Initialize matrix R in R&A (eq. 5-15)
+   for row in range(1,np-1):      # Fill matrices M and R
       col = row -1
       t_first = t[row-1]; t_next = t[row];
       M[row,col] = t_next
@@ -153,32 +290,22 @@ def cubicspline(xyu, nsamples):
    # Here we need the tangents of the first and last point
    # Assume last point is not equal to first point, i.e. if
    # data is polygon data, then polygon is not closed
-   
-   """
-   # Circle through three points with starting point in the middle
-   x1 = x[1]; x2 = x[0]; x3 = x[-2]
-   y1 = y[1]; y2 = y[0]; y3 = y[-2]
-   ma = (y2-y1)/(x2-x1)
-   mb = (y3-y2)/(x3-x2)
-   xt = (ma*mb*(y1-y3)+mb*(x1+x2)-ma*(x2+x3))/(2.0*(mb-ma))
-   yt = ma*(xt-x1) + y1
-   P1 = Plast = (-(xt-x2),(yt-y2))
-   """
+
    P1 = (x[1]-x[0],y[1]-y[0]); Plast = P1  #(x[0]-x[-1],y[0]-y[-1])
    R[0] = P1
    R[-1] = Plast
-   Ptan = numpy.matrix(M).I * R                  # Internal tangent vectors
+   Ptan = matrix(M).I * R                  # Internal tangent vectors
    # Here we create the sub-divisions in a segment. Take the number of samples in  
    # each segment the same. The idea is that the user increaser the distance between
    # control points on polygon parts that look like straight lines. Less spline
    # points are needed to interpolate those segments.
    # The alternative is not implemented. The alternative is to calculate samples
    # that are equidistant on all segments.
-   ta = numpy.array(range(nsamples))/float(nsamples)
+   ta = array(range(nsamples))/float(nsamples)
    ta2 = ta*ta
    ta3 = ta*ta2
-   F = numpy.matrix(numpy.zeros((4,len(ta))))
-   G = numpy.matrix(numpy.zeros((4,2)))
+   F = matrix(zeros((4,len(ta))))
+   G = matrix(zeros((4,2)))
    F[0] = 2.0*ta3 - 3.0*ta2 + 1.0
    F[1] = 1.0 - F[0]
    F2 = ta*(ta2-2.0*ta+1.0)
@@ -194,7 +321,7 @@ def cubicspline(xyu, nsamples):
       if seg == 0:
          v = Pspline.copy()
       else:
-         v = numpy.concatenate((v,Pspline))
+         v = concatenate((v,Pspline))
    if scale:                                     # Rescale to original size
       v *= scale
    return v
@@ -217,11 +344,15 @@ class Poly(Polygon):
       self.edgecolor = 'r'
       self.shapetype = type
       self.epsilon = 20                  # A distance in display coordinates
-      Polygon.__init__(self, zip([x0],[y0]), closed=True, alpha=0.1, edgecolor='r', **self.kwargs)
+      Polygon.__init__(self, zip([x0],[y0]), closed=True,
+                       alpha=0.1, edgecolor='r', picker=5, **self.kwargs)
       if not spline:
          self.frame.add_patch(self)
       self.markers = Line2D([x0],[y0], marker='o', markerfacecolor='r', color='r', animated=False)
       self.frame.add_line(self.markers)
+      self.startmarker = Line2D([x0],[y0], marker='o', markerfacecolor='b', color='b', animated=False)
+      self.frame.add_line(self.startmarker)
+      self.closestindx = None
       self.x0 = x0
       self.y0 = y0
       self.area = None
@@ -243,18 +374,23 @@ class Poly(Polygon):
       return newobj
 
 
-   def updatexy(self, xy):
+   def updatexy(self, xy, x0=None, y0=None):
       self.xy = xy
-      self.markers.set_data(zip(*self.xy))
-      self.centroid()
+      x, y = zip(*self.xy)
+      self.markers.set_data(x, y)
+      self.startmarker.set_data(x[0], y[0])
+      if not x0 is None:
+         self.x0 = x0
+      if not y0 is None:
+         self.y0 = y0
 
 
    def shiftxy(self, x0, y0):
       x, y = zip(*self.xy)
       dx = x0 - self.x0
       dy = y0 - self.y0
-      x = numpy.asarray(x) + dx
-      y = numpy.asarray(y) + dy
+      x = asarray(x) + dx
+      y = asarray(y) + dy
       return zip(x,y)
 
 
@@ -263,6 +399,7 @@ class Poly(Polygon):
       alpha = 0.5
       if self.markers:
          self.markers.set_visible(markers)
+         self.startmarker.set_visible(markers)
       if self.spline != None:
          self.spline.set_facecolor(self.shapecolor)
          self.spline.set_edgecolor(self.edgecolor)
@@ -279,13 +416,13 @@ class Poly(Polygon):
       self.xy = xyl
       self.markers.set_data(zip(*self.xy))
       self.markers.set_visible(markers)
-      self.centroid()
 
 
    def set_markers(self, vis=True):
       if self.markers != None:
          self.markers.set_visible(vis)
-
+         self.startmarker.set_visible(vis)
+         
 
    def set_inactive(self):
       self.active = False
@@ -304,27 +441,16 @@ class Poly(Polygon):
    def indexclosestmarker(self, x, y):
       # These coordinates are display pixels!
       xt,yt = zip(*self.frame.transData.transform(self.xy))
-      xt = numpy.asarray(xt); yt = numpy.asarray(yt)
+      xt = asarray(xt); yt = asarray(yt)
       d = (xt-x)*(xt-x) + (yt-y)*(yt-y)
-      a2 = numpy.equal(d, numpy.amin(d))
-      inds = numpy.nonzero(a2)[0]
+      a2 = equal(d, amin(d))
+      inds = nonzero(a2)[0]
       i = int(inds[0])
       if d[i] > self.epsilon:
          i = None
       self.closestindx = i
       return i
-      """
-      # What is the distance to the center?
-      xt, yt = self.frame.transData.transform((p.xcent,p.ycent))
-      dc = (xt-x)*(xt-x) + (yt-y)*(yt-y)
-      if i == None:
-         if dc < self.epsilon:
-            i = -1
-      else:
-         if dc < self.epsilon and dc < d[i]:
-            i = -1
-      return i
-      """
+
 
    def deletemarker(self, indx):
       xyl = list(self.xy)
@@ -354,7 +480,7 @@ class Poly(Polygon):
       for i in range(len(xyt)-1):
          s0 = xyt[i]
          s1 = xyt[i+1]
-         #d = (x-s0[0])*(x-s0[0]) + (y-s0[1])*(y-s0[1]) + (x-s1[0])*(x-s1[0]) + (y-s1[1])*(y-s1[1])
+         # d = (x-s0[0])*(x-s0[0]) + (y-s0[1])*(y-s0[1]) + (x-s1[0])*(x-s1[0]) + (y-s1[1])*(y-s1[1])
          # Criterion is the orthogonal distance to a line segment.
          d = dist_point_to_segment(p, s0, s1)
          if dmin == None:
@@ -373,9 +499,8 @@ class Poly(Polygon):
       i = indx + 1
       if i >= len(self.xy):   # After the last segment you can only append
          return
-      self.xy = numpy.array(list(self.xy[:i]) + [(x, y)] + list(self.xy[i:]))
+      self.xy = array(list(self.xy[:i]) + [(x, y)] + list(self.xy[i:]))
       self.markers.set_data(zip(*self.xy))
-      self.centroid()
 
 
    def delete(self):
@@ -389,34 +514,29 @@ class Poly(Polygon):
           
    def inside(self, x, y):
       # Is this (x,y) position within the polygon?
-      #poly = numpy.asarray(zip(p.x, p.y))
       pos = [(x,y)]
       mask = nxutils.points_inside_poly(pos, self.xy)
       return mask[0]
-      
-      
-   def moveall(self, x0, y0):
-      dx = x0-self.x0; dy = y0-self.y0
+
+
+   def moveall(self, dx, dy):
+      # dx = x0-self.x0; dy = y0-self.y0
       x, y = zip(*self.xy)
-      x = numpy.asarray(x) + dx
-      y = numpy.asarray(y) + dy
+      x = asarray(x) + dx
+      y = asarray(y) + dy
       self.markers.set_data(x, y)
+      self.startmarker.set_data(x[0], y[0])
       self.xy = zip(x, y)
-      self.centroid()
-      
+      self.x0 += dx
+      self.y0 += dy
+      return self.xy
+   
 
    def movemarker(self, x, y, indx):
       self.xy[indx] = x,y
       self.markers.set_data(zip(*self.xy))
-      self.centroid()
-
-
-   def centroid(self):
-      x, y = zip(*self.xy)
-      x = numpy.asarray(x)
-      y = numpy.asarray(y)
-      self.x0 = x.sum()/len(x)
-      self.y0 = y.sum()/len(y)
+      if indx == 0:
+         self.startmarker.set_data(x, y)
 
 
    def allinsideframe(self):
@@ -434,12 +554,14 @@ class Poly(Polygon):
       return inside
 
 
+
 class Ellipse(Poly):
    def __init__(self, frame, framenr, active, markers, x0, y0, type=None, 
-                r1=0.0, r2=0.0, r3=30.0, **kwargs):
-      # r1, r2 are extra parameters. For a default ellipse these represent the major cq. minor axes.
+                r1=0.0, r2=0.0, r3=0.0, **kwargs):
+      # r1, r2 are extra parameters. For a default ellipse these
+      # represent the major cq. minor axes.
       startang, endang, delta = (0.0, 360.0, 1.0)
-      self.phi = numpy.arange(startang, endang+delta, delta) * numpy.pi/180.0
+      self.phi = arange(startang, endang+delta, delta) * pi/180.0
       self.pa = r3
       self.x0 = x0
       self.y0 = y0
@@ -450,56 +572,29 @@ class Ellipse(Poly):
    
    
    def getvertices(self):
-      pa_rad = self.pa*numpy.pi/180.0
-      sinP = numpy.sin(pa_rad)
-      cosP = numpy.cos(pa_rad)
-      phi = self.phi
-      cosA = numpy.cos(phi)
-      sinA = numpy.sin(phi)
-      min = self.min
-      maj = self.maj
-      """
-      self.xmajor = maj * cosP + self.x0
-      self.ymajor = maj * sinP + self.y0
-      self.xminor = -min * sinP + self.x0
-      self.yminor =  min * cosP + self.y0
-      dmin = (self.xminor-self.x0)**2 + (self.yminor-self.y0)**2
-      dmaj = (self.xmajor-self.x0)**2 + (self.ymajor-self.y0)**2
-      if dmin > dmaj:       # Then swap axes
-         self.xmajor, self.xminor = self.xminor, self.xmajor
-         self.ymajor, self.yminor = self.yminor, self.ymajor
-      """
-      d = (min * cosA)**2 + (maj * sinA)**2
-      r = numpy.sqrt( (maj**2 * min**2)/d )
-      Xell = r * cosA
-      Yell = r * sinA
-      # Rotate
-      Xr = Xell * cosP - Yell * sinP + self.x0
-      Yr = Xell * sinP + Yell * cosP + self.y0
-      vertices = zip(Xr,Yr)
+      n = 200  # Number of sample points on ellipse
+      vertices = ellipsesamples(self.x0, self.y0, self.maj, self.min, self.pa, n)
       return vertices
 
 
    def movemarker(self, x, y, indx):
-      # indx is a dummy variable. One cannot move a single point in an ellipse,
-      # instead, the new position is used to reshape the ellipse 
-      pa = numpy.arctan2(y-self.y0, x-self.x0) * 180.0/numpy.pi
-      D = abs(self.pa-pa)
-      axis = numpy.sqrt((self.x0-x)**2 + (self.y0-y)**2)
-      if 45.0 <= D < 135.0:
-         #self.pa = pa + 90.0
+      # Move 1 marker at index 'indx' to (x,y)
+      n = len(self.xy)
+      d = n/8
+      minor = (d <= indx < 3*d) or (5*d <= indx < 7*d)
+      majorpa = (indx >= 7*d) or (0 <= indx < d)
+      major = (3*d <= indx < 5*d)
+      if majorpa:
+         self.pa = degrees(Atan2(y-self.y0, x-self.x0))
+      axis = Sqrt((self.x0-x)**2 + (self.y0-y)**2)
+      if minor:
          self.min = axis
-      elif 135.0 <= D < 225.0:
-         self.pa = pa + 180.0
-         self.maj = axis
-      elif 225.0 <= D < 315.0:
-         #self.pa = pa + 270.0
-         self.min = axis
-      else:
-         self.pa = pa
+      if major or majorpa:
          self.maj = axis
       self.xy = self.getvertices()
-      self.markers.set_data(zip(*self.xy))
+      xn, yn = zip(*self.xy)
+      self.markers.set_data(xn, yn)
+      self.startmarker.set_data(xn[0], yn[0])
 
 
    def copy(self, frame, framenr, x0, y0, xy, active, markers):
@@ -512,22 +607,27 @@ class Ellipse(Poly):
       return newobj
 
 
-   def updatexy(self, xy):
+   def updatexy(self, xy, x0=None, y0=None):
       self.xy = xy
       self.markers.set_data(zip(*self.xy))
+      if not x0 is None:
+         self.x0 = x0
+      if not y0 is None:
+         self.y0 = y0
       # We updated the ellipse for the new vertices, but what about the the new
       # parameters of this ellipse? In fact an ellipse that is transformed for
       # another image is usually not an ellipse anymore.
       # So we need to estimate the new parameters.
       # We require that the center position (x0, y0) remains constant
       x, y = zip(*self.xy)
-      x = numpy.asarray(x); y = numpy.asarray(y)
+      # x = asarray(x); y = asarray(y)
       # Assume symmetry and estimate ellipse parameters.
-      # The indices are based on a sampling of 360 samples.
+      # The indices are based on a sampling of len(xy) samples.
       n90 = len(xy)/4
-      self.maj = numpy.sqrt((x[0]-self.x0)**2 +(y[0]-self.y0)**2)
-      self.min = numpy.sqrt((x[n90]-self.x0)**2 +(y[n90]-self.y0)**2)
-      self.pa = numpy.arctan2(y[0]-self.y0, x[0]-self.x0) * 180.0/numpy.pi 
+      self.maj = Sqrt((x[0]-self.x0)**2 +(y[0]-self.y0)**2)
+      self.min = Sqrt((x[n90]-self.x0)**2 +(y[n90]-self.y0)**2)
+      self.pa = degrees(Atan2(y[0]-self.y0, x[0]-self.x0))
+      self.startmarker.set_data(x[0], y[0])
 
 
 class Circle(Poly):
@@ -535,7 +635,7 @@ class Circle(Poly):
                 x0, y0, type=None, r1=0.0, r2=0.0, **kwargs):
       # r1, r2 are extra parameters. For a default ellipse these represent the major cq. minor axes.
       startang, endang, delta = (0.0, 360.0, 1.0)
-      self.phi = numpy.arange(startang, endang+delta, delta) * numpy.pi/180.0
+      self.phi = arange(startang, endang+delta, delta) * pi/180.0
       self.x0 = x0
       self.y0 = y0
       self.radius = r1
@@ -544,33 +644,44 @@ class Circle(Poly):
 
 
    def getvertices(self):
-      vertices = zip(self.radius*numpy.cos(self.phi)+self.x0, self.radius*numpy.sin(self.phi)+self.y0)
+      vertices = zip(self.radius*cos(self.phi)+self.x0, self.radius*sin(self.phi)+self.y0)
       return vertices
 
 
    def movemarker(self, x, y, indx):
-      self.radius = numpy.sqrt((self.x0-x)**2 + (self.y0-y)**2)
+      # Move 1 marker to x, y
+      self.radius = Sqrt((self.x0-x)**2 + (self.y0-y)**2)
       self.xy = self.getvertices()
-      self.markers.set_data(zip(*self.xy))
+      xn, yn = zip(*self.xy)
+      self.markers.set_data(xn, yn)
+      self.startmarker.set_data(xn[0], yn[0])
 
 
    def copy(self, frame, framenr, x0, y0, xy, active, markers):
-      """ Create a copy of the current object.
-      """
+      # Create a copy of the current object.
       newobj = Circle(frame, framenr, active, markers, x0, y0, type=self.shapetype, 
                       r1=self.radius, **self.kwargs)
       newobj.updatexy(xy)
       return newobj
 
 
-   def updatexy(self, xy):
+   def updatexy(self, xy, x0=None, y0=None):
       # Get vertices from another object. Usually these are transformed pixel positions.
+      if not x0 is None:
+         self.x0 = x0
+      if not y0 is None:
+         self.y0 = y0
       self.xy = xy
       self.markers.set_data(zip(*self.xy))
-      # Now estimate the radius
+      # Now estimate the radius. Note that a circle in the original
+      # system needs not to be a cricle in another image. We make it
+      # a circle by calculating a new radius which is the distance
+      # between the new center and the first sample point on
+      # the circle.
       xr, yr = xy[0]
-      self.radius = numpy.sqrt((self.x0-xr)**2 + (self.y0-yr)**2)
-
+      self.radius = Sqrt((self.x0-xr)**2 + (self.y0-yr)**2)
+      self.startmarker.set_data(xr, yr)
+      
 
 class Rectangle(Poly):
    def __init__(self, frame, framenr, active, markers,
@@ -581,11 +692,13 @@ class Rectangle(Poly):
       self.y0 = y0
       self.width = r1
       self.height = r2
+      self.pa = 0.0
       Poly.__init__(self, frame, framenr, active, markers, x0, y0, type=type, acolor='r', **kwargs)
       self.updatexy(self.getvertices())
 
 
    def getvertices(self):
+      # Simple initialization with a position angle equal to 0!
       x = [0.0, 0.0, 0.0, 0.0]
       y = [0.0, 0.0, 0.0, 0.0]
       # Rectangle counter clockwise. Start at lower left edge
@@ -601,33 +714,62 @@ class Rectangle(Poly):
       return vertices
 
 
-   def movemarker(self, x2, y2, indx):
+   def movemarker(self, xnew, ynew, indx):
+      # The rectangle
       x, y = zip(*self.xy)
-      dx = (x2 - x[indx])
-      dy = (y2 - y[indx])
-      self.x0 += dx/2.0
-      self.y0 += dy/2.0
-      self.width = 2.0*abs(x2-self.x0)
-      self.height = 2.0*abs(y2-self.y0)
-      self.xy = self.getvertices()
-      self.markers.set_data(zip(*self.xy))
+      dx = (xnew - x[indx])   # Displacement in the rotated system
+      dy = (ynew - y[indx])
+      # Now get all the vertices and xnew, ynew in the unrotated system centered at (0,0)
+      x = [a-self.x0 for a in x]
+      y = [a-self.y0 for a in y]
+      xr, yr = rotate(x, y, -self.pa)  # to unrotated system
+      xrnew, yrnew = rotate(xnew-self.x0, ynew-self.y0, -self.pa)  # to unrotated system
+      
+      if indx != 0:
+         # This is one of the resize handlers
+         dxr = (xrnew - xr[indx])
+         dyr = (yrnew - yr[indx])
+         if indx > 2:
+            dxr = -dxr
+         if indx < 2:
+            dyr = - dyr
+         xr[0] -= dxr; yr[0] -= dyr
+         xr[1] += dxr; yr[1] -= dyr
+         xr[2] += dxr; yr[2] += dyr
+         xr[3] -= dxr; yr[3] += dyr
+         self.width = abs(x[1] - x[0])
+         self.height = abs(y[2] - y[0])
+      else:
+         # This is the rotation handler
+         pa1 = Atan2(yr[0], xr[0])
+         pa2 = Atan2(yrnew, xrnew)
+         self.pa += degrees(pa2 - pa1)           # Add in degrees
+         
+      # Now rotate back from unrotated to rotated system
+      x, y = rotate(xr, yr, self.pa)
+      x = [a+self.x0 for a in x]
+      y = [a+self.y0 for a in y]
+      self.xy = zip(x, y)
+      self.markers.set_data(x, y)
+      self.startmarker.set_data(x[0], y[0])
+
 
 
    def copy(self, frame, framenr, x0, y0, xy, active, markers):
-      """ User wants a copy of the current active object centered at 
-      position x0, y0. The vertices of the new object are in parameter xy.
-      Note that these vertices could be transformed pixel positions.
-      So possible we have different parameters for the rectangle
-      (width, height in pixels).
-      """
-      newobj = Rectangle(frame, framenr, active, markers, self.x0, self.y0, type=self.shapetype,
+      # User wants a copy of the current active object centered at
+      # position x0, y0. The vertices of the new object are in parameter xy.
+      # Note that these vertices could be transformed pixel positions.
+      # So possible we have different parameters for the rectangle
+      # (width, height in pixels).
+      newobj = Rectangle(frame, framenr, active, markers, self.x0, self.y0,
+                         type=self.shapetype,
                          r1=self.width, r2=self.height, **self.kwargs)
       newobj.updatexy(xy)
       return newobj
 
 
-   def updatexy(self, xy):
-      # Get vertices from another object. Usually these are transformed pixel positions.
+   def updatexy(self, xy, x0=None, y0=None):
+      # Get vertices for another object. Usually these are transformed pixel positions.
       # e.g. the active object has vertices in pixels. These are transformed
       # to world coordinates. Then for a different image, these wcs coordinates are 
       # transformed to pixels again. So with different systems, the flux objects
@@ -638,15 +780,22 @@ class Rectangle(Poly):
       self.xy = xy
       x, y = zip(*self.xy)
       self.markers.set_data(x,y)
-      # Now estimate the new width, height and center
-      # Note that a rectangle in one image can have arbitrary shape in another image
-      # depending on a possible wcs transformation.
-      self.width = x[1] - x[0]
-      self.height = y[2] - y[1]
-      self.x0 = (x[1] + x[0])/2.0
-      self.y0 = (y[3] + y[0])/2.0
-   
-      
+      # Now get all the vertices and xnew, ynew in the unrotated system centered at (0,0)
+      if not x0 is None:
+         self.x0 = x0
+      if not y0 is None:
+         self.y0 = y0
+      # The middle of the line that connects the second and third point defines
+      # the angle with respect to center (x0,y0)
+      xpa = (x[1]+x[2])/2.0
+      ypa = (y[1]+y[2])/2.0
+      self.pa = degrees(Atan2(ypa-self.y0, xpa - self.x0))
+      # The width and heigth is the distance between corners
+      self.width = Sqrt((x[0]-x[1])**2 + (y[0]-y[1])**2)
+      self.height = Sqrt((x[1]-x[2])**2 + (y[2]-y[2])**2)
+      self.startmarker.set_data(x[0], y[0])
+
+
 class Spline(Poly):
    def __init__(self, frame, framenr, active, markers,
                 x0, y0, type=None, r1=0.0, r2=0.0, **kwargs):
@@ -717,6 +866,8 @@ class Shapecollection(object):
       key   - e     :  Erase active object and associated objects in other images
       key   - i     :  Insert a point in a polygon or spline
       key   - n     :  Start with a new object
+      key   - u     :  Toggle markers. Usually for a hardcopy
+                       one does not want to show the markers of a shape.
       key   - w     :  Write object data in current image to file on disk
       key   - r     :  Read objects from file for current image
       key   - [     :  Next active object in current shape selection
@@ -816,6 +967,7 @@ class Shapecollection(object):
       # to search for a solution
       self.cidpress = self.canvas.mpl_connect('button_press_event', self.button_press)
       self.cidrelease = self.canvas.mpl_connect('button_release_event', self.button_release)
+      #self.cidpick = self.canvas.mpl_connect('pick_event', self.on_pick)
       self.toolbar = get_current_fig_manager().toolbar
       for im in self.images:           # Separate the frames from the images
          self.frames.append(im.frame)
@@ -830,6 +982,9 @@ class Shapecollection(object):
       self.frameresult = self.figresult.add_subplot(1,1,1)
       self.frameresult.set_title("Flux as function of shape and image")
       self.results = False
+      self.xstart = 0.0            # Values used to calculate displacement of a shape
+      self.ystart = 0.0
+
 
       ypos = 0.96; yhei = 0.03
       self.graycol = 'chartreuse'
@@ -942,7 +1097,7 @@ class Shapecollection(object):
          for obj in self.shapes[oldtype][oldindx]:         # Make current group of objects inactive
             if obj.active:
                obj.set_inactive()
-      if (self.activeobject):
+      if not self.activeobject is None:
          frame = self.activeobject.frame
       else:
          frame = None
@@ -977,7 +1132,7 @@ class Shapecollection(object):
 
 
    def updatesplines(self):
-      if self.activeobject == None:
+      if self.activeobject is None:
          return
       xy = cubicspline(self.activeobject.xy, 10)
       if xy != None and self.activeobject.spline != None:
@@ -1005,20 +1160,90 @@ class Shapecollection(object):
       *proj2*. This second projection can differ in output sky system.
       We follow the next procedure to transform:
 
-      * If the sky systems are equal then we can transform
+      * 1: If the sky systems are equal then we can transform
         the pixel coordinates without a sky transformation.
-      * If the sky systems differ, transform the pixel position
+      * 2: If the sky systems differ, transform the pixel position
         in world coordinates in the first system with the
         sky system of the second system.
-      * Transform the world coordinates into pixels in the
+      * 3: Transform the world coordinates into pixels in the
         second system. These world coordinates are now given
         in the sky system of the second world coordinate system.
+
+      Some remarks about compatible image axes. Markers from image im1
+      are copied to identical (i.e. in world coordinates) positions
+      in im2. So the restriction is that the axes of both images
+      allow world coordinate transformations. The axes can differ
+      in sky system and/or spectral translation. Also the order of compatible
+      axes can be swapped.
+      So copying markers are possible in the following situations:
+      
+      (RA, DEC) -> (RA, DEC), (DEC, RA), (GLON, GLAT), (GLAT, GLON) etc.
+      (RA, VOPT) -> (RA, VOPT), (VOPT, RA), (FREQ, RA), (RA, WAVE) etc.
+                    (and as function of a pixel coordinate for DEC)
+
+      If X, Y are linear types then:
+      
+      (DEC, X) -> (DEC, X), (X, DEC)
+                  (and as function of a pixel coordinate for RA)
+      (X, VOPT) -> (X, VOPT), (VOPT, X), (FREQ, X), (X, WAVE) etc.
+      (X, Y) -> (X, Y), (Y, X)
+
+      To verify these options we use the axis permutation array 'axperm'
+      of the image object and the lonaxnum, lataxnum and specaxnum
+      attributes of the projection object to inquire whether their
+      axes have non linear transformations.
       """
       #----------------------------------------------------------
+      ax1x = im1.wcstypes[0]
+      ax1y = im1.wcstypes[1]
+      ax2x = im2.wcstypes[0]
+      ax2y = im2.wcstypes[1]
+
+      possible = ax2x in [ax1x, ax1y] and ax2y in [ax1x, ax1y]
+      if possible:
+         # Is there a missing spatial axis?
+         mixed = False
+         if ax1x in ['lo','la'] and not ax1y in ['lo','la']:
+            mixed = True
+         if ax1y in ['lo','la'] and not ax1x in ['lo','la']:
+            mixed = True
+         if mixed:
+            mixpix1 = im1.mixpix
+            mixpix2 = im2.mixpix
+            if mixpix1 is None or mixpix2 is None:
+               # We really need a second spatial
+               possible = False
+
+      if not possible:
+         # Incompatible axes
+         if type(xy1) == TupleType and len(xy1) == 2:
+            xy2 = (0, 0)
+         else:
+            xx = [0.0]*len(xy1); yy = [0.0]*len(xy1)
+            xy2 = zip(xx, yy)
+         return xy2
+
+      # Is the order of the axes in the images the same? If not then swap
+      swap = ax1x != ax2x
+
+      # Is there a spectral axis involved?
+      spectral = 'sp' in [ax1x, ax1y]
+      
       proj1 = im1.projection
       proj2 = im2.projection
-      mixpix = im1.mixpix
-      
+
+      # In principle we work with a two column zipped variable
+      # but allow also a tuple with two elements
+      # Convert this last type to the first to simplify the code below
+      if type(xy1) == TupleType and len(xy1) == 2:
+         twoelements = True
+         xy1 = zip([xy1[0]], [xy1[1]])        # Upgrade to lists
+      else:
+         twoelements = False
+
+      # Check 1: and 2: Change sky system if necessary and don't forget to reset
+      # at the end of this method. We assume that skyout for spatial maps always
+      # has a value different to None
       if proj1.skyout != proj2.skyout:
          proj1.skyout = proj2.skyout
 
@@ -1029,30 +1254,51 @@ class Shapecollection(object):
       # the second image skyout2 (proj2.skyout). These world coordinates
       # are now transformed to pixel coordinates using the projection
       # system of the second image (proj2)
-      if mixpix is None:
+      if not mixed:
          xyworld1 =  proj1.toworld(xy1)
+         #  What if the axes order is not the same?
+         if swap:
+            xw, yw = zip(*xyworld1)
+            xyworld1 = zip(yw, xw)       # Swap the pixel coordinates then
          xy2 = proj2.topixel(xyworld1)
       else:
          # Add the pixel that sets the position on the 'missing'
          # spatial axis of the first set. Then transform x,y,z to
          # world coordinates. Strip the z value afterwards before
-         # returning.
-         if type(xy1) == TupleType and len(xy1) == 2:
-            x = xy1[0]; y = xy1[1]; z = mixpix
-            t = (x, y, z)
-            xyworld1 =  proj1.toworld(t)
-            x, y, z = proj2.topixel(xyworld1)
-            xy2 = (x, y)
+         # returning. Note that we use only the mixpix of the current
+         # and not also the one of the destination image. If we applied
+         # both, then the position in Ra and Dec would be correct, but
+         # the pixel coordinate of the spatial axis will change.
+         # If we have a spectral axis in both images, the output of
+         # world coordinates of the first image should be in the
+         # spectral translation of the second. Attribute 'altspecarg'
+         # stores the (parsed, i.e. with extension as in VOPT-F2W)
+         # spectral translation
+         if spectral and proj1.altspecarg != proj2.altspecarg:
+            proj1s = proj1.spectra(proj2.altspecarg)  # proj1s is a real copy here
          else:
-            z = numpy.zeros(len(xy1)) + mixpix
-            x, y = zip(*xy1)
-            t = zip(x, y, z)
-            xyworld1 =  proj1.toworld(t)
-            xyz = proj2.topixel(xyworld1)
-            x, y, z = zip(*xyz)
-            xy2 = zip(x, y)
-         
-      proj1.skyout = None                           # Reset
+            proj1s = proj1
+         z = zeros(len(xy1)) + mixpix1
+         x, y = zip(*xy1)
+         t = zip(x, y, z)
+         xyworld1 =  proj1s.toworld(t)
+         n = len(xy1)
+         unknown = zeros(n) + NAN
+         zp = zeros(n) + mixpix2
+         xw, yw, zw = zip(*xyworld1)
+         if swap:
+            world = (yw, xw, unknown)
+         else:
+            world = (xw, yw, unknown)
+         pixel = (unknown, unknown, zp)
+         # For the destination image we need to use the mixed method because
+         # for a missing spatial axis we only have the pixel coordinate available.
+         (world, pixel) = proj2.mixed(world, pixel)
+         xy2 = zip(pixel[0], pixel[1])
+
+      proj1.skyout = None                    # Reset
+      if twoelements:                        # Make tuple of two elements again
+         xy2 = (xy2[0][0], xy2[0][1])
       return xy2
 
 
@@ -1066,7 +1312,7 @@ class Shapecollection(object):
                obj.set_inactive()
       self.currenttype = shapetype
       self.maxindx[self.currenttype] += 1                  # Increase index because we add an object
-      if self.activeobject:
+      if not self.activeobject is None:
          self.activeobject.set_markers(False)
       objlist = []                                         # List with copy of flux object for each image
       obj = None;
@@ -1138,6 +1384,8 @@ class Shapecollection(object):
          return
       if self.toolbar.mode != '':                             # Do nothing while in pan or zoom mode
          return
+      if event.key is None:
+         return      # E.g. when caps lock is on
       self.currentimage = self.getimage(event)
       if self.currentimage == None:
          return
@@ -1146,40 +1394,10 @@ class Shapecollection(object):
          #xw, yw = self.currentimage.projection.toworld((xpb,ypb))
          xw, yw = self.currentimage.toworld(xpb,ypb)
 
-
-
-      # We disabled the code for the selection of shapes because
-      # one can select it with gui buttons and second, the numbers are
-      # already reserved by the colour editor.
-      """
-      if event.key.isdigit():
-         # User pressed a number 1, 2, 3, .. (i.e. it does not start with 0)
-         # This number corresponds to one of the supported types
-         newtype = int(event.key) - 1                         # Bring user selected type in range 0..number of shape types -1
-         if newtype < 0 or newtype >= len(self.shapetypes):   # Does not represent a shape
-            return
-         oldtype = self.currenttype
-         if oldtype == newtype:
-            return                                            # Nothing changed
-         oldindx = self.currentobj[oldtype]
-         newindx = self.currentobj[newtype]                   # Select a new group of shapes
-         self.currenttype = newtype
-         if self.maxindx[oldtype] >= 0:
-            for obj in self.shapes[oldtype][oldindx]:         # Make current group of objects inactive
-               if obj.active:
-                  obj.set_inactive()
-         if self.maxindx[newtype] >= 0:
-            for obj in self.shapes[newtype][newindx]:         # Make the objects of the current shape active
-               if obj.frame.contains(event)[0]:
-                  self.activeobject = obj
-                  obj.set_active(markers=True)
-               else:
-                  obj.set_active()
-         self.canvas.draw()
-      """
-
-      if event.key in ['n', 'c']:
-         if event.key == 'c':
+      
+      keypressed = event.key.lower()
+      if keypressed in ['n', 'c']:
+         if keypressed == 'c':
             if not self.activeobject:       # User want a copy but from what?
                return
             if not self.activeobject.frame.contains(event)[0]:
@@ -1204,7 +1422,7 @@ class Shapecollection(object):
          min = abs(y2-y1)/8.0
          framenr = self.getframenr(event)
          baseobj = None
-         if event.key == 'n':
+         if keypressed == 'n':
             # Make single and copy this later for other images
             active = markers = True
             if self.currenttype == self.ellipse:
@@ -1227,7 +1445,7 @@ class Shapecollection(object):
                #xyworld = self.getimage(event).projection.toworld(xyshift)
                xyworld = self.getimage(event).toworld(xyshift[:,0], xyshift[:,1])
          
-         if event.key == 'c':
+         if keypressed == 'c':
             # Make single and copy this later for other images
             active = markers = True
             xyshift = self.activeobject.shiftxy(xpb, ypb)
@@ -1264,17 +1482,17 @@ class Shapecollection(object):
             self.currentobj[self.currenttype] = numlists
          self.activeobject = baseobj
          self.activeobject.set_markers(True)
-         if event.key == 'c' and self.currenttype == self.spline:
+         if keypressed == 'c' and self.currenttype == self.spline:
             self.updatesplines()
          self.canvas.draw()
 
 
-      elif event.key in ['[', ']']:
+      elif keypressed in ['[', ']']:
          # Change active object in current group (only)
          newgroup = oldgroup = self.currentobj[self.currenttype]
          if oldgroup == -1:
             return     # Nothing to do, no object yet available
-         if event.key == '[':
+         if keypressed == '[':
             newgroup += 1
             if newgroup > self.maxindx[self.currenttype]:
                newgroup = 0
@@ -1298,7 +1516,7 @@ class Shapecollection(object):
          self.currentobj[self.currenttype] = newgroup
          self.canvas.draw()
       
-      elif event.key == 'a':
+      elif keypressed == 'a':
          """
          Add a vertex for a polygon or spline. For the current
          object the spline interpolation points are calculated and
@@ -1332,9 +1550,9 @@ class Shapecollection(object):
             self.canvas.draw()
 
 
-      elif event.key == 'd':
+      elif keypressed == 'd':
          # Delete the closest marker in all images
-         if self.activeobject == None:
+         if self.activeobject is None:
             return                                  # Nothing to do
          indx = self.activeobject.indexclosestmarker(event.x, event.y)
          if indx == None:
@@ -1347,8 +1565,8 @@ class Shapecollection(object):
                self.updatesplines()
             self.canvas.draw()
             
-      elif event.key == 'i':
-         if self.activeobject == None:
+      elif keypressed == 'i':
+         if self.activeobject is None:
             return           # Nothing to do
          indx = self.activeobject.indexsegmentinrange(event.x, event.y)
          cindx = self.currentobj[self.currenttype]
@@ -1368,7 +1586,7 @@ class Shapecollection(object):
                self.updatesplines()
             self.canvas.draw()
             
-      elif event.key == 'e':
+      elif keypressed == 'e':
          # Erase current group of objects
          oldgroup = self.currentobj[self.currenttype]
          if oldgroup < 0:
@@ -1404,7 +1622,7 @@ class Shapecollection(object):
                   self.activeobject.set_markers(True)
          self.canvas.draw()
 
-      elif event.key == 'w':
+      elif keypressed == 'w':
          # All markers of current image to one file. The first column sets the number of
          # the polygon it belongs. The format is:
          # polygon-number  x-pixels  y-pixels  x-wcs  y-wcs
@@ -1418,7 +1636,11 @@ class Shapecollection(object):
          if self.currentimage.slicepos is None:
             iminfo = "! Image was not a slice from N-dim. data source (N>2)"
          else:
-            iminfo = "! Slice position(s): %s\n"%self.currentimage.slicepos
+            iminfo  = "! Axes in image: %s %s\n"%(self.currentimage.projection.ctype[0], self.currentimage.projection.ctype[1])
+            iminfo += "! Slice position(s) on %s: %s\n"%(self.currentimage.sliceaxnames, self.currentimage.slicepos)
+            if self.gipsy and gipsymod:
+               iminfo += "! The slice positions are in FITS pixels\n"
+               iminfo += "! For GIPSY grid coordinates subtract CRPIX first\n"
          f.write(iminfo)
          f.write('! Format of this file:\n')
          f.write('! Shape # - object# - x pixel - y pixel - x world - y world\n')
@@ -1440,7 +1662,7 @@ class Shapecollection(object):
 #         self.toolbar.set_message(mes)
          self.currentimage.messenger(mes)
 
-      elif event.key == 'r':
+      elif keypressed == 'r':
          # Read data from file. Select between pixel- or world
          # coordinates. First number in the file is an index for
          # the polygon the data belongs to.
@@ -1476,7 +1698,7 @@ class Shapecollection(object):
          self.currentimage.messenger(mes)
 
 
-      elif event.key == 'u':    # Toggle visibility markers etc. for plot purposes
+      elif keypressed == 'u':    # Toggle visibility markers etc. for plot purposes
          if self.activeobject:
             if self.showactivestate:
                self.activeobject.set_inactive()
@@ -1487,7 +1709,13 @@ class Shapecollection(object):
                self.showactivestate = True
             self.canvas.draw()
 
-            
+   """
+   def on_pick(self, event):
+      thisline = event.artist
+      #xdata, ydata = thisline.get_data()
+      #ind = event.ind
+      print 'on pick line:', thisline
+   """ 
 
    def button_press(self, event):
       # -A position pointed with the mouse could be within a polygon
@@ -1533,7 +1761,9 @@ class Shapecollection(object):
          self.currenttype = newtype
          self.canvas.draw()
 
-      if event.button == 1:
+      elif event.button == 1:
+         self.xstart = event.xdata        # For a move of an object, this is the start point
+         self.ystart = event.ydata
          self.activeobject.closestindx = self.activeobject.indexclosestmarker(event.x, event.y)
          if self.activeobject.closestindx == None:
             if self.activeobject.inside(event.xdata, event.ydata):
@@ -1577,40 +1807,63 @@ class Shapecollection(object):
       if event.button == 1:
          xp = event.xdata; yp = event.ydata
          group = self.currentobj[self.currenttype]
-         indx = self.activeobject.closestindx
-         # currentimage = self.activeobject.image
-         if indx != None and indx != -1:
-            self.activeobject.movemarker(xp, yp, indx)
-         #if self.wcs:
-            #xw, yw = self.currentimage.projection.toworld((xp,yp))
-            #if self.currenttype != self.polygon:
-               #xyworld = self.images[self.activeobject.framenr].projection.toworld(self.activeobject.xy)
          if group < 0:
             return
-         for obj in self.shapes[self.currenttype][group]:        # Copy to other images
-            if self.wcs:                                         # Is a transformation needed?
-               #proj1 = self.currentimage.projection
-               #proj2 = self.images[obj.framenr].projection
-               im1 = self.currentimage
-               im2 = self.images[obj.framenr]
-               xp, yp = self.transformXY((event.xdata,event.ydata), im1, im2)
-            if indx == -1:
-               # This was a position inside the polygon but not close enough to a marker.
-               # Then move all markers
-               obj.moveall(xp, yp)
-            elif indx != None and not (obj is self.activeobject): #(obj.frame is self.currentimage.frame):  # Skip the active object
-               # A position close enough to a marker was found. 
-               # Move this marker if the shape is an irregular polygon type. For other types
-               # it has a different meaning.
-               if not self.wcs or self.currenttype in (self.polygon, self.spline):
-                  obj.movemarker(xp, yp, indx)
-               else:
-                  #proj1 = self.currentimage.projection
-                  #proj2 = self.images[obj.framenr].projection
+         indx = self.activeobject.closestindx
+         # currentimage = self.activeobject.image
+         dx = xp - self.xstart
+         dy = yp - self.ystart
+         x0 = self.activeobject.x0
+         y0 = self.activeobject.y0
+
+         if indx is None:
+            return
+            
+         if indx != -1:
+            # Move one marker to the new position in pixel coordinates
+            # but only for the active object
+            self.activeobject.movemarker(xp, yp, indx)
+         else:
+            # Get shifted positions for the current shape that is
+            # moved. This shift is in pixels coordinates for the current object
+            # so that it preserves the shape.
+            xy_shifted = self.activeobject.moveall(dx, dy)
+            
+         for obj in self.shapes[self.currenttype][group]:   # Copy to other images
+            if not (obj is self.activeobject):              # Active object already has been updated
+               if self.wcs:                                 # Is a transformation in wcs needed?
                   im1 = self.currentimage
                   im2 = self.images[obj.framenr]
-                  xy = self.transformXY(self.activeobject.xy, im1, im2)
-                  obj.updatexy(xy)
+               if indx == -1:
+                  # This was a position inside the polygon but not close enough to a marker.
+                  # Then move the associated shapes to their new position
+                  if self.wcs:
+                     xy_other = self.transformXY(xy_shifted, im1, im2)
+                     x0_other, y0_other = self.transformXY((x0,y0) , im1, im2)
+                     obj.updatexy(xy_other, x0_other, y0_other)
+                     obj.updatexy(xy_other, x0_other, y0_other)
+                  else:
+                     obj.moveall(dx, dy)
+               elif indx != None:
+                  # A position close enough to a marker was found.
+                  # Move this marker if the shape is an irregular polygon type. For other types
+                  # it has a different meaning.
+                  if self.wcs:
+                     if self.currenttype in (self.polygon, self.spline):
+                        # For irregulars just move one marker. Use world coordinates
+                        xp_new, yp_new = self.transformXY((xp, yp), im1, im2)
+                        obj.movemarker(xp_new, yp_new, indx)
+                     else:
+                        # For ellipses etc. we have already new data for the active object
+                        # Transform these in world coordinates for the other shapes
+                        xy_other = self.transformXY(self.activeobject.xy, im1, im2)
+                        x0_other, y0_other = self.transformXY((x0,y0) , im1, im2)
+                        obj.updatexy(xy_other, x0_other, y0_other)
+                  else:
+                     # In pixel mode, all objects get the same shift in pixel coordinates
+                     obj.movemarker(xp, yp, indx)
+         self.xstart = xp
+         self.ystart = yp
          if self.currenttype == self.spline:
             self.updatesplines()
          self.canvas.draw()
@@ -1702,7 +1955,7 @@ class Shapecollection(object):
          self.figresult.canvas.draw()
          self.results = False
          return        # No objects found
-      fluxlist  = numpy.asarray(fluxlist)
+      fluxlist  = asarray(fluxlist)
       ymin = fluxlist.min()
       ymax = fluxlist.max()
       d = (ymax-ymin)/20.0
@@ -1810,14 +2063,14 @@ def main():
          
       def toworld(self, xy):
          if self.name != 'L1':
-            xyw = numpy.asarray(xy)*2.0
+            xyw = asarray(xy)*2.0
          else:
             xyw = xy
          return xyw
       
       def topixel(self, xy):
          if self.name != 'L1':
-            xyp = numpy.asarray(xy)/2.0
+            xyp = asarray(xy)/2.0
          else:
             xyp = xy
          return xyp   
