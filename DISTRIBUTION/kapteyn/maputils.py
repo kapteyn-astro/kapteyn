@@ -4811,7 +4811,7 @@ this class.
             if axesevent.typecli:
                typecli(s) # Write to Hermes command line
             else:
-               anyout(s)  # Write to Hermes log file
+               anyout(s)  # Write to Hermes log file and screen
          else:
             print s       # Write to terminal
 
@@ -4850,9 +4850,14 @@ this class.
       :type dmsprec:
          Integer
       :param gipsy:
-         If set to True, the output is written with a GIPSY command to
-         a log file.
+         If set to True, the output is written with GIPSY function anyout() to
+         screen and a log file.
       :type gipsy:
+         Boolean
+      :param typecli:
+         If True then write the positions on the Hermes command line instead of the
+         log file and screen.
+      :type typecli:
          Boolean
       
       :Example:
@@ -4880,6 +4885,8 @@ this class.
       posobj.zfmt = zfmt
       posobj.hmsdms = hmsdms
       posobj.dmsprec = dmsprec
+      if not gipsy:
+         typecli = False
       self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame,
                            'button_press_event', gipsy=gipsy, typecli=typecli, posobj=posobj)
 

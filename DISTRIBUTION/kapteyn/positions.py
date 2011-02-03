@@ -962,7 +962,8 @@ class __a(object):
                   incr = -1.0
                else:
                   incr = +1.0
-               for value in arange(startval, endval+self.incl*incr, incr):
+               endval = endval+0.5*self.incl*incr
+               for value in arange(startval, endval, incr):
                   result.append(value)
          elif isSequenceType(element):
             for value in element:
@@ -2074,7 +2075,7 @@ def str2pos(postxt, subproj, mixpix=None):
                     axis we need a pixel coordinate for the missing
                     spatial axis to be able to convert between
                     world- and pixel coordinates.
-   :type mixpix:    Integer
+   :type mixpix:    Float
 
    
    :Returns:
