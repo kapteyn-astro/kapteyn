@@ -2691,12 +2691,21 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       adjust = framebase.get_adjustable()
       framelabel= 'FR'+join([choice(letters) for i in range(8)], "")
       # Each graticule holds two frames for two times two axes
-      frame = framebase.figure.add_axes(framebase.get_position(),
-                                  aspect=aspect,
-                                  adjustable=adjust,
-                                  autoscale_on=False,
-                                  frameon=False,
-                                  label=framelabel)
+      try:
+         r,c,n = framebase.get_geometry()
+         frame = framebase.figure.add_subplot(r, c, n,
+                                    aspect=aspect,
+                                    adjustable=adjust,
+                                    autoscale_on=False,
+                                    frameon=False,
+                                    label=framelabel)
+      except: 
+         frame = framebase.figure.add_axes(framebase.get_position(),
+                                    aspect=aspect,
+                                    adjustable=adjust,
+                                    autoscale_on=False,
+                                    frameon=False,
+                                    label=framelabel)
 
       graticule.frame = frame  # Store frame so that frame can be identified with events
       xlo = graticule.pxlim[0]-0.5; ylo = graticule.pylim[0]-0.5 
@@ -2721,7 +2730,23 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          tick.tick2line.set_visible(False) 
 
       framelabel= 'SFR'+join([choice(letters) for i in range(8)], "")
-      frame2 = framebase.figure.add_axes(frame.get_position(), frameon=False, label=framelabel)
+      try:
+         r,c,n = framebase.get_geometry()
+         frame2 = framebase.figure.add_subplot(r, c, n,
+                                    aspect=aspect,
+                                    adjustable=adjust,
+                                    autoscale_on=False,
+                                    frameon=False,
+                                    label=framelabel)
+      except: 
+         frame2 = framebase.figure.add_axes(frame.get_position(),
+                                    aspect=aspect,
+                                    adjustable=adjust,
+                                    autoscale_on=False,
+                                    frameon=False,
+                                    label=framelabel)
+
+      # frame2 = framebase.figure.add_axes(frame.get_position(), frameon=False, label=framelabel)
       graticule.frame2 = frame2  # Add new attribute
       # axis sharing is not an option because then also the ticks are
       # shared and we want independent ticks along all 4 axes. For most 
@@ -3972,4 +3997,5 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                            fmt=fmt, fun=fun, fliplabelside=fliplabelside, mscale=mscale,
                            labelsintex=labelsintex, **kwargs)
       return ruler
+
 

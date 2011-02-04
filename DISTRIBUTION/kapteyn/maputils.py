@@ -2269,13 +2269,22 @@ class Pixellabels(object):
       yhi = pixellabels.pylim[1]+0.5
       # Copy frame
       framelabel = randomlabel('fr_')
-      gframe = fig.add_axes(frame.get_position(),
-                                 aspect=aspect,
-                                 adjustable=adjust,
-                                 autoscale_on=False,
-                                 frameon=False,
-                                 label=framelabel)
-      
+      try:
+         r,c,n = frame.get_geometry()
+         gframe = fig.add_subplot(r, c, n,
+                                  aspect=aspect,
+                                  adjustable=adjust,
+                                  autoscale_on=False,
+                                  frameon=False,
+                                  label=framelabel)
+      except:
+         gframe = fig.add_axes(frame.get_position(),
+                               aspect=aspect,
+                               adjustable=adjust,
+                               autoscale_on=False,
+                               frameon=False,
+                               label=framelabel)
+
       gframe.set_xlim((xlo,xhi))
       gframe.set_ylim((ylo,yhi))
 
@@ -7947,3 +7956,4 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
+
