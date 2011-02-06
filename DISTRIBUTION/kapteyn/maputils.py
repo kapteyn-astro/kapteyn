@@ -9,7 +9,7 @@
 # DATE:    April 17, 2008
 # UPDATE:  May 17, 2008
 #          June 30, 2009; Docstrings converted to Sphinx format
-# VERSION: 1.10
+# VERSION: 1.11
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -17,8 +17,19 @@
 # E: gipsy@astro.rug.nl
 #
 # TODO:
-# Positionmessage offsets laten laten tonen.
-#
+# -Positionmessage offsets laten laten tonen.
+# -Betere melding als header niet valide is
+# -Rulers met 1 (start)punt
+# -Blur factors aanpassen aan pixelaspectratio
+# -Insertspatial kan teveel invoegen als bv een classic header wordt
+#  nagestreefd en de oude header nog een CD element heeft voor niet
+#  spatiele assen.
+# -Classicheader taak moet ook kleinere box in 3e richting kunnen maken
+# -Bij FREQ RA subset en invoer van {} 1.4... {} 178... geen foutmelding
+#  en geen grids.
+# -Colorbar met optie bar tegen plot aan
+# -WCSflux geschikt maken voor subplots
+# -Truc voor alignment. va=bottom en een delta introduceren
 #----------------------------------------------------------------------
 
 """
@@ -272,9 +283,13 @@ try:
 except:
    gipsymod = False
 
+# Experiment with a local LaTeX e.g. to improve horizontal label alignment
+#from matplotlib import rc
+#rc('text', usetex=True)
+
 KeyPressFilter.allowed = ['f', 'g']
 
-__version__ = '1.10'
+__version__ = '1.11'
 
 (left,bottom,right,top) = (wcsgrat.left, wcsgrat.bottom, wcsgrat.right, wcsgrat.top)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = (wcsgrat.native, wcsgrat.notnative, wcsgrat.bothticks, wcsgrat.noticks) 
@@ -6632,7 +6647,7 @@ to know the properties of the FITS data beforehand.
          dicttype = True
       else:
          dicttype = False
-      comment = "Appended by Maputils %s" % datetime.now().strftime("%dd%mm%Yy%Hh%Mm%Ss")
+      comment = "Appended by Kapteyn Package module Maputils %s" % datetime.now().strftime("%dd%mm%Yy%Hh%Mm%Ss")
       lonaxnum = self.convproj.lonaxnum
       lataxnum = self.convproj.lataxnum
       spatial = (lonaxnum != None and lataxnum != None)
@@ -6824,12 +6839,19 @@ to know the properties of the FITS data beforehand.
                    del hdr[key]
                    hdrchanged = True
 
+      # Exceptions etc.:
+      ekeys = ["XTENSION", "EXTNAME"]
+      for key in ekeys:
+         if hdr.has_key(key):
+            del hdr[key]
+         
+
       return hdr, skew, hdrchanged
 
 
    def reproject_to(self, reprojobj=None, pxlim_dst=None, pylim_dst=None,
                     plimlo=None, plimhi=None, interpol_dict = None,
-                    rotation=None, **fitskeys):
+                    rotation=None, spatialonly=True, **fitskeys):
       #---------------------------------------------------------------------
       """
       The current FITSimage object must contain a number of spatial maps.
@@ -6929,6 +6951,13 @@ to know the properties of the FITS data beforehand.
          overwrite this calculated value.
       :type rotation:
          Floating point number or *None*
+      :param spatialonly:
+         If True, then replace spatial part of current header by spatial part
+         of new (destination) header. If the new header describes the structure
+         entirely (such as a header that is transformed to a classical header), then
+         one should set *spatialonly* to False.
+      :type spatialonly:
+         Boolean
       :param fitskeys:
          Parameters containing FITS keywords and values which are written
          in the reprojection header. 
@@ -7101,7 +7130,7 @@ to know the properties of the FITS data beforehand.
          else:
             # A Python dict or a PyFITS header
             repheader = reprojobj.copy()
-            
+
       # For a rotation (only) we convert the header to a 'classic' header
       if not rotation is None:
          # Get rid of skew and ambiguous rotation angles
@@ -7218,7 +7247,10 @@ to know the properties of the FITS data beforehand.
       # which is a copy of the current FITSimage object. The spatial axes in the
       # current header are replaced by the spatial axes in the input header
       # both in order of their axis number.
-      newheader = self.insertspatialfrom(repheader, axnum, axnum2)   #lonaxnum2, lataxnum2)
+      if spatialonly:
+         newheader = self.insertspatialfrom(repheader, axnum, axnum2)   #lonaxnum2, lataxnum2)
+      else:
+         newheader = repheader
 
       # In the new header the length of spatial and the repeat axes could have been
       # changed. Adjust the relevant keywords in the new header
@@ -7956,4 +7988,3 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
-

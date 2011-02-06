@@ -412,11 +412,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
    if hms:
       if Hlab:
          if tex:
-            # We keep busy with the problem of the h in superscript
-            # which lowers the entire label.
-            #lab += r"%.2d^h"%Ihours
             lab += r"%d^h"%Ihours
-            #lab += r"%dh"%Ihours
          else:
             lab += "%dh"%Ihours
          if Slab:
@@ -434,19 +430,24 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
             Mlab = True
    if Mlab:
       if tex:
-         lab += r"%.2d^{\prime}"%Imin
+         if hms:
+            lab += r"%.2d^m"%Imin
+         else:
+            lab += r"%.2d^{\prime}"%Imin
       else:
          lab += "%.2dm"%Imin
    if Slab:
-      if tex:
-         lab += r"%.2d^{\prime\prime}"%Isec
-      else:
-         lab += "%.2d"%Isec
+      lab += "%.2d"%Isec
       if prec > 0:
          fsec = ".%*.*d" % (prec, prec, int(round(Fsec*10.0**prec,0)))
          lab += fsec
       if not tex:
          lab += 's'
+      else:
+         if hms:
+            lab += r"^s"
+         else:
+            lab += r"^{\prime\prime}"
    if sign == -1 and not Dlab:
       lab = "-"+lab
    return lab
@@ -1454,8 +1455,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                     about offsets.
                     The offset axes correspond to the pixel positions of
                     start- and endpoint of
-                    the left and bottom axes and the start point of
+                    the left and bottom axes and the default start point of
                     the offsets (value 0) is at the centre of the axis.
+                    One can change this start point with *startx*, *starty*.
 :type offsetx:      *None* or Boolean
 
 :param offsety:     Same as *offsetx* but now for the left plot axis.
@@ -3997,5 +3999,4 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                            fmt=fmt, fun=fun, fliplabelside=fliplabelside, mscale=mscale,
                            labelsintex=labelsintex, **kwargs)
       return ruler
-
 
