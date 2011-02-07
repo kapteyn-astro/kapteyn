@@ -123,7 +123,7 @@ from random import choice
 import numpy
 
 
-__version__ = '1.0'
+__version__ = '1.1'
 (left,bottom,right,top) = range(4)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = range(4)
 
@@ -412,7 +412,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
    if hms:
       if Hlab:
          if tex:
-            lab += r"%d^h"%Ihours
+            lab += r"%d^{\rm h}"%Ihours
          else:
             lab += "%dh"%Ihours
          if Slab:
@@ -431,7 +431,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
    if Mlab:
       if tex:
          if hms:
-            lab += r"%.2d^m"%Imin
+            lab += r"%.2d^{\rm m}"%Imin
          else:
             lab += r"%.2d^{\prime}"%Imin
       else:
@@ -445,7 +445,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
          lab += 's'
       else:
          if hms:
-            lab += r"^s"
+            lab += r"^{\rm s}"
          else:
             lab += r"^{\prime\prime}"
    if sign == -1 and not Dlab:
@@ -4000,3 +4000,22 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                            labelsintex=labelsintex, **kwargs)
       return ruler
 
+
+
+from  matplotlib.mathtext import Char
+
+def _update_metrics(self):
+    metrics = self._metrics = self.font_output.get_metrics(
+        self.font, self.font_class, self.c, self.fontsize, self.dpi)
+    if self.c in ['m', 's']:
+        metrics_ms = self.font_output.get_metrics(
+           self.font, self.font_class, 'h', self.fontsize, self.dpi)
+        metrics.iceberg = self._metrics.iceberg = metrics_ms.iceberg
+    if self.c == ' ':
+        self.width = metrics.advance
+    else:
+        self.width = metrics.width
+    self.height = metrics.iceberg
+    self.depth = -(metrics.iceberg - metrics.height)
+
+Char._update_metrics = _update_metrics

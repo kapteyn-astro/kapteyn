@@ -112,6 +112,7 @@ Version 2.0.3 (in development)
   * center of offset axis can be changed with parameter *startx*, *starty*
     and a string as argument.
 
+  * Right Ascension labels in TeX (hms) now have better alignment.
 
 * New module profiles:
 

@@ -167,7 +167,7 @@ Lynchburg College @ 161.115.120.67
 Armagh Observatory @ 193.63.77.194
 Deutsches Elektronen-Synchrotron @ 131.169.139.62
 University of Hertfordshire @ 147.197.230.213
+Max-Planck-Institut fuer Physik @ 134.107.5.220
+Friedrich-Schiller-Universitaet Jena @ 141.35.40.137
 
-tot:  Mon Jan 31 11:18:27 CET 2011
-
-
+tot:  Mon Feb  7 10:56:38 CET 2011
