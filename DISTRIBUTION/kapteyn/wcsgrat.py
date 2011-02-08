@@ -4007,10 +4007,11 @@ from  matplotlib.mathtext import Char
 def _update_metrics(self):
     metrics = self._metrics = self.font_output.get_metrics(
         self.font, self.font_class, self.c, self.fontsize, self.dpi)
-    if self.c in ['m', 's']:
+    if self.c in ['m', 's'] and self.fontsize<tweakhms:
         metrics_ms = self.font_output.get_metrics(
            self.font, self.font_class, 'h', self.fontsize, self.dpi)
         metrics.iceberg = self._metrics.iceberg = metrics_ms.iceberg
+        metrics.height = self._metrics.height = metrics_ms.height
     if self.c == ' ':
         self.width = metrics.advance
     else:
@@ -4019,3 +4020,4 @@ def _update_metrics(self):
     self.depth = -(metrics.iceberg - metrics.height)
 
 Char._update_metrics = _update_metrics
+tweakhms = 12
