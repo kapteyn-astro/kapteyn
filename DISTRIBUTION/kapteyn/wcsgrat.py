@@ -4002,12 +4002,24 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 
 
-from  matplotlib.mathtext import Char
 
+# ==========================================================================
+#                           function _update_metrics()
+# --------------------------------------------------------------------------
+# The function _update_metrics() is a replacement for the method
+# matplotlib.mathtext.Char._update_metrics(). It tries to modify
+# the metrics of characters 'm' and 's' so that hms tick labels
+# are aligned correctly. To prevent unwanted side effects in other
+# text labels, this is done only when the font is 'rm' and the current
+# fontsize is less than variable 'tweakhms' in an attempt to
+# limit the metrics modification to minute and second superscripts.
+#
 def _update_metrics(self):
     metrics = self._metrics = self.font_output.get_metrics(
         self.font, self.font_class, self.c, self.fontsize, self.dpi)
-    if self.c in ['m', 's'] and self.fontsize<tweakhms:
+    if self.c in ['m', 's'] and \
+       self.fontsize<tweakhms and \
+       self.font=='rm':
         metrics_ms = self.font_output.get_metrics(
            self.font, self.font_class, 'h', self.fontsize, self.dpi)
         metrics.iceberg = self._metrics.iceberg = metrics_ms.iceberg
@@ -4019,5 +4031,7 @@ def _update_metrics(self):
     self.height = metrics.iceberg
     self.depth = -(metrics.iceberg - metrics.height)
 
+from  matplotlib.mathtext import Char
 Char._update_metrics = _update_metrics
-tweakhms = 12
+
+tweakhms = 12.0    # default value which may be modified by the application. 

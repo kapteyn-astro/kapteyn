@@ -1,28 +1,26 @@
-Kapteyn Package 2.0.2 released
+Kapteyn Package 2.0.3 released
 
-We are pleased to announce the release of version 2.0.2 of the Kapteyn Package.
 
-The Kapteyn Package is a collection of Python modules developed by the
-computer group of the Kapteyn Astronomical Institute, University of
-Groningen, The Netherlands. 
+We would like to announce the release of version 2.0.3 of the Kapteyn
+Package, a collection of Python modules developed by the computer group
+of the Kapteyn Astronomical Institute, University of Groningen, The
+Netherlands. 
+
 
 Some of the package's features:
 
-- The handling of spatial and spectral coordinates, WCS projections and
-  transformations between different sky systems. Spectral translations
-  (e.g. between frequencies and velocities) are supported as well as
-  mixed coordinates. For WCS, Dr. Mark Calabretta's WCSLIB is used.
+- Classes for the handling of spatial and spectral coordinates, WCS
+  projections and transformations between different sky systems. Spectral
+  translations (e.g. between frequencies and velocities) are supported as
+  well as mixed coordinates. For WCS, Dr. Mark Calabretta's WCSLIB is
+  used. 
 
-- Versatile tools for writing small and dedicated applications for the
-  inspection of FITS headers, the extraction, display and interactive
+- Tools for writing small applications for the display and interactive
   inspection of (FITS) data and for the creation of plots with world
-  coordinate information, including all-sky plots.
-  A unique feature is the possibility to make plots with mixed
-  coordinates, e.g. where one axis is spatial and the other one is
-  spectral. Matplotlib and PyFITS are used.
-
-- Tools for parsing and interpreting coordinate information entered by
-  the user. 
+  coordinate information, including all-sky plots. A unique feature is
+  the possibility to make plots with mixed coordinates, e.g. where one
+  axis is spatial and the other one is spectral. Matplotlib and PyFITS
+  are used. 
 
 - Utilities for use with Matplotlib such as obtaining coordinate
   information from plots, interactively modifiable colormaps and timer
@@ -31,13 +29,27 @@ Some of the package's features:
 - A class for the efficient reading, writing and manipulating of simple
   table-like structures in text files. 
 
+
+New features:
+
+- A class for plotting shapes like ellipses, rectangles and regular
+  polygons. For these shapes angles and distances along a great circle
+  are preserved. This class can be used for example to draw footprints on
+  all-sky plots or a beam to show the resolution of an instrument. 
+
+- Support for RGB images.
+
+- A class containing a function for estimating gaussian components in a
+  profile. These estimates could subsequently be used as initial
+  estimates for a least squares fit. 
+
+- and, of course, many smaller improvements and some bugfixes. 
+
+
 Currently supported architectures are Linux, Apple Mac OS X and
-Microsoft Windows.
+Microsoft Windows. 
 
 Extensive documentation, including tutorial and background information,
 as well as download and installation instructions can be found at
 http://www.astro.rug.nl/software/kapteyn/
 
-We look forward to your feedback.
-
-Hans Terlouw and Martin Vogelaar
