@@ -11,17 +11,14 @@ fig = plt.figure(figsize=(8,10))
 
 frame = fig.add_subplot(rows,cols,1)
 mplim = f.Annotatedimage(frame, cmap="spectral")
-mplim.Image(visible=False)
 cont = mplim.Contours()
-mplim.Colorbar(clines=True, fontsize=8,
-               linewidths=3, visible=False) # show only cont. lines
+mplim.Colorbar(clines=True, fontsize=8, linewidths=5) # show only cont. lines
 mplim.plot()
 # Levels only known after plotted
 print "Proposed levels:", cont.clevels
 
 frame = fig.add_subplot(rows,cols,2)
 mplim = f.Annotatedimage(frame, cmap="spectral")
-mplim.Image(visible=False)
 cont = mplim.Contours(filled=True)
 mplim.Colorbar(clines=True, fontsize=8) # show only cont. lines
 mplim.plot()
@@ -29,7 +26,7 @@ mplim.plot()
 frame = fig.add_subplot(rows,cols,3)
 mplim = f.Annotatedimage(frame, cmap="spectral")
 mplim.Image()
-cont = mplim.Contours(colors='w', linewidths=2)
+cont = mplim.Contours(colors='w', linewidths=1)
 mplim.Colorbar(clines=True, ticks=(4000,8000,12000))
 mplim.plot()
 mplim.interact_imagecolors()
@@ -37,9 +34,11 @@ mplim.interact_imagecolors()
 frame = fig.add_subplot(rows,cols,4)
 mplim = f.Annotatedimage(frame, cmap="spectral")
 mplim.Image()
-cont = mplim.Contours(levels=(4000,6000,8000,10000,12000), 
-                      colors=('r','b','y','g', 'c'))
-mplim.Colorbar(clines=True, ticks=(4000,8000,12000), linewidths=2)
+# Give each contour its own color, instead of borrowing from the colormap
+cont = mplim.Contours(levels=(6000,8000,10000,12000), 
+                      colors=('w','g','b', 'c'))
+cont.setp_contour(levels=8000, color='m', linewidth=2)
+mplim.Colorbar(clines=True, ticks=(4000,8000,12000), linewidths=6)
 mplim.plot()
 mplim.interact_imagecolors()
 mplim.interact_toolbarinfo()
@@ -68,4 +67,3 @@ mplim.interact_imagecolors()
 mplim.interact_toolbarinfo()
 
 plt.show()
-

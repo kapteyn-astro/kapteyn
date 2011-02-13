@@ -14,7 +14,7 @@ annim = f.Annotatedimage(frame, clipmin=3000, clipmax=15000)
 cont = annim.Contours(levels=range(8000,14000,1000))
 cont.setp_contour(linewidth=1)
 cont.setp_contour(levels=11000, color='g', linewidth=2)
-cb = annim.Colorbar(clines=False, orientation='vertical', fontsize=8)
+cb = annim.Colorbar(clines=True, orientation='vertical', fontsize=8, linewidths=5)
 gr = annim.Graticule()
 gr.setp_ticklabel(wcsaxis=0, fmt='HMS')
 ilab = gr.Insidelabels(color='b', ha='left')
@@ -45,4 +45,3 @@ pl.setp_label(color='m')
 
 annim.plot()
 plt.show()
-

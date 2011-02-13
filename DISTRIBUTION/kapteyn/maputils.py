@@ -247,6 +247,8 @@ use('qt4agg')
 from matplotlib import rcParams
 backend = rcParams['backend']
 print "Backend=",backend
+from matplotlib import __version__ as mplversion
+print "Matplotlib version:", mplversion
 """
 
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
@@ -1759,6 +1761,25 @@ class Colorbar(object):
    def __init__(self, cmap, frame=None, norm=None, contourset=None, clines=False, fontsize=9,
                 label=None, linewidths=None, visible=True, **kwargs):
       #--------------------------------------------------------------------
+      """
+      cmap: Was usuable in versions <= 0.99.8. Now we cannot use
+            colorbaseBase anymore (changing color map did not update
+            the colorbar) and have to use the colorbar method instead.
+            Then in fact, either an image or a contourset should be
+            supplied and the cmap is not necessary. For now we leave the code
+            unaltered. TODO: Address the use of cmap.
+      frame: If a frame is entered it will be stored here and used as
+            Axes object. However when None, the calling environment
+            must call plot() with a valid frame (usually this frame
+            will be 'stolen' from a mother frame.
+            clines: Draw contour lines in colorbar also. Does not matter
+            if this comes from an image or contour set.
+      linewidhts: One number to set the line widht of all the contour
+            lines in the colorbar. Note that linewidths set for a
+            contour level will be copied for the line width of the
+            line in the colorbar. However if parameter *linewidths*
+            is set, it will be applied to all lines in the contour colorbar.
+      """
       #--------------------------------------------------------------------
       self.ptype = "Colorbar"
       self.cmap = cmap
@@ -1792,30 +1813,34 @@ class Colorbar(object):
          t.set_fontsize(self.cbfontsize)
 
 
-   def plot(self, cbframe):
+   def plot(self, cbframe, mappable=None):
       #--------------------------------------------------------------------
       """
       Plot image object. Usually this is done by method
       :meth:`Annotatedimage.plot` but it can also be used separately.
       """
       #--------------------------------------------------------------------
-      # ColorbarBase needs a norm instance
+      self.frame = cbframe                 # self.frame could have been None
+      fig = cbframe.figure                 # We need the figure to get use the colorbar method
+      
+      self.cb = fig.colorbar(mappable, cax=self.frame, norm=self.norm, **self.kwargs)
+
       if self.plotcontourlines and self.contourset != None:
          CS = self.contourset.CS
          if not self.kwargs.has_key("ticks"):
             self.kwargs["ticks"] = CS.levels
+         # Copy the line widhts. Note that this is a piece of code
+         # that assumes certain behaviour from the attributes in a
+         # contour set. It can fail with newer Matplotlib versions.
+         lws = []
+         if not self.linewidths is None:
+            for lw in CS.tlinewidths:
+               lws.append((self.linewidths,))
+            CS.tlinewidths = lws
+         self.cb.add_lines(CS)
       else:
           CS = None
 
-      self.cb = ColorbarBase(cbframe, cmap=self.cmap, norm=self.norm, **self.kwargs)
-      # User requires lines (corresponding to contours) in colorbar
-      if CS != None:
-         if self.linewidths != None:
-            tlinewidths = [self.linewidths]*len(CS.tlinewidths)
-         else:
-            tlinewidths = [t[0] for t in CS.tlinewidths]
-         tcolors = [c[0] for c in CS.tcolors]
-         self.cb.add_lines(CS.levels, tcolors, tlinewidths)
       self.colorbarticks()    # Set font size given in kwargs or use default
       if self.label != None:
          if self.labelkwargs is None:
@@ -2914,15 +2939,13 @@ this class.
       self.frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
 
 
-   def adjustframe(self, frame, position=None):
+   def adjustframe(self, frame):
       #-----------------------------------------------------------------
       """
       Method to change the frame for the right aspect ratio and
       how to react on a resize of the plot window.
       """
       #-----------------------------------------------------------------
-      if not position is None:
-         frame.set_position(position)
       frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
       frame.set_autoscale_on(False)
       frame.xaxis.set_visible(False)
@@ -3252,6 +3275,11 @@ this class.
       It annotates the colors with image values so that it is possible
       to get an idea of the distribution of the values in your image.
 
+      :param frame:
+         By default a colorbar will 'steal' some space from its parent frame
+         but this behaviour can be overruled by setting an explicit frame (Matplotlib Axes object).
+      :type frame:
+         Matplotlib Axes object
       :param clines:
           If set to true AND a contour set (an :meth:`Annotatedimage.Contours` object)
           is available, then lines will be plotted in the colorbar
@@ -3261,15 +3289,16 @@ this class.
       :param kwargs:
           Specific keyword arguments and Keyword arguments for Matplotlib's method *ColorbarBase()*
 
-          * *frame* - By default a colorbar will 'steal' some space from its parent frame
-            but this behaviour can be overruled by setting an explicit frame (Matplotlib Axes object).
           * *label* - A text that will be plotted along the long axis of the colorbar.
+          * *linewidths* - One number that sets the line width of all the contour lines
+            in the colorbar.
 
           From Matplotlib:
              
           * *orientation* - 'horizontal' or 'vertical'
           * *fontsize* - Size of numbers along the colorbar
           * *ticks* - Levels which are annotated along the colorbar
+          * *visible* - Make image in colorbar invisible
            
       :type kwargs:
           Python keyword arguments
@@ -3971,8 +4000,16 @@ this class.
             obj.plot(self.frame)
             # If we want to plot derived objects (e.g. ruler) and not the graticule
             # then set visible to False in the constructor.
-         elif pt == "Colorbar":
-            obj.plot(self.cbframe)
+
+      for obj in self.objlist:
+         pt = obj.ptype
+         if pt == "Colorbar":
+            if not self.image is None:
+               obj.plot(self.cbframe, self.image.im)
+            elif not self.contourset is None:
+               obj.plot(self.cbframe, self.contourset.CS)
+            else:
+               raise Exception, "A color bar could not find an image or contourset!"
 
 
    def toworld(self, xp, yp, matchspatial=False):
@@ -4523,7 +4560,7 @@ this class.
       #--------------------------------------------------------------------      
       if axesevent.event.button == 3:
          x, y = axesevent.xdata, axesevent.ydata
-         if self.image.im is None:               # There is no image to adjust
+         if self.image is None or self.image.im is None:               # There is no image to adjust
             return
          # 1. event.xdata and event.ydata are the coordinates of the mouse location in
          # data coordinates (i.e. in screen pixels)
@@ -7992,4 +8029,3 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
-
