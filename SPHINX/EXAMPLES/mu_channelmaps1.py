@@ -48,7 +48,7 @@ grat2 = annim2.Graticule()
 grat2.setp_axislabel(plotaxis="right", label='Velocity (km/s)',
                     fontsize=9, visible=True)
 grat2.set_tickmode(plotaxis="right", mode="native_ticks")
-grat2.setp_ticklabel(plotaxis="right", fmt="%5g", fun=fx)
+grat2.setp_ticklabel(plotaxis="right", fmt="%+5g", fun=fx)
 grat2.setp_axislabel("bottom", 
                      label=r"Offset in latitude (arcmin) at $\alpha$ = pixel 51",
                      fontsize=9)
@@ -66,7 +66,9 @@ grat3 = annim3.Graticule()
 grat3.setp_axislabel("right", 
                      label='Velocity (km/s)', fontsize=9, visible=True)
 grat3.set_tickmode(plotaxis='right', mode="native_ticks")
-grat3.setp_ticklabel(plotaxis="right", fmt="%5g", fun=fx)
+# The next line forces labels to be right aligned, but one needs a shift
+# in x to set the labels outside the plot
+grat3.setp_ticklabel(plotaxis="right", fmt="%8g", fun=fx, ha="right", x=1.075)
 grat3.setp_axislabel(plotaxis="left", visible=False)
 grat3.set_tickmode(plotaxis="left",  mode="no_ticks")
 grat3.setp_axislabel("bottom", 

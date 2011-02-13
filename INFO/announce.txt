@@ -37,7 +37,7 @@ New features:
   are preserved. This class can be used for example to draw footprints on
   all-sky plots or a beam to show the resolution of an instrument. 
 
-- Support for RGB images.
+- Support for RGB-coded images.
 
 - A class containing a function for estimating gaussian components in a
   profile. These estimates could subsequently be used as initial

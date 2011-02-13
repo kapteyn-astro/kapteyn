@@ -127,6 +127,11 @@ __version__ = '1.1'
 (left,bottom,right,top) = range(4)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = range(4)
 
+# A variable to change the vertical size of a TeX box
+# For more information, have a look at method
+# _update_metrics() at the end of this code.
+tweakhms = 0
+
 def issequence(obj):
   return isinstance(obj, (list, tuple, numpy.ndarray))
 
@@ -516,6 +521,7 @@ def createlabels(Tlist):
    the same axis and the same wcs axis.
    -------------------------------------------------------------------------------
    """
+   global tweakhms
    Hprev = Dprev = Mprev = Sprev = signprev = None
    dirprev = None; Labprev = None
    H = D = M = S = True
@@ -524,6 +530,13 @@ def createlabels(Tlist):
       # There are some conditions for plotting labels in hms/dms:
       if t.axtype in ['longitude', 'latitude'] and t.offset == False and t.fun == None and\
          (t.fmt == None or t.fmt.find('%') == -1):
+
+         # Each tick label has its own fontsize. We take the first label's fontsize as
+         # the value for which we tweak the characters 's' and 'm' in the TeX labels
+         if t.kwargs.has_key('fontsize') and t.tex:
+            if tweakhms == 0:
+               tweakhms = t.kwargs['fontsize']
+            
          if t.axtype == 'longitude' and t.fmt != None and 'D' in t.fmt.upper():
             # This is a equatorial longitude axis for which one wants
             # DMS formatting not HMS formatting. Useful for "all sky" plots
@@ -1088,6 +1101,9 @@ class Insidelabels(object):
       -----------------------------------------------------------
       """
       createlabels(self.labels)
+      # With Insidelabels there is no problem with the alignment
+      # with TeX labels, because the alignment is not 'top'.
+      # There is no need to tweak the HMS labels here.
       for inlabel in self.labels:
          frame.text(inlabel.x, inlabel.y, inlabel.label,
                     clip_on=True, **inlabel.kwargs)
@@ -1838,6 +1854,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   to one axis.
       -----------------------------------------------------------
       """
+      global tweakhms
       ticks    = [[],[],[],[]]
       tickpos  = [[],[],[],[]]
       ticklab  = [[],[],[],[]]
@@ -1899,9 +1916,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             # label attribute of a WCStick object. The createlabels() function
             # returns a list so in fact if this function changes a label for
             # a tick object, then
-            # it the label will automatically be updated in the list also.
+            # the label will automatically be updated in the list also.
             createlabels(Tlist)
-
+         #if anr == bottom:
+            # Only bottom axes can have TeX labels that are not aligned very well
+            # With this tweak parameter this should improve
+            #update_metrics(tweakhms)
       for anr in range(0,4):
          for t in ticks[anr]:
             ticklab[anr].append(t.label)
@@ -2233,7 +2253,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if alter =='':
             alter = graticuledata.alter
             
-
+      self.frame = None
+      self.frame2 = None
       self.skyout = skyout
       self.spectrans = spectrans
       self.labelsintex = labelsintex
@@ -2701,6 +2722,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                     autoscale_on=False,
                                     frameon=False,
                                     label=framelabel)
+
+         # If a colorbar is requested then the original frame (framebase) is
+         # altered. The add_subplot method does not see this altered position.
+         frame.set_position(framebase.get_position())
       except: 
          frame = framebase.figure.add_axes(framebase.get_position(),
                                     aspect=aspect,
@@ -2740,6 +2765,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                     autoscale_on=False,
                                     frameon=False,
                                     label=framelabel)
+         frame2.set_position(framebase.get_position())
       except: 
          frame2 = framebase.figure.add_axes(frame.get_position(),
                                     aspect=aspect,
@@ -4015,23 +4041,59 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 # limit the metrics modification to minute and second superscripts.
 #
 def _update_metrics(self):
-    metrics = self._metrics = self.font_output.get_metrics(
-        self.font, self.font_class, self.c, self.fontsize, self.dpi)
-    if self.c in ['m', 's'] and \
-       self.fontsize<tweakhms and \
-       self.font=='rm':
-        metrics_ms = self.font_output.get_metrics(
-           self.font, self.font_class, 'h', self.fontsize, self.dpi)
-        metrics.iceberg = self._metrics.iceberg = metrics_ms.iceberg
-        metrics.height = self._metrics.height = metrics_ms.height
-    if self.c == ' ':
-        self.width = metrics.advance
-    else:
-        self.width = metrics.width
-    self.height = metrics.iceberg
-    self.depth = -(metrics.iceberg - metrics.height)
+   global tweakhms
+   metrics = self._metrics = self.font_output.get_metrics(
+      self.font, self.font_class, self.c, self.fontsize, self.dpi)
+   if self.c in ['m', 's'] and \
+      self.fontsize<tweakhms and \
+      self.font=='rm':
+      metrics_ms = self.font_output.get_metrics(
+         self.font, self.font_class, 'h', self.fontsize, self.dpi)
+      metrics.iceberg = self._metrics.iceberg = metrics_ms.iceberg
+      metrics.height = self._metrics.height = metrics_ms.height
+   if self.c == ' ':
+      self.width = metrics.advance
+   else:
+      self.width = metrics.width
+   self.height = metrics.iceberg
+   self.depth = -(metrics.iceberg - metrics.height)
 
 from  matplotlib.mathtext import Char
 Char._update_metrics = _update_metrics
 
-tweakhms = 12.0    # default value which may be modified by the application. 
+
+"""
+def update_metrics(tweakhms):
+# ==========================================================================
+#                           function _update_metrics()
+# --------------------------------------------------------------------------
+# The function _update_metrics() is a replacement for the method
+# matplotlib.mathtext.Char._update_metrics(). It tries to modify
+# the metrics of characters 'm' and 's' so that hms tick labels
+# are aligned correctly. To prevent unwanted side effects in other
+# text labels, this is done only when the font is 'rm' and the current
+# fontsize is less than variable 'tweakhms' in an attempt to
+# limit the metrics modification to minute and second superscripts.
+#
+   return
+   def _update_metrics(self):
+      metrics = self._metrics = self.font_output.get_metrics(
+         self.font, self.font_class, self.c, self.fontsize, self.dpi)
+      if self.c in ['m', 's'] and \
+         self.fontsize<tweakhms and \
+         self.font=='rm':
+         metrics_ms = self.font_output.get_metrics(
+            self.font, self.font_class, 'h', self.fontsize, self.dpi)
+         metrics.iceberg = self._metrics.iceberg = metrics_ms.iceberg
+         metrics.height = self._metrics.height = metrics_ms.height
+      if self.c == ' ':
+         self.width = metrics.advance
+      else:
+         self.width = metrics.width
+      self.height = metrics.iceberg
+      self.depth = -(metrics.iceberg - metrics.height)
+
+   from  matplotlib.mathtext import Char
+   Char._update_metrics = _update_metrics
+
+"""

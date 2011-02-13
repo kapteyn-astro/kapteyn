@@ -30,6 +30,7 @@
 # -Colorbar met optie bar tegen plot aan
 # -WCSflux geschikt maken voor subplots
 # -Truc voor alignment. va=bottom en een delta introduceren
+# -Backquotes in IOutils niet meer nodig
 #----------------------------------------------------------------------
 
 """
@@ -2206,6 +2207,7 @@ class Pixellabels(object):
    
       gridlabs = Gridframe(px, py, plotaxis, gridlines, major, minor, **defkwargs)
       self.gridlabs = gridlabs
+      self.frame = None
 
 
    def setp_marker(self, **kwargs):
@@ -2292,6 +2294,7 @@ class Pixellabels(object):
                                   autoscale_on=False,
                                   frameon=False,
                                   label=framelabel)
+         gframe.set_position(frame.get_position())
       except:
          gframe = fig.add_axes(frame.get_position(),
                                aspect=aspect,
@@ -2302,7 +2305,8 @@ class Pixellabels(object):
 
       gframe.set_xlim((xlo,xhi))
       gframe.set_ylim((ylo,yhi))
-
+      self.frame = gframe
+      
       if 3 in plotaxes or 1 in plotaxes:
          if pixellabels.major != None:
             majorLocator = MultipleLocator(pixellabels.major)
@@ -2648,8 +2652,6 @@ this class.
          except:
            pass
       self.messenger = globalmessenger
-
-      # Related to color maps:
       self.set_colormap(cmap)
       self.set_blankcolor(blankcolor)
       # Calculate defaults for clips if nothing is given
@@ -2912,13 +2914,15 @@ this class.
       self.frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
 
 
-   def adjustframe(self, frame):
+   def adjustframe(self, frame, position=None):
       #-----------------------------------------------------------------
       """
       Method to change the frame for the right aspect ratio and
       how to react on a resize of the plot window.
       """
       #-----------------------------------------------------------------
+      if not position is None:
+         frame.set_position(position)
       frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
       frame.set_autoscale_on(False)
       frame.xaxis.set_visible(False)
@@ -3239,7 +3243,7 @@ this class.
       return contourset
 
 
-   def Colorbar(self, clines=False, **kwargs):
+   def Colorbar(self, frame=None, clines=False, **kwargs):
       #-----------------------------------------------------------------
       """
       This method is a call to the constructor of class :class:`Colorbar`
@@ -3299,7 +3303,7 @@ this class.
       #------------------------------------------------------------------
       if self.colorbar != None:
          raise Exception, "Only 1 colorbar allowed per Annotatedimage object"
-      colorbar = Colorbar(self.cmap, norm=self.norm, contourset=self.contourset, clines=clines, **kwargs)
+      colorbar = Colorbar(self.cmap, frame=frame, norm=self.norm, contourset=self.contourset, clines=clines, **kwargs)
       self.objlist.append(colorbar)
       self.colorbar = colorbar
       return colorbar
@@ -7988,3 +7992,4 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
+
