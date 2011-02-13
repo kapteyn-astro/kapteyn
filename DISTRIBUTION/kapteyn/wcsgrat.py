@@ -4045,7 +4045,7 @@ def _update_metrics(self):
    metrics = self._metrics = self.font_output.get_metrics(
       self.font, self.font_class, self.c, self.fontsize, self.dpi)
    if self.c in ['m', 's'] and \
-      self.fontsize<tweakhms and \
+      self.fontsize<=float(tweakhms) and \
       self.font=='rm':
       metrics_ms = self.font_output.get_metrics(
          self.font, self.font_class, 'h', self.fontsize, self.dpi)
