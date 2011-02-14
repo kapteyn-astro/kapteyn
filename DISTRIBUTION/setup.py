@@ -101,6 +101,7 @@ wcslib_src = [
    "wcs.c",
    "wcsfix.c",
    "wcshdr.c",
+   "wcsprintf.c",
    "wcstrig.c",
    "wcsunits.c",
    "wcsutil.c",
