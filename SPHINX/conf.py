@@ -227,6 +227,6 @@ latex_show_urls = False
 #
 # Transparent formulas. Note: different from Sphinx documentation
 # stating '-bg Transparent' which did not work. May be due to the
-# subprocess.Popen class.
+# subprocess.Popen class. -D reduced because of smaller font used.
 #
-pngmath_dvipng_args = ['-gamma 1.5', '-D 110', '-bg', 'Transparent']
+pngmath_dvipng_args = ['-gamma 1.5', '-D 95', '-bg', 'Transparent']
