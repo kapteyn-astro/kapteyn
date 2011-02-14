@@ -1,7 +1,7 @@
-Kapteyn Package 2.0.3 released
+Kapteyn Package 2.1
 
 
-We would like to announce the release of version 2.0.3 of the Kapteyn
+We would like to announce the release of version 2.1 of the Kapteyn
 Package, a collection of Python modules developed by the computer group
 of the Kapteyn Astronomical Institute, University of Groningen, The
 Netherlands. 
@@ -12,7 +12,7 @@ Some of the package's features:
 - Classes for the handling of spatial and spectral coordinates, WCS
   projections and transformations between different sky systems. Spectral
   translations (e.g. between frequencies and velocities) are supported as
-  well as mixed coordinates. For WCS, Dr. Mark Calabretta's WCSLIB is
+  well as mixed coordinates. For WCS, Dr. Mark Calabretta's WCSLIB 4.7 is
   used. 
 
 - Tools for writing small applications for the display and interactive

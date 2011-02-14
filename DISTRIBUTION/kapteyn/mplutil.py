@@ -392,7 +392,7 @@ Values should be between 0.0 and 1.0.
       self.source = source
       try:
          source = cm.get_cmap(source)
-	 if source is None:
+         if source is None:
             source = self.source                            # restore source
       except:
          pass
