@@ -1,5 +1,5 @@
-Version 2.0.3 (in development)
-==============================
+Version 2.1 (Feb 14, 2011)
+==========================
 
 * Class wcs.Projection:
 
