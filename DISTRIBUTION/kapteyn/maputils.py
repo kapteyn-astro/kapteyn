@@ -2601,6 +2601,7 @@ this class.
 .. automethod:: Colorbar
 .. automethod:: Graticule
 .. automethod:: Pixellabels
+.. automethod:: Minortickmarks
 .. automethod:: Beam
 .. automethod:: Marker
 .. automethod:: Ruler

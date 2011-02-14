@@ -395,8 +395,8 @@ then we need very few lines of code as we show in the next example.
 **Explanation:**
 
 This is a simple script that displays an image using the defaults for the axes,
-the limits, the color map and many other properties.
->From an object from class :class:`maputils.FITSimage` an
+the limits, the color map and many other properties. From an object from 
+class :class:`maputils.FITSimage` an
 object from class :class:`maputils.FITSimage.Annotatedimage`
 is derived.
 
@@ -460,7 +460,7 @@ shapes overlap is white in the composed output image. For each RGB
 component a :class:`maputils.FITSimage` is created. One of these is used to
 make a :class:`maputils.FITSimage.Annotatedimage` object. The three
 *FITSimage* objects are used as parameters for method
-:meth:`maputils.FITSimage.Annotatedimage.RGBimage` to set the individual
+:meth:`maputils.Annotatedimage.RGBimage` to set the individual
 components of a RGB image.
 The red component is a bit special because we added some Gaussian noise to it.
 A second parameter used in the method is *alpha*.
@@ -890,7 +890,7 @@ Step sizes, given as a string, can be appended by a unit.
       ``grat = annim.Graticule(spectrans="VOPT", startx="9000 km/s", deltax="400 km/s", unitsx="km/s")``
    6. You can get even more control if you enter a function or a
       lambda expression for parameter *fun*. You have to change the
-      default axis title with method :meth:`maputils.Graticule.setp_axislabel`.
+      default axis title with method :meth:`wcsgrat.Graticule.setp_axislabel`.
 
       >>> grat.setp_tick(plotaxis="bottom", fmt='%g', fun=lambda x:x/1000.0)
       >>> grat.setp_axislabel(plotaxis="bottom", label="Optical velocity (Km/s)")
@@ -1407,7 +1407,7 @@ so that:
 
    \sin(\alpha_2-\alpha_1) = \frac{\sin(d)\sin(\alpha)}{\cos(\delta_2)}
 
->From :math:`\cos(\alpha_2-\alpha_1)` and the value of :math:`\sin(\alpha_2-\alpha_1)`
+With :math:`\cos(\alpha_2-\alpha_1)` and the value of :math:`\sin(\alpha_2-\alpha_1)`
 we derive an unambiguous value for :math:`\alpha_2-\alpha_1` and because we
 started with :math:`\alpha_1` we derive a value for :math:`\alpha_2`.
 
@@ -1474,9 +1474,8 @@ The ZPN example is a bit special. First, it is not possible to center a shape on
 (at least with the set of PV elements defined in the code) and second, we have a
 non zero PV2_0 element which breaks the relation between CRPIX and CRVAL.
 
-For a detailed description of the input parameters of the used *Skypolygon* method, read
-:meth:`maputils.Annotatedimage.Skypolgon`.
-
+For a detailed description of the input parameters of the used *Skypolygon()* method, read
+:meth:`maputils.Annotatedimage.Skypolygon`.
 
 
 Combining different plot objects
@@ -1840,7 +1839,7 @@ Method :meth:`maputils.Annotatedimage.positionsfromfile` is based on method
 :meth:`tabarray.readColumns`. They share the same parameters which implies that you have
 many options to get your data from a file.
 
-The next plot also uses :mod:`tabarray.tabarray` to read coast line data. But here we wanted
+The next plot also uses :class:`tabarray.tabarray` to read coast line data. But here we wanted
 the coast line dots to be connected to get more realistic coast lines. For this we
 use the comment lines in the file as segment separator. This gives us an option
 to process the data in segments using tabarray's segment attribute

@@ -612,7 +612,7 @@ given in the listing (which are > 1 arcsecond).
 For VLBI data we need another kind of test for accuracy.
 Aoki (1986) [Aoki2]_ compares the transformation results of the B1950 position of 3C273B
 
-:math:`\alpha=12^h26^\prime 33^{\prime \prime}.246`, 
+:math:`\alpha=12^h26^m33.246^s`,
 :math:`\delta=2^\circ 19^\prime 42^{\prime \prime}.4238`,
 epoch of observation: 1978.62) to J2000 of several authors. He concludes that
 different authors use different methods and get different results.
@@ -631,9 +631,9 @@ in both reference systems. An example of Radio star HIP 66257 was added:
 ::
    
    Calibrator: 1404+286 (FK4)
-               alpha(B1950) = 14h 04m 45.613s  delta(B1950) =  28d 41m 29.22''
+               alpha(B1950) = 14h 04m 45.613s  delta(B1950) =  28d 41' 29.22''
                1404+286 (ICRF) 
-               alpha(J2000) = 14h 07m 00.3944s delta(J2000) =  28d 27m 14.690''
+               alpha(J2000) = 14h 07m 00.3944s delta(J2000) =  28d 27' 14.690''
    
    
    Radio star: HIP 66257 = HR 5110, Julian epoch of observation: t0 = 1982.3619

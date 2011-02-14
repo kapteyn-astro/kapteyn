@@ -931,7 +931,9 @@ deg = degrees
 rad = radians
 
 
-badval = 999.999  # Set bad number in tabarray routines to this value
+badval = 99999.999  # Set bad number in tabarray routines to this value
+sepchar=', \t'      # Default separation characters for readcol function
+
 
 def ln(x):
    return log10(x)/log10(e)
@@ -993,7 +995,7 @@ def usermessage(token, errmes):
 
 
 def readcol(filename, col=1, fromline=None, toline=None, rows=None, comment="!#",
-            sepchar=', t', bad=badval, fromrow=None, torow=None, rowstep=None):
+            sepchar=sepchar, bad=badval, fromrow=None, torow=None, rowstep=None):
 #-------------------------------------------------------------
    """
    Utility to prepare a call to tabarray's readColumns() function
@@ -1030,7 +1032,7 @@ def readcol(filename, col=1, fromline=None, toline=None, rows=None, comment="!#"
 
 def readhmsdms(filename, col1=1, col2=2, col3=3,
             fromline=None, toline=None, rows=None, comment="!#",
-            sepchar=', t', bad=badval, fromrow=None, torow=None, rowstep=None, mode='hms'):
+            sepchar=sepchar, bad=badval, fromrow=None, torow=None, rowstep=None, mode='hms'):
 #-------------------------------------------------------------
    """
    Helper function for readhms() and readdms()
@@ -1068,7 +1070,7 @@ def readhmsdms(filename, col1=1, col2=2, col3=3,
 
 def readhms(filename, col1=1, col2=2, col3=3,
             fromline=None, toline=None, rows=None, comment="!#",
-            sepchar=', t', bad=badval, fromrow=None, torow=None, rowstep=None):
+            sepchar=sepchar, bad=badval, fromrow=None, torow=None, rowstep=None):
 #-------------------------------------------------------------
    """
    Utility to prepare a call to tabarray's readColumns() function
@@ -1084,7 +1086,7 @@ def readhms(filename, col1=1, col2=2, col3=3,
 
 def readdms(filename, col1=1, col2=2, col3=3,
             fromline=None, toline=None, rows=None, comment="!#",
-            sepchar=', t', bad=badval, fromrow=None, torow=None, rowstep=None):
+            sepchar=sepchar, bad=badval, fromrow=None, torow=None, rowstep=None):
 #-------------------------------------------------------------
    """
    Utility to prepare a call to tabarray's readColumns() function
