@@ -38,7 +38,7 @@ Some of the package's features:
 Overview
 --------
 
-The the following modules are included:
+The following modules are included:
 
 - :mod:`wcs`, a binary module which handles spatial and spectral
   coordinates and provides

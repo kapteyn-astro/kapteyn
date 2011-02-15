@@ -13,7 +13,8 @@ Some of the package's features:
   projections and transformations between different sky systems. Spectral
   translations (e.g. between frequencies and velocities) are supported as
   well as mixed coordinates. For WCS, Dr. Mark Calabretta's WCSLIB 4.7 is
-  used. 
+  used. WCSLIB is integrated in the package and need not be installed
+  separately.
 
 - Tools for writing small applications for the display and interactive
   inspection of (FITS) data and for the creation of plots with world
