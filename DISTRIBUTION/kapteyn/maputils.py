@@ -1057,7 +1057,7 @@ the alternate header.
       n = len(hdulist)
       if  n > 1:
          while True:
-            p = raw_input("Enter number of Header Data Unit ...... [0]:")
+            p = raw_input("Enter number of Header Data Unit ... [0]:")
             if p == '':
                hnr = 0
                break
@@ -1091,7 +1091,7 @@ the alternate header.
       #alter = ''
       if len(alternates):
          while True:
-            p = raw_input("Enter char. for alternate header: ...... [No alt. header]:")
+            p = raw_input("Enter char. for alternate header ... [No alt. header]:")
             if p == '':
                alter = ''
                break
@@ -6617,6 +6617,183 @@ to know the properties of the FITS data beforehand.
       is to derive the missing header items, CDELTn and CROTA from
       these headers and add them to the header.
 
+      What is a 'classic' FITS header?
+      
+      (See also http://fits.gsfc.nasa.gov/fits_standard.html)
+      For the transformation between pixel coordinates and world
+      coordinates, FITS supports three conventions.
+      First some definitions:
+
+      An intermediate pixel coordinate Qi is calculated from a
+      pixel coordinates p with:
+
+      Qi = Sigma_j=1^N Mij*(Pj-Rj)
+
+      Rj are the pixel coordinate elements of a reference point
+      (FITS header item CRPIXj), j is an index for the pixel axis
+      and i for the world axis
+      The matrix Mij must be non-singular and its dimension is
+      NxN where N is the number of world coordinate axes (given
+      by FITS header item NAXIS).
+
+      The conversion of Qi to intermediate world coordinate Xi is
+      a scale:
+
+      Xi = Si*Qi
+
+      Formalism 1 (PC keywords)
+      -------------------------
+      Formalism 1 encodes Mij in so called PCi_j keywords
+      and scale factor Si are the values of the CDELTi keywords
+      from the FITS header.
+
+      It is obvious that the value of CDELT should not be 0.0.
+
+      Formalism 2 (CD keywords)
+      -------------------------
+      If the matrix and scaling are combined we get for the
+      intermediate WORLD COORDINATE Xi:
+
+      Xi = Sigma_j=1^N (Si*Mij)(Pj-Rj)
+
+      FITS keywords CDi_j encodes the product Si*Mij.
+      The units of xi are given by FITS keyword CTYPEi.
+
+      Formalism 3 (Classic)
+      ----------------------
+      This is the oldest but now deprecated formalism. It uses CDELTi
+      for the scaling and CROTAn for a rotation of the image plane.
+      n is associated with the latitude axis so often one sees
+      CROTA2 in the header if the latitude axis is the second axis
+      in the dataset
+
+      Following the FITS standard, a number of rules is set:
+      1) CDELT and CROTA may co-exist with the CDi_j keywords
+         but must be ignored if an application supports the CD
+         formalism.
+      2) CROTAn must not occur with PCi_j keywords
+      3) CRPIXj defaults to 0.0
+      4) CDELT defaults to 1.0
+      5) CROTA defaults to 0.0
+      6) PCi_j defaults to 1 if i==j and to 0 otherwise. The matrix
+         must not be singular
+      7) CDi_j defaults to 0.0. The matrix must not be singular.
+      8) CDi_j and PCi_j must not appear together in a header.
+
+      Alternate WCS axis descriptions
+      --------------------------------
+
+      A World Coordinate System (WCS) can be described by an
+      alternative set of keywords.
+      For this keywords a character in the range [A..Z] is appended.
+      In our software we made the assumption that the primary
+      description contains all the necessary information
+      to derive a 'classic' header and therefore we will ignore
+      alternate header descriptions.
+
+
+      Conversion to a formalism 3 ('classic') header
+      ----------------------------------------------
+
+      Many FITS readers from the past are not upgraded to process
+      FITS files with headers written using formalism 1 or 2.
+      The purpose of this application is to convert a FITS file
+      to a file that can be read and interpreted by old FITS readers.
+      For GIPSY we require FITS headers to be written using formalism
+      3. If keywords are missing, they will be derived and a
+      comment will be inserted about the keyword not being an
+      original keyword.
+
+      The method that converts the header, tries to process it
+      first with WCSLIB (tools to interpret the world coordinate
+      system as described in a FITS header). If this fails, then we
+      are sure that the header is incorrect and we cannot proceed.
+      One should use a FITS tool like 'fv' (the Interactive FITS
+      File Editor from Nasa) to repair the header.
+
+      The conversion process starts with exploring the spatial part
+      of the header.
+      It knows which axes are spatial and it reads the corresponding
+      keywords (CDELTi, CROTAn, CDi_j, PCi_j and PC00i_00j (old
+      format for PC elements).
+      If there is no CD or PC matrix, then the conversion routine
+      returns the unaltered original header.
+      If it finds a PC matrix and no CD matrix then the header should
+      contain CDELT keywords. With the values of these keywords we
+      create a CD matrix:
+
+         |cd11 cd12|  = |cdelt1      0| * |pc11 pc12|
+         |cd21 cd22|    |0      cdelt2|   |pc21 pc22|
+
+      Note 1: We replaced notation i_j by ij so cd11 == CD1_1
+      Note 2: For the moment we restricted the problem to the 2 dim.
+               spatial case because that is what we need to retrieve
+               a value for CROTA, the rotation of the image.)
+      Note 3: We assumed that the PC matrix did not represent
+               transposed axes as in:
+
+                              | 0 1 0 |
+                           PC = | 0 0 1 |
+                              | 1 0 0 |
+
+
+      If cd12 == 0.0 and cd12 == 0.0 then CROTA is obviously 0.
+      There is no rotation and CDELT1 = cd11, CDELT2 = cd22
+
+      If one or both values of cd12, cd21 is not zero then we
+      expect a value for CROTA unequal to zero and/or skew.
+
+      We calculate the scaling parameters CDELT with:
+
+                     CDELT1 = sqrt(cd11*cd11+cd21*cd21)
+                     CDELT2 = sqrt(cd12*cd12+cd22*cd22)
+
+      The determinant of the matrix is:
+
+                     det = cd11*cd22 - cd12*cd21
+
+      This value cannot be 0 because we required that the matrix is
+      non-singular.
+      Further we distinguish two situations: a determinant < 0 and
+      a determinant > 0 (zero was already excluded).
+      Then we derive two rotations. If these are equal,
+      the image is not skewed.
+      If they are not equal, we derive the rotation from the
+      average of the two calculated angles. As a measure of skew,
+      we calculated the difference between the two rotation angles.
+      Here is a piece of the actual code:
+
+                     sign = 1.0
+                     if det < 0.0:
+                        cdeltlon_cd = -cdeltlon_cd
+                        sign = -1.0
+                     rot1_cd = atan2(-cd21, sign*cd11)
+                     rot2_cd = atan2(sign*cd12, cd22)
+                     rot_av = (rot1_cd+rot2_cd)/2.0
+                     crota_cd = degrees(rot_av)
+                     skew = degrees(abs(rot1_cd-rot2_cd))
+
+      New values of CDELT and CROTA will be inserted in the new
+      'classic' header only if they were not part of the original
+      header.
+
+      The process continues with non spatial axes. For these axes
+      we cannot derive a rotation. We only need to find a CDELTi
+      if for axis i no value could be found in the header.
+      If this value cannot be derived from the a CD matrix (usually
+      with diagonal element CDi_i) then the default 1.0 is assumed.
+      Note that there will be a warning about this in the comment
+      string for the corresponding keyword in the new 'classic' FITS
+      header.
+
+      Finally there is some cleaning up. First all CD/PC elements are
+      removed for all the axes in the data set. Second, some unwanted
+      keywords are removed. The current list is:
+      ["XTENSION", "EXTNAME", "EXTEND"]
+
+
+
+
       Sometimes one wants to have a classic header to get a CROTA
       from a skewed image to be able to apply a rotation afterwards.
 
@@ -6793,7 +6970,7 @@ to know the properties of the FITS data beforehand.
             from math import atan2
             from math import degrees, radians
             from math import cos, sin, acos
-            if cd12 == 0.0 and cd12 == 0.0:
+            if cd12 == 0.0 and cd21 == 0.0:
                crota_cd = 0.0
                cdeltlon_cd = cd11
                cdeltlat_cd = cd22
@@ -6850,8 +7027,9 @@ to know the properties of the FITS data beforehand.
                hdrchanged = True
 
       # What if the data was not spatial and what do we do with
-      # the other non spatial axis in the header?
+      # the other non spatial axes in the header?
       # Start looping over other axes:
+      wasdefault = False
       naxis = hdr['NAXIS']
       if (spatial and naxis > 2) or not spatial:
          for k in range(naxis):
@@ -6866,10 +7044,15 @@ to know the properties of the FITS data beforehand.
                      # We have a problem. For this axis there is no CDELT
                      # nor a CD matrix element. Set CDELT to 1.0 (FITS default)
                      newval = 1.0
+                     wasdefault = True
                   if dicttype:
                      hdr[key] = newval
                   else:
-                     hdr.update(key, newval, comment)
+                     if wasdefault:
+                        s = "Inserted default 1.0! " + comment
+                     else:
+                        s = comment
+                     hdr.update(key, newval, s)
                   hdrchanged = True
       # Clean up left overs
       for i in range(naxis):
@@ -6882,11 +7065,11 @@ to know the properties of the FITS data beforehand.
                    hdrchanged = True
 
       # Exceptions etc.:
-      ekeys = ["XTENSION", "EXTNAME"]
+      ekeys = ["XTENSION", "EXTNAME", "EXTEND"]
+      # Possibly EXTEND will be re-inserted when writing the FITS file
       for key in ekeys:
          if hdr.has_key(key):
             del hdr[key]
-         
 
       return hdr, skew, hdrchanged
 
