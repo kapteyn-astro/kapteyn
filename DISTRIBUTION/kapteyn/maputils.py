@@ -6627,7 +6627,9 @@ to know the properties of the FITS data beforehand.
       An intermediate pixel coordinate Qi is calculated from a
       pixel coordinates p with:
 
-      Qi = Sigma_j=1^N Mij*(Pj-Rj)
+      .. math::
+      
+         Q_i = \sum_{j=1}^N M_{ij}*(P_j-R_j)
 
       Rj are the pixel coordinate elements of a reference point
       (FITS header item CRPIXj), j is an index for the pixel axis
@@ -6639,28 +6641,32 @@ to know the properties of the FITS data beforehand.
       The conversion of Qi to intermediate world coordinate Xi is
       a scale:
 
-      Xi = Si*Qi
+      .. math::
+      
+         X_i = S_i*Q_i
 
-      Formalism 1 (PC keywords)
-      -------------------------
+      **Formalism 1 (PC keywords)**
+
       Formalism 1 encodes Mij in so called PCi_j keywords
       and scale factor Si are the values of the CDELTi keywords
       from the FITS header.
 
       It is obvious that the value of CDELT should not be 0.0.
 
-      Formalism 2 (CD keywords)
-      -------------------------
+      **Formalism 2 (CD keywords)**
+
       If the matrix and scaling are combined we get for the
       intermediate WORLD COORDINATE Xi:
 
-      Xi = Sigma_j=1^N (Si*Mij)(Pj-Rj)
+      .. math::
+
+         X_i = \sum_{j=1}^N (S_i*M_{ij})(P_j-R_j)
 
       FITS keywords CDi_j encodes the product Si*Mij.
       The units of xi are given by FITS keyword CTYPEi.
 
-      Formalism 3 (Classic)
-      ----------------------
+      **Formalism 3 (Classic)**
+      
       This is the oldest but now deprecated formalism. It uses CDELTi
       for the scaling and CROTAn for a rotation of the image plane.
       n is associated with the latitude axis so often one sees
@@ -6668,20 +6674,21 @@ to know the properties of the FITS data beforehand.
       in the dataset
 
       Following the FITS standard, a number of rules is set:
-      1) CDELT and CROTA may co-exist with the CDi_j keywords
-         but must be ignored if an application supports the CD
-         formalism.
-      2) CROTAn must not occur with PCi_j keywords
-      3) CRPIXj defaults to 0.0
-      4) CDELT defaults to 1.0
-      5) CROTA defaults to 0.0
-      6) PCi_j defaults to 1 if i==j and to 0 otherwise. The matrix
-         must not be singular
-      7) CDi_j defaults to 0.0. The matrix must not be singular.
-      8) CDi_j and PCi_j must not appear together in a header.
+      
+         1. CDELT and CROTA may co-exist with the CDi_j keywords
+            but must be ignored if an application supports the CD
+            formalism.
+         2. CROTAn must not occur with PCi_j keywords
+         3. CRPIXj defaults to 0.0
+         4. CDELT defaults to 1.0
+         5. CROTA defaults to 0.0
+         6. PCi_j defaults to 1 if i==j and to 0 otherwise. The matrix
+            must not be singular
+         7. CDi_j defaults to 0.0. The matrix must not be singular.
+         8. CDi_j and PCi_j must not appear together in a header.
 
-      Alternate WCS axis descriptions
-      --------------------------------
+
+      **Alternate WCS axis descriptions**
 
       A World Coordinate System (WCS) can be described by an
       alternative set of keywords.
@@ -6692,8 +6699,7 @@ to know the properties of the FITS data beforehand.
       alternate header descriptions.
 
 
-      Conversion to a formalism 3 ('classic') header
-      ----------------------------------------------
+      **Conversion to a formalism 3 ('classic') header**
 
       Many FITS readers from the past are not upgraded to process
       FITS files with headers written using formalism 1 or 2.
@@ -6720,20 +6726,24 @@ to know the properties of the FITS data beforehand.
       returns the unaltered original header.
       If it finds a PC matrix and no CD matrix then the header should
       contain CDELT keywords. With the values of these keywords we
-      create a CD matrix:
+      create a CD matrix::
+
 
          |cd11 cd12|  = |cdelt1      0| * |pc11 pc12|
          |cd21 cd22|    |0      cdelt2|   |pc21 pc22|
 
-      Note 1: We replaced notation i_j by ij so cd11 == CD1_1
-      Note 2: For the moment we restricted the problem to the 2 dim.
-               spatial case because that is what we need to retrieve
-               a value for CROTA, the rotation of the image.)
-      Note 3: We assumed that the PC matrix did not represent
-               transposed axes as in:
+
+      :notes:
+      
+         *  We replaced notation i_j by ij so cd11 == CD1_1
+         *  For the moment we restricted the problem to the 2 dim.
+            spatial case because that is what we need to retrieve
+            a value for CROTA, the rotation of the image.)
+         *  We assumed that the PC matrix did not represent
+            transposed axes as in::
 
                               | 0 1 0 |
-                           PC = | 0 0 1 |
+                         PC = | 0 0 1 |
                               | 1 0 0 |
 
 
@@ -6743,12 +6753,12 @@ to know the properties of the FITS data beforehand.
       If one or both values of cd12, cd21 is not zero then we
       expect a value for CROTA unequal to zero and/or skew.
 
-      We calculate the scaling parameters CDELT with:
+      We calculate the scaling parameters CDELT with::
 
                      CDELT1 = sqrt(cd11*cd11+cd21*cd21)
                      CDELT2 = sqrt(cd12*cd12+cd22*cd22)
 
-      The determinant of the matrix is:
+      The determinant of the matrix is::
 
                      det = cd11*cd22 - cd12*cd21
 
@@ -6761,7 +6771,7 @@ to know the properties of the FITS data beforehand.
       If they are not equal, we derive the rotation from the
       average of the two calculated angles. As a measure of skew,
       we calculated the difference between the two rotation angles.
-      Here is a piece of the actual code:
+      Here is a piece of the actual code::
 
                      sign = 1.0
                      if det < 0.0:
@@ -6791,30 +6801,6 @@ to know the properties of the FITS data beforehand.
       keywords are removed. The current list is:
       ["XTENSION", "EXTNAME", "EXTEND"]
 
-
-
-
-      Sometimes one wants to have a classic header to get a CROTA
-      from a skewed image to be able to apply a rotation afterwards.
-
-      When a header is altered in such legacy environments and written back
-      into a FITS file, you will end up with a mixed environment because
-      you have a header that has both all classic FITS cards to describe a WCS and
-      the PC or CD description which is usually is untouched.
-      This method inspects the header of the current FITSimage object.
-      If it has all the classic keywords for a WCS then it will only search
-      voor PC and CD elements and remove them from the header.
-      If the CDELTs or CROTA are missing in the header and there is a CD matrix,
-      then the necessary elements are derived from this matrix. The same can be done
-      if there is a PC matrix, but then the CDELT's must be present in the header.
-
-      The CDi_j matrix must not be singular. If so, an exception is raised.
-      Elements in the CD matrix that are not specified default to 0.0
-
-      PCi_j elements that are not specified default to 1.0 if i == j and
-      to 0.0 if i != j. Also the PC matrix must not be singular.
-
-      A PC and CD matrix should not both be present in the same header.
       
       See also: Calabretta & Greisen: 'Representations of celestial coordinates
       in FITS', section 6
