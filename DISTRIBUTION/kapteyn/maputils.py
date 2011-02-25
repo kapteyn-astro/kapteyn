@@ -6624,31 +6624,31 @@ to know the properties of the FITS data beforehand.
       coordinates, FITS supports three conventions.
       First some definitions:
 
-      An intermediate pixel coordinate Qi is calculated from a
-      pixel coordinates p with:
+      An intermediate pixel coordinate :math:`q_i`  is calculated from a
+      pixel coordinates :math:`p` with:
 
       .. math::
       
-         Q_i = \sum_{j=1}^N M_{ij}*(P_j-R_j)
+         q_i = \sum_{j=1}^N m_{ij}(p_j-r_j)
 
       Rj are the pixel coordinate elements of a reference point
       (FITS header item CRPIXj), j is an index for the pixel axis
       and i for the world axis
-      The matrix Mij must be non-singular and its dimension is
+      The matrix :math:`m_{ij}` must be non-singular and its dimension is
       NxN where N is the number of world coordinate axes (given
       by FITS header item NAXIS).
 
-      The conversion of Qi to intermediate world coordinate Xi is
-      a scale:
+      The conversion of :math:`q_i` to intermediate world coordinate :math:`x_i` is
+      a scale :math:`s_i`:
 
       .. math::
       
-         X_i = S_i*Q_i
+         x_i = s_i q_i
 
       **Formalism 1 (PC keywords)**
 
-      Formalism 1 encodes Mij in so called PCi_j keywords
-      and scale factor Si are the values of the CDELTi keywords
+      Formalism 1 encodes :math:`m_{ij}` in so called PCi_j keywords
+      and scale factor :math:`s_i` are the values of the CDELTi keywords
       from the FITS header.
 
       It is obvious that the value of CDELT should not be 0.0.
@@ -6656,14 +6656,14 @@ to know the properties of the FITS data beforehand.
       **Formalism 2 (CD keywords)**
 
       If the matrix and scaling are combined we get for the
-      intermediate WORLD COORDINATE Xi:
+      intermediate WORLD COORDINATE :math:`x_i`:
 
       .. math::
 
-         X_i = \sum_{j=1}^N (S_i*M_{ij})(P_j-R_j)
+         x_i = \sum_{j=1}^N (s_i m_{ij})(p_j-r_j)
 
-      FITS keywords CDi_j encodes the product Si*Mij.
-      The units of xi are given by FITS keyword CTYPEi.
+      FITS keywords CDi_j encodes the product :math:`s_i m_{ij}`.
+      The units of :math:`x_i` are given by FITS keyword CTYPEi.
 
       **Formalism 3 (Classic)**
       
@@ -6726,26 +6726,28 @@ to know the properties of the FITS data beforehand.
       returns the unaltered original header.
       If it finds a PC matrix and no CD matrix then the header should
       contain CDELT keywords. With the values of these keywords we
-      create a CD matrix::
+      create a CD matrix:
+
+      .. math::
+      
+         \\begin{bmatrix}cd_{11} & cd_{12}\\\ cd_{21} & cd_{22}\\end{bmatrix} =
+         \\begin{bmatrix}cdelt_1 & 0\\\ 0 & cdelt_2 \\end{bmatrix}
+         \\begin{bmatrix}pc_{11} & pc_{12}\\\ pc_{21} & pc_{22}\\end{bmatrix}
 
 
-         |cd11 cd12|  = |cdelt1      0| * |pc11 pc12|
-         |cd21 cd22|    |0      cdelt2|   |pc21 pc22|
-
-
-      :notes:
+      Notes:
       
          *  We replaced notation i_j by ij so cd11 == CD1_1
          *  For the moment we restricted the problem to the 2 dim.
             spatial case because that is what we need to retrieve
             a value for CROTA, the rotation of the image.)
          *  We assumed that the PC matrix did not represent
-            transposed axes as in::
+            transposed axes as in:
 
-                              | 0 1 0 |
-                         PC = | 0 0 1 |
-                              | 1 0 0 |
+      .. math::
 
+         PC = \\begin{bmatrix}0 & 1 & 0\\\ 0 & 0 & 1\\\ 1 & 0 & 0 \\end{bmatrix}
+         
 
       If cd12 == 0.0 and cd12 == 0.0 then CROTA is obviously 0.
       There is no rotation and CDELT1 = cd11, CDELT2 = cd22
@@ -7115,6 +7117,8 @@ to know the properties of the FITS data beforehand.
           object
       :param pxlim_dst:
           Limits in pixels for the reprojected box.
+      :type pxlim_dst:
+          Tuple of integers
       :param plimlo:
           One or more pixel coordinates corresponding to axes outside
           the spatial map in order as found in the header 'reprojobj'.
