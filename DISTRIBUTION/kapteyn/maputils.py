@@ -7409,9 +7409,16 @@ to know the properties of the FITS data beforehand.
          repheader, skew, hdrchanged = self.header2classic()
          # Look for the right CROTA (associated with latitude)
          key = "CROTA%d"%self.proj.lataxnum
-         crotanew = repheader[key] + rotation     # Rotation of latitude axis + user rot.
-         repheader[key] = crotanew
-
+         if repheader.has_key(key):
+            crotanew = repheader[key] + rotation     # Rotation of latitude axis + user rot.
+            repheader[key] = crotanew
+         else:
+            crotanew = rotation   # No CROTA, then assume CROTA=0.0
+            if type(repheader) == 'dict':
+               repheader[key] = crotanew
+            else:
+               repheader.update(key, crotanew)
+           
       if len(fitskeys) > 0:
          # Note that a ROTATION= keyword changes the value of CROTAn
          # but we can overwrite this with a user supplied keyword CROTAn
@@ -8298,4 +8305,3 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
-
