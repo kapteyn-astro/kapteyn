@@ -27,10 +27,10 @@ if ok in ['y', 'Y', '']:
    if newcrota != '':
       crota = eval(newcrota)
       classicheader[key] = crota
-   print "Classic header voor reproject:"
+   print "Classic header before reproject:"
    print classicheader
    print "\n Re-projection process can take a while ..."
-   fnew = Basefits.reproject_to(classicheader, spatialonly=False)
+   fnew = Basefits.reproject_to(classicheader, insertspatial=False)
 else:
    # A user wants to replace the header only. Leave data untouched.
    fnew = maputils.FITSimage(externalheader=classicheader,
