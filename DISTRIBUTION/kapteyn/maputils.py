@@ -1252,7 +1252,7 @@ translation.
                   if unvalid:
                      print "Pixel position not in range 1 to %d! Try again." % maxn
                slicepos.append(x)
- 
+
    return axnum1, axnum2, slicepos
 
 
@@ -5666,6 +5666,8 @@ to know the properties of the FITS data beforehand.
       self.spectrans = None    # Set the spectral translation
       self.skyout = None       # Must be set before call to set_imageaxes
       self.boxdat = self.dat
+      # We set two axes as the default axes of an image. Then the attribute
+      # 'convproj' becomes available after a call to set_imageaxes()
       self.set_imageaxes(self.axperm[0], self.axperm[1], self.slicepos)
       self.aspectratio = None
       self.pixelaspectratio = self.get_pixelaspectratio()
@@ -6338,7 +6340,6 @@ to know the properties of the FITS data beforehand.
             raise Exception, "Cannot find a matching axis for the spatial axis!"
       else:
           ap = (axperm[0], axperm[1])
-
       self.convproj = self.proj.sub(ap)  # Projection object for selected image only
       if self.spectrans != None:
          self.convproj = self.convproj.spectra(self.spectrans)
@@ -6346,7 +6347,7 @@ to know the properties of the FITS data beforehand.
          self.convproj.skyout = self.skyout
       self.axperm = wcsaxperm        # We need only the numbers of the first two axes
       self.aspectratio = None        # Reset the aspect ratio because we could have another image now
-
+      
 
 
    def set_spectrans(self, spectrans=None, promptfie=None):
@@ -6855,8 +6856,8 @@ to know the properties of the FITS data beforehand.
       else:
          dicttype = False
       comment = "Appended by Kapteyn Package module Maputils %s" % datetime.now().strftime("%dd%mm%Yy%Hh%Mm%Ss")
-      lonaxnum = self.convproj.lonaxnum
-      lataxnum = self.convproj.lataxnum
+      lonaxnum = self.proj.lonaxnum
+      lataxnum = self.proj.lataxnum
       spatial = (lonaxnum != None and lataxnum != None)
       if spatial:
          cdeltlon = None
@@ -6885,6 +6886,11 @@ to know the properties of the FITS data beforehand.
                   cdmatrix = True
                k += 1 
          cd11, cd12, cd21, cd22 = CD
+
+         # Clean up CROTA's, often there are more than one in the same header
+         key = "CROTA%d" % (lonaxnum)
+         if hdr.has_key(key):
+            del hdr[key]
 
          pcmatrix = False
          PC = [None]*4
@@ -7064,7 +7070,7 @@ to know the properties of the FITS data beforehand.
 
    def reproject_to(self, reprojobj=None, pxlim_dst=None, pylim_dst=None,
                     plimlo=None, plimhi=None, interpol_dict = None,
-                    rotation=None, spatialonly=True, **fitskeys):
+                    rotation=None, insertspatial=None, **fitskeys):
       #---------------------------------------------------------------------
       """
       The current FITSimage object must contain a number of spatial maps.
@@ -7090,10 +7096,12 @@ to know the properties of the FITS data beforehand.
       the headers so there is no need to specify the spatial parts of the
       data structures.
 
-      The image that is reprojected can be limited in pixel coordinates
-      with the :meth:`set_limits()` method. If the input is a FITSimage object then
-      also the output size can be altered by using :meth:`set_limits()` for the
-      pixel coordinate limits of the destination.
+      The image that is reprojected can be limited in size with parameters
+      pxlim_dst and pylim_dst.
+      If the input is a FITSimage object, then these parameters (pxlim_dst
+      and pylim_dst) are copied
+      from the axes lengths set with method :meth:`set_limits()` for that
+      FITSimage object.
 
       :param reprojobj:
           *  The header which provides the new information to reproject to.
@@ -7154,7 +7162,7 @@ to know the properties of the FITS data beforehand.
                      mode='constant'. Default is numpy.NaN
           =========  ===============================================================
           
-      :type overlay_dict:
+      :type interpol_dict:
          Python dictionary
       :param rotation:
          Sets a rotation angle. If this method encounters this keyword, it will
@@ -7166,12 +7174,28 @@ to know the properties of the FITS data beforehand.
          overwrite this calculated value.
       :type rotation:
          Floating point number or *None*
-      :param spatialonly:
+      :param insertspatial:
          If True, then replace spatial part of current header by spatial part
-         of new (destination) header. If the new header describes the structure
-         entirely (such as a header that is transformed to a classical header), then
-         one should set *spatialonly* to False.
-      :type spatialonly:
+         of new (destination) header.
+         Assume you start with a data cube with a number of spatial maps
+         as function of frequency (the third axis in the data set). If
+         you use the header of another FITS file as the definition of
+         a new world coordinate system, then it could be that this header
+         represents a two dimensional data set. This is not an incompatible
+         set because we only require a description of the spatial part.
+         To keep the description of the original three dimensional
+         structure we insert the new spatial(only) information into the
+         current header. The default then is *insertspatial=True*.
+         In other cases where we use the original header as the base
+         header, one just inserts new values and there is no need to
+         set insert something, so then the default is *insertspatial=False*.
+         A user can change the default. This can be useful. For example
+         in the maputils tutorial we have a script mu_reproj2classic.py where
+         we use the header of a FITS file to make some changes and use the
+         changed header as an external header to re-project to. The default
+         then is *insertspatial=True*, but the external header is already
+         a complete header, so there is no need to insert something.
+      :type insertspatial:
          Boolean
       :param fitskeys:
          Parameters containing FITS keywords and values which are written
@@ -7256,13 +7280,32 @@ to know the properties of the FITS data beforehand.
                maputils.showall()
 
             -Use an external header and change keywords in that header
-            befor the re-projection:
+            before the re-projection:
        
             >>> Rotfits = Basefits.reproject_to(externalheader,
                                                 naxis1=800, naxis2=800,
                                                 crpix1=400, crpix2=400)
 
 
+            -Use the FITS files own header. Change it and use it as an
+            external header
+
+            ::
+
+               from kapteyn import maputils, wcs
+
+               Basefits = maputils.FITSimage("m101.fits")
+               classicheader, skew, hdrchanged = Basefits.header2classic()
+
+               lat = Basefits.proj.lataxnum
+               key = "CROTA%d"%lat
+               classicheader[key] = 0.0 # New value for CROTA
+               fnew = Basefits.reproject_to(classicheader, insertspatial=False)
+               fnew = maputils.FITSimage(externalheader=classicheader,
+                                         externaldata=Basefits.dat)
+               fnew.writetofits("classic.fits", clobber=True, append=False)
+
+            
       .. note::
 
             If you want to align an image with the direction of the north,
@@ -7275,6 +7318,10 @@ to know the properties of the FITS data beforehand.
 
             >>> Rotfits = Basefits.reproject_to(rotation=0.0, crota2=0.0)
 
+
+            Todo: If CTYPE's change, then also LONPOLE and LATPOLE
+                  should change
+         
 
       :Tests:
 
@@ -7301,6 +7348,8 @@ to know the properties of the FITS data beforehand.
 
          2) Tested with values for the repeat axes
          3) Tested with values for the output box
+         4) Tested with a new CTYPE (GLON-TAN, GLAT-TAN)
+            and new CRVAL
       """
       #---------------------------------------------------------------------
 
@@ -7338,16 +7387,22 @@ to know the properties of the FITS data beforehand.
          plimLO = plimHI = slicepos
          repheader = reprojobj.hdr.copy()
          fromheader = False
+         if insertspatial is None:
+            insertspatial = True
       else:
-         # It's a plain header
-         if reprojobj is None:
+         # It's a plain header or None
+         if reprojobj is None:   # Then destination is original header. Modify later.
             repheader = self.hdr.copy()
+            if insertspatial is None:
+               insertspatial = False
          else:
             # A Python dict or a PyFITS header
             repheader = reprojobj.copy()
+            if insertspatial is None:
+               insertspatial = True
 
       # For a rotation (only) we convert the header to a 'classic' header
-      if not rotation is None:
+      if reprojobj is None and not rotation is None:
          # Get rid of skew and ambiguous rotation angles
          # by converting cd/pc matrix to 'classic' header, so that CROTA can
          # be adjusted.
@@ -7458,11 +7513,11 @@ to know the properties of the FITS data beforehand.
       newdata.shape = shapenew
 
       # The following code inserts all keywords related to the spatial information
-      # of the input header (to which you want to reproject) into a new header
+      # of the destination header (to which you want to reproject) into a new header
       # which is a copy of the current FITSimage object. The spatial axes in the
       # current header are replaced by the spatial axes in the input header
       # both in order of their axis number.
-      if spatialonly:
+      if insertspatial:
          newheader = self.insertspatialfrom(repheader, axnum, axnum2)   #lonaxnum2, lataxnum2)
       else:
          newheader = repheader
@@ -7510,14 +7565,21 @@ to know the properties of the FITS data beforehand.
       # Use the limits given in pxlim_dst, pylim_dst to set shape and offset.
       # Note that pxlim_dst is 1 based and the offsets are 0 based.
       dst_offset = (pylim_dst[0]-1, pxlim_dst[0]-1)   # Note the order!
-      src_offset = (self.pylim[0]-1, self.pxlim[0]-1)
+      # In a previous version we had an offset in the source:
+      # src_offset = (self.pylim[0]-1, self.pxlim[0]-1)
+      # but this is not necessary if we keep 'boxdat' as big as
+      # the entire spatial map. Besides that, it is not sure that
+      # pxlim[0] and pylim[0] are set to the limits of the spatial axes.
+      # The new solution therefore is better.
+      src_offset = (0,0)
       coords = numpy.around(wcs.coordmap(p1_spat, p2_spat, dst_shape=(ny,nx),
                             dst_offset=dst_offset, src_offset=src_offset)*512.0)/512.0
+
       # Next we iterate over all possible slices.
       if naxisout == 0:
          # We have a two dimensional data structure and we
          # need to reproject only this one.
-         boxdat = self.dat[self.pylim[0]-1:self.pylim[1], self.pxlim[0]-1:self.pxlim[1]]
+         boxdat = self.dat
          newdata = map_coordinates(boxdat, coords, **interpol_dict)
       else:
          perms = []
@@ -7553,7 +7615,6 @@ to know the properties of the FITS data beforehand.
                   slnew.append(slice(g2-1, g2))
                   nout -= 1
             boxdat = self.dat[sl].squeeze()
-            boxdat = boxdat[self.pylim[0]-1:self.pylim[1], self.pxlim[0]-1:self.pxlim[1]]
             boxdatnew = newdata[slnew].squeeze()
             # Find (interpolate) the data in the source map at the positions
             # given by the destination map and 'insert' it in the
@@ -7577,9 +7638,8 @@ to know the properties of the FITS data beforehand.
          fi.set_imageaxes(reprojobj.axperm[0], reprojobj.axperm[1], slicepos)
       return fi
 
-      
 
-   def insertspatialfrom(self, header, axnum1, axnum2): #lon2, lat2):
+   def insertspatialfrom(self, header, axnum1, axnum2):
       #---------------------------------------------------------------------
       """
       Utility function, used in the context of method
@@ -7594,16 +7654,15 @@ to know the properties of the FITS data beforehand.
          copied into the current structure.
       :type header:
          PyFITS header object or Python dictionary
-      :param lon2:
-         The axis number of the spatial axes longitude in
-         the input header
-      :type lon2:
-         Integer
-      :param lat2:
-         The axis number of the spatial axes latitude in
-         the input header
-      :type lat2:
-         Integer
+      :param axnum1:
+         The axis numbers of the spatial axes in the input header
+      :type axnum2:
+         Tuple of two integers
+      :param axnum2:
+         The axis numbers of the spatial axes in the destination
+         header
+      :type axnum2:
+         Tuple of two integers
 
       :Notes:
 
@@ -7611,14 +7670,16 @@ to know the properties of the FITS data beforehand.
          header is NOT removed from the header.
 
          If the input header has a CD matrix for its spatial axes, and
-         the current data structure has not a CD matrix
+         the current data structure has not a CD matrix, then we 
+         add missing elements in the current header. If the CDELT's
+         are missing for the construction of CD elements, the
+         value 1 is assumed for diagonal elements.
       """
       #---------------------------------------------------------------------
       #newheader = self.hdr.copy()
       comment = True; history = True
       newheader = fitsheader2dict(self.hdr, comment, history)
       repheader = fitsheader2dict(header, comment, history)
-      #lon1 = self.proj.lonaxnum; lat1 = self.proj.lataxnum
       lon1 = axnum1[0]   # Could also be a lat. from a lat-lon map
       lat1 = axnum1[1]
       lon2 = axnum2[0]   # Could also be a lat. from a lat-lon map
@@ -7651,7 +7712,7 @@ to know the properties of the FITS data beforehand.
             if newheader.has_key(key):
                del newheader[key]
 
-      # Process PV elements in the input header
+      # Process PV and other i_j elements in the input header
       # Clean up the new header first
       wcskeys = ['PC', 'CD', 'PV', 'PS']
       for key in newheader.keys():
@@ -7659,39 +7720,73 @@ to know the properties of the FITS data beforehand.
             if key.startswith(wk) and key.find('_') != -1:
                try:
                   i,j = key[2:].split('_')
-                  i = int(i); j = int(j)
+                  i = int(i); j = int(j)     # Cope with old style PC001_002 etc.
                   for ax in (lon2,lat2):
                      if i == ax:
                         del newheader[key]
                except:
                   pass
 
+      # Insert ['PC', 'CD', 'PV', 'PS'] if they are in the 'insert header'
       cdmatrix = False
+      pcmatrix = False
       for key in repheader.keys():
          for wk in wcskeys:
             if key.startswith(wk) and key.find('_'):
                try:
                   i,j = key[2:].split('_')
                   i = int(i); j = int(j)
-                  for ax in ((lon1,lon2), (lat1,lat2)):
-                     if i == ax[1]:
-                        newkey = "%s%d_%d" % (wk,ax[0],j)
-                        newheader[newkey] = repheader[key]
-                        if wk == 'CD':
-                           cdmatrix = True
+                  ii = jj = None
+                  if i == lon2: ii = lon1
+                  if i == lat2: ii = lat1
+                  if j == lon2: jj = lon1
+                  if j == lat2: jj = lat1
+                  if not ii is None and not jj is None:
+                     newkey = "%s%d_%d" % (wk,ii, jj)
+                     newheader[newkey] = repheader[key]
+                     if wk == 'CD':
+                        cdmatrix = True
+                     if wk == 'PC':
+                        pcmatrix = True
                except:
                   pass
 
-      # Clean up old style PC elements in current header
-      for i in [lon1, lat1]:
-         for j in [lon1, lat1]:
+      # Fill in missing CD elements if base FITS had none.
+      if cdmatrix:
+         for i in axnum_out:
+            newkey = "CD%d_%d"%(i,i)
+            if not newheader.has_key(newkey):
+               # We changed to CD formalism, but the base header
+               # does not have a CD element for the non spatial axes.
+               # So we contruct one using the CDELT.
+               cdeltkey = "CDELT%d"%i
+               if newheader.has_key(cdeltkey):
+                  cdelt = newheader[cdeltkey]
+               else:
+                  cdelt = 1.0
+               newheader[newkey] = cdelt  # E.g. CD3_3 = CDELT3
+      elif pcmatrix:
+         for i in axnum_out:
+            newkey = "PC%d_%d"%(i,i)
+            if not newheader.has_key(newkey):
+               # We changed to CD formalism, but the base header
+               # does not have a CD element for the non spatial axes.
+               # So we contruct one using the CDELT.
+               newheader[newkey] = 1.0  # E.g. CD3_3 = 1
+
+      # Clean up ALL old style PC elements in current header
+      for i in [1, naxis]:
+         for j in [1, naxis]:
             key = "PC%03d%03d" % (i, j)
             if newheader.has_key(key):
                del newheader[key]
 
-      # If input header has pc elements then copy them. If a cd
+      # If 'insert header' has pc elements then copy them. If a cd
       # matrix is available then do not copy these elements because
       # a mix of both is not allowed.
+      # VOG: But PC elements were already copied, so next lines are not
+      # necessary.
+      """
       if not cdmatrix:
          for i2, i1 in zip([lon2,lat2], [lon1,lat1]):
             for j2, j1 in zip([lon2,lat2], [lon1,lat1]):
@@ -7699,7 +7794,7 @@ to know the properties of the FITS data beforehand.
                newkey = "PC%03d%03d" % (i1, j1)
                if repheader.has_key(key):
                   newheader[newkey] = repheader[key]
-
+      """
       return newheader
 
 
@@ -8203,3 +8298,4 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
+

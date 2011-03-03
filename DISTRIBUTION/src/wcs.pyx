@@ -1346,7 +1346,7 @@ Example::
       if axes is None:
          axes = range(1,nsub+1)
       param = <wcsprm*>void_ptr(self.wcsprm)
-      newpar = <wcsprm*>malloc(sizeof(wcsprm))
+      newpar = <wcsprm*>calloc(1, sizeof(wcsprm))
       c_axes = <int*>malloc(param.naxis*sizeof(int))
       if axes:
          if not operator.isSequenceType(axes):

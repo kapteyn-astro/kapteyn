@@ -17,6 +17,10 @@ ETH Zuerich @ 192.33.102.211
 University of Zielona Gora @ 212.109.130.247
 US Forest Service @ 166.4.81.206
 Ruhr-Universitaet Bochum @ 134.147.158.2
+Dublin Institute for Advanced Studies @ 160.6.202.47
+Max-Planck-Institut fuer Radioastronomie @ 134.104.17.208
+NRAO Charlottesville @ 192.131.232.128
 
-tot: Mon Feb 21 12:07:15 CET 2011
-Fri Feb 18 11:16:32 CET 2011
+
+tot: Mon Feb 28 10:57:07 CET 2011
+
