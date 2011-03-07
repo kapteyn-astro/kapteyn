@@ -6817,7 +6817,8 @@ to know the properties of the FITS data beforehand.
            If this number is bigger then say 0.001 then there is considerable
            skew in the data. One should reproject the data so that it fits
            a non skewed version with only a CROTA in the header
-         * A Boolean which indicates whether a header is changed or not.
+         * *hdrchanged* - A list with keywords the are changed when a
+           'classic header is required.
 
       :Example:
 
@@ -6829,7 +6830,7 @@ to know the properties of the FITS data beforehand.
             
             Basefits = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
             newheader, skew, hdrchanged = Basefits.header2classic()
-            if hdrchanged:
+            if len(hdrchanged):
                print newheader
             if skew != 0.0:
                print "found skew:", skew
@@ -6849,7 +6850,7 @@ to know the properties of the FITS data beforehand.
       """
       #--------------------------------------------------------------------
       skew = 0.0
-      hdrchanged = False
+      hdrchanged = []
       hdr = self.hdr.copy()
       if type(hdr) == 'dict':
          dicttype = True
@@ -6882,7 +6883,7 @@ to know the properties of the FITS data beforehand.
                if hdr.has_key(key):
                   CD[k] = hdr[key]
                   del hdr[key]
-                  hdrchanged = True
+                  hdrchanged.append(key)
                   cdmatrix = True
                k += 1 
          cd11, cd12, cd21, cd22 = CD
@@ -6906,7 +6907,7 @@ to know the properties of the FITS data beforehand.
                if hdr.has_key(key):
                   PC[k] = hdr[key]
                   del hdr[key]
-                  hdrchanged = True
+                  hdrchanged.append(key)
                   pcmatrix = True
                k += 1
          pc11, pc12, pc21, pc22 = PC
@@ -6926,7 +6927,7 @@ to know the properties of the FITS data beforehand.
                   if hdr.has_key(key):
                      PCold[k] = hdr[key]
                      del hdr[key]
-                     hdrchanged = True
+                     hdrchanged.append(key)
                      pcoldmatrix = True
                   k += 1
             pco11, pco12, pco21, pco22 = PCold
@@ -6958,7 +6959,7 @@ to know the properties of the FITS data beforehand.
          # but if it does, use the CD.
          # If there is no CD/PC matrix then there is nothing to do
          if not cdmatrix:
-            return hdr, 0, False
+            return hdr, 0, []
          else:
             from math import sqrt
             from math import atan2
@@ -7002,7 +7003,7 @@ to know the properties of the FITS data beforehand.
                   hdr.update(key=cdeltlon)
                else:
                   hdr.update(key, cdeltlon, comment)
-               hdrchanged = True
+               hdrchanged.append(key)
             if cdeltlat is None:
                cdeltlat = cdeltlat_cd
                key = "CDELT%d" % lataxnum
@@ -7010,7 +7011,7 @@ to know the properties of the FITS data beforehand.
                   hdr.update(key=cdeltlat)
                else:
                   hdr.update(key, cdeltlat, comment)
-               hdrchanged = True
+               hdrchanged.append(key)
             if crota is None:
                crota = crota_cd
                key = "CROTA%d" % lataxnum
@@ -7018,7 +7019,7 @@ to know the properties of the FITS data beforehand.
                   hdr.update(key=crota)
                else:
                   hdr.update(key, crota, comment)
-               hdrchanged = True
+               hdrchanged.append(key)
 
       # What if the data was not spatial and what do we do with
       # the other non spatial axes in the header?
@@ -7047,7 +7048,7 @@ to know the properties of the FITS data beforehand.
                      else:
                         s = comment
                      hdr.update(key, newval, s)
-                  hdrchanged = True
+                  hdrchanged.append(key)
       # Clean up left overs
       for i in range(naxis):
          for j in range(naxis):
@@ -7056,7 +7057,7 @@ to know the properties of the FITS data beforehand.
              for key in keys:
                 if hdr.has_key(key):
                    del hdr[key]
-                   hdrchanged = True
+                   hdrchanged.append(key)
 
       # Exceptions etc.:
       ekeys = ["XTENSION", "EXTNAME", "EXTEND"]
@@ -7117,7 +7118,7 @@ to know the properties of the FITS data beforehand.
              one spatial map and its slice information is copied
              from the current FITSimage. This option is selected if you
              want to overlay e.g. contours from the current FITSimage
-             data onto data from another WCS. 
+             data onto data from another WCS.
           *  If None, then the current header is used. Modifications to this header
              are done with keyword arguments.
       :type reprojobj:
@@ -7980,7 +7981,7 @@ to know the properties of the FITS data beforehand.
          pyfits.append(filename, self.dat, header=hdu.header)
       else:
          hdulist = pyfits.HDUList([hdu])
-         hdulist.writeto(filename, clobber=clobber)
+         hdulist.writeto(filename, clobber=clobber, output_verify='ignore')
          #warnings.resetwarnings()
          #warnings.filterwarnings('always', category=UserWarning, append=True)
          hdulist.close()
@@ -8305,3 +8306,4 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
           self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
        self.fig.canvas.draw()
+

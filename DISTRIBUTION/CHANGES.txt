@@ -1,3 +1,13 @@
+Version 2.1.1 (being developed)
+===============================
+
+* Class maputils.FITSimage:
+
+  * Method header2classic() returns a tuple with three elements.
+    The last one used to be a boolean but it is now a list with
+    FITS keywords that have been changed.
+
+
 Version 2.1 (Feb 14, 2011)
 ==========================
 
