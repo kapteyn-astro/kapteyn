@@ -238,7 +238,7 @@ Class MovieContainer
 .. autoclass:: MovieContainer
 
 """
-
+# ----------------- Use for experiments -----------------
 """
 # Use this to change the default backend
 from matplotlib import use
@@ -249,6 +249,9 @@ backend = rcParams['backend']
 print "Backend=",backend
 from matplotlib import __version__ as mplversion
 print "Matplotlib version:", mplversion
+# Experiment with a local LaTeX e.g. to improve horizontal label alignment
+#from matplotlib import rc
+#rc('text', usetex=True)
 """
 
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
@@ -279,6 +282,7 @@ from string import letters
 from random import choice
 from re import split as re_split
 from datetime import datetime
+import warnings
 import time
 try:
    from gipsy import anyout, typecli
@@ -286,9 +290,6 @@ try:
 except:
    gipsymod = False
 
-# Experiment with a local LaTeX e.g. to improve horizontal label alignment
-#from matplotlib import rc
-#rc('text', usetex=True)
 
 KeyPressFilter.allowed = ['f', 'g']
 
@@ -303,6 +304,7 @@ __version__ = '1.11'
 # all the objects in each Annotatedimage object.
 annotatedimage_list = []
 
+# For the administration of toolbars
 globalfigmanager = None
 globalmessenger = None
 
@@ -7923,6 +7925,9 @@ to know the properties of the FITS data beforehand.
             f.writetofits(history=False, comment=False)
       """
    #---------------------------------------------------------------------
+      # Suppress user warnings for PyFITS actions
+      warnings.resetwarnings()
+      warnings.filterwarnings('ignore', category=UserWarning, append=True)
       if filename is None:
          filename = getfilename('mu', 'fits')
          append = False      # Cannot append if FITS file does not exists
@@ -7974,17 +7979,18 @@ to know the properties of the FITS data beforehand.
          if hdu.header.has_key('BLANK'): 
             del hdu.header['BLANK']
 
-      #warnings.resetwarnings()
-      #warnings.filterwarnings('ignore', category=UserWarning, append=True)
       if append:
          hdu.header.update('EXTNAME', extname)
          pyfits.append(filename, self.dat, header=hdu.header)
       else:
          hdulist = pyfits.HDUList([hdu])
-         hdulist.writeto(filename, clobber=clobber, output_verify='ignore')
-         #warnings.resetwarnings()
-         #warnings.filterwarnings('always', category=UserWarning, append=True)
+         # If there is a problem, try to fix it but suppress a warning
+         hdulist.writeto(filename, clobber=clobber, output_verify='silentfix')
          hdulist.close()
+      # Turn warnings on
+      warnings.resetwarnings()
+      warnings.filterwarnings('always', category=UserWarning, append=True)
+         
 
 
    def Annotatedimage(self, frame=None, **kwargs):

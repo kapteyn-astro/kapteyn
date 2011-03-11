@@ -7,6 +7,12 @@ Version 2.1.1 (being developed)
     The last one used to be a boolean but it is now a list with
     FITS keywords that have been changed.
 
+* Class rulers.Ruler:
+
+  * now supports rulers specified by a start position, a size and an
+    angle w.r.t. the North.
+
+  * new method *set_title()* for labeling a ruler.
 
 Version 2.1 (Feb 14, 2011)
 ==========================

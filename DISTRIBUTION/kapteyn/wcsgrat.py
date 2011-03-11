@@ -2531,7 +2531,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
       # Create the plot axes. The defaults are: plot native ticks to axis
       # for the left and bottom axis and omit ticks along right and top axis.
-      epoch = str(self.gmap.equinox)
+      
+      # Get the equinox so that it can be inserted into the axis title.
+      # This equinox has been parsed earlier with skyparser()
+      epoch = str(epochin)
       annot = ['']*2
 
       for aa in [0,1]:

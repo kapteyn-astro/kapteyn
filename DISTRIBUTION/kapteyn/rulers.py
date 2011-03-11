@@ -31,6 +31,47 @@ import numpy
 from kapteyn.positions import str2pos, unitfactor
 
 
+def dispcoord(longitude, latitude, disp, direction, angle):
+   #--------------------------------------------------------------------
+   """
+   Find a world coordinate with distance 'disp' w.r.t. given
+   long, lat. The angle of the line between the two points
+   has angle 'angle' w.r.t. the North.
+
+   Note that this is a copy of a routine in maputils.
+   To avoid circular imports, we copied the function here.
+   
+   INPUT:   longitude: numpy array, enter in degrees.
+            latitude:  numpy array, enter in degrees.
+            disp:      the displacement in the sky entered
+                       in degrees. The value can also be
+                       negative to indicate the opposite
+                       direction
+            angle:     the angle wrt. a great circle of
+                       constant declination entered in
+                       degrees.
+            direction: If the longitude increases in the -X
+                       direction (e.q. RA-DEC) then direction
+                       is -1. else direction = +1
+   """
+   #--------------------------------------------------------------------
+   Pi = numpy.pi
+   b = abs(disp*Pi/180.0)
+   a1 = longitude * Pi/180.0
+   d1 = latitude * Pi/180.0
+   alpha = angle * Pi/180.0
+   d2 = numpy.arcsin( numpy.cos(b)*numpy.sin(d1)+numpy.cos(d1)*numpy.sin(b)*numpy.cos(alpha) )
+   cosa2a1 = (numpy.cos(b) - numpy.sin(d1)*numpy.sin(d2))/(numpy.cos(d1)*numpy.cos(d2))
+   sina2a1 = numpy.sin(b)*numpy.sin(alpha)/numpy.cos(d2)
+   dH =  numpy.arctan2(direction*sina2a1, cosa2a1)
+
+   a2 = a1 - dH
+   lonout = a2*180.0/Pi
+   latout = d2*180.0/Pi
+
+   return lonout, latout
+
+
 class Ruler(object):
    #-----------------------------------------------------------------
    """
@@ -38,7 +79,14 @@ class Ruler(object):
    from a start point (x1,y1) to an end point (x2,y2)
    with labels indicating a constant offset in world
    coordinates. The positions are either in pixels
-   or in world coordinates. The ruler is a straight
+   or in world coordinates. The start and end point
+   can also be positions entered as a string which
+   follows the syntax described in method
+   :func:`positions.str2pos`. The ruler can also
+   be given as a start point and a size and angle.
+   These are distance and angle on a sphere.
+
+   The ruler is a straight
    line but the ticks are usually not equidistant
    because projection effects make the offsets non linear
    (e.g. the TAN projection diverges while the CAR projection
@@ -50,6 +98,9 @@ class Ruler(object):
    axes is entered in parameter *step*.
    At least one of the axes in the plot needs to be
    a spatial axis.
+
+   Size and step size can be entered in units given by
+   a parameter *units*. The default unit is degrees.
 
    :param projection:    The Projection object which sets the WCS for the ruler.
    :type projection:     A :class:`wcs.Projection` object
@@ -74,9 +125,27 @@ class Ruler(object):
                          the values in x1 and y1.
    :type pos1:           String
 
-   :param pos1:          Position information for the end point. This info overrules
+   :param pos2:          Position information for the end point. This info overrules
                          the values in x2 and y2.
-   :type pos1:           String
+   :type pos2:           String
+
+   :param rulersize:     Instead of entering a start- and an end point, one can also
+                         enter a start point in *pos1* or in *x1, y1* and specify a
+                         size of the ruler. The size is entered in units given by
+                         parameter *units*. If no units are given, the size is in degrees.
+                         Note that with size we mean the distance on a sphere.
+                         To calculate the end point, we need an angle.
+                         this angle is given in *rulerangle*.
+                         If *rulersize* has a value, then values in *pos2* and *x2,y2*
+                         are ignored.
+   :type rulersize:      Floating point number
+
+   :param rulerangle:    An angel in degrees which, together with *rulersize*, sets the
+                         end point of the ruler. The angle is defined as an angle on
+                         a sphere.  The angle is an astronomical angle (defined
+                         with respect to the direction of the North).
+
+   :type rulerangle:     Floating point number
 
    :param x1:            X-location of start of ruler either in pixels or world coordinates
                          Default is lowest pixel coordinate in x.
@@ -211,7 +280,7 @@ class Ruler(object):
    """
    #-----------------------------------------------------------------
    def __init__(self, projection, mixpix, pxlim, pylim, aspectratio=1.0,
-                pos1=None, pos2=None,
+                pos1=None, pos2=None, rulersize=None, rulerangle=None,
                 x1=None, y1=None, x2=None, y2=None, lambda0=0.5, step=None,
                 world=False, angle=None, addangle=0.0,
                 fmt=None, fun=None, units=None, fliplabelside=False, mscale=None,
@@ -237,7 +306,9 @@ class Ruler(object):
       self.fmt = None
       self.linekwargs = {'color' : 'k'}
       self.kwargs.update(kwargs)    # These are the kwargs for the labels
-
+      self.aspectratio = aspectratio
+      self.rulertitle = None
+      
       # Recipe:
       # Are the start and endpoint in world coordinates or pixels?
       # Convert to pixels.
@@ -395,8 +466,16 @@ class Ruler(object):
       spatial = projection.types[0] in ['longitude', 'latitude'] or projection.types[1] in ['longitude', 'latitude']
       if not spatial:
          raise Exception, "Rulers only suitable for maps with at least one spatial axis!"
+
+      # User entered units, then check conversion
+      uf = None
+      if not units is None:
+         uf, errmes = unitfactor('degree', units)
+         if uf is None:
+            raise ValueError(errmes)
+         
    
-      if pos1 != None:
+      if not pos1 is None:
          poswp = str2pos(pos1, projection, mixpix=mixpix)
          if poswp[3] != "":
             raise Exception, poswp[3]
@@ -411,12 +490,12 @@ class Ruler(object):
          x1 = pix[0]
          y1 = pix[1]
       else:
-         if x1 == None: x1 = pxlim[0]; world = False
-         if y1 == None: y1 = pylim[0]; world = False
+         if x1 is None: x1 = pxlim[0]; world = False
+         if y1 is None: y1 = pylim[0]; world = False
          if world:
             x1, y1 = topixel2(x1, y1)
    
-      if pos2 != None:
+      if not pos2 is None:
          poswp = str2pos(pos2, projection, mixpix=mixpix)
          if poswp[3] != "":
             raise Exception, poswp[3]
@@ -424,11 +503,31 @@ class Ruler(object):
          x2 = pix[0]
          y2 = pix[1]
       else:
-         if x2 == None: x2 = pxlim[1]; world = False
-         if y2 == None: y2 = pylim[1]; world = False
-         if world:
-            x2, y2 = topixel2(x2, y2)
-   
+         if not rulersize is None:
+            # We have two pixels to start with. Convert to long, lat
+            # which serves as a starting point for the ruler.
+            lon1, lat1, xwo1, ywo1 = tolonlat(x1, y1)
+            swapped = lon1 != xwo1
+            # Find second point in world coordinates
+            if rulerangle is None:
+               rulerangle = 270.0
+            if not uf is None:
+               rulersize /= uf
+            # Find end point. Assume cdelt of long. is negative
+            lon2, lat2 = dispcoord(lon1, lat1, rulersize, -1, rulerangle)
+            if swapped:
+               x2 = lat2
+               y2 = lon2  # Swap back
+            else:
+               x2 = lon2
+               y2 = lat2
+            x2, y2 = topixel2(x2, y2)            
+         else:
+            if x2 is None: x2 = pxlim[1]; world = False
+            if y2 is None: y2 = pylim[1]; world = False
+            if world:
+               x2, y2 = topixel2(x2, y2)
+      
       #print "DV", DV(23*15,15, 22*15, 30)*60.0
    
       # Get a step size for nice offsets
@@ -446,7 +545,7 @@ class Ruler(object):
 
       if units != None:
          uf, errmes = unitfactor('degree', units)
-         if uf == None:
+         if uf is None:
             raise ValueError(errmes)
          if uf != 1.0:
             fun = lambda x: x*uf
@@ -508,8 +607,8 @@ class Ruler(object):
       # the right angle.
       defangle = 180.0 * numpy.arctan2(y2-y1, (x2-x1)/aspectratio) / numpy.pi - 90.0
    
-      l1 = pxlim[1] - pxlim[0] + 1.0; l1 /= 50.0
-      l2 = pylim[1] - pylim[0] + 1.0; l2 /= 50.0
+      l1 = pxlim[1] - pxlim[0] + 1.0; l1 /= 100.0
+      l2 = pylim[1] - pylim[0] + 1.0; l2 /= 100.0
       ll = max(l1,l2)
       dx = ll*numpy.cos(defangle*numpy.pi/180.0)*aspectratio
       dy = ll*numpy.sin(defangle*numpy.pi/180.0)
@@ -549,6 +648,7 @@ class Ruler(object):
       self.kwargs.update(defkwargs) 
       self.fmt = fmt
       self.fun = fun
+      self.flip = fliplabelside
    
       lambda_s = lambda0
       x0 = x1 + lambda_s*(x2-x1)
@@ -557,8 +657,8 @@ class Ruler(object):
       self.append(x0, y0, 0.0, fmt%0.0)
       self.appendW(xw1, yw1)         # Store in original order i.e. not sorted
       self.stepsizeW = stepsizeW     # Needed elsewhere so store as an attribute
-   
-   
+
+      
       # Find the mu on the straight ruler line for which the distance between
       # the position defined by mu and the center point (lambda0) is 'offset'
       # Note that these distances are calculated on a sphere
@@ -586,6 +686,19 @@ class Ruler(object):
                # raise Exception, mes
       self.pxlim = pxlim
       self.pylim = pylim
+
+
+   def set_title(self, rulertitle, **kwargs):
+      x1 = self.x1; x2 = self.x2
+      y1 = self.y1; y2 = self.y2
+      defangle = 180.0 * numpy.arctan2(y2-y1, (x2-x1)/self.aspectratio) / numpy.pi
+      xt = x1 + 0.5*(x2-x1)
+      yt = y1 + 0.5*(y2-y1)
+      self.xt = xt
+      self.yt = yt
+      self.titleangle = defangle
+      self.rulertitle = rulertitle
+      self.titlekwargs = kwargs
 
 
    def setp_line(self, **kwargs):
@@ -639,12 +752,30 @@ class Ruler(object):
       """
       Plot one ruler object in the current frame
       """
-      ruler = self
-      frame.plot((ruler.x1,ruler.x2), (ruler.y1,ruler.y2), '-', **ruler.linekwargs)
-      dx = ruler.tickdx
-      dy = ruler.tickdy
-      #self.frame.plot( [ruler.x1, ruler.x1+dx], [ruler.y1, ruler.y1+dy], '-', **ruler.linekwargs)
-      #self.frame.plot( [ruler.x2, ruler.x2+dx], [ruler.y2, ruler.y2+dy], '-', **ruler.linekwargs)
-      for x, y, label in zip(ruler.x, ruler.y, ruler.label):
+      frame.plot((self.x1,self.x2), (self.y1,self.y2), '-', **self.linekwargs)
+      dx = self.tickdx
+      dy = self.tickdy
+      #self.frame.plot( [self.x1, self.x1+dx], [self.y1, self.y1+dy], '-', **self.linekwargs)
+      #self.frame.plot( [self.x2, self.x2+dx], [self.y2, self.y2+dy], '-', **self.linekwargs)
+      for x, y, label in zip(self.x, self.y, self.label):
          frame.plot( [x, x+dx], [y, y+dy], '-', color='k')
-         frame.text(x+ruler.mscale*dx, y+ruler.mscale*dy, label, **ruler.kwargs)
+         frame.text(x+self.mscale*dx, y+self.mscale*dy, label, **self.kwargs)
+
+      if not self.rulertitle is None:
+         if self.flip:
+            titlekwargs = {'va':'top', 'ha':'center', 'rotation_mode':'anchor'}
+         else:
+            titlekwargs = {'va':'bottom', 'ha':'center', 'rotation_mode':'anchor'}
+         titlekwargs.update(self.titlekwargs)
+         titleangle = self.titleangle
+         if titleangle > 135.0:
+            titleangle -= 180.0
+            titlekwargs.update({'va':'top'})
+         if titleangle <= -135.0:
+            titleangle += 180.0
+            titlekwargs.update({'va':'top'})
+         try:
+            # For users with an old Matplotlib
+            frame.text(self.xt-dx, self.yt-dy, self.rulertitle, rotation=titleangle, **titlekwargs)
+         except:
+            pass

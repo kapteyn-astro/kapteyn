@@ -1127,19 +1127,23 @@ For the next example we use the same FITS file (mclean.fits).
 Rulers
 ------
 
-Rulers in are objects derived from a Graticule object.
+Rulers are objects derived from an Annimatedimage object.
+The class description is found at :class:`rulers.Ruler`.
 A ruler is always plotted
 as a straight line, whatever the projection (so it doesn't necessarily
 follow graticule lines).
 A ruler plots ticks and labels and the *spatial* distance between any two ticks is
-a constant. This makes rulers ideal to put nearby a feature in your map to
-give an idea of the physical size of that feature. Rulers can be plotted in maps
-with one or two spatial axes.
+a constant given by a user in parameter *step*. This makes rulers ideal to put
+nearby a feature in your map to give an idea of the physical size of that feature.
+Rulers can be plotted in maps with one or two spatial axes.
+They are either defined by a start- and an end point (in pixel or world coordinates)
+or by a start point and a size and angle (w.r.t. the North).
+This size and angle are defined on a sphere.
 
 .. note::
 
-   Rulers, Beams and Markers are positioned using either pixel coordinates or
-   world coordinates. See the examples in module :mod:`positions`.
+   Rulers, Beams and Markers can be positioned using either pixel coordinates or
+   world coordinates in a string. See the examples in module :mod:`positions`.
 
 
 **Example: mu_manyrulers.py - Ruler demonstration**
@@ -1148,10 +1152,17 @@ with one or two spatial axes.
    :include-source:
    :align: center
 
-Ruler tick labels can be formatted so that we can adjust them. In the next plot we
-want offsets to be plotted in arcminutes.
+Ruler tick labels can be formatted so that we can adjust the values
+near the ruler ticks with parameter *fmt*. With parameter *fun* it is possible to
+convert the spatial distance to some other physical quantity. Parameter
+*fun* accepts a function or a lambda expression. You can use method
+:meth:`rulers.Ruler.set_title` to annotate alternative units. Note that the keyword
+arguments for this method are the same as for Matplotlib's :meth:`set_title`
+method.
 
-**Example: mu_arminrulers.py - Rulers with non default labels**
+In the next plot we want offsets to be plotted in arcminutes.
+
+**Example: mu_arcminrulers.py - Rulers with non default labels**
 
 .. plot:: EXAMPLES/mu_arcminrulers.py
    :include-source:
