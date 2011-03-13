@@ -308,6 +308,11 @@ annotatedimage_list = []
 globalfigmanager = None
 globalmessenger = None
 
+
+def nint(x):
+   return numpy.floor(x+0.5)
+         
+
 def showall():
    #--------------------------------------------------------------------
    """
@@ -2181,9 +2186,9 @@ class Pixellabels(object):
                         offset is an integer value.
    :type offset:        *None* or a floating point number
    
-   :param `**kwargs`:   Keyword arguments to set attributes for
-                        the labels.
-   :type `**kwargs`:    Matplotlib keyword argument(s)
+   :param kwargs:       Keyword arguments to set attributes for
+                        the labels (e.g. color='g', fontsize=8)
+   :type kwargs:        Matplotlib keyword argument(s)
    
    :Returns:            An object from class *Gridframe* which
                         is added to the plot container with Plotversion's
@@ -2482,6 +2487,16 @@ this class.
    E.g. a frequency axis can be labeled with velocities.
 :type spectrans:
    String
+:param alter:
+   The alternative description of a world coordinate system. In a FITS header
+   there is an alternative description of the world coordinate system if
+   for each wcs related keyword, there is an alternative keyword which has
+   a character appended to it (e.g. CRVAL1a, CDELT1a). The character that
+   is appended is the one that need to be entered if one wants to use the
+   alternate system. Note that this is only relevant to axis labeling and
+   the plotting of graticules.
+:type alter:
+   Character (case insensitive)
 :param mixpix:
    The axis number (FITS standard i.e. starts with 1) of the missing spatial axis for
    images with only one spatial axis (e.q. Position-Velocity plots).
@@ -2500,16 +2515,29 @@ this class.
    positions on the axes that do not belong to the image.
 :type slicepos:
    Single value or tuple with integers
-:param filename:
+:param sliceaxnames:
+   List with names of the axes outside the map. Assume we have a map of a RA-DEC
+   map from a RA-DEC-FREQ cube, then *sliceaxnames* = ['FREQ']. Currently these
+   names are not used.
+:type sliceaxnames:
+   List with strings
+:param basename:
    Base name for new files on disk, for example to store a color map
    on disk. The default is supplied by method :meth:`FITSimage.Annotatedimage`.
-:type filename:
+:type basename:
    string
 :param cmap:
    A colormap from class :class:`mplutil.VariableColormap` or a string
    that represents a colormap (e.g. 'jet', 'spectral' etc.).
 :type cmap:
    mplutil.VariableColormap instance or string
+:param blankcolor:
+   Color of the undefined pixels (NaN's, blanks). It is a matplotlib color
+   e.g. blankcolor='g'. In the display the color of the blanks can
+   be changed with key 'B'. It loops throug a small set with predefined
+   colors. Changing the colors of bad pixels helps to make them more visible.
+:type blankcolor:
+   Matplotlib color (e.g. 'c', '#aabb12')
 :param clipmin:
    A value which sets the lower value of the interval between which the colors
    in the colormap are distributed. If omitted, the minimum data value will
@@ -2527,25 +2555,159 @@ this class.
    input FITSimage object. 
 :type boxdat:
    NumPy array
+:param sourcename:
+   Name of origin of data. By default set to 'unknownsource'
+:type sourcename:
+   String
+:param gridmode:
+   By default this value is set to False. Positions are written
+   as pixel coordinates and input of coordinates as strings will
+   parse numbers as pixel coordinates. If one sets this to True, then
+   a system of grids is used. The relation between a pixel and a grid
+   for axis *n* is:
+   
+   ``grid = pixel - NINT(CRPIXn)``
 
+   Some (legacy) astronomy software packages use this system.
+   Toolbar position information is written in grid coordinates and also numbers
+   in the (string) input of positions are processed as grids.
+   This option is useful when an interface is needed between the
+   Kapteyn Package and another software package (e.g. GIPSY).
+   Note that with positions as strings, we mean positions parsed
+   with method :meth:`positions.str2pos`. These are not the
+   positions which are described as **pixel** positions.
+:type gridmode:
+   Boolean
+
+
+   
 :Attributes:
+
+    .. attribute:: alter
+
+          Character that sets an alternate world coordinate system.
+
+    .. attribute:: aspect
+
+          Aspect ratio of a pixel according to the FITS header.
+          For spatial maps this value is used to set and keep an
+          image in the correct aspect ratio.
+
+    .. attribute:: axperm
+
+          Axis numbers of the two axis in this map. Axis numbers
+          start with 1.
+
+    .. attribute:: basename
+
+          Name of data origin.
+
+    .. attribute:: blankcolor
+
+          Color of 'bad' pixels as a Matplotlib color.
+          
+    .. attribute:: box
+
+          Coordinates of the plot box. In order to keep the entire pixel in the
+          corners in the plot, one has to extend the values of *pxlim* and
+          *pylim* with 0.5 pixel.
+
+    .. attribute:: clipmin
+
+          Value either entered or calculated, which scales the image data to the
+          available colors. Clipmin is the minimum value.
+
+    .. attribute:: clipmax
+
+          Value either entered or calculated, which scales the image data to the
+          available colors. Clipmax is the maximum value.
+
+    .. attribute:: cmap
+
+          The color map. This is an object from class :class:`mplutil.VariableColormap`.
+          which is inherited from the Matplotlib color map class.
+
+    .. attribute:: cmapinverse
+
+          Boolean which store the status of the current colormap, standard or inverted.
+
+    .. attribute:: data
+
+          Image data. Other data containers are attibutes 'data_blur', 'data_hist',
+          and 'data_orig'.
+
+    .. attribute:: fluxfie
+
+          Function or Lambda expression which can be used to scale the flux found with
+          method *getflux()*. There must be two parameters in this function or
+          expression: *a* for the area and *s* for the sum of the pixel values.
+          E.g. ``Annotatedimage.fluxfie = lambda s, a: s/a``
+          Note that there is no method to set this attribute.
+          The attribute is used in the shapes module.
 
     .. attribute:: frame
 
           Matplotlib Axes instance where image and contours are plotted
 
-    .. attribute:: data
+    .. attribute:: gridmode
 
-          Image data
+          Boolean that indicates when we work in pixel- or in grid coordinates.
+
+    .. attribute:: hdr
+
+          Header which is used to derive the world coordinate system for axis labels
+          and graticule lines. The header is either a Python dictionary or a PyFITS
+          header.
 
     .. attribute:: mixpix
 
           The pixel of the missing spatial axis in a Position-Velocity
-          image
+          image.
+
+    .. attribute:: objlist
+
+          List with all plot objects for the current *Annotatedimage* object derived from classes:
+          'Beam', 'Colorbar', 'Contours', 'Graticule', 'Image', 'Marker', 'Minortickmarks',
+          'Pixellabels', 'RGBimage', 'Ruler', 'Skypolygon'
+
+    .. attribute:: pixelstep
+
+          The step size in pixels or fraction of pixels. This size is used to sample
+          the area of an object. Used in the context of the shapes module.
+          E.g. ``annim.pixelstep = 0.5;``
+
+    .. attribute:: pixoffset
+
+          Tuple with two offsets in pixels used to distinguish a pixel coordinate system
+          from a grid coordinate system.
 
     .. attribute:: projection
 
           An object from the Projection class as defined in module :mod:`wcs`
+
+    .. attribute:: ptype
+
+          Each object in the object list has an attribute which describes the (plot) type
+          of the object. The ptype of an Annotatedimage is *Annotatedimage*.
+
+    .. attribute:: pxlim
+
+          Pixel limits in x = (xlo, xhi)
+
+    .. attribute:: pylim
+
+          Pixel limits in y = (ylo, yhi)
+
+    .. attribute:: rgbs
+
+          Boolean which is set to True if the current image is composed of three images
+          each representing one color.
+          
+    .. attribute:: sliceaxnames
+
+          A list with axis names that are not part of the current image, but
+          are part of the data structure from which the current Annotated image data
+          is extracted.
 
     .. attribute:: skyout
 
@@ -2557,13 +2719,6 @@ this class.
           The translation code to transform native spectral coordinates
           to another system (e.g. frequencies to velocities)
 
-    .. attribute:: pxlim
-
-          Pixel limits in x = (xlo, xhi)
-
-    .. attribute:: pylim
-
-          Pixel limits in y = (ylo, yhi)
 
     .. attribute:: slicepos
 
@@ -2572,22 +2727,15 @@ this class.
           that do not belong to the image. It defines how the data slice
           is ectracted from the original.
           The order of these 'outside' axes is copied from the (FITS) header.
-          
-    .. attribute:: aspect
 
-          Aspect ratio of a pixel according to the FITS header.
-          For spatial maps this value is used to set and keep an
-          image in the correct aspect ratio.
-
-    .. attribute:: cmap
-
-           The color map. This is an object from class :class:`mplutil.VariableColormap`.
-           which is inherited from the Matplotlib color map class.
-
-    .. attribute:: objlist
-
-          List with all plot objects (image, contours, colour bar, graticules)
-          for this annotated image object.
+    .. attribute:: wcstypes
+    
+          Type of the axes in this data. The order is the same as of the axes.
+          The types ara strings and are derived from attribute wcstype of the
+          Projection object. The types are:
+          'lo' is longitude axis. 'la' is latitude axis,
+          'sp' is spectral axis. 'li' is a linear axis. Appended to 'li' is an
+          underscore and the ctype of that axis (e.g. 'li_stokes').
 
 :Methods:
 
@@ -2625,7 +2773,7 @@ this class.
                 skyout, spectrans, alter='',
                 mixpix=None,  aspect=1, slicepos=None, sliceaxnames=None, basename=None,
                 cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None,
-                sourcename='unknownsource'):
+                sourcename='unknownsource', gridmode=False):
       #-----------------------------------------------------------------
       """
       """
@@ -2654,6 +2802,7 @@ this class.
       self.image = None                          # A Matplotlib instance made with imshow()
       self.aspect = aspect
       self.slicepos = slicepos                   # Information about current slice
+      self.gridmode = gridmode
       self.sliceaxnames = sliceaxnames
       self.contours = None
       self.colorbar = None
@@ -2722,10 +2871,13 @@ this class.
       self.fluxfie = lambda s, a: s/a
       annotatedimage_list.append(self)
       self.pixoffset = [0.0, 0.0]                # Use this offset to display pixel positions
+      if self.gridmode:
+         self.set_pixoffset(nint(self.projection.crpix[0]), nint(self.projection.crpix[1]))
       self.rgbs = None                           # If not None, then the image is a
                                                  # composed image with r,g & b components.
 
 
+      
    def set_pixoffset(self, xoff=0.0, yoff=0.0):
       #-----------------------------------------------------------------
       """
@@ -2734,7 +2886,7 @@ this class.
       #-----------------------------------------------------------------
       self.pixoffset[0] = xoff
       self.pixoffset[1] = yoff
-
+      
 
    def set_norm(self, clipmin, clipmax):
       #-----------------------------------------------------------------
@@ -3578,9 +3730,14 @@ this class.
       >>> annim.Pixellabels(plotaxis='top', va='top')
       >>> annim.Pixellabels(plotaxis='right')
 
+      :Notes:
+
+      If a pixel offset is given for this Annimated object, then plot
+      the pixel labels with this offset.
+
       """
       #-----------------------------------------------------------------
-      pixlabels = Pixellabels(self.pxlim, self.pylim, **kwargs)
+      pixlabels = Pixellabels(self.pxlim, self.pylim, offset=self.pixoffset, **kwargs)
       self.objlist.append(pixlabels)
       return pixlabels
 
@@ -3667,7 +3824,7 @@ this class.
       """
       #-----------------------------------------------------------------
       if pos != None:
-         poswp = str2pos(pos, self.projection, mixpix=self.mixpix)
+         poswp = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
             raise Exception, poswp[3]
          world = poswp[0][0]      # Only first element is used
@@ -3779,7 +3936,7 @@ this class.
       """
    #-----------------------------------------------------------------
       if cpos != None:
-         poswp = str2pos(cpos, self.projection, mixpix=self.mixpix)
+         poswp = str2pos(cpos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
             raise Exception, poswp[3]
          world = poswp[0][0]      # Only first element is used
@@ -3913,7 +4070,7 @@ this class.
          raise Exception, "Marker(): You cannot enter values for both pos= and x= and/or y="
 
       if not pos is None:
-         poswp = str2pos(pos, self.projection, mixpix=self.mixpix)
+         poswp = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
             raise Exception, poswp[3]
          xp = poswp[1][:,0]
@@ -4316,7 +4473,7 @@ this class.
       if not pos is None and (not x is None or not y is None):
          raise Exception, "Inside(): You cannot enter values for both pos= and x= and/or y="
       if not pos is None:
-         world, pixels, units, errmes = str2pos(pos, self.projection, mixpix=self.mixpix)
+         world, pixels, units, errmes = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if errmes != '':
             raise Exception, errmes
          else:
@@ -4856,13 +5013,6 @@ this class.
          >>> annim.interact_writepos()
       """
       #--------------------------------------------------------------------
-      """
-      if not event.inaxes:
-         return                                  # Not in a frame
-      # if event.inaxes is not self.frame:
-      if not numpy.all(event.inaxes.get_position().get_points() == self.frame.get_position().get_points()):
-         return
-      """
       condition = axesevent.event.button == 1 and axesevent.event.key == 'shift'
       if not condition:
          return
@@ -5516,7 +5666,8 @@ to know the properties of the FITS data beforehand.
 
 #--------------------------------------------------------------------
    def __init__(self, filespec=None, promptfie=None, prompt=True, hdunr=None, alter='', memmap=None,
-                externalheader=None, externaldata=None, externalname="artificial", **parms):
+                externalheader=None, externaldata=None, externalname="artificial",
+                **parms):
       #----------------------------------------------------
       # Usually the required header and data are extracted
       # from a FITS file. But it is also possible to provide
@@ -5637,6 +5788,7 @@ to know the properties of the FITS data beforehand.
       self.pylim = [1, n2]
 
       self.proj = wcs.Projection(self.hdr, alter=self.alter)
+      # Attribute 'gridmode' is False by default
       for i in range(n):
          ax = i + 1
          # The index for axinfo starts with 1.
@@ -8021,6 +8173,7 @@ to know the properties of the FITS data beforehand.
          * blankcolor: The color of bad pixels,
          * clipmin: Scale colors between image values clipmin and clipmax
          * clipmax: Scale colors between image values clipmin and clipmax
+         * gridmode: Set modus of str2pos() to pixels or grids
 
       :type kwargs:
          Python keyword arguments
@@ -8074,6 +8227,7 @@ to know the properties of the FITS data beforehand.
       # The kwargs are for cmap, blankcolor, clipmin, clipmax for which
       # a FITSimage object does not need to set defaults because they
       # are used in another context (e.g. image display).
+      # gridmode should also be set by a user
       return mplimage
 
 

@@ -2396,7 +2396,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if wylim == None:
             self.wylim = (minmax[2], minmax[3])
 
-
       # At this point we need to know for which constant positions we need to find a graticule
       # line. We distinguish the following situations:
       # A) The world coordinate is not spatial

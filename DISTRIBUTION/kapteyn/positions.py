@@ -1798,18 +1798,18 @@ class Coordparser(object):
             # GIPSY routine where the coordinate transformation takes place
             # the grids are transformed to pixels for WCSLIB
             pc = self.crpix[coordindx]
-            if self.gipsygrids:
-               # Go from FITS pixel to grid
-               pc -= nint(self.crpix[coordindx])
+            #if self.gipsygrids:
+            #   # Go from FITS pixel to grid
+            #   pc -= nint(self.crpix[coordindx])
             return [pc], 'g', 1
          elif currenttoken.upper() == 'AC':
             # Next code is compatible to code in cotrans.c only we made the expression
             # simpler by rewriting the formula so that cotrans' offset is not necessary.
             n = self.naxis[coordindx]
             ac = 0.5 * (n+1)
-            if self.gipsygrids:
-               # Go from FITS pixel to grid. See also comment at 'PC'
-               ac -= nint(self.crpix[coordindx])
+            #if self.gipsygrids:
+            #   # Go from FITS pixel to grid. See also comment at 'PC'
+            #   ac -= nint(self.crpix[coordindx])
             return [ac], 'g', 1
          else:
             # No number nor a sexagesimal number
@@ -1833,6 +1833,10 @@ class Coordparser(object):
             world = [w*unitfact for w in number]
             return world, 'w', 2                 # two tokens scanned
 
+      if self.gipsygrids:
+         # Then apply an offset so that these grids become pixels
+         offgrid2pix = nint(self.crpix[coordindx])
+         number = [w+offgrid2pix for w in number]
       return number, 'g', 1
 
 
@@ -2055,7 +2059,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None):
    return asarray(r_world), asarray(r_pixels), subsetunits, errmes
 
 
-def str2pos(postxt, subproj, mixpix=None):
+def str2pos(postxt, subproj, mixpix=None, gridmode=False):
    #-------------------------------------------------------------------
    """
    This function accepts a string that represents a position in the
@@ -2159,12 +2163,15 @@ def str2pos(postxt, subproj, mixpix=None):
                                  subproj.naxis,  # Axis lengths for center 'AC'
                                  subproj.altspec,# List with allowed spectral translations
                                  subproj.source, # Get access to header
-                                 gipsygrids=subproj.gridmode)
+                                 gipsygrids=gridmode)
 
    if parsedpositions.errmes:
       if postxt != '':
          return [], [], [], parsedpositions.errmes
    else:
+      # Note that the array with parsed positions cannot contain grids,
+      # because the routine that converts them expects pixel
+      # coordinates (because mixpix is a pixelcoordinate)
       wor, pix, subsetunits, errmes = dotrans(parsedpositions.positions,
                                               subproj,
                                               subdim,

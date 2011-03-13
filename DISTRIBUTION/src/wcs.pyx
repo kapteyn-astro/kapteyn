@@ -161,6 +161,9 @@ from celestial import skymatrix, skyparser, \
                       fk4, fk4_no_e, fk5, icrs, epochs, dynj2000, j2000, \
                       lon2hms, lon2dms, lat2dms
 
+cdef extern from "math.h":
+   cdef double floor(double x)
+
 cdef extern from "xyz.h":
    cdef extern void to_xyz(double *world, double *xyz, int n, int ndims,
                            int lonindex, int latindex)
@@ -270,7 +273,8 @@ cdef coordfix(double *world, n, ndims, lonindex, latindex):
 # --------------------------------------------------------------------------
 #   Convert pixel coordinates (dir=-1) to grid coordinates or grid coordinates
 #   to pixel coordinates (dir=+1). In this context, grid coordinates are
-#   simply CRPIX-relative pixel coordinates.
+#   simply CRPIX-relative pixel coordinates, where CRPIX is rounded to
+#   the nearest integer.
 #
 cdef pix2grd(double *pixin, double *pixout, int n, wcsprm *param, int dir):
    cdef double *crpix = param.crpix
@@ -278,7 +282,7 @@ cdef pix2grd(double *pixin, double *pixout, int n, wcsprm *param, int dir):
    cdef int i
    
    for i in range(n*naxis):
-      pixout[i] = pixin[i]+dir*crpix[i%naxis]
+      pixout[i] = pixin[i]+dir*floor(crpix[i%naxis]+0.5)
 
 # --------------------------------------------------------------------------
 #                             coordmap
@@ -691,7 +695,9 @@ class Projection(object):
 :param gridmode:
       True or False. If True, the object will use grid coordinates instead
       of pixel coordinates. Grid coordinates are CRPIX-relative pixel
-      coordinates, e.g. used in GIPSY.
+      coordinates, e.g. used in GIPSY. If CRPIX is not integer, the
+      nearest integer is used as reference.
+      
 :param alter:
       an optional letter from 'A' through 'Z', indicating an alternative
       WCS axis description.
@@ -864,7 +870,9 @@ The others are read-only.
 
    True or False. If True, the object will use grid coordinates instead
    of pixel coordinates. Grid coordinates are CRPIX-relative pixel
-   coordinates, e.g. used in GIPSY.
+   coordinates, e.g. used in GIPSY. If CRPIX is not integer, the
+   nearest integer is used as reference.
+
 
 .. attribute:: allow_invalid
 
@@ -1872,7 +1880,8 @@ Example::
       a similar object with the corresponding grid coordinates will be
       returned.
       Grid coordinates are CRPIX-relative pixel coordinates,
-      e.g. used in GIPSY.
+      e.g. used in GIPSY. If CRPIX is not integer, the
+      nearest integer is used as reference.
       """
       cdef wcsprm *param = <wcsprm*>void_ptr(self.wcsprm)
       cdef double *grid
@@ -1891,7 +1900,8 @@ Example::
       a similar object with the corresponding pixel coordinates will be
       returned.
       Grid coordinates are CRPIX-relative pixel coordinates,
-      e.g. used in GIPSY.
+      e.g. used in GIPSY. If CRPIX is not integer, the
+      nearest integer is used as reference.
       """
       return self.pixel2grid(source, +1)
 
