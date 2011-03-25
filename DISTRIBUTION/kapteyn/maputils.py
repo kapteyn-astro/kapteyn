@@ -241,7 +241,7 @@ Class MovieContainer
 # ----------------- Use for experiments -----------------
 """
 # Use this to change the default backend
-from matplotlib import use
+#from matplotlib import use
 use('qt4agg')
 # Use this to find the current backend
 from matplotlib import rcParams
@@ -645,6 +645,24 @@ def change_header(hdr, **kwargs):
         else:
            hdr.update(fitsname, value)
     # Nothing to return. Only contents of 'hdr' is changed
+
+
+def colornavigation_info():
+   #-----------------------------------------------------------------
+   """
+   This function compiles and returns a help text for
+   color map interaction.
+   """
+   #-----------------------------------------------------------------
+   helptext  = "pgUp and pgDown: browse through colour maps -- MB right: Change slope and offset\n"
+   helptext += "Colour scales: 0=reset 1=linear 2=logarithmic"
+   helptext += "3=exponential 4=square-root 5=square 9=inverse\n"
+   helptext += "h: Toggle histogram equalization & raw image -- "
+   helptext += "z: Toggle smooth & raw image -- x: Increase smooth factor\n"
+   helptext += "m: Save current colour map to disk -- "
+   helptext += "b: Change colour of bad pixels -- "
+   helptext += "Shift MB left: Write pos. to term." # Last line has no line feed (bottom aligned)
+   return helptext
 
 
 class Positionmessage(object):
@@ -2773,7 +2791,7 @@ this class.
                 skyout, spectrans, alter='',
                 mixpix=None,  aspect=1, slicepos=None, sliceaxnames=None, basename=None,
                 cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None,
-                sourcename='unknownsource', gridmode=False):
+                sourcename='unknownsource', gridmode=False, externalmessenger=None):
       #-----------------------------------------------------------------
       """
       """
@@ -2809,6 +2827,7 @@ this class.
       self.contourset = None
       self.objlist = []
       self.frame = self.adjustframe(frame)
+      self.externalmessenger = externalmessenger
       self.figmanager = plt_get_current_fig_manager()
       self.messenger = None
       # The next lines need some explanation. The toolbar message
@@ -2824,7 +2843,10 @@ this class.
       if not (self.figmanager is globalfigmanager):
          try: # Sphinx does something with the figure manager, so we need a try
             globalfigmanager = self.figmanager
-            globalmessenger = self.figmanager.toolbar.set_message
+            if not externalmessenger is None:
+               globalmessenger = self.externalmessenger
+            else:
+               globalmessenger = self.figmanager.toolbar.set_message
             self.figmanager.toolbar.set_message=lambda x: None
          except:
            pass
@@ -2854,7 +2876,8 @@ this class.
          self.clipmin = 0.0
       if self.clipmax is None:
          self.clipmax = 1.0
-         
+
+      self.callbackids = []                      # A list with 'mpl connect id's. Used for disconnecting
       self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax, clip=True)
       self.histogram = False                     # Is current image equalized?
       self.data_hist = None                      # There is not yet a hist. eq. version of the data
@@ -3117,14 +3140,7 @@ this class.
       color map interaction.
       """
       #-----------------------------------------------------------------
-      helptext  = "pgUp and pgDown: browse through colour maps -- MB right: Change slope and offset\n"
-      helptext += "Colour scales: 0=reset 1=linear 2=logarithmic"
-      helptext += "3=exponential 4=square-root 5=square 9=inverse\n"
-      helptext += "h: Toggle histogram equalization & raw image -- "
-      helptext += "z: Toggle smooth & raw image -- x: Increase smooth factor\n"
-      helptext += "m: Save current colour map to disk -- "
-      helptext += "b: Change colour of bad pixels -- "
-      helptext += "Shift MB left: Write pos. to term." # Last line has no line feed (bottom aligned)
+      helptext = colornavigation_info()
       return helptext
 
 
@@ -4591,24 +4607,25 @@ this class.
       if 1 : #self.figmanager.toolbar.mode == '':
          s = self.positionmessage(x, y, axesevent.posobj)
       if s != '':
-         # For a window with width 19.5 cm, there is a fixed widht for
-         # toolbar buttons (7.5 cm = 2.95 inch). For the rest (12 cm) we have
-         # space to set a message. Unfortunately we don't have any information
-         # about the real width of the string with information.
-         # In this 12 cm we have 57 characters. On average the size of a
-         # character is 12/57/2.54 inch (0.083 inch).
-         charw = 0.12    # Average character width (better than 0.083)
-         xsize = self.frame.figure.get_figwidth()
-         messagemax = xsize - 2.5
-         if len(s)*charw > messagemax:
-            l = int(messagemax/charw)
-            s = s[:l]
+         if self.externalmessenger is None:
+            # For a window with width 19.5 cm, there is a fixed widht for
+            # toolbar buttons (7.5 cm = 2.95 inch). For the rest (12 cm) we have
+            # space to set a message. Unfortunately we don't have any information
+            # about the real width of the string with information.
+            # In this 12 cm we have 57 characters. On average the size of a
+            # character is 12/57/2.54 inch (0.083 inch).
+            charw = 0.12    # Average character width (better than 0.083)
+            xsize = self.frame.figure.get_figwidth()
+            messagemax = xsize - 2.5
+            if len(s)*charw > messagemax:
+               l = int(messagemax/charw)
+               s = s[:l]
          self.messenger(s)
          
          #self.figmanager.toolbar.set_message(s)
 
 
-   def interact_toolbarinfo(self, pixfmt="%.1f", wcsfmt="%.3g", zfmt="%.3e",
+   def interact_toolbarinfo(self, pixfmt="%.1f", wcsfmt="%.3e", zfmt="%+.3e",
                             hmsdms=True, dmsprec=1):
       #--------------------------------------------------------------------
       """
@@ -4691,7 +4708,18 @@ this class.
       posobj.dmsprec = dmsprec
       self.toolbarkey = AxesCallback(self.mouse_toolbarinfo, self.frame,
                                      'motion_notify_event', posobj=posobj)
+      self.callbackids.append(self.toolbarkey)
 
+
+   def disconnectCallbacks(self):
+      #--------------------------------------------------------------------
+      """
+      Disconnect callbacks made with AxecCallback()
+      The id's are stored in a list 'callbackids'
+      """
+      #--------------------------------------------------------------------
+      for acid in self.callbackids:
+         acid.deschedule()
 
 
    def mouse_imagecolors(self, axesevent):
@@ -4754,7 +4782,6 @@ this class.
       """
    #--------------------------------------------------------------------
       scales = {'1': 'linear', '2': 'log', '3': 'exp', '4': 'sqrt', '5': 'square'}
-
 
       if axesevent.event.key is None:
          # This can happen when the caps lock is on.
@@ -4992,6 +5019,8 @@ this class.
       # sets auto to False. Here we set it to True because only here we require
       # interaction.
       self.cmap.auto = True
+      self.callbackids.append(self.imagecolorskey)
+      self.callbackids.append(self.imagecolorsmouse)
 
 
    def mouse_writepos(self, axesevent):
@@ -5107,6 +5136,7 @@ this class.
          typecli = False
       self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame,
                            'button_press_event', gipsy=gipsy, typecli=typecli, posobj=posobj)
+      self.callbackids.append(self.writeposmouse)
 
 
    def motion_events(self):
@@ -5120,7 +5150,7 @@ this class.
       #--------------------------------------------------------------------
       #self.cidmove = self.fig.canvas.mpl_connect('motion_notify_event', self.on_move)
       self.cidmove = AxesCallback(self.on_move, self.frame, 'motion_notify_event')
-
+      self.callbackids.append(self.cidmove)
 
 
 
@@ -5135,7 +5165,7 @@ this class.
       #--------------------------------------------------------------------
       #self.cidkey = self.fig.canvas.mpl_connect('key_press_event', self.key_pressed)
       self.cidkey = AxesCallback(self.key_pressed, self.frame, 'key_press_event')
-
+      self.callbackids.append(self.cidkey)
 
 
    def click_events(self):
@@ -5149,7 +5179,8 @@ this class.
       #--------------------------------------------------------------------
       # self.cidclick = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
       self.cidclick = AxesCallback(self.on_click, self.frame, 'button_press_event')
-
+      self.callbackids.append(self.cidclick)
+      
 
    def positionsfromfile(self, filename, comment, skyout=None, **kwargs):
       #--------------------------------------------------------------------
@@ -5701,6 +5732,7 @@ to know the properties of the FITS data beforehand.
                raise
             if hdunr is None:
                hdunr = 0
+
          self.hdunr = hdunr
          hdu = hdulist[hdunr]
          self.filename = filename
@@ -6692,6 +6724,12 @@ to know the properties of the FITS data beforehand.
          >>> fitsobject = maputils.FITSimage('m101.fits')
          >>> print fitsobject.get_pixelaspectratio()
          1.0002571958
+
+      :Note:
+
+         If a header has only a cd matrix and no values for CDELT,
+         then these values are set to 1. This gives an aspect ratio
+         of 1.
       """
    #---------------------------------------------------------------------
       a1 = self.axperm[0]; a2 = self.axperm[1];
@@ -6699,8 +6737,12 @@ to know the properties of the FITS data beforehand.
       cdelty = self.axisinfo[a2].cdelt
       nx = float(self.pxlim[1] - self.pxlim[0] + 1)
       ny = float(self.pylim[1] - self.pylim[0] + 1)
-      aspectratio = abs(cdelty/cdeltx)
-      if aspectratio > 10.0 or aspectratio < 0.1:
+
+      # TODO do a better job calculating the aspectratio from a CD matrix.
+      if self.proj.lonaxnum in self.axperm and self.proj.lataxnum in self.axperm:
+         # Then is it a spatial map
+         aspectratio = abs(cdelty/cdeltx)
+      else:
          aspectratio = nx/ny
       self.pixelaspectratio = aspectratio
       return aspectratio

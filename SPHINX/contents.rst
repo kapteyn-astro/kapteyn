@@ -7,9 +7,9 @@ Contents
 
    introduction
    reference
-   background
    tutorials
    examples
+   background
 
 .. unused documents:
    (conf.py parameter 'unused_docs')

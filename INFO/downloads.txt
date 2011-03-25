@@ -22,7 +22,14 @@ Max-Planck-Institut fuer Radioastronomie @ 134.104.17.208
 NRAO Charlottesville @ 192.131.232.128
 The Canadian Astronomy Data Centre @ 132.246.194.25
 The University of Sydney @ 129.78.32.21
+National Centre for Radio Astrophysics TIFR @ 158.144.16.26
+University of Hawaii, Institute for Astronomy @ 128.171.75.29
+Peking University @ 162.105.156.22
+Special Astrophysical Observatory (sao.ru) @ 194.85.27.3
+University of Colorado at Boulder @ 128.138.116.106
+Universite Laval @ 132.203.24.114
+University of Helsinki, Department of Astronomy @ 128.214.14.16
 
 
-tot: Mon Mar  7 11:15:46 CET 2011
+tot: Mon Mar 21 10:52:17 CET 2011
 
