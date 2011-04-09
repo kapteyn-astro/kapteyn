@@ -29,7 +29,22 @@ Special Astrophysical Observatory (sao.ru) @ 194.85.27.3
 University of Colorado at Boulder @ 128.138.116.106
 Universite Laval @ 132.203.24.114
 University of Helsinki, Department of Astronomy @ 128.214.14.16
+ESTEC (ESA) @ 195.169.141.54
+UCL - London's Global University @ 144.82.93.37
+Carnegie Institution for Science - The Observatories @ 192.91.178.59
+Universidade Tecnica de Lisboa (Instituto Superior Tecnico) @ 193.136.124.218
+Universita' degli Studi di Padova - Dipartimento di Astronomia @ 147.162.106.33
+North Carolina State University (Physics) @ 152.1.53.216
+Universita' di Bologna @ 137.204.65.219
+NASA Goddard Space Flight Center @ 128.183.96.235
+University of Western Ontario @ 129.100.41.68
+Stockholm University, Department of Astronomy @ 130.237.166.32
+Instituto de Astrofisica de Canarias (IAC)  @ 161.72.202.11
+Harvard-Smithsonian Center for Astrophysics @ 131.142.152.120
+Universitaet Wien, Institut fuer Astronomie @ 131.130.51.17
+Indian Institute of Science @ 14.139.128.14
+McGill University, Department of Physics @ 132.206.92.226
+C.N.E.S - Centre Spatial de Toulouse @ 194.199.172.33
 
-
-tot: Mon Mar 21 10:52:17 CET 2011
+tot: Mon Apr  4 10:41:43 CEST 2011
 

@@ -16,7 +16,7 @@ Version 2.1.1 (being developed)
 
 * Documentation:
 
-  several improvements.
+  * several improvements.
 
 Version 2.1 (Feb 14, 2011)
 ==========================
