@@ -722,23 +722,36 @@ try:
    
    class TimeCallback_QT4(TimeCallback):
        
+      def __init__(self, proc, interval, schedule=True, **attr):
+         self.proc     = proc
+         self.interval = interval
+         for name in attr.keys():
+            self.__dict__[name] = attr[name]
+         self.active   = False
+         self.timer = QtCore.QTimer()
+         QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"),
+                                self.reached)
+         if schedule: self.schedule()
+
       def schedule(self):
-         if self.id:
+         if self.active:
             return
-         milliseconds = max(1,int(round(self.interval*1000.0)))
-         self.id   = QtCore.QTimer()
-         QtCore.QObject.connect(self.id, QtCore.SIGNAL("timeout()"), self.reached)
-         self.id.start(milliseconds)
+         self.set_interval(self.interval)
+         self.timer.start()
          self.active = True
          self.scheduled.append(self)
       
       def deschedule(self):
-         if not self.id:
+         if not self.active:
             return
-         self.id.deleteLater()
-         self.id = 0
+         self.timer.stop()
          self.active = False
          self.scheduled.remove(self)
+
+      def set_interval(self, interval):
+         self.interval = interval
+         milliseconds = max(1,int(round(self.interval*1000.0)))
+         self.timer.setInterval(milliseconds)
          
       def reached(self):
          self.proc(self)
@@ -766,6 +779,7 @@ try:
       def deschedule(self):
          if not self.id:
             return
+         self.window.after_cancel(self.id)
          self.id = 0
          self.active = False
          self.scheduled.remove(self)
@@ -773,7 +787,7 @@ try:
       def reached(self):
          if self.id:
             self.proc(self)
-            self.window.after(self.milliseconds, self.reached)
+            self.id = self.window.after(self.milliseconds, self.reached)
 
    TimeCallback.supported['TKAGG'] = TimeCallback_TKAGG         
    
