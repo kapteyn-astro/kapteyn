@@ -449,6 +449,7 @@ class Coordinate(object):
                   data[i] = coord
                   i = i + 1
          else:
+            self.dyn = False
             raise WCSerror, (-2, "unrecognized coordinate source")
       elif isinstance(source, tuple):
          if operator.isSequenceType(source[0]):
@@ -494,6 +495,7 @@ class Coordinate(object):
          data = <double*>PyArray_DATA(source)
          self.data = <long>data
       else:
+         self.dyn = False
          raise WCSerror, (-2, "unrecognized coordinate source")
       self.source = source                  # prevent premature deallocation
 
