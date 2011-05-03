@@ -57,7 +57,9 @@ INAF - Istituto Nazionale di Astrofisica @ 192.167.38.157
 European Space Agency (ESA) @ 192.171.2.126
 Australian National University @ 150.203.91.47
 Universidad Nacional Autonoma de Mexico @ 132.247.245.225
+ETH Zuerich @ 192.33.99.216
+Deutsches Elektronen-Synchrotron @ 141.34.19.25
+Universitaet zu Koeln @ 134.95.46.13
 
-
-tot: Wed Apr 27 10:46:23 CEST 2011
+tot: Tue May  3 12:40:04 CEST 2011
 
