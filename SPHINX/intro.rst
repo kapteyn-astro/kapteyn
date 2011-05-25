@@ -90,8 +90,8 @@ Prerequisites
 -------------
 
 To install the Kapteyn Package, at least Python_ 2.4
-and NumPy_ are required. For using it, the availability of
-PyFITS_ and matplotlib_ is recommended.
+and NumPy_ (both with header files) are required.
+For using it, the availability of PyFITS_ and matplotlib_ is recommended.
 Windows users may also need to install Readline_ or an equivalent package.
 
 Mark Calabretta's WCSLIB_ does not need to be installed separately anymore.
@@ -140,6 +140,9 @@ resulting directory. Then one of the following options can be chosen:
    install it as follows::
 
       python setup.py install --install-lib $gip_exe
+
+   The GIPSY installation procedure normally does this automatically,
+   so usually this will not be necessary.
 
 Windows installer
 .................

@@ -60,6 +60,17 @@ Universidad Nacional Autonoma de Mexico @ 132.247.245.225
 ETH Zuerich @ 192.33.99.216
 Deutsches Elektronen-Synchrotron @ 141.34.19.25
 Universitaet zu Koeln @ 134.95.46.13
+Departament d'Astronomia i Meteorologia (Barcelona) @ 161.116.78.230
+Istituto Nazionale di Fisica Nucleare sezione di Bari @ 192.135.20.31
+Reiknistofnun Haskola Islands @ 130.208.70.63
+Institut national de physique nucleaire et de physique des particules (IN2P3) @ 134.158.190.108
+University of Hertfordshire @ 147.197.230.32
+IAAT Tuebingen @ 134.2.205.65
+Astronomisches Rechen-Institut (ARI) Heidelberg @ 129.206.110.59
+University of Canterbury, Christchurch NZ @ 132.181.43.60
+Morehead State University @ 147.133.66.33
+University of Maryland @ 129.2.129.162
+Ohio State University @ 140.254.79.237
+Taiwan Academic Network @ 140.114.94.104
 
-tot: Tue May  3 12:40:04 CEST 2011
-
+tot: Mon May 23 10:57:41 CEST 2011

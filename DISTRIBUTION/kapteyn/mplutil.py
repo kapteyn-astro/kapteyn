@@ -236,6 +236,7 @@ first :class:`AxesCallback` object `draw` as an attribute.
       self.__scheduled.remove(self)           # remove from active list
 
    def __handler(event):
+      if event.canvas.widgetlock.locked(): return
       for callback in AxesCallback.__scheduled:
          if event.canvas is callback.canvas   and \
                event.name==callback.eventtype and \
