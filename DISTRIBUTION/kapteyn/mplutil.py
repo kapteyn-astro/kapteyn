@@ -16,6 +16,11 @@ Class AxesCallback
 
 .. autoclass:: AxesCallback
 
+Class CanvasCallback
+--------------------
+
+.. autoclass:: CanvasCallback
+
 Class TimeCallback
 ------------------
 
@@ -45,6 +50,27 @@ GIPSY keyword event connection
 ------------------------------
 
 .. autofunction:: gipsy_connect
+
+Matplotlib backends work-arounds
+--------------------------------
+
+This module provides work-arounds for limitations of the matplotlib
+Qt4 and Qt4Agg backends. They will become available when :mod:`mplutil`
+is imported. No other action is required.
+
+Special keys
+............
+
+By default, the Qt4 backend does not return a number of special key codes
+in key_press_event objects. This work-around makes the following key codes
+available: 'pageup', 'pagedown', 'left', 'right', 'up', 'down', 'home'
+and 'end'.
+
+Resize events
+.............
+
+By default, the Qt4Agg backend does not report resize events. This work-around
+takes care of this.
  
 """
 
@@ -268,6 +294,61 @@ first :class:`AxesCallback` object `draw` as an attribute.
 #                          class CanvasCallback
 # --------------------------------------------------------------------------
 class CanvasCallback(object):
+   """
+:class:`CanvasCallback` has been built on top of matplotlib's event
+handling mechanism. Objects of this class provide a more powerful
+mechanism for handling events than matplotlib provides itself.
+This class allows the programmer to register a callback function with
+an event type combined with an FigureCanvas object. Whenever the event
+occurs within the specified FigureCanvas object, the callback function
+is called with the CanvasCallback object as its single argument.
+A CanvasCallback object will not be deleted as long as it
+is scheduled ("active"), so it is not always necessary to keep a reference
+to it. This class is a simplified version of :class:`AxesCallback` and is
+intended for situations where either no Axes object is available or
+the event type is not a :class:`LocationEvent`, i.e.,
+there is no position involved.
+
+:param proc:
+   the function to be called upon receiving an event of the specified
+   type and occurring in the specified FigureCanvas. It is called with one
+   argument: the current CanvasCallback object. If it returns a value which
+   evaluates to True, processing of the current event stops, i.e., no
+   further callback functions will be called for this event.
+:param canvas:
+   the matplotlib FigureCanvas object.
+:param eventtype:
+   the matplotlib event type such as 'resize_event' or 'motion_notify_event'.
+:param schedule:
+   indicates whether the object should start handling events immediately.
+   Default True.
+:param attr:
+   keyword arguments each resulting in an attribute with the same name.  
+
+**Attributes:**
+
+.. attribute:: canvas
+   
+   The specified FigureCanvas object.
+   
+.. attribute:: eventtype
+
+   The specified event type.
+
+.. attribute:: active
+   
+   True if callback is scheduled, False otherwise.
+
+.. attribute:: event
+
+   The Event object delivered by matplotlib.
+
+**Methods:**
+
+.. automethod:: schedule
+.. automethod:: deschedule
+
+"""
 
    __scheduled = []                           # currently scheduled callbacks
    __handlers  = {}                           # currently active event handlers

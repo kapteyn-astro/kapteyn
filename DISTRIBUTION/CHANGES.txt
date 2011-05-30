@@ -14,6 +14,13 @@ Version 2.1.1 (being developed)
 
   * new method *set_title()* for labeling a ruler.
 
+* Module mplutil:
+
+  * new class CanvasCallback.
+
+  * work-around to add support for resize events to matplotlib's
+    Qt4Agg backend.
+
 * Documentation:
 
   * several improvements.
