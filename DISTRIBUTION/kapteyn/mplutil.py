@@ -64,6 +64,22 @@ try:
    FigureCanvasQT.keyvald[QtCore.Qt.Key_End]      = 'end'
 except:
    pass
+
+
+# Work-around for the qt4agg backend which does not report resize events.
+#
+try:
+   from matplotlib.backends import backend_qt4agg
+
+   def resizeEvent( self, e ):
+      backend_qt4agg.FigureCanvasQT.resizeEvent( self, e )
+      self.resize_event()
+
+   backend_qt4agg.FigureCanvasQTAgg.resizeEvent = resizeEvent
+except:
+   pass
+
+
    
 # ==========================================================================
 #                             class AxesCallback
@@ -248,6 +264,76 @@ first :class:`AxesCallback` object `draw` as an attribute.
                break
    __handler = staticmethod(__handler)
 
+# ==========================================================================
+#                          class CanvasCallback
+# --------------------------------------------------------------------------
+class CanvasCallback(object):
+
+   __scheduled = []                           # currently scheduled callbacks
+   __handlers  = {}                           # currently active event handlers
+
+   def __init__(self, proc, canvas, eventtype, schedule=True, **attr):
+      self.proc      = proc
+      self.canvas    = canvas
+      self.eventtype = eventtype
+      for name in attr.keys():
+         self.__dict__[name] = attr[name]
+      self.active    = False
+      if schedule:
+         self.schedule()
+
+   def schedule(self):
+      """
+      Activate the object so that it will start receiving matplotlib events
+      and calling the callback function. If the object is already
+      active, it will be put in front of the list of active
+      objects so that its callback function will be called before others.
+      """
+
+      if self.active:
+         self.__scheduled.remove(self)        # remove from current position ..
+         self.__scheduled.insert(0, self)     # .. and move to front of list
+         return                               # no further action
+      # Try to find a handler and increment the number of
+      # registrations for this canvas-eventtype combination.
+      # If no handler can be found, connect this event type
+      # to __handler() and register this combination.
+      try:
+         id, numreg = self.__handlers[self.canvas, self.eventtype]
+         self.__handlers[self.canvas, self.eventtype] = id, numreg+1
+      except KeyError:
+         id = self.canvas.mpl_connect(self.eventtype, self.__handler)
+         self.__handlers[self.canvas,self.eventtype] = id, 1
+      self.active = True                      # mark active
+      self.__scheduled.insert(0, self)        # insert in active list
+      
+   def deschedule(self):
+      """
+      Deactivate the object so that it does not receive matplotlib events
+      anymore and will not call its callback function. If the object is
+      already inactive, nothing will be done.
+      """
+      
+      if not self.active:
+         return                               # no action, stays inactive
+      id, numreg = self.__handlers[self.canvas, self.eventtype]
+      numreg -= 1                             # decrement number of callbacks
+      if numreg==0:                           # was this the last one?
+         del self.__handlers[self.canvas, self.eventtype]  # remove registration
+         self.canvas.mpl_disconnect(id)       # disconnect handler
+      else:
+         self.__handlers[self.canvas, self.eventtype] = id,  numreg
+      self.active = False                     # mark inactive
+      self.__scheduled.remove(self)           # remove from active list
+
+   def __handler(event):
+      if event.canvas.widgetlock.locked(): return
+      for callback in CanvasCallback.__scheduled:
+         if event.canvas is callback.canvas and event.name==callback.eventtype:
+            callback.event = event
+            if callback.proc(callback):
+               break
+   __handler = staticmethod(__handler)      
 
 # ==========================================================================
 #                          class VariableColormap

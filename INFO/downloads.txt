@@ -72,5 +72,12 @@ Morehead State University @ 147.133.66.33
 University of Maryland @ 129.2.129.162
 Ohio State University @ 140.254.79.237
 Taiwan Academic Network @ 140.114.94.104
+ESO @ 134.171.38.70
+University of Leicester X-ray and Observational Astronomy Group @ 143.210.38.49
+University of Sussex @ 139.184.30.133
+Astron @ 192.87.1.200
+RIKEN, Japan @ 134.160.35.96
+California Institute of Technology @ 131.215.248.165
 
-tot: Mon May 23 10:57:41 CEST 2011
+tot: Mon May 30 11:04:07 CEST 2011
+Mon May 23 10:57:41 CEST 2011
