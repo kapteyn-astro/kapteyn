@@ -955,7 +955,8 @@ try:
       def reached(self):
          if self.id:
             self.proc(self)
-            self.id = self.window.after(self.milliseconds, self.reached)
+            if self.active:
+               self.id = self.window.after(self.milliseconds, self.reached)
 
    TimeCallback.supported['TKAGG'] = TimeCallback_TKAGG         
    
