@@ -78,6 +78,10 @@ University of Sussex @ 139.184.30.133
 Astron @ 192.87.1.200
 RIKEN, Japan @ 134.160.35.96
 California Institute of Technology @ 131.215.248.165
+University of Cape Town @ 137.158.152.213
+Macquarie University @ 137.111.13.200
+Indiana University @ 140.182.146.215
 
-tot: Mon May 30 11:04:07 CEST 2011
-Mon May 23 10:57:41 CEST 2011
+
+tot: Mon Jun  6 10:30:04 CEST 2011
+
