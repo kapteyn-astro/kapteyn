@@ -81,7 +81,9 @@ California Institute of Technology @ 131.215.248.165
 University of Cape Town @ 137.158.152.213
 Macquarie University @ 137.111.13.200
 Indiana University @ 140.182.146.215
+University of Tasmania, Australia @ 131.217.6.8
+Departamento de Astronomia de Guanajuato @ 148.214.40.116
+ESTEC (ESA) @ 131.176.226.94
 
-
-tot: Mon Jun  6 10:30:04 CEST 2011
+tot: Tue Jun 14 12:33:55 CEST 2011
 
