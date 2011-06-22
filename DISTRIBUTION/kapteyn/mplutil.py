@@ -492,6 +492,7 @@ Values should be between 0.0 and 1.0.
 
    def __init__(self, source, name='Variable'):
       self.name = None                      # new VariableColormap object
+      self.bad_set = False
       self.set_source(source)
       self.monochrome = False
       Colormap.__init__(self, name, self.worklut.shape[0]-3)
@@ -502,7 +503,6 @@ Values should be between 0.0 and 1.0.
       self.invrt = 1.0
       self.scale = 'LINEAR'
       self.auto  = True
-      self.bad_set = False
 
    def __call__(self, X, alpha=1.0, bytes=False):
       if self.bad_set:
@@ -574,9 +574,6 @@ Values should be between 0.0 and 1.0.
          self.baselut = numpy.ones((ncolors+3,4), numpy.float)
          self.baselut[:ncolors,:3] = source
          self.N = ncolors                   # may have changed
-         self._i_under = self.N
-         self._i_over  = self.N+1
-         self._i_bad   = self.N+2
       else:
          try:
             colors = tabarray(source)
@@ -586,11 +583,14 @@ Values should be between 0.0 and 1.0.
          self.baselut = numpy.ones((ncolors+3,4), numpy.float)
          self.baselut[:ncolors,:3] = colors
          self.N = ncolors                   # may have changed
-         self._i_under = self.N
-         self._i_over  = self.N+1
-         self._i_bad   = self.N+2
+      self._i_under = self.N
+      self._i_over  = self.N+1
+      self._i_bad   = self.N+2
       self.worklut = self.baselut.copy()
       self._lut = self.worklut.copy()       # existing may be inadequate
+      if self.bad_set:
+         badcolor, badalpha = self.bad_val
+         self.set_bad(badcolor, badalpha)   # restore bad
       if self.name is not None:             # existing VariableColormap object?
          self.set_scale(self.scale)
 
