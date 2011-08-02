@@ -84,6 +84,27 @@ Indiana University @ 140.182.146.215
 University of Tasmania, Australia @ 131.217.6.8
 Departamento de Astronomia de Guanajuato @ 148.214.40.116
 ESTEC (ESA) @ 131.176.226.94
+UW Milwaukee  @ 129.89.61.197
+Universidad de Jaen @ 150.214.97.17
+IN2P3/CNRS @ 193.48.98.129
+University of Georgia @ 128.192.19.201
+Universidade Federal do Rio Grande do Sul @ 143.54.198.136
+Institute of Solar-Terrestrial Physics (Irkutsk) @ 84.237.20.138
+Radboud Universiteit, Astrofysica @ 131.174.192.82
+SLAC National Accelerator Laboratory @ 134.79.200.74
+Johns Hopkins University @ 128.220.147.190
+Vilniaus Universitetas @ 193.219.94.44
+Tertiary Education Network (South Afrca) @ 196.24.41.254
+University of Texas at Austin @ 12.231.120.181
+National Astronomical Observatory of Japan @ 133.40.208.177
+UNC-Chapel Hill @ 204.84.11.215
+Universidad Nacional Autonoma de Mexico @ 132.248.1.15
+National Optical Astronomy Observatory @ 139.229.105.253
+South African Astronomical Observatory (SAAO) @ 196.21.185.1
+Deutsches Elektronen-Synchrotron @ 1131.169.139.62
+Center For Particles and Fields (University of Texas) @ 128.83.149.141
+School of Physics and Astronomy (University of Minnesota) @ 128.101.214.225
+Universita' degli Studi di Trieste @ 140.105.79.103
+Penn State University @ 75.102.64.132
 
-tot: Tue Jun 14 12:33:55 CEST 2011
-
+tot: Mon Aug  1 12:36:46 CEST 2011
