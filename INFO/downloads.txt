@@ -106,5 +106,14 @@ Center For Particles and Fields (University of Texas) @ 128.83.149.141
 School of Physics and Astronomy (University of Minnesota) @ 128.101.214.225
 Universita' degli Studi di Trieste @ 140.105.79.103
 Penn State University @ 75.102.64.132
+Infrared Processing and Analysis Center (NASA) @ 134.4.122.149
+University of North Carolina at Chapel Hill (Phys. and Astr.) @ 152.2.7.84
+Astrophysikalisches Institut und Universitaets-sternwarte Jena @ 141.35.25.155
+Indiana University @ 129.79.72.146
+University College Dublin @ 137.43.99.33
+Universiteit Leiden (Leiden Observatory) @ 132.229.223.6
+Pontificia Universidad Catolica de Chile (Astronomia y Astrofisica) @ 146.155.21.219
+Cerro Tololo Inter-American Observatory @ 139.229.6.98
+Northwestern University (CIERA) @ 129.105.65.105
 
-tot: Mon Aug  1 12:36:46 CEST 2011
+tot: Tue Sep 13 10:54:11 CEST 2011
