@@ -105,6 +105,7 @@ wcslib_src = [
    "wcstrig.c",
    "wcsunits.c",
    "wcsutil.c",
+   "wcserr.c",
    "flexed/wcsulex.c",
    "flexed/wcsutrn.c"
 ]

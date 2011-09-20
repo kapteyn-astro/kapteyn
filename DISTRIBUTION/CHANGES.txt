@@ -21,6 +21,8 @@ Version 2.1.1 (being developed)
   * work-around to add support for resize events to matplotlib's
     Qt4Agg backend.
 
+* WCSLIB: changed to version 4.8.1
+
 * Documentation:
 
   * several improvements.
