@@ -149,11 +149,12 @@ WCSinvalid for situations where a partial result may be available.
 
 from c_wcs cimport wcsprm, wcsini, wcsset, wcsfree, wcsp2s, wcss2p, wcsmix, \
                    wcs_errmsg, wcssub, wcssptr, wcsprt, wcsutrn, celprm,\
-                   unitfix, celfix, spcfix, wcsfix_errmsg, prj_categories
+                   unitfix, celfix, spcfix, wcsfix_errmsg, prj_categories,\
+                   wcserr, wcserr_enable
 from c_numpy cimport import_array, npy_intp, NPY_DOUBLE, PyArray_DATA, \
                      ndarray, PyArray_SimpleNewFromData, NPY_OWNDATA
 
-import numpy, math, operator, types
+import numpy, math, operator, types, os.path
 
 from celestial import skymatrix, skyparser, \
                       eq, equatorial, ecl, ecliptic, gal, galactic, \
@@ -411,6 +412,15 @@ class WCSerror(Exception):
 
 class WCSinvalid(WCSerror):
    pass
+
+# --------------------------------------------------------------------------
+#                             fmt_errmsg
+# --------------------------------------------------------------------------
+cdef fmt_errmsg(wcsprm *param):
+   message = '%s. WCSLIB file %s, line %d. Function %s()' % \
+   (param.err.msg, os.path.basename(param.err.file), param.err.line_no,
+    param.err.function)
+   return message
 
 # ==========================================================================
 #                             Class Coordinate
@@ -975,6 +985,7 @@ Example::
    def __init__(self, source=None, rowvec=False, skyout=None,
                       usedate=False, gridmode=False, alter=''):
 
+      wcserr_enable(1)
       dict_type, undef_type = range(2)
       source_type = undef_type
       self.debug = debug
@@ -1225,13 +1236,13 @@ Example::
          #---------------------------------
          status = celfix(param)
          if (status>0):
-            raise WCSerror, (status, wcsfix_errmsg[status])
+            raise WCSerror, (status, fmt_errmsg(param))
          status = spcfix(param)
          if (status>0):
-            raise WCSerror, (status, wcsfix_errmsg[status])
+            raise WCSerror, (status, fmt_errmsg(param))
          status = wcsset(param)
          if (status):
-            raise WCSerror, (status, wcs_errmsg[status])
+            raise WCSerror, (status, fmt_errmsg(param))
          if self.debug:
             wcsprt(param)
             
@@ -1380,14 +1391,16 @@ Example::
       newpar.flag = -1
       status = wcssub(1, param, c_nsub, c_axes, newpar)
       if status:
+         message = fmt_errmsg(newpar)
          free(newpar)
          free(c_axes)
-         raise WCSerror, (status, wcs_errmsg[status])
+         raise WCSerror, (status, message)
       status = wcsset(newpar)
       if status:
+         message = fmt_errmsg(newpar)
          free(newpar)
          free(c_axes)
-         raise WCSerror, (status, wcs_errmsg[status])
+         raise WCSerror, (status, message)
       projection = Projection()
       for key in self.__dict__.keys():
          projection.__dict__[key] = self.__dict__[key]
@@ -1442,12 +1455,14 @@ Example::
       newpar.flag = -1
       status = wcssub(1, param, NULL, NULL, newpar)
       if status:
+         message = fmt_errmsg(newpar)
          free(newpar)
-         raise WCSerror, (status, wcs_errmsg[status])
+         raise WCSerror, (status, message)
       status = wcsset(newpar)
       if status:
+         message = fmt_errmsg(newpar)
          free(newpar)
-         raise WCSerror, (status, wcs_errmsg[status])
+         raise WCSerror, (status, message)
       naxis = newpar.naxis
       header = self.source             # save attribute
       for i in range(naxis):
@@ -1463,21 +1478,24 @@ Example::
                pass
       status = wcsset(newpar)
       if status:
+         message = fmt_errmsg(newpar)
          free(newpar)
-         raise WCSerror, (status, wcs_errmsg[status])
+         raise WCSerror, (status, message)
       c_axindex[0] = axindex
       ctype_tmp = (ctype+' ')[:len(ctype)]  #  wcssptr modifies this argument!
       status = wcssptr(newpar, c_axindex, ctype_tmp)
       if status:
+         message = fmt_errmsg(newpar)
          wcsfree(newpar)
          free(newpar)
-         raise WCSerror, (status, wcs_errmsg[status])
+         raise WCSerror, (status, message)
       newpar.cunit[newpar.spec][0] = '\0' # work-around for strange WCSLIB bug
       status = wcsset(newpar)
       if status:
+         message = fmt_errmsg(newpar)
          wcsfree(newpar)
          free(newpar)
-         raise WCSerror, (status, wcs_errmsg[status])
+         raise WCSerror, (status, message)
       projection = Projection()
       for key in self.__dict__.keys():
          projection.__dict__[key] = self.__dict__[key]
@@ -1550,9 +1568,9 @@ Example::
          if status==8:
             if not self.allow_invalid:
                self.world = result
-               raise WCSinvalid, (status, wcs_errmsg[status])
+               raise WCSinvalid, (status, fmt_errmsg(param))
          else:
-            raise WCSerror, (status, wcs_errmsg[status])
+            raise WCSerror, (status, fmt_errmsg(param))
       return result
 
    def topixel(self, source=None):
@@ -1608,9 +1626,9 @@ Example::
          if status==9:
             if not self.allow_invalid:
                self.world = result
-               raise WCSinvalid, (status, wcs_errmsg[status])
+               raise WCSinvalid, (status, fmt_errmsg(param))
          else:
-            raise WCSerror, (status, wcs_errmsg[status])
+            raise WCSerror, (status, fmt_errmsg(param))
       return result
 
    def topixel1d(self, source):
@@ -1795,6 +1813,7 @@ Example::
                self.invalid = True
                if not first_err:
                   first_err = status
+                  first_msg = fmt_errmsg(param)
 
       if self.forward:                           # skyout
          world2world(self.forward, wldout,
@@ -1806,7 +1825,7 @@ Example::
       free(stat)
       if first_err:
          if not (self.invalid and self.allow_invalid):
-            raise WCSerror, (first_err, wcs_errmsg[first_err])
+            raise WCSerror, (first_err, first_msg)
 
       for i_c from 0 <= i_c < n_c:             # final restore of originals
          if not pixnan[i_c%param.naxis]:
@@ -1825,7 +1844,7 @@ Example::
       if self.invalid:
          self.result = result
          if not self.allow_invalid:
-            raise WCSinvalid, (status, wcs_errmsg[status])
+            raise WCSinvalid, (status, fmt_errmsg(param))
       return result
 
    def inside(self, coords, mode):

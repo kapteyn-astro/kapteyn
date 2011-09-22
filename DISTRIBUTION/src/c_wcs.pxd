@@ -2,6 +2,16 @@
 #                                Declarations
 #  --------------------------------------------------------------------------
 
+cdef extern from "wcserr.h":
+
+   int wcserr_enable(int)
+
+   cdef struct wcserr:
+      int  line_no
+      char *function
+      char *file
+      char *msg
+
 cdef extern from "wcs.h":
 
    cdef char prj_categories[9][32]
@@ -53,6 +63,7 @@ cdef extern from "wcs.h":
       char   lngtyp[8]
       double equinox
       int    velref
+      wcserr *err
 
    cdef char *wcs_errmsg[]
 
