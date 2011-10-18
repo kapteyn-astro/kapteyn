@@ -159,7 +159,9 @@ ndarray's functionality as well as some extra methods and attributes.
 
    def columns(self, cols=None):
       """
-:param cols: a tuple or list with the column numbers. Default: all colums.
+:param cols:
+   a tuple or list with the numbers (zero-relative) of the columns
+   to be extracted.
 :returns: a NumPy array.
 
 Extract specified columns from a tabarray and return an array containing
@@ -176,7 +178,9 @@ and 3 in variables x and y.  Default: return all columns.
 
    def rows(self, rows=None):
       """
-:param rows: a tuple or list containing the row numbers to be extracted.
+:param rows:
+   a tuple or list containing the numbers (zero-relative) of the rows
+   to be extracted.
 :return: a new tabarray.
 
 This method extracts specified rows from a tabarray and returns a new tabarray. 
@@ -196,11 +200,11 @@ Write the contents of a tabarray to a file.
 :param filename:
    the name of the file to be written.
 :param rows:
-   a tuple or list with a selection of the rows te be written.
+   a tuple or list with a selection of the rows (zero-relative) te be written.
    Default: all rows. 
 :param columns:
-   a tuple or list with a selection of the columns te be written.  Default:
-   all columns. 
+   a tuple or list with a selection of the columns (zero-relative)
+   to be written. Default: all columns. 
 :param comment:
    a list with text strings which will be inserted as comments in the
    output file.  These comments will be prefixed by the hash character (#).

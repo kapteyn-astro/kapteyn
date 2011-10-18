@@ -117,5 +117,14 @@ Cerro Tololo Inter-American Observatory @ 139.229.6.98
 Northwestern University (CIERA) @ 129.105.65.105
 Max-Planck-Institut fuer Physik @ 134.107.3.161
 Observatorio Nacional - Rio de Janeiro, RJ - Brasil @ 200.20.187.12
+Observatoire Astronomique de Marseille-Provence @ 195.221.212.242
+University of Waterloo @ 129.97.4.212
+Ukrainian Academic and Research Network @ 194.44.216.101
+Universite Claude Bernard Lyon 1 @ 134.214.5.59
+Cornell Universtity, Department of Astronomy @ 132.236.6.174
+Ritsumeikan University @ 133.19.129.21
+New Mexico Tech @ 129.138.42.45
+Universite de Geneve @ 129.194.8.73
 
-tot: Mon Sep 19 10:41:31 CEST 2011
+tot: Mon Oct 17 12:58:38 CEST 2011
+
