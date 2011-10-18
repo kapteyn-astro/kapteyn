@@ -7,7 +7,7 @@ Module mplutil
    :linenothreshold: 5
 
 Utilities for use with matplotlib.
-Classes :class:`AxesCallback`, :class:`TimeCallback`
+Classes :class:`AxesCallback`, :class:`CanvasCallback`, :class:`TimeCallback`
 and :class:`VariableColormap`
 and module-internal function :func:`KeyPressFilter`.
 
