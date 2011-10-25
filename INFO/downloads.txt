@@ -125,6 +125,9 @@ Cornell Universtity, Department of Astronomy @ 132.236.6.174
 Ritsumeikan University @ 133.19.129.21
 New Mexico Tech @ 129.138.42.45
 Universite de Geneve @ 129.194.8.73
+Brazilian Development Bank @ 200.244.52.104
+Yonsei University @ 165.132.28.225
+Universitaet Koblenz-Landau @ 141.26.71.65
 
-tot: Mon Oct 17 12:58:38 CEST 2011
+tot: Tue Oct 25 11:22:01 CEST 2011
 
