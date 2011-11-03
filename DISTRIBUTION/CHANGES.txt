@@ -27,6 +27,12 @@ Version 2.1.1 (being developed)
 
   * use WCSLIB's new error diagnostics system
 
+* New module kmpfit:
+
+  * provides new class Fitter for solving least-squares problem using
+    the Levenberg-Marquardt technique. It is based on the implementation
+    in C of Craig Markwardt's MPFIT routines.
+
 * Documentation:
 
   * several improvements.

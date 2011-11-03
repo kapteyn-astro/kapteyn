@@ -162,6 +162,11 @@ setup(
       Extension(
          "_nd_image", _nd_image_src,
          include_dirs=include_dirs
+      ),
+      Extension(
+         "kmpfit",
+         ["src/kmpfit.c", "src/mpfit.c"],
+         include_dirs=include_dirs
       )
    ],
    package_dir={'kapteyn': 'kapteyn'},

@@ -13,3 +13,8 @@ WCSLIB, which is included in the Kapteyn Package's distribution,
 is provided under the following license:
 
 .. literalinclude:: ../DISTRIBUTION/WCSLIB-LICENSE.txt
+
+MPFIT's implementation in C, of which a modified version is included,
+is provided under the following license:
+
+.. literalinclude:: ../DISTRIBUTION/MPFIT-LICENSE.txt
