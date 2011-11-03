@@ -101,7 +101,7 @@ UNC-Chapel Hill @ 204.84.11.215
 Universidad Nacional Autonoma de Mexico @ 132.248.1.15
 National Optical Astronomy Observatory @ 139.229.105.253
 South African Astronomical Observatory (SAAO) @ 196.21.185.1
-Deutsches Elektronen-Synchrotron @ 1131.169.139.62
+Deutsches Elektronen-Synchrotron @ 131.169.139.62
 Center For Particles and Fields (University of Texas) @ 128.83.149.141
 School of Physics and Astronomy (University of Minnesota) @ 128.101.214.225
 Universita' degli Studi di Trieste @ 140.105.79.103
@@ -128,6 +128,7 @@ Universite de Geneve @ 129.194.8.73
 Brazilian Development Bank @ 200.244.52.104
 Yonsei University @ 165.132.28.225
 Universitaet Koblenz-Landau @ 141.26.71.65
+Istituto Nazionale di Astrofisica @ 155.253.16.5
 
-tot: Tue Oct 25 11:22:01 CEST 2011
 
+tot: Tue Nov  1 12:23:02 CET 2011
