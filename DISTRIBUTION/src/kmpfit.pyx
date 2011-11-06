@@ -15,10 +15,14 @@ Module kmpfit
 Introduction
 ------------
 
-This module provides the class Fitter, which interfaces with the implementation
+This module provides the class Fitter, which uses the implementation
 in C of
 `MPFIT <http://www.physics.wisc.edu/~craigm/idl/cmpfit.html>`_,
 Craig Markwardt's non-linear least squares curve fitting routines for IDL.
+
+Class Fitter
+------------
+.. autoclass:: Fitter(resfunct=None, deriv=None, modfunct=None, ...)
 
 """
 
@@ -29,6 +33,30 @@ from libc.stdlib cimport calloc, free
 from kmpfit cimport *
 
 import_array()
+
+MP_OK = {
+   1: 'Convergence in chi-square value',
+   2: 'Convergence in parameter value',
+   3: 'Convergence in chi-square and parameter value',
+   4: 'Convergence in orthogonality',
+   5: 'Maximum number of iterations reached',
+   6: 'ftol is too small; no further improvement',
+   7: 'xtol is too small; no further improvement',
+   8: 'gtol is too small; no further improvement'
+}
+
+MP_ERR = {
+     0: 'General input parameter error',
+   -16: 'User function produced non-finite values',
+   -17: 'No user function was supplied',
+   -18: 'No user data points were supplied',
+   -19: 'No free parameters',
+   -20: 'Memory allocation error',
+   -21: 'Initial values inconsistent w constraints',
+   -22: 'Initial constraints inconsistent',
+   -23: 'General input parameter error',
+   -24: 'Not enough degrees of freedom'
+}
 
 cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
                       void *private_data) except -1:
@@ -98,17 +126,38 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
       return 0
 
 cdef class Fitter:
+   """
+:param resfunct:
+      residuals function, see description below.
+:param deriv:
+       derivatives function, see description below.
+:param modfunct:
+      model function, see description below.
+:param ...:
+      other parameters each corresponding with one of the attributes
+      described below.
+      
+**Function parameters:**
+
+
+**Attributes:**
+
+**Method:**
+
+.. automethod:: fit(params0=None)
+"""
 
    cdef mp_par *c_pars
    cdef int m, npar, dictarg
    cdef double *c_inverr, *c_yvals, *xall
    cdef mp_config *config
    cdef mp_result *result
-   cdef object params_t
+   cdef object params_t, parms0
    cdef object modfunct, xvals, yvals, errvals, inverr, pars
    cdef object resfunct, resargs
    cdef object deriv, dflags
    cdef object deviates
+   cdef readonly object message
 
    def __cinit__(self):
       self.config = <mp_config*>calloc(1, sizeof(mp_config))
@@ -123,8 +172,8 @@ cdef class Fitter:
       free(self.c_pars)
       free(self.xall)
       
-   def __init__(self, modfunct=None, resfunct=None, deriv=None, params=None,
-                xvalues=None, yvalues=None, errors=None, parinfo=None,
+   def __init__(self, resfunct=None, deriv=None, modfunct=None, params0=None,
+                parinfo=None, xvalues=None, yvalues=None, errors=None,
                 ftol=None, xtol=None, gtol=None, epsfcn=None,
                 stepfactor=None, covtol=None, maxiter=None, maxfev=None,
                 resargs={}):
@@ -137,7 +186,7 @@ cdef class Fitter:
       self.modfunct = modfunct                  # model function
       self.resfunct = resfunct                  # residuals function
       self.deriv = deriv
-      self.params = params                      # fitting parameters
+      self.params0 = params0                    # fitting parameters
       self.xvalues = xvalues
       self.yvalues = yvalues
       self.errors = errors
@@ -152,6 +201,13 @@ cdef class Fitter:
       self.maxfev = maxfev
       self.resargs = resargs                    # args to residuals function
       self.dictarg = isinstance(resargs, dict)  # keyword args or one object?
+
+   property params0:
+      def __get__(self):
+         return self.parms0
+      def __set__(self, value):
+         self.params = value
+         self.parms0 = value
    
    property params:
       def __get__(self):
@@ -174,10 +230,12 @@ cdef class Fitter:
          if self.npar==0:
             self.npar = l
          elif l!=self.npar:
-            raise ValueError('inconsistent parameter array size')
+            self.message = 'inconsistent parameter array size'
+            raise ValueError(self.message)
          xall = <double*>calloc(self.npar, sizeof(double))
          for i in range(self.npar):
             xall[i] = value[i]
+         free(self.xall)
          self.xall = xall
          if self.dflags is None:
             self.dflags = [False]*self.npar              # flags for deriv()
@@ -191,10 +249,12 @@ cdef class Fitter:
          if value is None:
             return
          if self.modfunct is None:
-            raise ValueError('xvalues meaningless without model function')
+            self.message = 'xvalues meaningless without model function'
+            raise ValueError(self.message)
          if self.m!=0:
             if value.size!=self.m:
-               raise ValueError('inconsistent xvalues array size')
+               self.message = 'inconsistent xvalues array size'
+               raise ValueError(self.message)
          else:
             self.m = value.size
          self.xvals = value
@@ -206,10 +266,12 @@ cdef class Fitter:
          if value is None:
             return
          if self.modfunct is None:
-            raise ValueError('yvalues meaningless without model function')
+            self.message = 'yvalues meaningless without model function'
+            raise ValueError(self.message)
          if self.m!=0:
             if value.size!=self.m:
-               raise ValueError('inconsistent yvalues array size')
+               self.message = 'inconsistent yvalues array size'
+               raise ValueError(self.message)
          else:
             self.m = value.size
          if not value.dtype=='d':
@@ -226,10 +288,12 @@ cdef class Fitter:
          if value is None:
             return
          if self.modfunct is None:
-            raise ValueError('errors meaningless without model function')
+            self.message = 'errors meaningless without model function'
+            raise ValueError(self.message)
          if self.m!=0:
             if value.size!=self.m:
-               raise ValueError('inconsistent errors array size')
+               self.message = 'inconsistent errors array size'
+               raise ValueError(self.message)
          else:
             self.m = value.size
          self.errvals = value
@@ -247,7 +311,8 @@ cdef class Fitter:
          if self.npar==0:
             self.npar = l
          elif l!=self.npar:
-            raise ValueError('inconsistent parameter array size')
+            self.message = 'inconsistent parinfo list length'
+            raise ValueError(self.message)
          self.pars = value
          if self.c_pars==NULL:
             self.c_pars = <mp_par*>calloc(self.npar, sizeof(mp_par))
@@ -364,7 +429,7 @@ cdef class Fitter:
       def __del__(self):
          self.config.maxfev = 0
 
-   property bestnorm:
+   property chi2_min:
       def __get__(self):
          return self.result.bestnorm
 
@@ -417,25 +482,52 @@ cdef class Fitter:
                                            self.result.xerror)
          return value
 
+   property dof:
+      def __get__(self):
+         return self.m - self.nfree
+
+   property rchi2_min:
+      def __get__(self):
+         return self.chi2_min/self.dof
+         
+   property stderr:
+      def __get__(self):
+         return numpy.sqrt(numpy.diagonal(self.covar)*self.rchi2_min) 
+
    cdef allocres(self):
       # allocate arrays in mp_result_struct
       self.result.resid = <double*>calloc(self.m, sizeof(double))
       self.result.xerror = <double*>calloc(self.npar, sizeof(double))
       self.result.covar = <double*>calloc(self.npar*self.npar, sizeof(double))
 
-   def fit(self, params=None):
+   def fit(self, params0=None):
+      """
+:param params0:
+   initial fitting parameters. Default: previous initial values are used.
+"""
       cdef mp_par *parinfo
-      if params is not None:
-         self.params = params
+      if params0 is not None:
+         self.params0 = params0
+      else:
+         self.params = self.params0
       status = mpfit(<mp_func>xmpfunc, self.npar, self.xall,
                      self.c_pars, self.config, <void*>self, self.result)
       if status<=0:
-         raise RuntimeError('fatal mpfit error, status=%d' % status)
+         if status in MP_ERR:
+            self.message = 'mpfit error: %s (%d)' % (MP_ERR[status], status)
+         else:
+            self.message = 'mpfit error, status=%d' % status
+         raise RuntimeError(self.message)
+      
+      if status in MP_OK:
+         self.message = 'mpfit (potential) success: %s (%d)' % \
+                                                    (MP_OK[status], status)
+      else:
+         self.message = None
       return status
 
-   def __call__(self, yvalues=None, xvalues=None, params=None):
+   def __call__(self, yvalues=None, xvalues=None, params0=None):
       self.yvalues = yvalues
       self.xvalues = xvalues
-      self.params = params
-      self.fit()
+      self.fit(params0)
       return self.params
