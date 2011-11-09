@@ -65,6 +65,10 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
    cdef npy_intp* shape=[n]
 
    self = <Fitter>private_data
+   for i in range(n):
+      if x[i]!=x[i]:
+         self.message = 'Non-finite parameter from mpfit.c'
+         raise ValueError(self.message)
    p = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, x)
    if self.modfunct is not None:                         # model function
       f = <double*>PyArray_DATA(self.modfunct(p, self.xvals))
@@ -419,6 +423,13 @@ cdef class Fitter:
             self.config.maxiter = value
       def __del__(self):
          self.config.maxiter = 0
+
+   property nofinitecheck:
+      def __get__(self):
+         return self.config.nofinitecheck
+      def __set__(self, value):
+         if value is not None:
+            self.config.nofinitecheck = value
 
    property maxfev:
       def __get__(self):
