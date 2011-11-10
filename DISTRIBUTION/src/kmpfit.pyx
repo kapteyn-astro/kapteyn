@@ -1,4 +1,4 @@
-"""
+u"""
 =============
 Module kmpfit
 =============
@@ -15,10 +15,27 @@ Module kmpfit
 Introduction
 ------------
 
-This module provides the class Fitter, which uses the implementation
-in C of
-`MPFIT <http://www.physics.wisc.edu/~craigm/idl/cmpfit.html>`_,
-Craig Markwardt's non-linear least squares curve fitting routines for IDL.
+This module provides the class Fitter, which uses the implementation in
+C of `MPFIT <http://www.physics.wisc.edu/~craigm/idl/cmpfit.html>`_,
+Craig Markwardt's non-linear least squares curve fitting routines for
+IDL.  MPFIT uses the Levenberg-Marquardt technique to solve the
+least-squares problem, which is a particular strategy for iteratively
+searching for the best fit.  In its typical use, MPFIT will be used to
+fit a user-supplied function (the "model") to user-supplied data points
+(the "data") by adjusting a set of parameters.  MPFIT is based upon the
+robust routine MINPACK-1 (LMDIF.F) by Mor\u00e9 and collaborators. 
+
+For example, a researcher may think that a set of observed data
+points is best modelled with a Gaussian curve.  A Gaussian curve is
+parameterized by its mean, standard deviation and normalization.
+MPFIT will, within certain constraints, find the set of parameters
+which best fits the data.  The fit is "best" in the least-squares
+sense; that is, the sum of the weighted squared differences between
+the model and data is minimized.
+
+This version allows upper and lower bounding constraints to be placed on
+each parameter, or the parameter can be held fixed. 
+
 
 Class Fitter
 ------------
@@ -87,11 +104,6 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
 
       for i in range(m):
          fvec[i] = (y[i] - f[i]) * e[i]
-         
-      if self.deriv is not None:
-# +++ derivative code to be added
-         pass # compute derivatives and put in 'dvec'
-
       return 0
    else:                                                 # residuals function
       if self.dictarg:
@@ -140,11 +152,149 @@ cdef class Fitter:
 :param ...:
       other parameters each corresponding with one of the attributes
       described below.
+
+**Residuals function**
+
+The residuals function must return a NumPy (dtype='d') array with weighted
+deviations between the model and the data. Its first argument is a NumPy
+array containing the parameter values. Depending on the type of
+the *resargs* attribute, the function can take one or more other arguments:
+
+- if *resargs* is a dictionary, this dictionary is used to provide the
+  function with keyword arguments, e.g. if *resargs* is
+  ``{'x': xdata, 'y': ydata, 'e': errdata}``, a function *f* will be called
+  as ``f(params, x=xdata, y=ydata, e=errdata)``.
+- if *resargs* is any other Python object, e.g. a list *l*,
+  a function *f* will be called as ``f(params, l)``.
+
+**Derivatives function**
+
+The optional derivates function can be used to compute function
+derivatives, which are used in the minimization process.  This can be
+useful to save time, or when the derivative is tricky to evaluate
+numerically. 
+
+The first two arguments are a NumPy array containing the parameter values
+and a list with boolean values corresponding the the parameters. If
+such a boolean is True, the derivative should be computed, otherwise it
+may be ignored. This usually depends on the *parinfo* attribute, in which
+parameters can be fixed or numerical derivates can be specified.
+In the same way as with the residuals function, the function can take one
+or more other arguments, depending on the type of the *resargs* attribute.
+
+The function must return a NumPy array with partial derivatives with respect
+to each parameter. It must have shape *(m,n)*, where *m*
+is the number of data points and *n* the number of parameters.
+
+**Model function**
+
+A model function can be used as an alternative to a residuals function
+when a fixed expression for deviations between model and data is adequate.
+It takes two arguments: a NumPy array containing the parameter values and
+an a NumPy array with values of the independent variable ("x").
+It must return a NumPy (dtype='d') array with function values:
+``f(params, x)``.
+
+
+**Configuration attributes:**
+
+.. attribute:: params0
+
+   A NumPy array or a list with the initial estimates for the parameters.
+
+.. attribute:: resargs
+
+   Python object with information for the residuals function and the
+   derivatives function. See there.
+
+.. attribute:: parinfo
+
+   A list of directories with parameter contraints, one directory
+   per parameter. Each directory can specify the following:
+
+   - *fixed*: a boolean value, whether the parameter is to be held fixed or
+     not. Default: not fixed.
+   - *limits*: a two-element list with upper end lower parameter limits or
+     None, which indicates that the parameter is not bounded on this side. Default: no limits.
+   - *step*: the step size to be used in calculating the numerical derivatives.
+     Default: step size is computed automatically.
+   - *side*: the sidedness of the finite difference when computing numerical
+     derivatives.  This field can take four values:
+
+      0 - one-sided derivative computed automatically
+
+      1 - one-sided derivative (f(x+h) - f(x)  )/h
+
+      -1 - one-sided derivative (f(x)   - f(x-h))/h
+
+      2 - two-sided derivative (f(x+h) - f(x-h))/(2*h)
+
+      3 - user-computed explicit derivatives
+
+     Where H is the STEP parameter described above.  The
+     "automatic" one-sided derivative method will chose a
+     direction for the finite difference which does not
+     violate any constraints.  The other methods do not
+     perform this check.  The two-sided method is in
+     principle more precise, but requires twice as many
+     function evaluations.  Default: 0.
+
+   - *deriv_debug*: flag to enable/disable console debug logging of
+     user-computed derivatives, as described above.  1=enable
+     debugging; 0=disable debugging.  Note that when
+     pars[i].deriv_debug is set, then pars[i].side should be
+     set to 0, 1, -1 or 2, depending on which numerical
+     derivative you wish to compare to.
+     Default: 0.
+
+.. attribute:: ftol
+
+   Relative chi-square convergence criterium. Default: 1e-10
+
+.. attribute:: xtol
+
+   Relative parameter convergence criterium. Default: 1e-10
+
+.. attribute:: gtol
+
+   Orthogonality convergence criterium. Default: 1e-10
+
+.. attribute:: epsfcn
+
+   Finite derivative step size. Default: 2.2204460e-16 (MACHEP0)
+
+.. attribute:: stepfactor
+
+   Initial step bound. Default: 100.0
+
+.. attribute:: covtol
+
+   Range tolerance for covariance calculation. Default: 1e-14
+
+.. attribute:: maxiter
+
+   Maximum number of iterations. Default: 200
+
+.. attribute:: maxfev
+
+   Maximum number of function evaluations. Default: 0 (no limit)
+
+.. attribute:: xvalues
+
+   Only to be used with a model function. A NumPy array with values
+   of the independent variable.
+
+.. attribute:: yvalues
+
+   Only to be used with a model function. A NumPy array with data values.
+
+.. attribute:: errors
+
+   Only to be used with a model function. A NumPy array with data uncertainties.
+
+
+**Result attributes**
       
-**Function parameters:**
-
-
-**Attributes:**
 
 **Method:**
 
