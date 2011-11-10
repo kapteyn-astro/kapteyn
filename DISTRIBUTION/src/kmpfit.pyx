@@ -41,6 +41,45 @@ Class Fitter
 ------------
 .. autoclass:: Fitter(resfunct=None, deriv=None, modfunct=None, ...)
 
+Example
+-------
+
+Example::
+
+   #!/usr/bin/env python
+   
+   import numpy
+   from kapteyn import kmpfit
+   
+   def residuals(p, x, y, w):
+      a,b,c = p
+      return (y - (a*x*x+b*x+c))/w
+   
+   x = numpy.arange(-50,50,0.2)
+   y = 2*x*x + 3*x - 3 + 2*numpy.random.standard_normal(x.shape)
+   w = numpy.ones(x.shape)
+   
+   a = {'x': x, 'y': y, 'w': w}
+   
+   f = kmpfit.Fitter(resfunct=residuals, params0=[1, 2, 0], resargs=a)
+   
+   f.fit()                                     # call fit method
+   print f.params
+   print f.message
+   # result:
+   # [2.0001022845514451, 3.0014019147386, -3.0096629062273133]
+   # mpfit (potential) success: Convergence in chi-square value (1)
+   
+   a['y'] = 3*x*x  - 2*x - 5 + 0.5*numpy.random.standard_normal(x.shape)
+   print f(params0=[2, 0, -1])                 # call Fitter object
+   # result:
+   # [3.0000324686457871, -1.999896340813663, -5.0060187435412962]
+
+
+
+
+
+
 """
 
 from numpy cimport import_array, npy_intp
@@ -146,12 +185,17 @@ cdef class Fitter:
 :param resfunct:
       residuals function, see description below.
 :param deriv:
-       derivatives function, see description below.
+      optional derivatives function, see description below. If a derivatives
+      function is given, user-computed explicit derivatives are automatically
+      set for all parameters in the attribute :attr:`parinfo`, but this can
+      be changed by the user.
 :param modfunct:
       model function, see description below.
 :param ...:
-      other parameters each corresponding with one of the attributes
-      described below.
+      other parameters, each corresponding with one of the configuration
+      attributes described below.
+
+Objects of this class are callable and return the fitted parameters.
 
 **Residuals function**
 
@@ -175,12 +219,12 @@ useful to save time, or when the derivative is tricky to evaluate
 numerically. 
 
 The first two arguments are a NumPy array containing the parameter values
-and a list with boolean values corresponding the the parameters. If
+and a list with boolean values corresponding with the parameters. If
 such a boolean is True, the derivative should be computed, otherwise it
-may be ignored. This usually depends on the *parinfo* attribute, in which
+may be ignored. This usually depends on the attribute :attr:`parinfo`, in which
 parameters can be fixed or numerical derivates can be specified.
 In the same way as with the residuals function, the function can take one
-or more other arguments, depending on the type of the *resargs* attribute.
+or more other arguments, depending on the type of the attribute :attr:`resargs`.
 
 The function must return a NumPy array with partial derivatives with respect
 to each parameter. It must have shape *(m,n)*, where *m*
@@ -196,7 +240,10 @@ It must return a NumPy (dtype='d') array with function values:
 ``f(params, x)``.
 
 
-**Configuration attributes:**
+**Configuration attributes**
+
+The following attributes can be set by the user to specify a
+Fitter object's behaviour.
 
 .. attribute:: params0
 
@@ -215,7 +262,8 @@ It must return a NumPy (dtype='d') array with function values:
    - *fixed*: a boolean value, whether the parameter is to be held fixed or
      not. Default: not fixed.
    - *limits*: a two-element list with upper end lower parameter limits or
-     None, which indicates that the parameter is not bounded on this side. Default: no limits.
+     None, which indicates that the parameter is not bounded on this side.
+     Default: no limits.
    - *step*: the step size to be used in calculating the numerical derivatives.
      Default: step size is computed automatically.
    - *side*: the sidedness of the finite difference when computing numerical
@@ -223,16 +271,17 @@ It must return a NumPy (dtype='d') array with function values:
 
       0 - one-sided derivative computed automatically
 
-      1 - one-sided derivative (f(x+h) - f(x)  )/h
+      1 - one-sided derivative :math:`(f(x+h) - f(x)  )/h`
 
-      -1 - one-sided derivative (f(x)   - f(x-h))/h
+      -1 - one-sided derivative :math:`(f(x)   - f(x-h))/h`
 
-      2 - two-sided derivative (f(x+h) - f(x-h))/(2*h)
+      2 - two-sided derivative :math:`(f(x+h) - f(x-h))/2h`
 
       3 - user-computed explicit derivatives
 
-     Where H is the STEP parameter described above.  The
-     "automatic" one-sided derivative method will chose a
+     Where :math:`h` is the value of the attribute the parameter *step*
+     described above.
+     The "automatic" one-sided derivative method will chose a
      direction for the finite difference which does not
      violate any constraints.  The other methods do not
      perform this check.  The two-sided method is in
@@ -241,15 +290,14 @@ It must return a NumPy (dtype='d') array with function values:
 
    - *deriv_debug*: flag to enable/disable console debug logging of
      user-computed derivatives, as described above.  1=enable
-     debugging; 0=disable debugging.  Note that when
-     pars[i].deriv_debug is set, then pars[i].side should be
-     set to 0, 1, -1 or 2, depending on which numerical
+     debugging; 0=disable debugging.  If debugging is enabled,
+     then *side* should be set to 0, 1, -1 or 2, depending on which numerical
      derivative you wish to compare to.
      Default: 0.
 
 .. attribute:: ftol
 
-   Relative chi-square convergence criterium. Default: 1e-10
+   Relative :math:`\chi^2` convergence criterium. Default: 1e-10
 
 .. attribute:: xtol
 
@@ -294,7 +342,79 @@ It must return a NumPy (dtype='d') array with function values:
 
 
 **Result attributes**
-      
+
+After calling the method :meth:`fit`, the following attributes
+are available to the user:
+
+.. attribute:: params
+
+   A NumPy array, list or tuple with the fitted parameters. The type of
+   the object is the same as the type of :attr:`params0`.
+
+.. attribute:: xerror
+
+   Final parameter uncertainties (:math:`1 \sigma`)
+
+.. attribute:: covar
+
+   Final parameter covariance (NumPy-) matrix.
+
+.. attribute:: chi2_min
+
+   Final :math:`\chi^2`.
+
+.. attribute:: orignorm
+
+   Starting value of :math:`\chi^2`.
+
+.. attribute:: rchi2_min
+
+   Minimum reduced :math:`\chi^2`.
+
+.. attribute:: stderr
+
+   Standard errors.
+
+.. attribute:: npar
+
+   Number of parameters.
+
+.. attribute:: nfree
+
+   Number of free parameters.
+
+.. attribute:: npegged
+
+   Number of pegged parameters.
+
+.. attribute:: dof
+
+   Number of degrees of freedom.
+
+.. attribute:: resid
+
+   Final residuals
+
+.. attribute:: niter
+
+   Number of iterations.
+
+.. attribute:: nfev
+
+   Number of function evaluations.
+
+.. attribute:: version
+
+   mpfit.c's version string
+
+.. attribute:: status
+
+   Fitting status code.
+
+.. attribute:: message
+
+   Message string.
+
 
 **Method:**
 
@@ -302,7 +422,8 @@ It must return a NumPy (dtype='d') array with function values:
 """
 
    cdef mp_par *c_pars
-   cdef int m, npar, dictarg
+   cdef int m, dictarg
+   cdef readonly int npar
    cdef double *c_inverr, *c_yvals, *xall
    cdef mp_config *config
    cdef mp_result *result
@@ -663,8 +784,10 @@ It must return a NumPy (dtype='d') array with function values:
 
    def fit(self, params0=None):
       """
-:param params0:
-   initial fitting parameters. Default: previous initial values are used.
+Perform a fit with the current values of parameters and other attributes.
+
+Optional argument *params0*: initial fitting parameters.
+(Default: previous initial values are used.)
 """
       cdef mp_par *parinfo
       if params0 is not None:
