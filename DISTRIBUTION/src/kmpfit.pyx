@@ -33,9 +33,6 @@ which best fits the data.  The fit is "best" in the least-squares
 sense; that is, the sum of the weighted squared differences between
 the model and data is minimized.
 
-This version allows upper and lower bounding constraints to be placed on
-each parameter, or the parameter can be held fixed. 
-
 
 Class Fitter
 ------------
@@ -220,9 +217,10 @@ numerically.
 
 The first two arguments are a NumPy array containing the parameter values
 and a list with boolean values corresponding with the parameters. If
-such a boolean is True, the derivative should be computed, otherwise it
-may be ignored. This usually depends on the attribute :attr:`parinfo`, in which
-parameters can be fixed or numerical derivates can be specified.
+such a boolean is True, the derivative with respect to the corresponding
+parameter should be computed, otherwise it may be ignored.
+This usually depends on how derivatives are specified in the attribute
+:attr:`parinfo`, or whether the parameter is fixed.
 In the same way as with the residuals function, the function can take one
 or more other arguments, depending on the type of the attribute :attr:`resargs`.
 
@@ -232,12 +230,16 @@ is the number of data points and *n* the number of parameters.
 
 **Model function**
 
-A model function can be used as an alternative to a residuals function
-when a fixed expression for deviations between model and data is adequate.
-It takes two arguments: a NumPy array containing the parameter values and
-an a NumPy array with values of the independent variable ("x").
-It must return a NumPy (dtype='d') array with function values:
-``f(params, x)``.
+When a simple fixed expression for deviations between model and data is
+adequate, a model function can be used as an alternative to a residuals
+function.
+This expression is provided by the module and has the form
+``(y-model)/error``.
+
+A model function takes two arguments: a NumPy array containing the parameter
+values and a NumPy array with values of the independent variable ("x").
+It must return a NumPy (dtype='d') array with function values, so it is
+called in this way: ``y = f(params, x)``.
 
 
 **Configuration attributes**
@@ -269,7 +271,7 @@ Fitter object's behaviour.
    - *side*: the sidedness of the finite difference when computing numerical
      derivatives.  This field can take four values:
 
-      0 - one-sided derivative computed automatically
+      0 - one-sided derivative computed automatically (default)
 
       1 - one-sided derivative :math:`(f(x+h) - f(x)  )/h`
 
@@ -279,7 +281,7 @@ Fitter object's behaviour.
 
       3 - user-computed explicit derivatives
 
-     Where :math:`h` is the value of the attribute the parameter *step*
+     where :math:`h` is the value of the parameter *step*
      described above.
      The "automatic" one-sided derivative method will chose a
      direction for the finite difference which does not
