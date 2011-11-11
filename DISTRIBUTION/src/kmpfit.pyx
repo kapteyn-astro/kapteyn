@@ -259,17 +259,18 @@ Fitter object's behaviour.
 .. attribute:: parinfo
 
    A list of directories with parameter contraints, one directory
-   per parameter. Each directory can specify the following:
+   per parameter, or None if not given.
+   Each directory can have the following keys and values:
 
-   - *fixed*: a boolean value, whether the parameter is to be held fixed or
+   - ``'fixed'``: a boolean value, whether the parameter is to be held fixed or
      not. Default: not fixed.
-   - *limits*: a two-element list with upper end lower parameter limits or
-     None, which indicates that the parameter is not bounded on this side.
-     Default: no limits.
-   - *step*: the step size to be used in calculating the numerical derivatives.
+   - ``'limits'``: a two-element tuple or list with upper end lower parameter
+     limits or  None, which indicates that the parameter is not bounded on
+     this side. Default: no limits.
+   - ``'step'``: the step size to be used in calculating the numerical derivatives.
      Default: step size is computed automatically.
-   - *side*: the sidedness of the finite difference when computing numerical
-     derivatives.  This field can take four values:
+   - ``'side'``: the sidedness of the finite difference when computing numerical
+     derivatives.  This item can take four values:
 
       0 - one-sided derivative computed automatically (default)
 
@@ -281,7 +282,7 @@ Fitter object's behaviour.
 
       3 - user-computed explicit derivatives
 
-     where :math:`h` is the value of the parameter *step*
+     where :math:`h` is the value of the parameter ``'step'``
      described above.
      The "automatic" one-sided derivative method will chose a
      direction for the finite difference which does not
@@ -290,12 +291,18 @@ Fitter object's behaviour.
      principle more precise, but requires twice as many
      function evaluations.  Default: 0.
 
-   - *deriv_debug*: flag to enable/disable console debug logging of
-     user-computed derivatives, as described above.  1=enable
-     debugging; 0=disable debugging.  If debugging is enabled,
-     then *side* should be set to 0, 1, -1 or 2, depending on which numerical
-     derivative you wish to compare to.
-     Default: 0.
+   - ``'deriv_debug'``: boolean to specify console debug logging of
+     user-computed derivatives. True: enable debugging. 
+     If debugging is enabled,
+     then ``'side'`` should be set to 0, 1, -1 or 2, depending on which
+     numerical derivative you wish to compare to.
+     Default: False.
+
+   As an example, consider a function with four parameters of which the
+   first parameter should be fixed and for the third parameter explicit
+   derivatives should be used. In this case, ``parinfo`` should have the value
+   ``[{'fixed': True}, None, {'side': 3}, None]`` or
+   ``[{'fixed': True}, {}, {'side': 3}, {}]``.
 
 .. attribute:: ftol
 
