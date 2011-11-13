@@ -198,7 +198,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('contents', 'kapteyn.tex', u'Kapteyn Package Documentation',
-   u'Hans Terlouw\\ Martin Vogelaar', 'manual', False),
+   u'Hans Terlouw\\\\ Martin Vogelaar', 'manual', False),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

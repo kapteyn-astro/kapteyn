@@ -36,7 +36,7 @@ the model and data is minimized.
 
 Class Fitter
 ------------
-.. autoclass:: Fitter(resfunct=None, deriv=None, modfunct=None, ...)
+.. autoclass:: Fitter(residuals, deriv=None, ...)
 
 Example
 -------
@@ -58,7 +58,7 @@ Example::
    
    a = {'x': x, 'y': y, 'w': w}
    
-   f = kmpfit.Fitter(resfunct=residuals, params0=[1, 2, 0], resargs=a)
+   f = kmpfit.Fitter(residuals, params0=[1, 2, 0], resargs=a)
    
    f.fit()                                     # call fit method
    print f.params
@@ -123,83 +123,65 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
          self.message = 'Non-finite parameter from mpfit.c'
          raise ValueError(self.message)
    p = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, x)
-   if self.modfunct is not None:                         # model function
-      f = <double*>PyArray_DATA(self.modfunct(p, self.xvals))
-      e = self.c_inverr
-      y = self.c_yvals
-      if mp[0]:
-         m = mp[0]
-         fvec = fvecp[0]
-      else:
-         deviates = numpy.zeros((self.m,), dtype='d')
-         fvec = <double*>PyArray_DATA(deviates)
-         fvecp[0] = fvec
-         mp[0] = m = self.m
-         self.deviates = deviates     # keep a reference to protect from GC
-         self.allocres()
+   if self.dictarg:
+      deviates = self.residuals(p, **self.resargs)
+   else:
+      deviates = self.residuals(p, self.resargs)
 
+   f = <double*>PyArray_DATA(deviates)
+   if mp[0]:
+      m = mp[0]
+      fvec = fvecp[0]
       for i in range(m):
-         fvec[i] = (y[i] - f[i]) * e[i]
-      return 0
-   else:                                                 # residuals function
+         fvec[i] = f[i]
+   else:
+      fvecp[0] = f
+      mp[0] = deviates.size
+      self.m = mp[0]
+      self.deviates = deviates       # keep a reference to protect from GC
+
+      self.allocres()
+   
+   if dvec!=NULL and self.deriv is not None:
+      for i in range(n):
+         self.dflags[i] = bool(<int>dvec[i])
       if self.dictarg:
-         deviates = self.resfunct(p, **self.resargs)
+         jac = self.deriv(p, self.dflags, **self.resargs)
       else:
-         deviates = self.resfunct(p, self.resargs)
+         jac = self.deriv(p, self.dflags, self.resargs)
+      cjac = <double*>PyArray_DATA(jac)
+      for j in range(n):
+         d = dvec[j]
+         if d!=NULL:
+            for i in range(m):
+               d[i] = cjac[i*n+j]
 
-      f = <double*>PyArray_DATA(deviates)
-      if mp[0]:
-         m = mp[0]
-         fvec = fvecp[0]
-         for i in range(m):
-            fvec[i] = f[i]
-      else:
-         fvecp[0] = f
-         mp[0] = deviates.size
-         self.m = mp[0]
-         self.deviates = deviates       # keep a reference to protect from GC
-
-         self.allocres()
-      
-      if dvec!=NULL and self.deriv is not None:
-         for i in range(n):
-            self.dflags[i] = bool(<int>dvec[i])
-         if self.dictarg:
-            jac = self.deriv(p, self.dflags, **self.resargs)
-         else:
-            jac = self.deriv(p, self.dflags, self.resargs)
-         cjac = <double*>PyArray_DATA(jac)
-         for j in range(n):
-            d = dvec[j]
-            if d!=NULL:
-               for i in range(m):
-                  d[i] = cjac[i*n+j]
-
-      return 0
+   return 0
 
 cdef class Fitter:
    """
-:param resfunct:
-      residuals function, see description below.
+:param residuals:
+      the residuals function, see description below.
 :param deriv:
       optional derivatives function, see description below. If a derivatives
       function is given, user-computed explicit derivatives are automatically
       set for all parameters in the attribute :attr:`parinfo`, but this can
       be changed by the user.
-:param modfunct:
-      model function, see description below.
 :param ...:
       other parameters, each corresponding with one of the configuration
-      attributes described below.
+      attributes described below. They can be defined here, when the Fitter
+      object is created, or later. The attributes :attr:`params0` and
+      :attr:`resargs` must be defined before the method :meth:`fit` is
+      called.
 
-Objects of this class are callable and return the fitted parameters.
+Objects of this class are callable and return the fitted parameters when called.
 
 **Residuals function**
 
 The residuals function must return a NumPy (dtype='d') array with weighted
 deviations between the model and the data. Its first argument is a NumPy
 array containing the parameter values. Depending on the type of
-the *resargs* attribute, the function can take one or more other arguments:
+the attribute :attr:`resargs`, the function takes one or more other arguments:
 
 - if *resargs* is a dictionary, this dictionary is used to provide the
   function with keyword arguments, e.g. if *resargs* is
@@ -207,6 +189,28 @@ the *resargs* attribute, the function can take one or more other arguments:
   as ``f(params, x=xdata, y=ydata, e=errdata)``.
 - if *resargs* is any other Python object, e.g. a list *l*,
   a function *f* will be called as ``f(params, l)``.
+
+In a typical scientific problem the residuals should be weighted so that
+each deviate has a Gaussian sigma of 1.0.  If *x* represents values of the
+independent variable, *y* represents a measurement for each value of *x*,
+and *err* represents the error in the measurements, then the deviates
+could be calculated as follows:
+
+.. math::
+
+   deviates = (y - f(x)) / err
+
+where *f* is the analytical function representing the model.
+If *err* are the 1-sigma uncertainties in *y*, then  
+
+.. math::
+
+   \sum deviates^2
+
+will be the total chi-squared value.  Fitter will minimize this value.
+As described above, the values of *x*, *y* and *err* are
+passed through Fitter to the residuals function via the attribute
+:attr:`resargs`. 
 
 **Derivatives function**
 
@@ -219,28 +223,14 @@ The first two arguments are a NumPy array containing the parameter values
 and a list with boolean values corresponding with the parameters. If
 such a boolean is True, the derivative with respect to the corresponding
 parameter should be computed, otherwise it may be ignored.
-This usually depends on how derivatives are specified in the attribute
-:attr:`parinfo`, or whether the parameter is fixed.
-In the same way as with the residuals function, the function can take one
+This usually depends on how derivatives are specified in item ``side`` of the
+attribute :attr:`parinfo`, or whether the parameter is fixed.
+In the same way as with the residuals function, the function takes one
 or more other arguments, depending on the type of the attribute :attr:`resargs`.
 
 The function must return a NumPy array with partial derivatives with respect
 to each parameter. It must have shape *(m,n)*, where *m*
 is the number of data points and *n* the number of parameters.
-
-**Model function**
-
-When a simple fixed expression for deviations between model and data is
-adequate, a model function can be used as an alternative to a residuals
-function.
-This expression is provided by the module and has the form
-``(y-model)/error``.
-
-A model function takes two arguments: a NumPy array containing the parameter
-values and a NumPy array with values of the independent variable ("x").
-It must return a NumPy (dtype='d') array with function values, so it is
-called in this way: ``y = f(params, x)``.
-
 
 **Configuration attributes**
 
@@ -249,27 +239,33 @@ Fitter object's behaviour.
 
 .. attribute:: params0
 
-   A NumPy array or a list with the initial estimates for the parameters.
+   Required attribute.
+   A NumPy array, a tuple or a list with the initial parameters values.
 
 .. attribute:: resargs
 
+   Required attribute.
    Python object with information for the residuals function and the
-   derivatives function. See there.
+   derivatives function. See above.
 
 .. attribute:: parinfo
 
    A list of directories with parameter contraints, one directory
    per parameter, or None if not given.
-   Each directory can have the following keys and values:
+   Each directory can have zero or more items with the following keys
+   and values:
 
-   - ``'fixed'``: a boolean value, whether the parameter is to be held fixed or
+     ``'fixed'``: a boolean value, whether the parameter is to be held fixed or
      not. Default: not fixed.
-   - ``'limits'``: a two-element tuple or list with upper end lower parameter
+
+     ``'limits'``: a two-element tuple or list with upper end lower parameter
      limits or  None, which indicates that the parameter is not bounded on
      this side. Default: no limits.
-   - ``'step'``: the step size to be used in calculating the numerical derivatives.
+
+     ``'step'``: the step size to be used in calculating the numerical derivatives.
      Default: step size is computed automatically.
-   - ``'side'``: the sidedness of the finite difference when computing numerical
+
+     ``'side'``: the sidedness of the finite difference when computing numerical
      derivatives.  This item can take four values:
 
       0 - one-sided derivative computed automatically (default)
@@ -291,7 +287,7 @@ Fitter object's behaviour.
      principle more precise, but requires twice as many
      function evaluations.  Default: 0.
 
-   - ``'deriv_debug'``: boolean to specify console debug logging of
+     ``'deriv_debug'``: boolean to specify console debug logging of
      user-computed derivatives. True: enable debugging. 
      If debugging is enabled,
      then ``'side'`` should be set to 0, 1, -1 or 2, depending on which
@@ -336,19 +332,6 @@ Fitter object's behaviour.
 
    Maximum number of function evaluations. Default: 0 (no limit)
 
-.. attribute:: xvalues
-
-   Only to be used with a model function. A NumPy array with values
-   of the independent variable.
-
-.. attribute:: yvalues
-
-   Only to be used with a model function. A NumPy array with data values.
-
-.. attribute:: errors
-
-   Only to be used with a model function. A NumPy array with data uncertainties.
-
 
 **Result attributes**
 
@@ -357,8 +340,8 @@ are available to the user:
 
 .. attribute:: params
 
-   A NumPy array, list or tuple with the fitted parameters. The type of
-   the object is the same as the type of :attr:`params0`.
+   A NumPy array, list or tuple with the fitted parameters. This attribute
+   has the same type as :attr:`params0`.
 
 .. attribute:: xerror
 
@@ -430,18 +413,21 @@ are available to the user:
 .. automethod:: fit(params0=None)
 """
 
-   cdef mp_par *c_pars
+   cdef object pars                         # parinfo
+   cdef mp_par *c_pars                      # parinfo: C-representation
    cdef int m, dictarg
-   cdef readonly int npar
-   cdef double *c_inverr, *c_yvals, *xall
    cdef mp_config *config
    cdef mp_result *result
-   cdef object params_t, parms0
-   cdef object modfunct, xvals, yvals, errvals, inverr, pars
-   cdef object resfunct, resargs
-   cdef object deriv, dflags
-   cdef object deviates
-   cdef readonly object message
+   cdef public object params0               # initial fitting parameters
+   cdef object params_t                     # parameter type
+   cdef double *xall                        # parameters: C-representation
+   cdef readonly int npar                   # number of parameters
+
+   cdef object residuals, resargs           # residuals function, argument
+   cdef object deriv, dflags                # derivatives function, flags
+
+   cdef object deviates                     # deviates
+   cdef readonly object message             # status message
 
    def __cinit__(self):
       self.config = <mp_config*>calloc(1, sizeof(mp_config))
@@ -456,24 +442,15 @@ are available to the user:
       free(self.c_pars)
       free(self.xall)
       
-   def __init__(self, resfunct=None, deriv=None, modfunct=None, params0=None,
-                parinfo=None, xvalues=None, yvalues=None, errors=None,
+   def __init__(self, residuals, deriv=None, params0=None, parinfo=None,
                 ftol=None, xtol=None, gtol=None, epsfcn=None,
                 stepfactor=None, covtol=None, maxiter=None, maxfev=None,
                 resargs={}):
-      if modfunct is not None and resfunct is not None:
-         raise ValueError('cannot specify both model- and residuals functions')
-      if resargs is not None and resargs is None:
-         raise ValueError('resargs meaningless without residuals function')
       self.npar = 0
       self.m = 0
-      self.modfunct = modfunct                  # model function
-      self.resfunct = resfunct                  # residuals function
-      self.deriv = deriv
-      self.params0 = params0                    # fitting parameters
-      self.xvalues = xvalues
-      self.yvalues = yvalues
-      self.errors = errors
+      self.residuals = residuals                # residuals function
+      self.deriv = deriv                        # derivatives function
+      self.params0 = params0                    # initial fitting parameters
       self.parinfo = parinfo                    # parameter constraints
       self.ftol = ftol
       self.xtol = xtol
@@ -486,13 +463,6 @@ are available to the user:
       self.resargs = resargs                    # args to residuals function
       self.dictarg = isinstance(resargs, dict)  # keyword args or one object?
 
-   property params0:
-      def __get__(self):
-         return self.parms0
-      def __set__(self, value):
-         self.params = value
-         self.parms0 = value
-   
    property params:
       def __get__(self):
          cdef npy_intp* shape = [self.npar]
@@ -526,64 +496,6 @@ are available to the user:
          if self.deriv is not None and self.pars is None:
             self.parinfo = [{'side': 3}]*self.npar
 
-   property xvalues:
-      def __get__(self):
-         return self.xvals
-      def __set__(self, value):
-         if value is None:
-            return
-         if self.modfunct is None:
-            self.message = 'xvalues meaningless without model function'
-            raise ValueError(self.message)
-         if self.m!=0:
-            if value.size!=self.m:
-               self.message = 'inconsistent xvalues array size'
-               raise ValueError(self.message)
-         else:
-            self.m = value.size
-         self.xvals = value
-    
-   property yvalues:
-      def __get__(self):
-         return self.yvals
-      def __set__(self, value):
-         if value is None:
-            return
-         if self.modfunct is None:
-            self.message = 'yvalues meaningless without model function'
-            raise ValueError(self.message)
-         if self.m!=0:
-            if value.size!=self.m:
-               self.message = 'inconsistent yvalues array size'
-               raise ValueError(self.message)
-         else:
-            self.m = value.size
-         if not value.dtype=='d':
-            value = value.astype('f8')
-         if not value.flags.contiguous and value.flags.aligned:
-            value = value.copy()
-         self.yvals = value
-         self.c_yvals = <double*>PyArray_DATA(value)
-
-   property errors:
-      def __get__(self):
-         return self.errvals
-      def __set__(self, value):
-         if value is None:
-            return
-         if self.modfunct is None:
-            self.message = 'errors meaningless without model function'
-            raise ValueError(self.message)
-         if self.m!=0:
-            if value.size!=self.m:
-               self.message = 'inconsistent errors array size'
-               raise ValueError(self.message)
-         else:
-            self.m = value.size
-         self.errvals = value
-         self.inverr = 1./value
-         self.c_inverr = <double*>PyArray_DATA(self.inverr)
-         
    property parinfo:
       def __get__(self):
          return self.pars
@@ -801,6 +713,9 @@ Optional argument *params0*: initial fitting parameters.
       cdef mp_par *parinfo
       if params0 is not None:
          self.params0 = params0
+      if self.params0 is None:
+         self.message = 'no initial fitting parameters specified'
+         raise RuntimeError(self.message)
       else:
          self.params = self.params0
       status = mpfit(<mp_func>xmpfunc, self.npar, self.xall,
@@ -819,8 +734,6 @@ Optional argument *params0*: initial fitting parameters.
          self.message = None
       return status
 
-   def __call__(self, yvalues=None, xvalues=None, params0=None):
-      self.yvalues = yvalues
-      self.xvalues = xvalues
+   def __call__(self, params0=None):
       self.fit(params0)
       return self.params
