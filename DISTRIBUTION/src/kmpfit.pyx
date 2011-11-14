@@ -154,7 +154,7 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
          d = dvec[j]
          if d!=NULL:
             for i in range(m):
-               d[i] = cjac[i*n+j]
+               d[i] = cjac[j*m+i]
 
    return 0
 
@@ -219,18 +219,21 @@ derivatives, which are used in the minimization process.  This can be
 useful to save time, or when the derivative is tricky to evaluate
 numerically. 
 
-The first two arguments are a NumPy array containing the parameter values
-and a list with boolean values corresponding with the parameters. If
-such a boolean is True, the derivative with respect to the corresponding
-parameter should be computed, otherwise it may be ignored.
-This usually depends on how derivatives are specified in item ``side`` of the
-attribute :attr:`parinfo`, or whether the parameter is fixed.
-In the same way as with the residuals function, the function takes one
-or more other arguments, depending on the type of the attribute :attr:`resargs`.
+The first two arguments are a NumPy array containing the parameter
+values and a list with boolean values corresponding with the parameters. 
+If such a boolean is True, the derivative with respect to the
+corresponding parameter should be computed, otherwise it may be ignored. 
+Fitter determines these flags depending on how derivatives are
+specified in item ``side`` of the attribute :attr:`parinfo`, or whether
+the parameter is fixed.  In the same way as with the residuals function,
+the function takes one or more other arguments, depending on the type of
+the attribute :attr:`resargs`. So a derivatives function *f* may for instance
+be called as ``f(params, flags, x=xdata, y=ydata, e=errdata)`` or
+``f(params, flags, l)``.
 
 The function must return a NumPy array with partial derivatives with respect
-to each parameter. It must have shape *(m,n)*, where *m*
-is the number of data points and *n* the number of parameters.
+to each parameter. It must have shape *(n,m)*, where *n*
+is the number of parameters and *m* the number of data points.
 
 **Configuration attributes**
 

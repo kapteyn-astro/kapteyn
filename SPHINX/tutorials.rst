@@ -7,5 +7,5 @@ Tutorials
 
    wcstutorial
    maputilstutorial
+   kmpfittutorial
    tabarraytutorial
-

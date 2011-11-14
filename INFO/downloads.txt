@@ -130,5 +130,9 @@ Yonsei University @ 165.132.28.225
 Universitaet Koblenz-Landau @ 141.26.71.65
 Istituto Nazionale di Astrofisica @ 155.253.16.5
 Princeton University @ 128.112.84.134
+Institut d' astrophysique de Paris @ 193.49.4.36
+Graduate Institute of Astronomy, NCU, Taiwan @ 140.115.34.30
 
-tot: Mon Nov  7 10:33:15 CET 2011
+
+tot: Mon Nov 14 10:33:32 CET 2011
+Mon Nov  7 10:33:15 CET 2011
