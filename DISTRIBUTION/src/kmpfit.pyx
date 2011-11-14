@@ -119,7 +119,7 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
 
    self = <Fitter>private_data
    for i in range(n):
-      if x[i]!=x[i]:
+      if x[i]!=x[i]:                                         # not finite?
          self.message = 'Non-finite parameter from mpfit.c'
          raise ValueError(self.message)
    p = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, x)
@@ -699,8 +699,11 @@ are available to the user:
 
    cdef allocres(self):
       # allocate arrays in mp_result_struct
+      free(self.result.resid)
       self.result.resid = <double*>calloc(self.m, sizeof(double))
+      free(self.result.xerror)
       self.result.xerror = <double*>calloc(self.npar, sizeof(double))
+      free(self.result.covar)
       self.result.covar = <double*>calloc(self.npar*self.npar, sizeof(double))
 
    def fit(self, params0=None):
