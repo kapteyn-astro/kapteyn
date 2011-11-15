@@ -38,10 +38,67 @@ Class Fitter
 ------------
 .. autoclass:: Fitter(residuals, deriv=None, ...)
 
-Example
--------
 
-Example::
+Testing derivatives
+...................
+
+In principle, the process of computing explicit derivatives should be  
+straightforward.  In practice, the computation can be error prone,
+often being wrong by a sign or a scale factor.
+       
+In order to be sure that the explicit derivatives are correct,
+for debugging purposes the
+user can set the attribute parinfo['deriv_debug'] = True
+for any parameter. This will cause :meth:`Fitter.fit` to
+print *both* explicit derivatives and numerical derivatives to the
+console so that the user can compare the results.
+
+When debugging derivatives, it is important to set parinfo['side']
+to the kind of numerical derivative to compare with:
+it should be set to 0, 1, -1, or 2, and *not* set to 3. 
+When parinfo['deriv_debug'] is set for a parameter, then
+:meth:`Fitter.fit` automatically understands to request user-computed derivatives.
+
+The console output will be sent to the standard output, and will
+appear as a block of ASCII text like this::
+
+  FJAC DEBUG BEGIN
+  # IPNT FUNC DERIV_U DERIV_N DIFF_ABS DIFF_REL
+  FJAC PARM 1
+  ....  derivative data for parameter 1 ....
+  FJAC PARM 2
+  ....  derivative data for parameter 2 ....
+  ....  and so on ....
+  FJAC DEBUG END
+
+which is to say, debugging data will be bracketed by pairs of "FJAC  
+DEBUG" BEGIN/END phrases.  Derivative data for individual parameter i
+will be labeled by "FJAC PARM i".  The columns are, in order,
+
+  IPNT - data point number :math:`j`
+
+  FUNC - residuals function evaluated at :math:`x_j`
+
+  DERIV_U - user-calculated derivative
+  :math:`{\\partial f(x_j)}/{\\partial p_i}`
+
+  DERIV_N - numerically calculated derivative according to the value of
+  parinfo['side']
+
+  DIFF_ABS - difference between DERIV_U and DERIV_N: fabs(DERIV_U-DERIV_N)
+
+  DIFF_REL - relative difference: fabs(DERIV_U-DERIV_N)/DERIV_U
+
+Since individual numerical derivative values may contain significant 
+round-off errors, it is up to the user to critically compare DERIV_U 
+and DERIV_N, using DIFF_ABS and DIFF_REL as a guide.
+
+
+
+Example
+.......
+
+::
 
    #!/usr/bin/env python
    
@@ -214,7 +271,7 @@ passed through Fitter to the residuals function via the attribute
 
 **Derivatives function**
 
-The optional derivates function can be used to compute function
+The optional derivates function can be used to compute weighted function
 derivatives, which are used in the minimization process.  This can be
 useful to save time, or when the derivative is tricky to evaluate
 numerically. 
@@ -426,7 +483,7 @@ are available to the user:
    cdef double *xall                        # parameters: C-representation
    cdef readonly int npar                   # number of parameters
 
-   cdef object residuals, resargs           # residuals function, argument
+   cdef public object residuals, resargs    # residuals function, private data
    cdef object deriv, dflags                # derivatives function, flags
 
    cdef object deviates                     # deviates

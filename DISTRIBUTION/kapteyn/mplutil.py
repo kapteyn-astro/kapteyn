@@ -253,7 +253,7 @@ first :class:`AxesCallback` object `draw` as an attribute.
          id, numreg = self.__handlers[self.canvas, self.eventtype]
          self.__handlers[self.canvas, self.eventtype] = id, numreg+1
       except KeyError:
-         id = self.canvas.mpl_connect(self.eventtype, self.__handler)
+         id = self.canvas.mpl_connect(self.eventtype, self.__handler())
          self.__handlers[self.canvas,self.eventtype] = id, 1
       self.active = True                      # mark active
       self.__scheduled.insert(0, self)        # insert in active list
@@ -277,17 +277,20 @@ first :class:`AxesCallback` object `draw` as an attribute.
       self.active = False                     # mark inactive
       self.__scheduled.remove(self)           # remove from active list
 
-   def __handler(event):
-      if event.canvas.widgetlock.locked(): return
-      for callback in AxesCallback.__scheduled:
-         if event.canvas is callback.canvas   and \
-               event.name==callback.eventtype and \
-               callback.axes.contains(event)[0]:
-            callback.event = event
-            callback.xdata, callback.ydata = \
-               callback.axes.transData.inverted().transform((event.x, event.y))
-            if callback.proc(callback):
-               break
+   def __handler():
+      def __handler(event):
+         if event.canvas.widgetlock.locked(): return
+         for callback in AxesCallback.__scheduled:
+            if event.canvas is callback.canvas   and \
+                  event.name==callback.eventtype and \
+                  callback.axes.contains(event)[0]:
+               callback.event = event
+               callback.xdata, callback.ydata = \
+                  callback.axes.transData.inverted().transform(
+                                                        (event.x, event.y))
+               if callback.proc(callback):
+                  break
+      return __handler
    __handler = staticmethod(__handler)
 
 # ==========================================================================
@@ -383,7 +386,7 @@ there is no position involved.
          id, numreg = self.__handlers[self.canvas, self.eventtype]
          self.__handlers[self.canvas, self.eventtype] = id, numreg+1
       except KeyError:
-         id = self.canvas.mpl_connect(self.eventtype, self.__handler)
+         id = self.canvas.mpl_connect(self.eventtype, self.__handler())
          self.__handlers[self.canvas,self.eventtype] = id, 1
       self.active = True                      # mark active
       self.__scheduled.insert(0, self)        # insert in active list
@@ -407,13 +410,16 @@ there is no position involved.
       self.active = False                     # mark inactive
       self.__scheduled.remove(self)           # remove from active list
 
-   def __handler(event):
-      if event.canvas.widgetlock.locked(): return
-      for callback in CanvasCallback.__scheduled:
-         if event.canvas is callback.canvas and event.name==callback.eventtype:
-            callback.event = event
-            if callback.proc(callback):
-               break
+   def __handler():
+      def __handler(event):
+         if event.canvas.widgetlock.locked(): return
+         for callback in CanvasCallback.__scheduled:
+            if event.canvas is callback.canvas and \
+                  event.name==callback.eventtype:
+               callback.event = event
+               if callback.proc(callback):
+                  break
+      return __handler
    __handler = staticmethod(__handler)      
 
 # ==========================================================================
