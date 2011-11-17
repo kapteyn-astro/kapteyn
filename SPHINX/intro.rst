@@ -144,6 +144,8 @@ resulting directory. Then one of the following options can be chosen:
    The GIPSY installation procedure normally does this automatically,
    so usually this will not be necessary.
 
+
+
 Windows installer
 .................
 
@@ -160,6 +162,18 @@ the installation of the Kapteyn Package.  To install it properly,
 disable the setup of Scisoft in your startup file (e.g. ~/.cshrc,
 .profile) by commenting it out. 
 
+Mac OS X Compiler problem
+.........................
+
+There is a known problem with Apple's llvm-gcc-4.2 compiler.
+This compiler is known to crash with an internal compiler error
+(Segmentation fault: 11) when WCSLIB routine wcserr.c is compiled.
+It may help when the clang compiler is
+used instead of llvm-gcc-4.2. To do so, prefix a
+shell variable definition to the install command like this::
+
+   export CC=CLANG; python setup.py install ...
+
 
 Contact
 -------
@@ -167,17 +181,12 @@ Contact
 
 The authors can be reached at:
 
-   Kapteyn Astronomical Institute
-
-   Postbus 800
-
-   NL-9700 AV Groningen
-
-   The Netherlands
-
-   Telephone: +31 50 363 4073
-
-   E-mail:    gipsy@astro.rug.nl
+   |   Kapteyn Astronomical Institute
+   |   Postbus 800
+   |   NL-9700 AV Groningen
+   |   The Netherlands
+   |   Telephone: +31 50 363 4073
+   |   E-mail:    gipsy@astro.rug.nl
 
 ------------------
 
