@@ -140,7 +140,7 @@ is a particular strategy for iteratively searching for the best fit.
 
 
 Explicit partial derivatives
-============================
+----------------------------
 
 In the documentation of the IDL version of mpfit.pro, the author states
 that it is often sufficient and even faster to allow the fit routine to
