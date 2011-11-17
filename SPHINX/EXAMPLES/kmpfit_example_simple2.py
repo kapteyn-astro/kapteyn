@@ -34,7 +34,7 @@ y = model(paramsreal, x) + noise
 # Prepare a 'Fitter' object'
 #===========================
 arrays = {'x':x, 'y':y}
-fitobj = kmpfit.Fitter(resargs=arrays, residuals=residuals)
+fitobj = kmpfit.Fitter(residuals, data=arrays)
 
 paramsinitial = (0.0, 0.0)
 fitobj.fit(params0=paramsinitial)

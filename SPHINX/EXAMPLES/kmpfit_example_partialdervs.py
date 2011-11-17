@@ -65,7 +65,7 @@ err = 0.3*numpy.random.randn(N)
 
 # The fit
 fa = {'x':x, 'y':y, 'err':err}
-fitobj = kmpfit.Fitter(residuals=my_residuals, resargs=fa, deriv=my_derivs)
+fitobj = kmpfit.Fitter(my_residuals, data=fa, deriv=my_derivs)
 fitobj.fit(params0=p0)
 
 if (fitobj.status <= 0): 

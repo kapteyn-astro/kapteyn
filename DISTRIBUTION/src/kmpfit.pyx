@@ -7,11 +7,6 @@ Module kmpfit
 .. highlight:: python
    :linenothreshold: 5
 
-.. warning::
-
-   This chapter is currently being written and as such incomplete.
-
-
 Introduction
 ------------
 
@@ -33,6 +28,9 @@ which best fits the data.  The fit is "best" in the least-squares
 sense; that is, the sum of the weighted squared differences between
 the model and data is minimized.
 
+.. seealso::
+   :doc:`Tutorial<kmpfittutorial>` with background information for this module
+   and practical examples.
 
 Class Fitter
 ------------
@@ -115,7 +113,7 @@ Example
    
    a = {'x': x, 'y': y, 'w': w}
    
-   f = kmpfit.Fitter(residuals, params0=[1, 2, 0], resargs=a)
+   f = kmpfit.Fitter(residuals, params0=[1, 2, 0], data=a)
    
    f.fit()                                     # call fit method
    print f.params
@@ -181,9 +179,9 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
          raise ValueError(self.message)
    p = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, x)
    if self.dictarg:
-      deviates = self.residuals(p, **self.resargs)
+      deviates = self.residuals(p, **self.data)
    else:
-      deviates = self.residuals(p, self.resargs)
+      deviates = self.residuals(p, self.data)
 
    f = <double*>PyArray_DATA(deviates)
    if mp[0]:
@@ -203,9 +201,9 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
       for i in range(n):
          self.dflags[i] = bool(<int>dvec[i])
       if self.dictarg:
-         jac = self.deriv(p, self.dflags, **self.resargs)
+         jac = self.deriv(p, self.dflags, **self.data)
       else:
-         jac = self.deriv(p, self.dflags, self.resargs)
+         jac = self.deriv(p, self.dflags, self.data)
       cjac = <double*>PyArray_DATA(jac)
       for j in range(n):
          d = dvec[j]
@@ -228,7 +226,7 @@ cdef class Fitter:
       other parameters, each corresponding with one of the configuration
       attributes described below. They can be defined here, when the Fitter
       object is created, or later. The attributes :attr:`params0` and
-      :attr:`resargs` must be defined before the method :meth:`fit` is
+      :attr:`data` must be defined before the method :meth:`fit` is
       called.
 
 Objects of this class are callable and return the fitted parameters when called.
@@ -238,13 +236,13 @@ Objects of this class are callable and return the fitted parameters when called.
 The residuals function must return a NumPy (dtype='d') array with weighted
 deviations between the model and the data. Its first argument is a NumPy
 array containing the parameter values. Depending on the type of
-the attribute :attr:`resargs`, the function takes one or more other arguments:
+the attribute :attr:`data`, the function takes one or more other arguments:
 
-- if *resargs* is a dictionary, this dictionary is used to provide the
-  function with keyword arguments, e.g. if *resargs* is
+- if *data* is a dictionary, this dictionary is used to provide the
+  function with keyword arguments, e.g. if *data* is
   ``{'x': xdata, 'y': ydata, 'e': errdata}``, a function *f* will be called
   as ``f(params, x=xdata, y=ydata, e=errdata)``.
-- if *resargs* is any other Python object, e.g. a list *l*,
+- if *data* is any other Python object, e.g. a list *l*,
   a function *f* will be called as ``f(params, l)``.
 
 In a typical scientific problem the residuals should be weighted so that
@@ -267,7 +265,7 @@ If *err* are the 1-sigma uncertainties in *y*, then
 will be the total chi-squared value.  Fitter will minimize this value.
 As described above, the values of *x*, *y* and *err* are
 passed through Fitter to the residuals function via the attribute
-:attr:`resargs`. 
+:attr:`data`. 
 
 **Derivatives function**
 
@@ -284,7 +282,7 @@ Fitter determines these flags depending on how derivatives are
 specified in item ``side`` of the attribute :attr:`parinfo`, or whether
 the parameter is fixed.  In the same way as with the residuals function,
 the function takes one or more other arguments, depending on the type of
-the attribute :attr:`resargs`. So a derivatives function *f* may for instance
+the attribute :attr:`data`. So a derivatives function *f* may for instance
 be called as ``f(params, flags, x=xdata, y=ydata, e=errdata)`` or
 ``f(params, flags, l)``.
 
@@ -302,7 +300,7 @@ Fitter object's behaviour.
    Required attribute.
    A NumPy array, a tuple or a list with the initial parameters values.
 
-.. attribute:: resargs
+.. attribute:: data
 
    Required attribute.
    Python object with information for the residuals function and the
@@ -445,7 +443,7 @@ are available to the user:
 
 .. attribute:: resid
 
-   Final residuals
+   Final residuals.
 
 .. attribute:: niter
 
@@ -457,7 +455,7 @@ are available to the user:
 
 .. attribute:: version
 
-   mpfit.c's version string
+   mpfit.c's version string.
 
 .. attribute:: status
 
@@ -483,7 +481,7 @@ are available to the user:
    cdef double *xall                        # parameters: C-representation
    cdef readonly int npar                   # number of parameters
 
-   cdef public object residuals, resargs    # residuals function, private data
+   cdef public object residuals, data       # residuals function, private data
    cdef object deriv, dflags                # derivatives function, flags
 
    cdef object deviates                     # deviates
@@ -505,7 +503,7 @@ are available to the user:
    def __init__(self, residuals, deriv=None, params0=None, parinfo=None,
                 ftol=None, xtol=None, gtol=None, epsfcn=None,
                 stepfactor=None, covtol=None, maxiter=None, maxfev=None,
-                resargs={}):
+                data={}):
       self.npar = 0
       self.m = 0
       self.residuals = residuals                # residuals function
@@ -520,8 +518,8 @@ are available to the user:
       self.covtol = covtol
       self.maxiter = maxiter
       self.maxfev = maxfev
-      self.resargs = resargs                    # args to residuals function
-      self.dictarg = isinstance(resargs, dict)  # keyword args or one object?
+      self.data = data                          # args to residuals function
+      self.dictarg = isinstance(data, dict)     # keyword args or one object?
 
    property params:
       def __get__(self):
