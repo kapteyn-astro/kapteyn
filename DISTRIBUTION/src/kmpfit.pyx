@@ -471,7 +471,7 @@ are available to the user:
 .. automethod:: fit(params0=None)
 """
 
-   cdef object parinfo                      # parinfo
+   cdef public object parinfo               # parinfo
    cdef mp_par *c_pars                      # parinfo: C-representation
    cdef int m, dictarg
    cdef mp_config *config
@@ -503,7 +503,7 @@ are available to the user:
    def __init__(self, residuals, deriv=None, params0=None, parinfo=None,
                 ftol=None, xtol=None, gtol=None, epsfcn=None,
                 stepfactor=None, covtol=None, maxiter=None, maxfev=None,
-                data={}):
+                nofinitecheck=None, data=None):
       self.npar = 0
       self.m = 0
       self.residuals = residuals                # residuals function
@@ -518,6 +518,7 @@ are available to the user:
       self.covtol = covtol
       self.maxiter = maxiter
       self.maxfev = maxfev
+      self.nofinitecheck = nofinitecheck
       self.data = data                          # args to residuals function
       self.dictarg = isinstance(data, dict)     # keyword args or one object?
 
@@ -552,67 +553,10 @@ are available to the user:
          if self.dflags is None:
             self.dflags = [False]*self.npar              # flags for deriv()
          if self.parinfo is None:
-            if self.deriv is None:
-               self.parinfo = [None]*self.npar
-            else:
+            if self.deriv is not None:
                self.parinfo = [{'side': 3}]*self.npar
-
-   property parinfoX:
-      def __get__(self):
-         return self.pars
-      def __set__(self, value):
-         if value is None:
-            return
-         cdef mp_par *c_par
-         l = len(value)
-         if self.npar==0:
-            self.npar = l
-         elif l!=self.npar:
-            self.message = 'inconsistent parinfo list length'
-            raise ValueError(self.message)
-         self.pars = value
-         if self.c_pars==NULL:
-            self.c_pars = <mp_par*>calloc(self.npar, sizeof(mp_par))
-         ipar = 0         
-         for par in self.pars:
-            if par is not None:
-               c_par = &self.c_pars[ipar]
-
-               try:
-                  c_par.fixed = par['fixed']
-               except:
-                  c_par.fixed = 0
-
-               try:
-                  limits = par['limits']
-                  for limit in (0,1):
-                     if limits[limit] is not None:
-                        c_par.limited[limit] = 1
-                        c_par.limits[limit] = limits[limit]
-               except:
-                  for limit in (0,1):
-                     c_par.limited[limit] = 0
-                     c_par.limits[limit] = 0.0
-               
-               try:
-                  c_par.step = par['step']
-               except:
-                  c_par.step = 0
-                  
-               try:
-                  c_par.side = par['side']
-               except:
-                  c_par.side = 0
-
-               try:
-                  c_par.deriv_debug = par['deriv_debug']
-               except:
-                  c_par.deriv_debug = 0
-
-            ipar += 1
-      def __del__(self):
-         free(self.c_pars)
-         self.c_pars = NULL
+            else:
+               self.parinfo = [None]*self.npar
 
    property ftol:
       def __get__(self):
