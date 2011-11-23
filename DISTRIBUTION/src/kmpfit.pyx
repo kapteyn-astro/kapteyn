@@ -471,7 +471,7 @@ are available to the user:
 .. automethod:: fit(params0=None)
 """
 
-   cdef object pars                         # parinfo
+   cdef object parinfo                      # parinfo
    cdef mp_par *c_pars                      # parinfo: C-representation
    cdef int m, dictarg
    cdef mp_config *config
@@ -551,10 +551,13 @@ are available to the user:
          self.xall = xall
          if self.dflags is None:
             self.dflags = [False]*self.npar              # flags for deriv()
-         if self.deriv is not None and self.pars is None:
-            self.parinfo = [{'side': 3}]*self.npar
+         if self.parinfo is None:
+            if self.deriv is None:
+               self.parinfo = [None]*self.npar
+            else:
+               self.parinfo = [{'side': 3}]*self.npar
 
-   property parinfo:
+   property parinfoX:
       def __get__(self):
          return self.pars
       def __set__(self, value):
@@ -771,7 +774,8 @@ Perform a fit with the current values of parameters and other attributes.
 Optional argument *params0*: initial fitting parameters.
 (Default: previous initial values are used.)
 """
-      cdef mp_par *parinfo
+      cdef mp_par *c_par
+
       if params0 is not None:
          self.params0 = params0
       if self.params0 is None:
@@ -779,6 +783,46 @@ Optional argument *params0*: initial fitting parameters.
          raise RuntimeError(self.message)
       else:
          self.params = self.params0
+
+      if len(self.parinfo)!=self.npar:
+         self.message = 'inconsistent parinfo list length'
+         raise ValueError(self.message)
+      if self.c_pars==NULL:
+         self.c_pars = <mp_par*>calloc(self.npar, sizeof(mp_par))
+      for ipar, par in enumerate(self.parinfo):
+         c_par = &self.c_pars[ipar]
+
+         try:
+            c_par.fixed = par['fixed']
+         except:
+            c_par.fixed = 0
+
+         try:
+            limits = par['limits']
+            for limit in (0,1):
+               if limits[limit] is not None:
+                  c_par.limited[limit] = 1
+                  c_par.limits[limit] = limits[limit]
+         except:
+            for limit in (0,1):
+               c_par.limited[limit] = 0
+               c_par.limits[limit] = 0.0
+         
+         try:
+            c_par.step = par['step']
+         except:
+            c_par.step = 0
+         
+         try:
+            c_par.side = par['side']
+         except:
+            c_par.side = 0
+
+         try:
+            c_par.deriv_debug = par['deriv_debug']
+         except:
+            c_par.deriv_debug = 0
+
       status = mpfit(<mp_func>xmpfunc, self.npar, self.xall,
                      self.c_pars, self.config, <void*>self, self.result)
       if status<=0:
