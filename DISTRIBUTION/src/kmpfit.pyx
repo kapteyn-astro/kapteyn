@@ -103,16 +103,16 @@ Example
    import numpy
    from kapteyn import kmpfit
    
-   def residuals(p, x, y, w):
-      a,b,c = p
+   def residuals(p, d):
+      a, b, c = p
+      x, y, w = d
       return (y - (a*x*x+b*x+c))/w
    
    x = numpy.arange(-50,50,0.2)
    y = 2*x*x + 3*x - 3 + 2*numpy.random.standard_normal(x.shape)
    w = numpy.ones(x.shape)
    
-   a = {'x': x, 'y': y, 'w': w}
-   
+   a = [x, y, w]
    f = kmpfit.Fitter(residuals, params0=[1, 2, 0], data=a)
    
    f.fit()                                     # call fit method
@@ -122,7 +122,7 @@ Example
    # [2.0001022845514451, 3.0014019147386, -3.0096629062273133]
    # mpfit (potential) success: Convergence in chi-square value (1)
    
-   a['y'] = 3*x*x  - 2*x - 5 + 0.5*numpy.random.standard_normal(x.shape)
+   a[1] = 3*x*x  - 2*x - 5 + 0.5*numpy.random.standard_normal(x.shape)
    print f(params0=[2, 0, -1])                 # call Fitter object
    # result:
    # [3.0000324686457871, -1.999896340813663, -5.0060187435412962]
@@ -178,10 +178,7 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
          self.message = 'Non-finite parameter from mpfit.c'
          raise ValueError(self.message)
    p = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, x)
-   if self.dictarg:
-      deviates = self.residuals(p, **self.data)
-   else:
-      deviates = self.residuals(p, self.data)
+   deviates = self.residuals(p, self.data)
 
    f = <double*>PyArray_DATA(deviates)
    if mp[0]:
@@ -200,10 +197,7 @@ cdef int xmpfunc(int *mp, int n, double *x, double **fvecp, double **dvec,
    if dvec!=NULL and self.deriv is not None:
       for i in range(n):
          self.dflags[i] = bool(<int>dvec[i])
-      if self.dictarg:
-         jac = self.deriv(p, self.dflags, **self.data)
-      else:
-         jac = self.deriv(p, self.dflags, self.data)
+      jac = self.deriv(p, self.data, self.dflags)
       cjac = <double*>PyArray_DATA(jac)
       for j in range(n):
          d = dvec[j]
@@ -234,16 +228,11 @@ Objects of this class are callable and return the fitted parameters when called.
 **Residuals function**
 
 The residuals function must return a NumPy (dtype='d') array with weighted
-deviations between the model and the data. Its first argument is a NumPy
-array containing the parameter values. Depending on the type of
-the attribute :attr:`data`, the function takes one or more other arguments:
-
-- if *data* is a dictionary, this dictionary is used to provide the
-  function with keyword arguments, e.g. if *data* is
-  ``{'x': xdata, 'y': ydata, 'e': errdata}``, a function *f* will be called
-  as ``f(params, x=xdata, y=ydata, e=errdata)``.
-- if *data* is any other Python object, e.g. a list *l*,
-  a function *f* will be called as ``f(params, l)``.
+deviations between the model and the data. It takes two arguments:
+a NumPy array containing the parameter values and a reference
+to the attribute :attr:`data` which can be any object containing information
+about the data to be fitted. E.g., a tuple like
+``(xvalues, yvalues, errors)``.
 
 In a typical scientific problem the residuals should be weighted so that
 each deviate has a Gaussian sigma of 1.0.  If *x* represents values of the
@@ -274,17 +263,14 @@ derivatives, which are used in the minimization process.  This can be
 useful to save time, or when the derivative is tricky to evaluate
 numerically. 
 
-The first two arguments are a NumPy array containing the parameter
-values and a list with boolean values corresponding with the parameters. 
-If such a boolean is True, the derivative with respect to the
+The function takes three arguments: a NumPy array containing the parameter
+values, a reference to the attribute :attr:`data` and a list with boolean
+values corresponding with the parameters.
+If a boolean in the list is True, the derivative with respect to the
 corresponding parameter should be computed, otherwise it may be ignored. 
 Fitter determines these flags depending on how derivatives are
 specified in item ``side`` of the attribute :attr:`parinfo`, or whether
-the parameter is fixed.  In the same way as with the residuals function,
-the function takes one or more other arguments, depending on the type of
-the attribute :attr:`data`. So a derivatives function *f* may for instance
-be called as ``f(params, flags, x=xdata, y=ydata, e=errdata)`` or
-``f(params, flags, l)``.
+the parameter is fixed.
 
 The function must return a NumPy array with partial derivatives with respect
 to each parameter. It must have shape *(n,m)*, where *n*
@@ -473,7 +459,7 @@ are available to the user:
 
    cdef public object parinfo               # parinfo
    cdef mp_par *c_pars                      # parinfo: C-representation
-   cdef int m, dictarg
+   cdef int m
    cdef mp_config *config
    cdef mp_result *result
    cdef public object params0               # initial fitting parameters
@@ -520,7 +506,6 @@ are available to the user:
       self.maxfev = maxfev
       self.nofinitecheck = nofinitecheck
       self.data = data                          # args to residuals function
-      self.dictarg = isinstance(data, dict)     # keyword args or one object?
 
    property params:
       def __get__(self):

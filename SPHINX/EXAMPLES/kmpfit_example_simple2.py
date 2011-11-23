@@ -16,7 +16,8 @@ def model(p, x):
 
 # Define the residual function
 #==============================
-def residuals(p, x, y):
+def residuals(p, d):
+   x, y = d
    return y - model(p,x)
 
 
@@ -33,7 +34,7 @@ y = model(paramsreal, x) + noise
 
 # Prepare a 'Fitter' object'
 #===========================
-arrays = {'x':x, 'y':y}
+arrays = (x, y)
 fitobj = kmpfit.Fitter(residuals, data=arrays)
 
 paramsinitial = (0.0, 0.0)

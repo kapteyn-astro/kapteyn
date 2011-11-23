@@ -18,16 +18,17 @@ def my_model(p, x):
    return( A * numpy.exp(-(x-mu)*(x-mu)/(2.0*sigma*sigma)) + zerolev )
 
 
-def my_residuals(p, x, y, err):
+def my_residuals(p, data):
    #-----------------------------------------------------------------------
    # This function is the function called by the fit routine in kmpfit
    # It returns a weighted residual. De fit routine calculates the
    # square of these values.
    #-----------------------------------------------------------------------
+   x, y, err = data
    return (y-my_model(p,x)) / err
 
 
-def my_derivs(p, dflags, x, y, err):
+def my_derivs(p, dflags, data):
    #-----------------------------------------------------------------------
    # This function is used by the fit routine to find the values for
    # the explicit partial derivatives. Argument 'dflags' is an array 
@@ -35,6 +36,7 @@ def my_derivs(p, dflags, x, y, err):
    # derivative is required.
    #-----------------------------------------------------------------------
    A, mu, sigma, zerolev = p
+   x, y, err = data
    pderiv = numpy.zeros([len(p), len(x)])  # You need to create the required array
    sig2 = sigma*sigma
    sig3 = sig2 * sigma
@@ -64,7 +66,7 @@ y = my_model(truepars, x) + 0.3*numpy.random.randn(len(x))
 err = 0.3*numpy.random.randn(N)
 
 # The fit
-fa = {'x':x, 'y':y, 'err':err}
+fa = (x, y, err)
 fitobj = kmpfit.Fitter(my_residuals, data=fa, deriv=my_derivs)
 fitobj.fit(params0=p0)
 
