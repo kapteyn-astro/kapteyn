@@ -35,18 +35,21 @@ y = model(paramsreal, x) + noise
 
 # Prepare a 'Fitter' object'
 #===========================
+paramsinitial = (0.0, 0.0)
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x,y))
 
-paramsinitial = (0.0, 0.0)
-fitobj.fit(params0=paramsinitial)
-if (fitobj.status <= 0):
-   print 'Error message = ', fitobj.errmsg
-else:
-   print "Optimal parameters: ", fitobj.params
+try:
+   fitobj.fit(params0=paramsinitial)
+except Exception, mes:
+   print "Something wrong with fit: ", mes
+   raise SystemExit
+
+print "Optimal parameters: ", fitobj.params
 
 
 # Plot the result
 #================
+rc('font', size=10)
 rc('legend', fontsize=8)
 fig = figure()
 xp = numpy.linspace(xstart-1, xend+1, 200)

@@ -771,3 +771,17 @@ Optional argument *params0*: initial fitting parameters.
    def __call__(self, params0=None):
       self.fit(params0)
       return self.params
+
+def simplefit(model, p0, x, y, err=1.0, **kwargs):
+   # Note that initial parameters (p0) must enter
+   # this function, because it is used as an array
+   def res(p, data):
+      x, y, err = data
+      return (y - model(p,x))/err
+  
+   x = numpy.asarray(x)
+   y = numpy.asarray(y)
+   err = numpy.asarray(err)
+   fitobj = Fitter(residuals=res, data=(x,y,err), **kwargs)
+   fitobj.fit(p0)
+   return fitobj
