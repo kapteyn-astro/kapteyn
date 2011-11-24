@@ -28,15 +28,15 @@ def my_residuals(p, data):
    return (y-my_model(p,x)) / err
 
 
-def my_derivs(p, dflags, data):
+def my_derivs(p, data, dflags):
    #-----------------------------------------------------------------------
    # This function is used by the fit routine to find the values for
    # the explicit partial derivatives. Argument 'dflags' is an array 
    # with booleans. If an element is True then an explicit partial
    # derivative is required.
    #-----------------------------------------------------------------------
-   A, mu, sigma, zerolev = p
    x, y, err = data
+   A, mu, sigma, zerolev = p
    pderiv = numpy.zeros([len(p), len(x)])  # You need to create the required array
    sig2 = sigma*sigma
    sig3 = sig2 * sigma
@@ -66,8 +66,7 @@ y = my_model(truepars, x) + 0.3*numpy.random.randn(len(x))
 err = 0.3*numpy.random.randn(N)
 
 # The fit
-fa = (x, y, err)
-fitobj = kmpfit.Fitter(my_residuals, data=fa, deriv=my_derivs)
+fitobj = kmpfit.Fitter(residuals=my_residuals, deriv=my_derivs, data=(x, y, err))
 fitobj.fit(params0=p0)
 
 if (fitobj.status <= 0): 
@@ -94,7 +93,8 @@ frame.plot(x, my_model(truepars,x), 'r', label="True data")
 frame.plot(x, my_model(fitobj.params,x), 'b', lw=2, label="Fit with mpfit.py")
 frame.set_xlabel("X")
 frame.set_ylabel("Measurement data")
-frame.set_title("Least-squares fit to noisy Gaussian data using KMPFIT")
+frame.set_title("Least-squares fit to noisy Gaussian data using KMPFIT",
+                fontsize=12)
 leg = frame.legend(loc=2)
 show()
 
