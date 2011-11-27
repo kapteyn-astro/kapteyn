@@ -185,12 +185,8 @@ Explicit partial derivatives
 
 In the documentation of the IDL version of *mpfit.pro*, the author states that it
 is often sufficient and even faster to allow the fit routine to calculate the
-derivatives numerically. However, when we work with *kmpfit*, we need an external function
-to evaluate the residuals. Such functions delay the fit routine so in Python it is efficient 
-to keep the number of function calls as low as possible. With explicit partial derivatives
+derivatives numerically. With explicit partial derivatives
 we usually gain an increase in speed of about 20%, at least for fitting Gaussian profiles.
-Probably the reduction in calls to the residuals function is bigger than the cost of calculating 
-the explicit partial derivatives.
 The real danger in using explicit partial derivatives seems to be that one easily makes
 small mistakes in deriving the necessary equations. This is not always obvious in test-runs.
 For the Gauss function in :eq:`gaussianfunction` we derived the following partial derivatives:
@@ -368,14 +364,14 @@ defined as:
 .. math::
    :label: bevington8_3
    
-   \chi^2 = \sum\limits_{i=0}^N {\left(\frac{\Delta y_i}{\sigma_i}\right)}^2 = \sum\limits_{i=0}^N \left[\frac{({y_i-y_{i}model)}^2}{\sigma_i^2} \right]
+   \chi^2 = \sum\limits_{i=0}^{N-1} {\left(\frac{\Delta y_i}{\sigma_i}\right)}^2 = \sum\limits_{i=0}^{N-1} \left[\frac{({y_i-y_{i}model)}^2}{\sigma_i^2} \right]
 
 The sample variance of the fit is defined as:
 
 .. math::
    :label: bevington8_29
    
-   s^2 = \frac{1}{N-n} \sum\limits_{i=0}^N ({y_i-y_{i}model)}^2
+   s^2 = \frac{1}{N-n} \sum\limits_{i=0}^{N-1} ({y_i-y_{i}model)}^2
 
 *N* is the number of data points and *n* is the number of (free) parameters.
 The number *N-n* is also called the *number of degrees of freedom*.
@@ -410,6 +406,7 @@ If a parameter :math:`p_j` has covariance error :math:`C_{jj}` then:
 
 The uncertainties from the covariance matrix in *kmpfit* are called ``xerror``.
 The scaled uncertainties are used in unweighted fits are called ``stderr``.
+
 
 The next code example is a small script that shows that the scaled error estimates
 are realistic if we compare them to errors found with a bootstrap method.
@@ -456,8 +453,13 @@ be sure that we are using the same array ``xr``, ``yr`` and ``ery`` each time, b
 the fit routine expects the data in these arrays (and not copies of them with the same name).
 The synthetic data arrays will consist of about 37 percent duplicates. With these 
 synthetic arrays we repeat the fit and find our :math:`p_{(i)}`. If we repeat this
-many times (let's say 5000), then we get the distribution we needed. The standard
+many times (let's say 1000), then we get the distribution we needed. The standard
 deviation of this distribution (i.e. for one parameter), gives the uncertainty.
+
+.. note::
+
+   The bigger the data set, the higher the number of bootstrap trials should be
+   to get accurate statistics.
 
 .. note::
 
@@ -473,15 +475,25 @@ analytical values are the same as the values derived from the covariance matrix
 Weighted fits
 +++++++++++++
 
-In fits with weights, one often uses the individual standard errors of the data points as weights.
+In fits with weights, one often uses the individual standard errors of the data
+points as weights.
 In equation :eq:`bevington8_3` we see that the weights :math:`w_i` are defined as
-:math:`w_i = 1/\sigma_i`. If we use these weights, then the value of :math:`\chi^2_{\nu}` is
-often smaller than 1, indicating that we underestimated our errors on the data points, or
-it is much bigger than 1, indicating that we overestimated these errors.
-The interpretation of the uncertainties derived from the covariance matrix is difficult then.
-The value of :math:`\chi^2` can be used to derive a value for the goodness of fit, but 
-the errors are not comparable with what we find if we apply bootstrapping to 
-find the standard errors on the best-fit parameters.
+:math:`w_i = 1/\sigma_i`. If we use weights, then the value of :math:`\chi^2_{\nu}`
+is often smaller than 1, indicating that we underestimated our errors on the
+data points, or it is much bigger than 1, indicating that we overestimated
+these errors. The usefulness of the standard errors derived from the
+covariance matrix to give a coincidence interval is limited then.
+Still, the value of :math:`\chi^2` can be used to derive a value for the
+goodness of fit, but the standard errors are not comparable with what we find
+if we apply bootstrapping to find the standard errors on the best-fit parameters.
+Alper, [Alper]_ states that for some combinations of model, data and weights,
+*the standard error estimates from diagonal elements of the covariance
+matrix neglect the interdependencies between parameters and lead
+to erroneous results*. Often the measurement errors are difficult to obtain precisely,
+sometimes these errors are not normally distributed.
+
+
+
 
 .. note::
 
@@ -495,6 +507,81 @@ find the standard errors on the best-fit parameters.
      if :math:`\chi^2_{\nu} \approx 1`,  but even then they can differ significantly
      from the ones we find with Monte Carlo simulations.
 
+
+Fitting data when both variables have uncertainties
+----------------------------------------------------
+
+The Effective Variance Method
++++++++++++++++++++++++++++++++
+
+
+Sometimes your data contains errors in y (:math:`\sigma_y`) and in x
+(:math:`\sigma_x`). Clutton [Clutton]_ shows that for a model function *f*,
+the effect of a small error :math:`\delta x_i` in :math:`x_i` is to change the
+measured value :math:`y_i` by an amount :math:`f^\prime (x_i) \delta x_i` and that
+as a result, the effective variance of a data point *i* is:
+
+.. math::
+   :label: clutton
+
+   var(i) = var(y_i) + var(f^\prime(x_i)) = \sigma_{y_i}^2 + {f^\prime}^2(x_i) \sigma_{x_i}^2
+
+For a linear model the model function is :math:`f(x) = a + bx`.
+Then :math:`f^\prime(x) = b` and the chi-square that needs to be minimized is
+
+.. math::
+   :label: errorinxandy
+
+   \chi^2 = \sum\limits_{i=0}^{N-1} \frac{{(y_i-a-bx_i)}^2}{\sigma_{y_i}^2 + b^2 \sigma_{x_i}^2}
+
+To use this effective variance method, we need to make a residuals function
+:math:`w_i(y_i-y_imodel)` 
+with weights :math:`w_i` equal to :math:`1/\sqrt{(\sigma_{y_i}^2+ b^2 \sigma_{x_i}^2)}`.
+An example of a valid residuals function is::
+
+   def residuals(p, data):
+      # Model: Y = a + b*x
+      # Merit function for data with errors in both coordinates
+      a, b = p
+      x, y, ex, ey = data
+      w1 = ey*ey + b*b*ex*ex
+      w = numpy.sqrt(numpy.where(w1==0.0, 0.0, 1.0/(w1)))
+      d = w*(y-a-b*x)
+      return d
+
+Fits with *kmpfit* and artificial data give best-fit parameters and estimated errors,
+which match with those obtained from SciPy's ODR routine.
+This is demonstrated in the next program:
+
+**Example:  kmpfit_errorsinXandY - Errors in both variables**
+
+.. plot:: EXAMPLES/kmpfit_errorsinXandY.py
+   :include-source:
+   :align: center
+
+
+If you want to find the best-fit parameters of a model that is not linear in
+its parameters, the effective variance method is less useful. If your model is
+given by :math:`f(x) = a\sin(bx+c)` then :math:`f^\prime(x) = ab\cos(bx+c)`
+the effective variance in relation :eq:`clutton` can be implemented as::
+
+   def model(p, x):
+      # Model: Y = a*sin(b*x+c)
+      a,b,c = p
+      return a * numpy.sin(b*x+c)
+
+   def residuals(p, data):
+      # Merit function for data with errors in both coordinates
+      a, b, c = p
+      x, y, ex, ey = data
+      w1 = ey*ey + (a*b*numpy.cos(b*x+c))**2*ex*ex
+      w = numpy.sqrt(numpy.where(w1==0.0, 0.0, 1.0/(w1)))
+      d = w*(y-model(p,x))
+      return d
+
+The results are often worse than with SciPy's ODR routine.
+
+
 References
 ----------
    
@@ -504,3 +591,10 @@ References
 .. [NumRep] Numerical Recipes in C, The Art of Scientific Computing,
    William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
    2nd edition, Cambridge University Press, 1992
+
+.. [Alper] Alper, Joseph S., Gelb, Robert I., *Standard Errors and Confidence Intervals
+   in Nonlinear Regression: Comparison of Monte Carlo and Parametric Statistics*,
+   J. Phys. Chem., 1990, 94 (11), pp 4747–4751 (Journal of Physical Chemistry)
+
+.. [Clutton] Clutton-Brock, *Likelihood Distributions for Estimating Functions
+   When Both Variables Are Subject to Error*, Technometrics, Vol. 9, No. 2 (May, 1967), pp. 261-269
