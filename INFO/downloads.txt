@@ -137,6 +137,9 @@ Kitt Peak National Observatory @ 140.252.52.169
 Institut for Fysik og Astronomi, Aarhus Universitet @ 130.225.29.254
 Department of Astronomy, The University of Arizona @ 128.196.209.47
 RWTH Aachen University @ 134.130.4.245
+Australia Telescope National Facility @ 150.229.106.145
 
-tot: Wed Nov 23 11:52:24 CET 2011
+
+tot: Mon Nov 28 13:40:10 CET 2011
+Wed Nov 23 11:52:24 CET 2011
 

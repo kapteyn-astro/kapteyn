@@ -77,6 +77,10 @@ The following modules are included:
   and VariableColormap which implements a matplotlib Colormap subclass
   with special methods that allow the colormap to be modified.
 
+- :mod:`kmpfit`, providing a class and a function for non-linear
+  least-squares fitting, using the Levenberg-Marquardt technique.
+  It is based on the implementation in C of Craig Markwardt's MPFIT.
+
 - :mod:`tabarray`, providing a class for the efficient reading, writing and
   manipulating simple table-like structures in text files. 
 

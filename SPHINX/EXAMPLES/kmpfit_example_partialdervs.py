@@ -54,7 +54,8 @@ def my_derivs(p, data, dflags):
             pderiv[2] = fx * xmu2/(sig3)
          elif i == 3:
             pderiv[3] = 1.0
-   return numpy.divide(pderiv, -err)
+   return pderiv/-err
+   #return numpy.divide(pderiv, -err)
 
 
 # Artificial data

@@ -10,43 +10,67 @@ Tutorial kmpfit module
 Introduction
 ------------
 
-In this tutorial we try to show how flexible the least squares fit routine in :mod:`kmpfit` is.
-A least squares fit is an algorithm that minimizes the sum of squares of residuals which are
+In this tutorial we try to show how flexible the least squares fit routine in
+:mod:`kmpfit` is. We added practical examples which are explained with
+the necessary theoretical background. The fit routine *kmpfit* has many similar
+aspects in common with SciPy's *leastsq* function,
+but its interface is a more friendly and flexible.
+
+A least squares fit method is an algorithm that minimizes a so called
+*objective function*. This function is the sum of squares
+of residuals which are
 the difference between your data and that of the model using given parameters.
 It tries to find parameters for which this sum is a minimum.
-There is some flexibility in what you define as residual. The most common residual is defined
-by the difference of the data and the model in Y only. 
+There is some flexibility in what you define as residual. The most common residual
+is defined by the difference of the data and the model in Y only.
+The least squares fit method in *kmpfit* does the squaring and summing
+of the residuals.
 
 
+A Basic example
+-------------------
 
 The residual function
----------------------
++++++++++++++++++++++++++
 
-Assume we have data for which we know that the relation between X (the explanatory variable)
-and Y (the response variable) is linear, then a model could be written as::
+Usually one starts with a measured set of data points :math:`\left\{{x}_{i}, {y}_{i}\right\}`
+and wants to find the best-fit parameters :math:`\mathbf{p}` of the model
+defined by :math:`\mathbf{y}=\mathbf{f}\left(\mathbf{p},\mathbf{x}\right)`.
+In this model, **x** is called the explanatory variable and **y** is
+called the response variable.
+Then our residual function can be written as:
+
+.. math::
+   :label: residualsfunction
+
+    \mathbf{r}\left(\mathbf{p},\mathbf{x},\mathbf{y}\right)=\mathbf{y}-\mathbf{f}\left(\mathbf{p},\mathbf{x}\right)
+
+Assume we have data for which we know that the relation between X
+and Y is linear, then a model :math:`\mathbf{f}` could be written in Python as::
 
    def model(p, x):
       a,b = p
       y = a + b*x
       return y
 
-Parameter ``x`` is a NumPy array and ``p`` is an array with parameters. This function
-calculates y values for a given set of parameters and an array with x values.
+Parameter ``x`` is a NumPy array or Python list and ``p`` is an array with
+parameters. This function calculates y values for a given set of parameters
+and an array with x values.
 
-Then it is simple to define a so called residual function which calculates the 
+Then it is simple to define the residuals function :math:`\mathbf{r}` which calculates the
 residuals between data points and model::
 
    def residuals(p, data):
       x, y = data
       return y - model(p,x)
 
-This function has always two parameters. The first one is ``p`` which is an array
+This residuals function has always two parameters. The first one is ``p`` which is an array
 with parameter values in the order as defined in your model, and ``data``
 which is an object that stores the data arrays that you need in your residual function.
-The object could be anything but a list or tuple is often most practical to store the required 
-NumPy arrays with data. We will explain a bit more about this object when we discuss
+The object could be anything but a list or tuple is often most practical to store
+the required data. We will explain a bit more about this object when we discuss
 the constructor of a *Fitter* object.
-We need not to worry about the sign of the residuals because the
+We need not worry about the sign of the residuals because the
 fit routine calculates the the square of the residuals itself. Of course we can combine both
 functions ``model`` and ``residuals`` in one function. This is a bit more efficient in Python,
 but usually it is handy to have the model function available for if you want for 
@@ -58,6 +82,21 @@ instance a plot of the model with the best-fit parameters.
    array (i.e. dtype='d'). If your data in argument ``data`` is a list or is an array
    with single precision floating point numbers, you need to convert the result to
    the required type.
+
+.. note::
+
+   It is also possible to write residual functions that represent objective
+   functions (also called *merit* functions) used in orthogonal fit procedures
+   where both variables **x** and **y** have errors.
+
+
+.. note::
+
+   If the objective function is the weighted sum of squared residuals (WSSR),
+   then it is also called chi-square (:math:`\chi^2`). If one defines a
+   chi-square function, then the residual function must calculate the
+   square root of values given by the objective function. We will see
+   some examples in later sections.
 
 
 Artificial data for experiments
@@ -88,7 +127,7 @@ Initial parameter estimates
 ++++++++++++++++++++++++++++
 
 Now we have to tell the constructor of the `Fitter` object what the 
-residuals function is and which arrays the residuals function needs 
+residuals function is and which arrays the residuals function needs.
 To create a Fitter object we use the line::
 
    fitobj = kmpfit.Fitter(residuals=residuals, data=(x,y))
@@ -123,8 +162,8 @@ to add some noise to the data.
 
 
 
-Method ``simplefit()``
------------------------
+Function ``simplefit()``
+-----------------------------
 
 For simple fit problems we provided a simple interface.
 It is a method which is used  as follows:
@@ -158,8 +197,11 @@ The advantages of this method:
 .. literalinclude:: EXAMPLES/kmpfit_example_easyinterface.py
 
 
+Explicit partial derivatives
+-----------------------------
+
 Gaussian profiles
------------------
+++++++++++++++++++
 
 There are many examples where an astronomer needs to know the characteristics of a Gaussian profile.
 Fitting best parameters for a model that represents a Gauss function, is a way to obtain a measure for
@@ -180,8 +222,8 @@ It uses the Levenberg-Marquardt technique to solve the least-squares problem,
 which is a particular strategy for iteratively searching for the best fit. 
 
 
-Explicit partial derivatives
-----------------------------
+Partial derivatives for a Gaussian
+---------------------------------------------
 
 In the documentation of the IDL version of *mpfit.pro*, the author states that it
 is often sufficient and even faster to allow the fit routine to calculate the
@@ -226,7 +268,7 @@ that the arguments are in the right order. This order is:
    * p               
      -List with model parameters, generated by the fit routine
    * a1, a2, ... an
-     -Arrays given in the ``data`` argument in the constructor of the Fitter object.
+     -References to data in the ``data`` argument in the constructor of the Fitter object.
    * dflags            
      -List with booleans. One boolean for each model parameter.
      If the value is ``True`` then an explicit partial derivative is
@@ -268,10 +310,10 @@ The function ``my_derivs`` is then::
                pderiv[2] = fx * xmu2/(sig3)
             elif i == 3:
                pderiv[3] = 1.0
-      return numpy.divide(pderiv, -err)
+      return pderiv/-err
 
-Note that all the values per parameter are stored in a row. With NumPy's ``divide`` we
-divide each row elements-wise by the error. A minus sign is added to fulfill the 
+Note that all the values per parameter are stored in a row. A minus sign is added to 
+to the error array to fulfill the 
 requirement in equation :eq:`dervresidual`.
 The constructor of the Fitter object is as follows (the function ``my_residuals`` is
 not given here)::
@@ -309,7 +351,8 @@ The standard error (often denoted by SE) is a measure of the average amount that
 the model over- or under-predicts.
 
 According to [Bev]_ , the standard error is an uncertainty which corresponds to an
-increase of :math:`\chi^2` = 1. That implies that if we we add the standard error to
+increase of :math:`\chi^2` = 1. That implies that if we we add the standard error
+:math:`\sigma_i` to
 its corresponding parameter, fix it in a second fit and fit again, the value of
 :math:`\chi^2` will be increased by 1.
 
@@ -318,9 +361,10 @@ its corresponding parameter, fix it in a second fit and fit again, the value of
 
    \chi^2(p_i+\sigma_i) = \chi^2(p_i) + 1
 
-
 The next example shows this behaviour. We tested it with the first parameter fixed and 
-a second time with the second parameter fixed. The model is a straight line. If you run
+a second time with the second parameter fixed. The example also shows how to set
+parameters to 'fixed' in *kmpfit*.
+The model is a straight line. If you run
 the example you will see that it shows exactly the behaviour as in 
 :eq:`bevington11_31`. This proves that the covariance matrix of *kmpfit* can be used to
 derive standard errors.
@@ -342,20 +386,25 @@ The results for an arbitrary run::
    Fix first parameter and set its value to fitted value+error
    Params:         [2.0682217814912143, 2.896736695408106]
    Chi^2 min:      57.7606030002
-   Reduced Chi^2:  0.583440434345
    Errors from covariance matrix         :  [ 0.          0.03798767]
    
    Fix second parameter and set its value to fitted value+error
    Params:         [1.9641675954511788, 3.0108297500339498]
    Chi^2 min:      57.760602835
-   Reduced Chi^2:  0.583440432677
    Errors from covariance matrix         :  [ 0.0346452  0.       ]
+
+As you can see, the value of chi-square has increased with ~1. 
 
 
 In the (astronomical) literature one often lists best-fit parameters with
 the standard errors derived from the covariance matrix (in fact they are the
-square root of the diagonal values of this matrix). At least if the fit uses weights.
-If no weights are used, we need to rescale the covariance elements.
+square root of the diagonal values of this matrix).
+But note that this is only a good approximation of the Bootstrap standard errors
+if you are sure that you are using weights and that
+these weights are derived from real measurement errors (:math:`w_i=1/\sigma_i^2`)
+and these errors should be normally distributed.
+If you fit is unweighted or your weights are relative weights, then one needs
+to rescale the covariance elements. 
 
 Assume we have N data points and each data point has an individual error of
 :math:`\sigma_i`. Then chi-square (which we try to minimalize in our fits) is
@@ -364,18 +413,22 @@ defined as:
 .. math::
    :label: bevington8_3
    
-   \chi^2 = \sum\limits_{i=0}^{N-1} {\left(\frac{\Delta y_i}{\sigma_i}\right)}^2 = \sum\limits_{i=0}^{N-1} \left[\frac{({y_i-y_{i}model)}^2}{\sigma_i^2} \right]
+   \chi^2 = \sum\limits_{i=0}^{N-1} {\left(\frac{\Delta y_i}{\sigma_i}\right)}^2 = \sum\limits_{i=0}^{N-1} \left[\frac{({y_i-ymodel_{i})}^2}{\sigma_i^2} \right]
 
-The sample variance of the fit is defined as:
+The estimated sample variance of the fit does not include weighting and
+is defined as:
 
 .. math::
    :label: bevington8_29
    
-   s^2 = \frac{1}{N-n} \sum\limits_{i=0}^{N-1} ({y_i-y_{i}model)}^2
+   s^2 = \frac{1}{N-n} \sum\limits_{i=0}^{N-1} ({y_i-ymodel_{i})}^2
 
 *N* is the number of data points and *n* is the number of (free) parameters.
 The number *N-n* is also called the *number of degrees of freedom*.
 Kmpfit returns this number as attribute ``dof``.
+
+Unweighted fit
++++++++++++++++++
 
 We know that the best experimental estimate of the *parent standard deviation* 
 :math:`\sigma` is given by the experimental sample standard deviation *s*.
@@ -393,7 +446,7 @@ Combining :eq:`bevington8_29` and :eq:`bevington8_30` we find:
 .. math::
    :label: bevington_combined
 
-   \sigma_i^2 = \sigma^2 \approx s^2 = \frac{\chi^2}{N-n} \equiv \chi_{\nu}
+   \sigma_i^2 = \sigma^2 \approx s^2 = \frac{\chi^2}{N-n} \equiv \chi_{\nu}^2
 
 Then the variance in a fitted parameter is approximately the value from the
 covariance matrix diagonal times the variance *s* derived with :math:`\sigma_i=1`.
@@ -402,7 +455,7 @@ If a parameter :math:`p_j` has covariance error :math:`C_{jj}` then:
 .. math::
    :label: bevington_scalederror
 
-   \sigma_{p_j} \approx s^2 C_{jj}
+   \sigma_{p_j} \approx \sqrt{s^2 C_{jj}}
 
 The uncertainties from the covariance matrix in *kmpfit* are called ``xerror``.
 The scaled uncertainties are used in unweighted fits are called ``stderr``.
@@ -423,10 +476,16 @@ We will explain the Bootstrap Method in the next section.
 
 
 Bootstrap Method
------------------
+++++++++++++++++++
 
-We need to discuss the bootstrap method that we used in the last script in some detail
-Your data realized a set of best-fit parameters, say :math:`p_{(0)}`. This data set is one
+We need to discuss the bootstrap method, that we used in the last script, in some detail.
+Bootstrap is a tool which estimates standard errors of parameter estimates
+by generating synthetic data sets with samples drawn with replacement from
+the measured data and repeating the fit process with this synthetic data.
+
+
+Your data realizes a set of best-fit parameters, say :math:`p_{(0)}`.
+This data set is one
 of many different data sets that represent the 'true' parameter set :math:`p_{true}` . 
 Each data set will
 give a different set of fitted parameters :math:`p_{(i)}`. These parameter sets follow
@@ -459,33 +518,105 @@ deviation of this distribution (i.e. for one parameter), gives the uncertainty.
 .. note::
 
    The bigger the data set, the higher the number of bootstrap trials should be
-   to get accurate statistics.
+   to get accurate statistics. The best way to find a minimum number is to plot
+   the Bootstrap results as in the example.
 
-.. note::
 
-   For unweighted fits (the errors on the data points are all set to 1), one should use 
-   the scaled errors in attribute ``stderr``. They match with uncertainties of the
-   parameters found with the Bootstrap Method.
 
-For linear regression we have analytical expressions for the parameter uncertainties
-and we can compare them with the errors from *kmpfit*. It can be demonstrated that these
-analytical values are the same as the values derived from the covariance matrix 
-(attribute ``xerrors``).
+
 
 Weighted fits
 +++++++++++++
 
+In the literature we find analytical expressions for the standard errors
+of weighted fits for standard linear regression or orthogonal regression.
+How should we interpret these errors? For instance in Numerical Recipes, [NumRep]_
+we find the expressions for the best fit parameters of a model :math:`y=a+bx`
+
+Define:
+
+.. math::
+   :label: numrep_linear1
+
+   S \equiv \sum_{i=0}^{N-1} \frac{1}{\sigma_i^2}\ \ S_x \equiv \sum_{i=0}^{N-1} \frac{x_i}{\sigma_i^2} \ \ S_y \equiv \sum_{i=0}^{N-1} \frac{y_i}{\sigma_i^2}\\
+   S_{xx} \equiv \sum_{i=0}^{N-1} \frac{x_i^2}{\sigma_i^2}\ \ S_{xy} \equiv \sum_{i=0}^{N-1} \frac{x_iy_i}{\sigma_i^2}
+
+Then the system is rewritten into the simple equations:
+
+.. math::
+   :label: numrep_linear
+
+
+   aS + bS_x = S_y\ \ \ aS_x + bS_{xx} = S_{xy}
+
+.. math::
+   :label: numrep_linear3
+
+   \Delta \equiv SS_{xx} - (S_x)^2
+
+
+The solutions for *a* and *b* are:
+
+.. math::
+   :label: numrep_linear4
+
+   a = \frac{S_{xx}S_y - S_xS_{xy}}{\Delta}\\
+   b = \frac{S_{}S_{xy} - S_xS_{y}}{\Delta}
+
+and the standard errors are:
+
+.. math::
+   :label: numrep_standarderrors
+
+   \sigma_a^2 = \frac{S_{xx}}{\Delta}\\
+   \sigma_b^2 = \frac{S}{\Delta}
+
+
+It is easy to demonstrate that these errors are the same as those we find with
+*kmpfit* in attribute ``xerror``, which are square-root diagonal values of
+the covariance matrix in attribute ``covar``.
+
+
+.. literalinclude:: EXAMPLES/kmpfit_linearreg.py
+
+
+.. note::
+   
+   In the example output of the program you can verify that if we scale
+   the measurement errors with factor 10, the covariance errors are also
+   scaled with a factor 10, while the errors in attribute ``stderr``
+   are unaltered and therefore not sensitive to the absolute values
+   of the measurement errors.
+   
+.. note::
+
+   The script above demonstrates (at least for one model) that analytical
+   errors are the same as those we find as with *kmpfit* in attribute
+   ``xerror`` which are the square root of the diagonal elements of the
+   covariance matrix (attribute ``covar``).
+   The discussion about which standard errors to use (scaled or unscaled),
+   also applies to the analytically derived standard errors.
+
+.. note::
+
+   The uncertainties given in attribute ``xerror`` and ``stderr`` are the same,
+   only when :math:`\chi_{\nu}^2 = 1`
+
+
+
+**Weights from measurement errors**
+
 In fits with weights, one often uses the individual standard errors of the data
 points as weights.
 In equation :eq:`bevington8_3` we see that the weights :math:`w_i` are defined as
-:math:`w_i = 1/\sigma_i`. If we use weights, then the value of :math:`\chi^2_{\nu}`
-is often smaller than 1, indicating that we underestimated our errors on the
-data points, or it is much bigger than 1, indicating that we overestimated
-these errors. The usefulness of the standard errors derived from the
-covariance matrix to give a coincidence interval is limited then.
-Still, the value of :math:`\chi^2` can be used to derive a value for the
-goodness of fit, but the standard errors are not comparable with what we find
-if we apply bootstrapping to find the standard errors on the best-fit parameters.
+:math:`w_i = 1/\sigma_i^2`. This choice has the practical advantage that scaling of the
+measurement errors does not change the values of the best-fit parameters.
+If we use real mesurement errors and and use weighted fit procedures then
+the value of :math:`\chi_{\nu}^2` can be used as a *goodness of fit* estimator.
+If we assume a correct model and its value is smaller than 1,
+we underestimated our errors in the data points. If we assume a correct model
+and its value is (much) bigger than 1, we probably overestimated
+these errors.
 Alper, [Alper]_ states that for some combinations of model, data and weights,
 *the standard error estimates from diagonal elements of the covariance
 matrix neglect the interdependencies between parameters and lead
@@ -493,7 +624,18 @@ to erroneous results*. Often the measurement errors are difficult to obtain prec
 sometimes these errors are not normally distributed.
 
 
+**Relative weights**
 
+If the weights are relative weights, we don't have any idea how well chi-square
+estimates the sample variance. Then we scale the standard errors in the same way
+as in the unweighted fit. Implicitly we assume a perfect fit (:math:`\chi_{\nu}^2 = 1`).
+This sounds reasonable because these scaled errors in attribute ``stderr`` do not
+change when we scale the weights. Scaling the weights with scale factor *q*
+will scale the reduced chi-square with :math:`1/q^2` (:eq:`bevington8_3`), but
+scale the covariance errors with :math:`q^2`. According to our correction formula
+in :eq:`bevington_scalederror`, this implies that the standard error does
+not change. This is the expected behaviour if we work with relative weights.
+If you examine the example output of the script, you can verify this behaviour.
 
 .. note::
 
@@ -503,20 +645,165 @@ sometimes these errors are not normally distributed.
      the scaled errors given in attribute ``Fitter.stderr``
    * For unweighted fits, the standard errors from ``Fitter.stderr`` are comparable to
      errors we find with Monte Carlo simulations.
-   * For weighted fits we trust the errors in attribute ``Fitter.stderr`` 
-     if :math:`\chi^2_{\nu} \approx 1`,  but even then they can differ significantly
-     from the ones we find with Monte Carlo simulations.
+   * For weighted fits with real measurement errors we use the standard errors
+     derived from the covariance matrix given in attribute ``Fitter.xerror``
+   * For weighted fits with relative weights we use the standard errors
+     given in attribute ``Fitter.stderr`` assuming :math:`\chi^2_{\nu} \approx 1`
+     but even then they can differ significantly from the values we find with
+     Monte Carlo simulations.
 
 
 Fitting data when both variables have uncertainties
 ----------------------------------------------------
 
+Sometimes your data contains errors in the *response* (dependent) variable
+y (i.e. we have values for :math:`\sigma_y`) and in the *explanatory* (independent) variable x
+(i.e. we have values for :math:`\sigma_x`).
+In the next sections we describe a method to use *kmpfit* for this category
+of least squares fit problems.
+
+
+Orthogonal Distance Regression (ODR)
++++++++++++++++++++++++++++++++++++++
+
+
+Assume we have a model function *f(x)* and on that curve we have a
+data point :math:`(x,y) = (x,f(x))` which has the shortest distance to a
+data point :math:`(x_i,y_i)`. The distance between those points is:
+
+.. math::
+   :label: orthdistance
+
+   D_i = \sqrt{{(x_i-x)}^2 + {(y_i-f(x))}^2}
+
+This distance D(x) is a minimum if :math:`D^{\prime} = 0`. This is equivalent
+to the condition:
+
+.. math::
+   :label: distance_condition
+
+   (x_i-x) + (y_i-f(x)) f^{\prime}(x) = 0
+
+If we take a straight line :math:`y=a+bx` as an example model,
+then :math:`f^{\prime}(x)=b` and from
+equation :eq:`distance_condition` we derive :math:`(x_i-x) +(y_i -(a+bx))b = 0`.
+Then we can derive an expression for *x*:
+
+.. math::
+   :label: distance_x
+
+   x = -\frac{(ab-y_ib-x_i)}{1+b^2}
+
+which is a necessary extra condition to make :eq:`orthdistance` an objective
+function for a least squares fit.
+
+For a weighted fit we modify  :eq:`orthdistance` and write:
+
+.. math::
+   :label: weighted_orthdistance
+
+   D_i = \sqrt{w_{xi}{(x_i-x)}^2 + w_{yi}{(y_i-f(x))}^2}
+
+with weights :math:`w_{xi}=1/{\sigma_{xi}}^2` and :math:`w_{yi}=1/{\sigma_{yi}}^2`.
+
+Then we find for *x*:
+
+.. math::
+   :label: weighteddistance_x
+
+   x = -\frac{(w_{yi}ab-w_{yi}y_ib-w_{xi}x_i)}{w_{xi}+w_{yi}b^2}
+
+An implementation of a residual function in *kmpfit* for a straight line model
+is for example::
+
+
+   def residuals(p, data):
+      a, b = p
+      x, y, ex, ey = data
+      wx = 1/(ex*ex)
+      wy = 1/(ey*ey)
+      xd = (wx*x+wy*(y*b-a*b))/(wx+b*b*wy)
+      yd = a+b*xd
+      D = numpy.sqrt( wx*(x-xd)**2+wy*(y-yd)**2 )
+      return D
+
+With substitution of :eq:`weighteddistance_x` in :eq:`weighted_orthdistance`, one can
+derive with some algebra that :math:`D^2_i` can aso be written as:
+
+.. math::
+   :label: effvariance
+
+   D^2_i = \frac{w_{xi}w_{yi}{\left(y_i-(a+bx_i)\right)}^2}{w_{xi}+w_{yi}b^2}
+
+
+If we express this in terms of the measurement errors one finds a objective function:
+
+.. math::
+   :label: effvariance_measurement
+
+   D^2_i = \frac{{\left(y_i-(a+bx_i)\right)}^2}{\sigma_{yi}^2+\sigma_{yi}^2 b^2}
+
+This formula seems familiar. It resembles an ordinary least squares objective
+function but with 'corrected' weights in Y. We explain this in more detail in
+the next section about *effective variances*.
+
+A suitable residuals function is the square root of the objective function::
+
+
+   def residuals(p, data):
+      a, b = p
+      x, y, ex, ey = data
+      w = ey*ey + b*b*ex*ex
+      wi = numpy.sqrt(numpy.where(w==0.0, 0.0, 1.0/(w)))
+      d = wi*(y-model(p,x))
+      return d
+
+
+
 The Effective Variance Method
 +++++++++++++++++++++++++++++++
 
+Asssume that the model in the previous section was not a straight line, but a parabola
+:math:`y=a+bx+cx^2`.
+Then the formula for the minimum distance in equation :eq:`distance_condition`
+would be: 
 
-Sometimes your data contains errors in y (:math:`\sigma_y`) and in x
-(:math:`\sigma_x`). Clutton [Clutton]_ shows that for a model function *f*,
+.. math::
+   :label: mindistance_parabola
+
+    
+   (x_i-x) +(y_i -(a+bx+cx^2))(b+2cx) = 0
+
+Now it is difficult to solve for *x*. It has more than one solution, so we have
+an extra complication to select the best value. For other more complicated models, this
+condition also becomes more complicated.
+
+Orear [Orear]_ showed that for models *f(x)* for which
+:math:`f(x)=f(x_i)+(x-x_i)f^{\prime}(x_i)` is a good approximation
+(for a straight line the Taylor approximation is exact),
+we can write:
+
+.. math::
+   :label: common_distance
+
+   D^2_i = \frac{{(y_i-f(x_i))}^2}{\sigma^2_{yi}+\sigma^2_{xi}{f^{\prime}}^2(x_i)}
+
+
+For a parabola :math:`y=a+bx+cx^2` we write the following residuals function
+for *kmpfit*::
+
+   def residuals(p, data):
+      # Model: Y = a + b*x + c*x*x
+      a, b, c = p
+      x, y, ex, ey = data
+      w = ey*ey + (b+2*c*x)**2*ex*ex
+      wi = numpy.sqrt(numpy.where(w==0.0, 0.0, 1.0/(w)))
+      d = wi*(y-model(p,x))
+      return d
+
+
+
+Clutton [Clutton]_ follows another approach. He shows that for a model function *f*,
 the effect of a small error :math:`\delta x_i` in :math:`x_i` is to change the
 measured value :math:`y_i` by an amount :math:`f^\prime (x_i) \delta x_i` and that
 as a result, the effective variance of a data point *i* is:
@@ -535,7 +822,7 @@ Then :math:`f^\prime(x) = b` and the chi-square that needs to be minimized is
    \chi^2 = \sum\limits_{i=0}^{N-1} \frac{{(y_i-a-bx_i)}^2}{\sigma_{y_i}^2 + b^2 \sigma_{x_i}^2}
 
 To use this effective variance method, we need to make a residuals function
-:math:`w_i(y_i-y_imodel)` 
+:math:`w_i(y_i-y_imodel)`
 with weights :math:`w_i` equal to :math:`1/\sqrt{(\sigma_{y_i}^2+ b^2 \sigma_{x_i}^2)}`.
 An example of a valid residuals function is::
 
@@ -585,11 +872,11 @@ The results are often worse than with SciPy's ODR routine.
 References
 ----------
    
-.. [Bev] Data Reduction and Error Analysis for the Physical Sciences,
-   Philip R. Bevington, 1969, McGraw-Hill
+.. [Bev] Bevington, Philip R. , *Data Reduction and Error Analysis for the Physical Sciences*,
+   1969, McGraw-Hill
 
-.. [NumRep] Numerical Recipes in C, The Art of Scientific Computing,
-   William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
+.. [NumRep] William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
+   *Numerical Recipes in C, The Art of Scientific Computing*, 
    2nd edition, Cambridge University Press, 1992
 
 .. [Alper] Alper, Joseph S., Gelb, Robert I., *Standard Errors and Confidence Intervals
@@ -598,3 +885,6 @@ References
 
 .. [Clutton] Clutton-Brock, *Likelihood Distributions for Estimating Functions
    When Both Variables Are Subject to Error*, Technometrics, Vol. 9, No. 2 (May, 1967), pp. 261-269
+
+.. [Orear] Orear, Jay, *Least squares when both variables have uncertainties*,
+   Am. J. Phys. 50(10), Oct 1982 

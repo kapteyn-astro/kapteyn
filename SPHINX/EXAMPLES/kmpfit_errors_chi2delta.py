@@ -53,7 +53,6 @@ fitobj.fit(params0=[p1+e1,1])
 print "\nFix first parameter and set its value to fitted value+error"
 print "Params:        ", fitobj.params
 print "Chi^2 min:     ", fitobj.chi2_min
-print "Reduced Chi^2: ", fitobj.rchi2_min
 print "Errors from covariance matrix         : ", fitobj.xerror
 
 fitobj.parinfo = [{'fixed':False}, {'fixed':True}]
@@ -61,5 +60,4 @@ fitobj.fit(params0=[1, p2+e2])
 print "\nFix second parameter and set its value to fitted value+error"
 print "Params:        ", fitobj.params
 print "Chi^2 min:     ", fitobj.chi2_min
-print "Reduced Chi^2: ", fitobj.rchi2_min
 print "Errors from covariance matrix         : ", fitobj.xerror
