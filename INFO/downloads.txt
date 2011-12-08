@@ -138,8 +138,11 @@ Institut for Fysik og Astronomi, Aarhus Universitet @ 130.225.29.254
 Department of Astronomy, The University of Arizona @ 128.196.209.47
 RWTH Aachen University @ 134.130.4.245
 Australia Telescope National Facility @ 150.229.106.145
+New Mexico State University @ 128.123.5.163
+University of California, Irvine @ 128.200.44.243
+H.E.S.S. High Energy Stereoscopic System @ 196.44.140.214
+ENSTINET, Egypt @ 195.43.6.11
+Kyoto University @ 130.54.130.230
 
-
-tot: Mon Nov 28 13:40:10 CET 2011
-Wed Nov 23 11:52:24 CET 2011
-
+tot: Mon Dec  5 14:45:36 CET 2011
+Mon Nov 28 13:40:10 CET 2011
