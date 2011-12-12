@@ -668,87 +668,105 @@ Orthogonal Distance Regression (ODR)
 
 
 Assume we have a model function *f(x)* and on that curve we have a
-data point :math:`(x,y) = (x,f(x))` which has the shortest distance to a
+data point :math:`(\hat{x},\hat{y}) = (\hat{x},f(\hat{x}))` which has the shortest distance to a
 data point :math:`(x_i,y_i)`. The distance between those points is:
 
 .. math::
    :label: orthdistance
 
-   D_i = \sqrt{{(x_i-x)}^2 + {(y_i-f(x))}^2}
+   D_i(\hat{x}) = \sqrt{{(x_i-\hat{x})}^2 + {(y_i-f(\hat{x}))}^2}
 
-This distance D(x) is a minimum if :math:`D^{\prime} = 0`. This is equivalent
-to the condition:
-
-.. math::
-   :label: distance_condition
-
-   (x_i-x) + (y_i-f(x)) f^{\prime}(x) = 0
-
-If we take a straight line :math:`y=a+bx` as an example model,
-then :math:`f^{\prime}(x)=b` and from
-equation :eq:`distance_condition` we derive :math:`(x_i-x) +(y_i -(a+bx))b = 0`.
-Then we can derive an expression for *x*:
-
-.. math::
-   :label: distance_x
-
-   x = -\frac{(ab-y_ib-x_i)}{1+b^2}
-
-which is a necessary extra condition to make :eq:`orthdistance` an objective
-function for a least squares fit.
-
-For a weighted fit we modify  :eq:`orthdistance` and write:
+or more general with weights in :math:`\hat{x},\hat{y}`
 
 .. math::
    :label: weighted_orthdistance
 
-   D_i = \sqrt{w_{xi}{(x_i-x)}^2 + w_{yi}{(y_i-f(x))}^2}
+   D_i(\hat{x}) = \sqrt{w_{xi}{(x_i-\hat{x})}^2 + w_{yi}{(y_i-f(\hat{x}))}^2}
 
-with weights :math:`w_{xi}=1/{\sigma_{xi}}^2` and :math:`w_{yi}=1/{\sigma_{yi}}^2`.
-
-Then we find for *x*:
-
-.. math::
-   :label: weighteddistance_x
-
-   x = -\frac{(w_{yi}ab-w_{yi}y_ib-w_{xi}x_i)}{w_{xi}+w_{yi}b^2}
-
-An implementation of a residual function in *kmpfit* for a straight line model
-is for example::
-
-
-   def residuals(p, data):
-      a, b = p
-      x, y, ex, ey = data
-      wx = 1/(ex*ex)
-      wy = 1/(ey*ey)
-      xd = (wx*x+wy*(y*b-a*b))/(wx+b*b*wy)
-      yd = a+b*xd
-      D = numpy.sqrt( wx*(x-xd)**2+wy*(y-yd)**2 )
-      return D
-
-With substitution of :eq:`weighteddistance_x` in :eq:`weighted_orthdistance`, one can
-derive with some algebra that :math:`D^2_i` can aso be written as:
+The problem with this distance function is that it is not usable as an
+:term:`Objective Function`
+because we don't have the model values for :math:`\hat{x}`. But there is a
+condition that can be used to express :math:`\hat{x}` in known variables :math:`x_i`
+and :math:`y_i`
+Orear [Orear]_ showed that for any model *f(x)* for which
 
 .. math::
-   :label: effvariance
+   :label:  Taylor
 
-   D^2_i = \frac{w_{xi}w_{yi}{\left(y_i-(a+bx_i)\right)}^2}{w_{xi}+w_{yi}b^2}
+   f(\hat{x}) = f(x_i)+(\hat{x}-x_i)f^{\prime}(x_i)
 
-
-If we express this in terms of the measurement errors one finds a objective function:
+is a good approximation, we can find an expression for a usable objective function.
+:math:`D_i(\hat{x})` has a minimum for :math:`\frac{\partial{D}}{\partial{\hat{x}}} = 0`.
+Insert :eq:`Taylor` in :eq:`weighted_orthdistance3` and take the derivative to find
+the condition for the minimum:
 
 .. math::
-   :label: effvariance_measurement
+   :label: derivative
 
-   D^2_i = \frac{{\left(y_i-(a+bx_i)\right)}^2}{\sigma_{yi}^2+\sigma_{yi}^2 b^2}
+   \frac{\partial{D}}{\partial{\hat{x}}} = \frac{\partial{}}{\partial{\hat{x}}}\sqrt{w_{xi}{(x_i-\hat{x})}^2 + w_{yi}{(y_i-[f(x_i)+(\hat{x}-x_i)f^{\prime}(x_i)]))}^2} = 0
+
+Then one derives:
+
+.. math::
+   :label: extra_condition
+
+   -2w_x(x_i-\hat{x})-2w_y\left( y_i-\left [ f(x_i)-(x_i-\hat{x}){f^{\prime}}(x_i)\right]\right ) {f^{\prime}}(x_i) = 0
+
+If you substitute this in :eq:`weighted_orthdistance3`,
+then (after a lot of re-arranging) one finds:
+
+.. math::
+   :label: Orear
+
+   D_i^2(\hat{x}) = \frac{w_{xi}w_{yi}}{w_{xi}+w_{yi}{f^{\prime}}^2(x_i) }{(y_i-f(x_i))}^2
+
+When we use statistical weighting with
+weights :math:`w_{xi}=1/{\sigma_{xi}}^2` and :math:`w_{yi}=1/{\sigma_{yi}}^2`,
+we can write this as:
+
+.. math::
+   :label: common_distance
+
+   D^2_i(\hat{x}) = \frac{{(y_i-f(x_i))}^2}{\sigma^2_{yi}+\sigma^2_{xi}{f^{\prime}}^2(x_i)}
+
+
+Effective variance
++++++++++++++++++++
+
+The method in the previous section can also be explained in another way:
+Clutton [Clutton]_ shows that for a model function *f*,
+the effect of a small error :math:`\delta x_i` in :math:`x_i` is to change the
+measured value :math:`y_i` by an amount :math:`f^\prime (x_i) \delta x_i` and that
+as a result, the *effective variance* of a data point *i* is:
+
+.. math::
+   :label: clutton
+
+   var(i) = var(y_i) + var(f^\prime(x_i)) = \sigma_{y_i}^2 + {f^\prime}^2(x_i) \sigma_{x_i}^2
+
+
+Best parameters for a straight line
+++++++++++++++++++++++++++++++++++++
+
+Equation :eq:`common_distance` can be used to create an objective function.
+We sow this for a model which represents a straight line :math:`f(x)=a+bx`.
+For a straight line the Taylor approximation :eq:`Taylor` is exact.
+This can be seen as follows:
+With :math:`f^\prime(x) = b`. The relation :math:`f(x) = f(x_i)+(x-x_i)f^{\prime}(x_i)`
+is equal to :math:`f(x) = f(x_i)+(x-x_i)b = a+bx_i+bx-bx_i = a+bx`.
+
+The objective function, chi-square, that needs to be minimized for a straight line
+is then:
+
+.. math::
+   :label: errorinxandy
+
+   \chi^2 = \sum\limits_{i=0}^{N-1} D_i^2 = \sum\limits_{i=0}^{N-1} \frac{{(y_i-a-bx_i)}^2}{\sigma_{y_i}^2 + \sigma_{x_i}^2 b^2 }
 
 This formula seems familiar. It resembles an ordinary least squares objective
-function but with 'corrected' weights in Y. We explain this in more detail in
-the next section about *effective variances*.
-
-A suitable residuals function is the square root of the objective function::
-
+function but with 'corrected' weights in Y.
+A suitable residuals function for *kmpfit* is the square root of this
+objective function::
 
    def residuals(p, data):
       a, b = p
@@ -758,10 +776,29 @@ A suitable residuals function is the square root of the objective function::
       d = wi*(y-model(p,x))
       return d
 
+We used data from Orear's article to test the effective variance method in
+the next example:
+
+**Example:  kmpfit_Oreardata - The effective variance method: errors in both variables**
+
+.. plot:: EXAMPLES/kmpfit_Oreardata.py
+   :include-source:
+   :align: center
 
 
-The Effective Variance Method
-+++++++++++++++++++++++++++++++
+An example that compares several methods can be
+found in :download:`kmpfit_errorsinXandY.py <EXAMPLES/kmpfit_errorsinXandYPlot.py>`
+It produces plots like the one below.
+
+**Example:  kmpfit_errorsinXandYPlot - The effective variance method: errors in both variables**
+
+.. plot:: EXAMPLES/kmpfit_errorsinXandYPlot.py
+   :align: center
+
+
+
+Other models
+++++++++++++
 
 Asssume that the model in the previous section was not a straight line, but a parabola
 :math:`y=a+bx+cx^2`.
@@ -771,25 +808,18 @@ would be:
 .. math::
    :label: mindistance_parabola
 
-    
-   (x_i-x) +(y_i -(a+bx+cx^2))(b+2cx) = 0
+   (x_i-\hat{x}) +(y_i -(a+b\hat{x}+c\hat{x}^2))(b+2c\hat{x}) = 0
 
-Now it is difficult to solve for *x*. It has more than one solution, so we have
-an extra complication to select the best value. For other more complicated models, this
-condition also becomes more complicated.
-
-Orear [Orear]_ showed that for models *f(x)* for which
-:math:`f(x)=f(x_i)+(x-x_i)f^{\prime}(x_i)` is a good approximation
-(for a straight line the Taylor approximation is exact),
-we can write:
+Now it is complicated to solve for *x*. so we cannot get an exact solution as
+with the straight line. Then we apply the effective variance method.
+We find an objective function:
 
 .. math::
-   :label: common_distance
+   :label: objective_function_parabola
 
-   D^2_i = \frac{{(y_i-f(x_i))}^2}{\sigma^2_{yi}+\sigma^2_{xi}{f^{\prime}}^2(x_i)}
+   \chi^2 = \sum\limits_{i=0}^{N-1} \frac{{(y_i-a-bx_i)}^2}{\sigma_{y_i}^2 + \sigma_{x_i}^2 {(b+2cx)}^2 }
 
-
-For a parabola :math:`y=a+bx+cx^2` we write the following residuals function
+and we write the following residuals function
 for *kmpfit*::
 
    def residuals(p, data):
@@ -801,56 +831,24 @@ for *kmpfit*::
       d = wi*(y-model(p,x))
       return d
 
+How good is our Taylor approximation here?
+Using :math:`f(x) \approx f(x_i)+(x-x_i)(b+2cx_i)` we find that f(x) can be approximated
+by: :math:`f(x) = a + bx + cx^2 - c(x-x_i)^2`. So this approximation works if
+the difference between :math:`x_i` and :math:`x` remains small.
+For *kmpfit* this implies that also the initial parameter estimates must be
+of reasonable quality.
+Using the code of residuals function above, we observed that this approach works adequate.
 
 
-Clutton [Clutton]_ follows another approach. He shows that for a model function *f*,
-the effect of a small error :math:`\delta x_i` in :math:`x_i` is to change the
-measured value :math:`y_i` by an amount :math:`f^\prime (x_i) \delta x_i` and that
-as a result, the effective variance of a data point *i* is:
 
-.. math::
-   :label: clutton
+Non linear fit example
++++++++++++++++++++++++
 
-   var(i) = var(y_i) + var(f^\prime(x_i)) = \sigma_{y_i}^2 + {f^\prime}^2(x_i) \sigma_{x_i}^2
-
-For a linear model the model function is :math:`f(x) = a + bx`.
-Then :math:`f^\prime(x) = b` and the chi-square that needs to be minimized is
-
-.. math::
-   :label: errorinxandy
-
-   \chi^2 = \sum\limits_{i=0}^{N-1} \frac{{(y_i-a-bx_i)}^2}{\sigma_{y_i}^2 + b^2 \sigma_{x_i}^2}
-
-To use this effective variance method, we need to make a residuals function
-:math:`w_i(y_i-y_imodel)`
-with weights :math:`w_i` equal to :math:`1/\sqrt{(\sigma_{y_i}^2+ b^2 \sigma_{x_i}^2)}`.
-An example of a valid residuals function is::
-
-   def residuals(p, data):
-      # Model: Y = a + b*x
-      # Merit function for data with errors in both coordinates
-      a, b = p
-      x, y, ex, ey = data
-      w1 = ey*ey + b*b*ex*ex
-      w = numpy.sqrt(numpy.where(w1==0.0, 0.0, 1.0/(w1)))
-      d = w*(y-a-b*x)
-      return d
-
-Fits with *kmpfit* and artificial data give best-fit parameters and estimated errors,
-which match with those obtained from SciPy's ODR routine.
-This is demonstrated in the next program:
-
-**Example:  kmpfit_errorsinXandY - Errors in both variables**
-
-.. plot:: EXAMPLES/kmpfit_errorsinXandY.py
-   :include-source:
-   :align: center
-
-
-If you want to find the best-fit parameters of a model that is not linear in
-its parameters, the effective variance method is less useful. If your model is
-given by :math:`f(x) = a\sin(bx+c)` then :math:`f^\prime(x) = ab\cos(bx+c)`
-the effective variance in relation :eq:`clutton` can be implemented as::
+If your model is a model that is non linear in its parameters, then the
+effective variance method can still be applied.
+If your model is given for example by :math:`f(x) = a\sin(bx+c)`
+then :math:`f^\prime(x) = ab\cos(bx+c)`
+and the effective variance in relation :eq:`clutton` can be implemented as::
 
    def model(p, x):
       # Model: Y = a*sin(b*x+c)
@@ -866,7 +864,32 @@ the effective variance in relation :eq:`clutton` can be implemented as::
       d = w*(y-model(p,x))
       return d
 
-The results are often worse than with SciPy's ODR routine.
+In the next script
+the results are compared often with SciPy's ODR routine which applies
+a different method to improve the approximation of *f(x)*.
+This can be demonstrated with a small script which generates
+model values with small errors.
+
+
+**Example:  kmpfit_ODRsinus.py - Errors in both variables**
+
+.. plot:: EXAMPLES/kmpfit_ODRsinus.py
+   :include-source:
+   :align: center
+
+
+
+
+Glossary
+--------
+
+.. glossary::
+
+   Objective Function
+      An *Objective Function* is a function associated with an optimization
+      problem. It determines how good a solution is. In Least Squares fit
+      procedures, it is this function that needs to be minimized.
+   
 
 
 References
@@ -876,7 +899,7 @@ References
    1969, McGraw-Hill
 
 .. [NumRep] William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
-   *Numerical Recipes in C, The Art of Scientific Computing*, 
+   *Numerical Recipes in C, The Art of Scientific Computing*,
    2nd edition, Cambridge University Press, 1992
 
 .. [Alper] Alper, Joseph S., Gelb, Robert I., *Standard Errors and Confidence Intervals

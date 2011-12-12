@@ -36,7 +36,6 @@ Class Fitter
 ------------
 .. autoclass:: Fitter(residuals, deriv=None, ...)
 
-
 Testing derivatives
 ...................
 
@@ -128,9 +127,9 @@ Example
    # [3.0000324686457871, -1.999896340813663, -5.0060187435412962]
 
 
-
-
-
+Function simplefit
+------------------
+.. autofunction:: simplefit(model, p0, x, y, err=1.0, ...)
 
 """
 
@@ -773,8 +772,27 @@ Optional argument *params0*: initial fitting parameters.
       return self.params
 
 def simplefit(model, p0, x, y, err=1.0, **kwargs):
-   # Note that initial parameters (p0) must enter
-   # this function, because it is used as an array
+   """Simple interface to :class:`Fitter`.
+
+:param model:
+   model function which must take two arguments: a sequence with initial
+   values and a sequence with x-values. It must return a NumPy array with
+   function results.
+:param p0:
+   a sequence with the initial parameter values.
+:param x:
+   array with independent variable values.
+:param y:
+   array with dependent variable values.
+:param err:
+   array with :math:`1 \sigma` errors.
+:param ...:
+   other arguments, each corresponding with one of the configuration
+   attributes for an object of class :class:`Fitter`.
+
+:returns: a :class:`Fitter` object from which the fit results can
+   be extracted.
+"""
    def res(p, data):
       x, y, err = data
       return (y - model(p,x))/err

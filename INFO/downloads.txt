@@ -143,6 +143,9 @@ University of California, Irvine @ 128.200.44.243
 H.E.S.S. High Energy Stereoscopic System @ 196.44.140.214
 ENSTINET, Egypt @ 195.43.6.11
 Kyoto University @ 130.54.130.230
+University of Tokyo @ 133.11.165.104
+Delhi University @ 202.141.141.35
 
-tot: Mon Dec  5 14:45:36 CET 2011
-Mon Nov 28 13:40:10 CET 2011
+
+tot: Mon Dec 12 12:07:22 CET 2011
+Mon Dec  5 14:45:36 CET 2011
