@@ -9,14 +9,16 @@ from matplotlib.pyplot import figure, show, rc
 from kapteyn import kmpfit
 
 
-# The model and the residual function
-#====================================
+# The model
+#==========
 def model(p, x):
    a,b = p
    y = a + b*x
    return y
 
 
+# The residual function
+#======================
 def residuals(p, data):
    x, y = data                     # arrays is a tuple given by programmer
    return y - model(p,x)
@@ -44,7 +46,18 @@ except Exception, mes:
    print "Something wrong with fit: ", mes
    raise SystemExit
 
-print "Optimal parameters: ", fitobj.params
+print "Fit status: ", fitobj.message
+print "Best-fit parameters:      ", fitobj.params
+print "Covariance errors:        ", fitobj.xerror
+print "Standard errors           ", fitobj.stderr
+print "Chi^2 min:                ", fitobj.chi2_min
+print "Reduced Chi^2:            ", fitobj.rchi2_min
+print "Iterations:               ", fitobj.niter
+print "Number of function calls: ", fitobj.nfev
+print "Number of free pars.:     ", fitobj.nfree
+print "Degrees of freedom:       ", fitobj.dof
+print "Number of pegged pars.:   ", fitobj.npegged
+print "Covariance matrix:\n", fitobj.covar
 
 
 # Plot the result
@@ -58,13 +71,14 @@ frame.plot(x, y, 'ro', label="Data")
 frame.plot(xp, model(fitobj.params,xp), 'm', lw=1, label="Fit with kmpfit")
 frame.plot(xp, model(paramsreal,xp), 'g', label="The model")
 frame.set_xlabel("X")
-frame.set_ylabel("Measurement data")
+frame.set_ylabel("Response data")
 frame.set_title("Least-squares fit to noisy data using KMPFIT", fontsize=10)
-s = "Model: Y = a + b*X    real (a,b)=(%.2g,%.2g), fit (a,b)=(%.2g,%.2g)"%\
+s = "Model: Y = a + b*X    real:(a,b)=(%.2g,%.2g), fit:(a,b)=(%.2g,%.2g)"%\
      (paramsreal[0],paramsreal[1], fitobj.params[0],fitobj.params[1])
-frame.text(0.95, 0.02, s, color='k', fontsize=8,
+frame.text(0.95, 0.02, s, color='k', fontsize=7,
            ha='right', transform=frame.transAxes)
 frame.set_xlim(0,12)
 frame.set_ylim(0,None)
+frame.grid(True)
 leg = frame.legend(loc=2)
 show()

@@ -1,7 +1,7 @@
 .. _kmpfit_tutorial:
    
-Tutorial kmpfit module
-========================
+Least squares fitting with kmpfit
+===================================
 
 .. highlight:: python
    :linenothreshold: 10
@@ -17,64 +17,100 @@ aspects in common with SciPy's *leastsq* function,
 but its interface is a more friendly and flexible.
 
 A least squares fit method is an algorithm that minimizes a so called
-*objective function*. This function is the sum of squares
-of residuals which are
-the difference between your data and that of the model using given parameters.
-It tries to find parameters for which this sum is a minimum.
-There is some flexibility in what you define as residual. The most common residual
-is defined by the difference of the data and the model in Y only.
-The least squares fit method in *kmpfit* does the squaring and summing
-of the residuals.
+*objective function* for N data points :math:`(x_i,y_i), i=0, ...,N-1`.
+These data points are measured and often :math:`y_i` has a measurement error
+that is much smaller than the error in :math:`x_i`. Then we call *x* the
+independent and *y* the dependent variable. In this tutorial we will
+also deal with examples where the errors are comparable.
+
+The method of least squares adjusts the parameters of a model function
+*f(parameters, independent_variable)* by finding a minimum of a so called
+*objective function*. This objective function is a sum of values:
+
+.. math::
+   :label: Objective_function
+
+   S = \sum\limits_{i=0}^{N-1} r_i^2
+
+Objective functions are also called *merit* functions.
+Least squares routines also predict what the range of best-fit
+parameters will be if we repeat the experiment, which produces the
+data points, many times. But it can do that only for objective functions
+if they return the (weighted) sum of squared residuals (WSSR). The
+least squares fitting procedure is then a maximum-likelihood estimation (MLE)
+And the objective function *S* is also called chi square (:math:`\chi^2`).
+
+If we define :math:`\mathbf{p}` as the set of parameters and take *x* for the independent data
+then we define a residual as the difference between the actual dependent variable
+:math:`y_i` and the value given by the model:
+
+.. math::
+   :label: Residuals_function
+
+   r(\mathbf{p}, (x_i,y_i)) = y_i - f(\mathbf{p},x_i)
+
+One is not restricted to one independent (*explanatory*) variable. For example, 
+for a plane the dependent (*response*) variable :math:`y_i`
+depends on two independent variables :math:`(x1_i,x2_i)`
+
+*kmpfit* needs a specification of the residuals function :eq:`Residuals_function`.
+It defines the objective function itself by squaring the residuals and summing them
+afterwards.
+
+.. note::
+
+   For *kmpfit*, you need only to specify a residuals function.
+   The least squares fit method in *kmpfit* does the squaring and summing
+   of the residuals.
+
 
 
 A Basic example
 -------------------
 
+In this section we explain how to setup a residuals function for *kmpfit*.
+We use vectorized functions written with :term:`NumPy`.
+
 The residual function
 +++++++++++++++++++++++++
 
-Usually one starts with a measured set of data points :math:`\left\{{x}_{i}, {y}_{i}\right\}`
-and wants to find the best-fit parameters :math:`\mathbf{p}` of the model
-defined by :math:`\mathbf{y}=\mathbf{f}\left(\mathbf{p},\mathbf{x}\right)`.
-In this model, **x** is called the explanatory variable and **y** is
-called the response variable.
-Then our residual function can be written as:
-
-.. math::
-   :label: residualsfunction
-
-    \mathbf{r}\left(\mathbf{p},\mathbf{x},\mathbf{y}\right)=\mathbf{y}-\mathbf{f}\left(\mathbf{p},\mathbf{x}\right)
-
 Assume we have data for which we know that the relation between X
-and Y is linear, then a model :math:`\mathbf{f}` could be written in Python as::
+and Y is a straight line with offset *a* and slope *b*,
+then a model :math:`f(\mathbf{p},\mathbf{x})`
+could be written in Python as::
 
    def model(p, x):
       a,b = p
       y = a + b*x
       return y
 
-Parameter ``x`` is a NumPy array or Python list and ``p`` is an array with
-parameters. This function calculates y values for a given set of parameters
-and an array with x values.
+Parameter ``x`` is a NumPy array and ``p`` is an array with model
+parameters *a* and *b*. This function calculates response Y values
+for a given set of parameters and an array with explanatory X values.
 
-Then it is simple to define the residuals function :math:`\mathbf{r}` which calculates the
+Then it is simple to define the residuals function :math:`r(\mathbf{p}, (x_i,y_i))`
+which calculates the
 residuals between data points and model::
 
    def residuals(p, data):
       x, y = data
       return y - model(p,x)
 
-This residuals function has always two parameters. The first one is ``p`` which is an array
+This residuals function has always two parameters.
+The first one is ``p`` which is an array
 with parameter values in the order as defined in your model, and ``data``
 which is an object that stores the data arrays that you need in your residual function.
 The object could be anything but a list or tuple is often most practical to store
 the required data. We will explain a bit more about this object when we discuss
 the constructor of a *Fitter* object.
 We need not worry about the sign of the residuals because the
-fit routine calculates the the square of the residuals itself. Of course we can combine both
-functions ``model`` and ``residuals`` in one function. This is a bit more efficient in Python,
-but usually it is handy to have the model function available for if you want for 
-instance a plot of the model with the best-fit parameters. 
+fit routine calculates the the square of the residuals itself.
+
+Of course we can combine both
+functions ``model`` and ``residuals`` in one function.
+This is a bit more efficient in Python,
+but usually it is handy to have the model function available if you  need
+to plot the model using different sets of best-fit parameters.
 
 .. note::
 
@@ -86,17 +122,9 @@ instance a plot of the model with the best-fit parameters.
 .. note::
 
    It is also possible to write residual functions that represent objective
-   functions (also called *merit* functions) used in orthogonal fit procedures
+   functions used in orthogonal fit procedures
    where both variables **x** and **y** have errors.
 
-
-.. note::
-
-   If the objective function is the weighted sum of squared residuals (WSSR),
-   then it is also called chi-square (:math:`\chi^2`). If one defines a
-   chi-square function, then the residual function must calculate the
-   square root of values given by the objective function. We will see
-   some examples in later sections.
 
 
 Artificial data for experiments
@@ -491,11 +519,11 @@ Each data set will
 give a different set of fitted parameters :math:`p_{(i)}`. These parameter sets follow
 some probability distribution in the *n* dimensional space of all possible parameter sets.
 To find the uncertainties in the fitted parameters we need to know the distribution 
-of :math:`p_{(i)}-p_{true}` [NumRep]_. In Monte Carlo simulations of synthetic data sets 
+of :math:`p_{(i)}-p_{true}` [Num]_. In Monte Carlo simulations of synthetic data sets
 we assume that the shape of the distribution of Monte Carlo set :math:`p_{(i)}-p_{0}` is equal to 
 the shape of the real world set :math:`p_{(i)}-p_{true}`
 
-The *Bootstrap Method* [NumRep_] uses the data set that you used to find the best-fit parameters.
+The *Bootstrap Method* [Num]_ uses the data set that you used to find the best-fit parameters.
 We generate different synthetic data sets, all with *N* data points, by drawing 
 randomly *N* data points, with replacement from the original data.
 In Python we realize this as follows::
@@ -530,7 +558,7 @@ Weighted fits
 
 In the literature we find analytical expressions for the standard errors
 of weighted fits for standard linear regression or orthogonal regression.
-How should we interpret these errors? For instance in Numerical Recipes, [NumRep]_
+How should we interpret these errors? For instance in Numerical Recipes, [Num]_
 we find the expressions for the best fit parameters of a model :math:`y=a+bx`
 
 Define:
@@ -611,13 +639,13 @@ points as weights.
 In equation :eq:`bevington8_3` we see that the weights :math:`w_i` are defined as
 :math:`w_i = 1/\sigma_i^2`. This choice has the practical advantage that scaling of the
 measurement errors does not change the values of the best-fit parameters.
-If we use real mesurement errors and and use weighted fit procedures then
+If we use real measurement errors and and use weighted fit procedures then
 the value of :math:`\chi_{\nu}^2` can be used as a *goodness of fit* estimator.
 If we assume a correct model and its value is smaller than 1,
 we underestimated our errors in the data points. If we assume a correct model
 and its value is (much) bigger than 1, we probably overestimated
 these errors.
-Alper, [Alper]_ states that for some combinations of model, data and weights,
+Alper, [Alp]_ states that for some combinations of model, data and weights,
 *the standard error estimates from diagonal elements of the covariance
 matrix neglect the interdependencies between parameters and lead
 to erroneous results*. Often the measurement errors are difficult to obtain precisely,
@@ -688,7 +716,7 @@ The problem with this distance function is that it is not usable as an
 because we don't have the model values for :math:`\hat{x}`. But there is a
 condition that can be used to express :math:`\hat{x}` in known variables :math:`x_i`
 and :math:`y_i`
-Orear [Orear]_ showed that for any model *f(x)* for which
+Orear [Ore]_ showed that for any model *f(x)* for which
 
 .. math::
    :label:  Taylor
@@ -697,13 +725,13 @@ Orear [Orear]_ showed that for any model *f(x)* for which
 
 is a good approximation, we can find an expression for a usable objective function.
 :math:`D_i(\hat{x})` has a minimum for :math:`\frac{\partial{D}}{\partial{\hat{x}}} = 0`.
-Insert :eq:`Taylor` in :eq:`weighted_orthdistance3` and take the derivative to find
+Insert :eq:`Taylor` in :eq:`weighted_orthdistance` and take the derivative to find
 the condition for the minimum:
 
 .. math::
    :label: derivative
 
-   \frac{\partial{D}}{\partial{\hat{x}}} = \frac{\partial{}}{\partial{\hat{x}}}\sqrt{w_{xi}{(x_i-\hat{x})}^2 + w_{yi}{(y_i-[f(x_i)+(\hat{x}-x_i)f^{\prime}(x_i)]))}^2} = 0
+   \frac{\partial{D}}{\partial{\hat{x}}} = \frac{\partial{}}{\partial{\hat{x}}}\sqrt{w_{xi}{(x_i-\hat{x})}^2 + w_{yi}{(y_i-[f(x_i)+(\hat{x}-x_i)f^{\prime}(x_i)])}^2} = 0
 
 Then one derives:
 
@@ -712,29 +740,36 @@ Then one derives:
 
    -2w_x(x_i-\hat{x})-2w_y\left( y_i-\left [ f(x_i)-(x_i-\hat{x}){f^{\prime}}(x_i)\right]\right ) {f^{\prime}}(x_i) = 0
 
-If you substitute this in :eq:`weighted_orthdistance3`,
-then (after a lot of re-arranging) one finds:
+so that:
+
+.. math::
+   :label: extra_condition2
+
+   (x_i-\hat{x}) = \frac{-w_y\big( y_i- f(x_i)\big){f^{\prime}}(x_i) }{w_x+w_y{f^{\prime}}^2(x_i)}
+
+If you substitute this in :eq:`weighted_orthdistance`,
+then (after a lot of re-arranging) one finds for the objective function:
 
 .. math::
    :label: Orear
 
-   D_i^2(\hat{x}) = \frac{w_{xi}w_{yi}}{w_{xi}+w_{yi}{f^{\prime}}^2(x_i) }{(y_i-f(x_i))}^2
+   D_i^2(\hat{x}) \approx \frac{w_{xi}w_{yi}}{w_{xi}+w_{yi}{f^{\prime}}^2(x_i) }{(y_i-f(x_i))}^2
 
-When we use statistical weighting with
+If we use statistical weighting with
 weights :math:`w_{xi}=1/{\sigma_{xi}}^2` and :math:`w_{yi}=1/{\sigma_{yi}}^2`,
 we can write this as:
 
 .. math::
    :label: common_distance
 
-   D^2_i(\hat{x}) = \frac{{(y_i-f(x_i))}^2}{\sigma^2_{yi}+\sigma^2_{xi}{f^{\prime}}^2(x_i)}
+   \boxed{\chi^2 = \sum\limits_{i=0}^{N-1} D_i^2 = \frac{{\big(y_i-f(x_i)\big)}^2}{\sigma^2_{yi}+\sigma^2_{xi}{f^{\prime}}^2(x_i)}}
 
 
 Effective variance
 +++++++++++++++++++
 
 The method in the previous section can also be explained in another way:
-Clutton [Clutton]_ shows that for a model function *f*,
+Clutton [Clu]_ shows that for a model function *f*,
 the effect of a small error :math:`\delta x_i` in :math:`x_i` is to change the
 measured value :math:`y_i` by an amount :math:`f^\prime (x_i) \delta x_i` and that
 as a result, the *effective variance* of a data point *i* is:
@@ -776,43 +811,320 @@ objective function::
       d = wi*(y-model(p,x))
       return d
 
-We used data from Orear's article to test the effective variance method in
-the next example:
 
-**Example:  kmpfit_Oreardata - The effective variance method: errors in both variables**
 
-.. plot:: EXAMPLES/kmpfit_Oreardata.py
-   :include-source:
+Pearson's data
+++++++++++++++++
+
+Another approach to find the best fit parameters for orthogonal fits of straight lines
+starts with the observation that best (unweighted) fitting straight lines for given data points
+go through the centroid of the system. This applies to regression of y on x,
+regression of x on y and also for the result of an orthogonal fit.
+
+.. note::
+
+   Unweighted best fitting straight lines for given data points
+   go through the centroid of the system.
+
+If we express our straight line as :math:`y=b+\tan(\theta)x` and substitute the
+coordinates of the centroid :math:`(\bar{x}, \bar{y})`, we get the expression
+for a straight line:
+
+.. math::
+   :label: straightline
+
+   \tan(\theta)x - y + \bar{y}-\tan(\theta)\bar{x} = 0
+
+For a line :math:`ax+by+c=0` we know that the distance of a data point
+:math:`(x_i,y_i)` to this line is given by: :math:`(ax_i+by_i+c)/\sqrt{(a^2+b^2)}`.
+If we use this for :eq:`straightline` then we derive an expression for
+the distance *D*:
+
+.. math::
+   :label: disttan
+
+   D_i = \left[\tan(\theta)x_i - y_i + \bar{y}-\tan(\theta)\bar{x}\right]\cos(\theta)
+
+For an objective function we need to minimize:
+
+.. math::
+   :label: disttan2
+
+   \sum\limits_{i=0}^{N-1} D_i^2 =\sum\limits_{i=0}^{N-1}  {\left[\tan(\theta)x_i - y_i + \bar{y}-\tan(\theta)\bar{x}\right]}^2\cos(\theta)^2
+
+To minimize this we set the first partial derivative with respect to :math:`\theta`
+to 0 and find the condition:
+
+.. math::
+   :label: conditiontan
+
+   \tan(2\theta) = \frac{\sum\limits_{i=0}^{N-1}(y_i-\bar{x})(y_i-\bar{x})}{\sum\limits_{i=0}^{N-1}{(y_i-\bar{y})}^2 - \sum\limits_{i=0}^{N-1}{(x_i-\bar{x})}^2}
+
+
+Fitting problems like the ones we just described are not new. In 1901, Karl Pearson
+published an article [Pea]_ in which he discussed a problem "where
+the :term:`Independent Variable` is subject to as much deviation or error
+as the :term:`Dependent Variable`.
+He derived the same best-fit angle :eq:`conditiontan` in a different way (using correlation
+ellipsoids). Pearson writes it as:
+
+.. math::
+   :label: Pearson
+
+   \tan(2\theta) = \frac{2r_{xy}\sigma_x\sigma_y}{\sigma_x^2-\sigma_y^2}
+
+where :math:`r_{xy}` is called the Pearson product-moment correlation coefficient.
+Using the same variables he writes for the slope :math:`b_1` of a regression of y on x
+and the slope :math:`b_2` for a regression of x on y:
+
+.. math::
+   :label: Pearsonsslope
+
+   b_1 = \frac{r_{xy}\sigma_y}{\sigma_x},\ \ b_2 = \frac{r_{xy}\sigma_x}{\sigma_y}
+
+with:
+
+.. math::
+   :label: Pearsonscorrcoeff
+
+   r_{xy} = \frac{\sum\limits^{N-1}_{i=0}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum\limits^{N-1}_{i=0}(x_i - \bar{x})^2} \sqrt{\sum\limits^{N-1}_{i=0}(y_i - \bar{y})^2}}
+
+With :eq:`Pearson` and :eq:`Pearsonsslope` we get the well known relation between
+the slopes of the two regression lines and the correlation coefficient:
+
+.. math::
+   :label: Pearsonsrelation
+
+   r_{xy}^2 = b_1*b_2
+
+and :eq:`Pearson` can be written as:
+
+.. math::
+   :label: Pearsonb1b2
+
+   \boxed{\tan(2\theta) = \frac{2b_1b_2}{b_2-b_1}}
+
+On page 571 in this article he presented a table
+with data points. This table has been used many times in the literature to compare
+different methods.
+
+>>> x = numpy.array([0.0, 0.9, 1.8, 2.6, 3.3, 4.4, 5.2, 6.1, 6.5, 7.4])
+>>> y = numpy.array([5.9, 5.4, 4.4, 4.6, 3.5, 3.7, 2.8, 2.8, 2.4, 1.5])
+
+So let's prove it works with a short program.
+The script in the next example calculates Pearson's best fit slope using the analytical
+formulas from this section. Then it shows how one can use *kmpfit* for a
+regression of y on x and for a regression of x on y. In the latter case,
+we swap the data arrays x and y in the initialization of *kmpfit*.
+Note that for a plot we need to transform its offset and slope in the YX plane
+to an offset and slope in the XY plane. If the values are :math:`(a,b)` in the
+YX plane, then in the XY plane, the offset and slope will be :math:`(-a/b, 1/b)`.
+
+.. literalinclude:: EXAMPLES/kmpfit_Pearsonshort.py
+
+The most remarkable fact is that Pearson applied the 'effective variance'
+method, formulated at a later date, to an unweighted orthogonal fit, as can
+be observed in the second plot in the figure. Pearson's best-fit parameters
+are the same as the best-fit parameters we find
+with the effective variance method (look in the output below).
+In an extended version of the program above, we added the effective variance
+method and added the offset and slope for the bisector of the two regression lines
+(y on x and x on y). The results are shown in the next figure.
+Note that Pearson's best-fit line is **not** the same
+as the bisector which has no relation to orthogonal fitting procedures.
+
+.. note::
+
+   Pearson's method is an example of an orthogonal fit procedure. It cannot
+   handle weights nor does it give you estimates of the errors
+   on the best-fit parameters. We discussed the method because it is
+   historically important and it proves that *kmpfit* can be used for its
+   implementation.
+
+.. note::
+
+   In the example we find best-fit values for the angle :math:`\theta` from
+   which we derive the slope :math:`b = \tan(\theta)`. The advantage of this method
+   is that it also finds fits for data points that represent vertical lines.
+
+**Example:  kmpfit_Pearsonsdata - Pearsons data and method (1901)**
+
+.. plot:: EXAMPLES/kmpfit_Pearsonsdata.py
    :align: center
 
+The output of the ``kmpfit_Pearsonsdata.py`` is::
 
-An example that compares several methods can be
-found in :download:`kmpfit_errorsinXandY.py <EXAMPLES/kmpfit_errorsinXandYPlot.py>`
-It produces plots like the one below.
 
-**Example:  kmpfit_errorsinXandYPlot - The effective variance method: errors in both variables**
+   Analytical solution
+   ===================
+   Best fit parameters: a=5.7840437745  b=-0.5455611975
+   Pearson's Corr. coef:  -0.976475222675
+   Pearson's best tan2theta, theta, slope:  -1.55350214417 -0.49942891481 -0.545561197521
+   b1 (Y on X), slope:  -0.539577274984 -0.539577274984
+   b2 (X on Y), slope -1.76713124274 -0.565888925403
+
+   ======== Results kmpfit: effective variance =========
+   Params:                  5.78404377469 -0.545561197496
+   Covariance errors:       [ 0.68291482  0.11704321]
+   Standard errors          [ 0.18989649  0.03254593]
+   Chi^2 min:               0.618572759437
+   Reduced Chi^2:           0.0773215949296
+
+   ======== Results kmpfit Y on X =========
+   Params:                  [5.7611851899974615, -0.4948059176648682]
+   Covariance errors:       [ 0.59895647  0.10313386]
+   Standard errors          [ 0.1894852   0.03262731]
+   Chi^2 min:               0.800663522236
+   Reduced Chi^2:           0.100082940279
+
+   ======== Results kmpfit X on Y =========
+   Params:                  (10.358385598025167, 5.2273490890768901)
+   Covariance errors:       [ 0.94604747  0.05845157]
+   Standard errors          [ 0.54162728  0.03346446]
+   Chi^2 min:               2.62219628339
+   Reduced Chi^2:           0.327774535424
+
+   Least squares solution
+   ======================
+   a1, b1 (Y on X) 5.76118519 -0.539577274869
+   a2, b2 (X on Y) 5.86169569507 -0.565888925412
+   Best fit tan2theta, Theta, slope:  -1.5535021437 -0.499428914742 -0.545561197432
+   Best fit parameters: a=5.7840437742  b=-0.5455611974
+   Bisector through centroid a, b:  5.81116055121 -0.552659830161
+
+
+Comparisons of weighted fits methods
++++++++++++++++++++++++++++++++++++++
+
+York [Yor]_ added weights to Pearsons data. This data set is a standard for
+comparisons between fit routines for weighted fits. Note that the weights are given as
+:math:`w_{x_i}` which is equivalent to :math:`1/\sigma_{x_i}^2`.
+
+>>> x = numpy.array([0.0, 0.9, 1.8, 2.6, 3.3, 4.4, 5.2, 6.1, 6.5, 7.4])
+>>> y = numpy.array([5.9, 5.4, 4.4, 4.6, 3.5, 3.7, 2.8, 2.8, 2.4, 1.5])
+>>> wx = numpy.array([1000.0,1000,500,800,200,80,60,20,1.8,1.0])
+>>> wy = numpy.array([1,1.8,4,8,20,20,70,70,100,500])
+
+This standard set is the data we used in the next example. This program compares
+different methods. One of the methods is the approach of Williamson [Wil]_
+using an implementation described in [Ogr]_.
+
+**Example:  kmpfit_Pearsonsdata_compare - Pearson's data with York's weights**
+
+.. plot:: EXAMPLES/kmpfit_Pearsonsdata_compare.py
+   :align: center
+
+Part of the output of this program is summarized in the next table.
+
+Literature results:
+
+=========================== ================ ================
+Reference                    a                b
+=========================== ================ ================
+Pearson unweighted           5.7857           -0.546
+Williamson                   5.47991022403    -0.48053340745
+Reed                         5.47991022723    -0.48053340810
+Lybanon                      5.47991025       -0.480533415
+=========================== ================ ================
+
+
+Practical results:
+
+=========================== ================ ================
+Method                       a                b
+=========================== ================ ================
+kmpfit unweighted            5.76118519259    -0.53957727555
+kmpfit weights in Y only     6.10010929336    -0.61081295310
+kmpfit effective variance    5.47991015994    -0.48053339595
+ODR                          5.47991037830    -0.48053343863
+Williamson                   5.47991022403    -0.48053340745
+=========================== ================ ================
+
+From these results we conclude that *kmpfit* with the effective variance
+residuals function, is very well suited to perform weighted
+orthogonal fits for a model that represents a straight line.
+If you run the program, you can observe that also the uncertainties
+match.
+
+
+To study the effects of weights and to compare residual functions based on
+a combination of :eq:`extra_condition2` and :eq:`weighted_orthdistance` and
+on the effective variance formula in :eq:`common_distance` we made a small program
+which produces random noise for the model data and random weights for
+the measured data in both x an y.
+It also compares the results of these methods with SciPy's ODR routine.
+If you run the program you will observe that the three methods agree very well.
+
+
+**Example:  kmpfit_errorsinXandYPlot - Comparing methods using random weights**
 
 .. plot:: EXAMPLES/kmpfit_errorsinXandYPlot.py
    :align: center
 
 
 
-Other models
-++++++++++++
+Effective variance method for various models
++++++++++++++++++++++++++++++++++++++++++++++
 
-Asssume that the model in the previous section was not a straight line, but a parabola
-:math:`y=a+bx+cx^2`.
-Then the formula for the minimum distance in equation :eq:`distance_condition`
-would be: 
+Model :math:`f([a,b],x) = ax - b/x`
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-.. math::
-   :label: mindistance_parabola
+We used data from an experiment described in Orear's article [Ore]_ to test the
+effective variance method.
+Orear starts with a model :math:`f([a,b],x) = ax - b/x`. He
+tried to minimize the objective function by an iteration using 
+:eq:`extra_condition` with the derivative :math:`f^{\prime}([a,b],x) = a + b/x^2`
+and calls this the exact solution. He also iterates
+using the effective variance method as in :eq:`Orear` and find small differences
+between these methods. This must be the result of an insufficient convergence
+criterion or numerical instability because we don't find significant difference
+using these methods in a program (see example below).
+The corresponding residual function for the minimum distance expression is::
 
-   (x_i-\hat{x}) +(y_i -(a+b\hat{x}+c\hat{x}^2))(b+2c\hat{x}) = 0
+   def residuals3(p, data):
+      # Minimum distance formula with expression for x_model
+      a, b = p
+      x, y, ex, ey = data
+      wx = numpy.where(ex==0.0, 0.0, 1.0/(ex*ex))
+      wy = numpy.where(ey==0.0, 0.0, 1.0/(ey*ey))
+      df = a + b/(x*x)
+      # Calculated the approximate values for the model
+      x0 = x + (wy*(y-model(p,x))*df)/(wx+wy*df*df)
+      y0 = model(p,x0)
+      D = numpy.sqrt( wx*(x-x0)**2+wy*(y-y0)**2 )
+      return D
 
-Now it is complicated to solve for *x*. so we cannot get an exact solution as
-with the straight line. Then we apply the effective variance method.
-We find an objective function:
+The residual function for the effective variance is::
+  
+   def residuals(p, data):
+      # Residuals function for data with errors in both coordinates
+      a, b = p
+      x, y, ex, ey = data
+      w = ey*ey + ex*ex*(a+b/x**2)**2
+      wi = numpy.sqrt(numpy.where(w==0.0, 0.0, 1.0/(w)))
+      d = wi*(y-model(p,x))
+      return d
+
+The conclusion, after running the example, is that *kmpfit* in combination with
+the effective variance method finds best-fit parameters that are better than
+the published best-fit parameters (because a smaller value for the minimum
+chi-square is obtained). The example shows that for data and model like Orear's,
+the effective variance, which includes uncertainties both in x and y, produces
+a better fit than an Ordinary Least-Squares (OLS) fit where we treat errors in x
+as being much smaller than the errors in y.
+
+
+**Example:  kmpfit_Oreardata - The effective variance method with Orear's data**
+
+.. plot:: EXAMPLES/kmpfit_Oreardata.py
+   :align: center
+
+
+Model :math:`f([a,b,c],x) = ax^2+bx+c`
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!                             
+
+Applying the effective variance method for a parabola
+we  an objective function:
 
 .. math::
    :label: objective_function_parabola
@@ -837,16 +1149,34 @@ by: :math:`f(x) = a + bx + cx^2 - c(x-x_i)^2`. So this approximation works if
 the difference between :math:`x_i` and :math:`x` remains small.
 For *kmpfit* this implies that also the initial parameter estimates must be
 of reasonable quality.
-Using the code of residuals function above, we observed that this approach works adequate.
+Using the code of residuals function above, we observed that this approach works
+adequate. It is interesting to compare the results of *kmpfit* with the results
+of Scipy's ODR routine. Often the results are comparable. That is, if we start
+with model parameters ``(a, b, c) = (-6, 1, 0.5)`` and initial estimates
+``beta0 = (1,1,1)``,
+then *kmpfit* (with smaller tolerance than the default) obtains a smaller value for
+chi square in 2 of 3 trials. With initial estimates ``beta0 = (1.8,-0.5,0.1)``
+it performs worse with really wrong fits.
+
+.. note::
+
+   *kmpfit* in combination with the effective variance method is more sensitive
+   to reasonable initial estimates than Scipy's ODR.
 
 
+**Example:  kmpfit_ODRparabola - The effective variance method for a parabola**
 
-Non linear fit example
-+++++++++++++++++++++++
+.. plot:: EXAMPLES/kmpfit_ODRparabola.py
+   :align: center
 
-If your model is a model that is non linear in its parameters, then the
+
+Model :math:`f([a,b,c],x) = a\sin(bx+c)`
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+If your model is a model that is not linear in its parameters, then the
 effective variance method can still be applied.
-If your model is given for example by :math:`f(x) = a\sin(bx+c)`
+If your model is given for example by :math:`f(x) = a\sin(bx+c)`, which
+is not linear in parameter *b*,
 then :math:`f^\prime(x) = ab\cos(bx+c)`
 and the effective variance in relation :eq:`clutton` can be implemented as::
 
@@ -864,17 +1194,19 @@ and the effective variance in relation :eq:`clutton` can be implemented as::
       d = w*(y-model(p,x))
       return d
 
-In the next script
-the results are compared often with SciPy's ODR routine which applies
-a different method to improve the approximation of *f(x)*.
-This can be demonstrated with a small script which generates
-model values with small errors.
+In the next script we implemented the listed model and
+residuals function. The results are compared with SciPy's ODR routine.
+The same conclusion applies to these results as to the results of
+the parabola in the previous section. 
 
+.. note::
+
+   *kmpfit* with effective variance can also be used for models
+   that are not linear in their parameters.
 
 **Example:  kmpfit_ODRsinus.py - Errors in both variables**
 
 .. plot:: EXAMPLES/kmpfit_ODRsinus.py
-   :include-source:
    :align: center
 
 
@@ -890,24 +1222,52 @@ Glossary
       problem. It determines how good a solution is. In Least Squares fit
       procedures, it is this function that needs to be minimized.
    
+   Independent Variable
+      Usually the **x** in a measurement. It is also
+      called the explanatory variable
 
+   Dependent Variable
+      Usually the **y** in a measurement. It is also
+      called the response variable
+
+   Numpy
+      NumPy is the fundamental package needed for scientific computing with Python.
+      See also information on the Internet at: `numpy.scipy.org <http://numpy.scipy.org/>`_
 
 References
 ----------
-   
-.. [Bev] Bevington, Philip R. , *Data Reduction and Error Analysis for the Physical Sciences*,
-   1969, McGraw-Hill
 
-.. [NumRep] William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
-   *Numerical Recipes in C, The Art of Scientific Computing*,
-   2nd edition, Cambridge University Press, 1992
-
-.. [Alper] Alper, Joseph S., Gelb, Robert I., *Standard Errors and Confidence Intervals
+.. [Alp] Alper, Joseph S., Gelb, Robert I., *Standard Errors and Confidence Intervals
    in Nonlinear Regression: Comparison of Monte Carlo and Parametric Statistics*,
    J. Phys. Chem., 1990, 94 (11), pp 4747–4751 (Journal of Physical Chemistry)
 
-.. [Clutton] Clutton-Brock, *Likelihood Distributions for Estimating Functions
+.. [Bev] Bevington, Philip R. , *Data Reduction and Error Analysis for the Physical Sciences*,
+   1969, McGraw-Hill
+
+.. [Clu] Clutton-Brock, *Likelihood Distributions for Estimating Functions
    When Both Variables Are Subject to Error*, Technometrics, Vol. 9, No. 2 (May, 1967), pp. 261-269
 
-.. [Orear] Orear, Jay, *Least squares when both variables have uncertainties*,
-   Am. J. Phys. 50(10), Oct 1982 
+.. [Num] William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
+   *Numerical Recipes in C, The Art of Scientific Computing*,
+   2nd edition, Cambridge University Press, 1992
+
+.. [Ogr] Ogren, J., Norton, J.R., *Applying a Simple Linear Least-Squares
+   Algorithm to Data with Uncertainties in Both Variables*,
+   J. of Chem. Education, Vol 69, Number 4, April 1992 
+
+.. [Ore] Orear, Jay, *Least squares when both variables have uncertainties*,
+   Am. J. Phys. 50(10), Oct 1982
+
+.. [Pea] Pearson, K. *On lines and planes of closest fit to systems
+   of points in space*. Philosophical Magazine 2:559-572, 1901.
+   A copy of this article can be found at:
+   `http://stat.smmu.edu.cn/history <http://stat.smmu.edu.cn/history/pearson1901.pdf/>`_
+
+.. [Yor] York, D. *Least-squares fitting of a straight line*,
+   Canadian Journal of Physics. Vol. 44, p.1079, 1966
+
+.. [Wil] Williamson, *Least-squares fitting of a straight line*,
+   J.A., Can. J. Phys, 1968, 46, 1845-1847
+
+.. [Wol] Wolberg, J., *Data Analysis Using the Method of Least Squares*,
+   2006, Springer
