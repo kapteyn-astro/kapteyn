@@ -13,6 +13,16 @@
 
 import sys, os
 
+#
+# Inject own version of align() into module plot_directive
+#
+from docutils.parsers.rst import directives
+from docutils.parsers.rst.directives.images import Image
+from matplotlib.sphinxext import plot_directive
+def my_align(arg):
+   return directives.choice(arg,Image.align_values)
+plot_directive.align = my_align
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -33,7 +43,7 @@ draftversion = True
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.pngmath', 'sphinx.ext.ifconfig',
-              'plot_directive', 'only_directives']
+              'matplotlib.sphinxext.plot_directive', 'only_directives']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -230,3 +240,8 @@ latex_show_urls = False
 # subprocess.Popen class. -D reduced because of smaller font used.
 #
 pngmath_dvipng_args = ['-gamma 1.5', '-D 95', '-bg', 'Transparent']
+
+# ----------------------------------------------------------------------------
+# Plot directive configuration
+# ----------------------------------------------------------------------------
+plot_formats = [('png', 80), ('hires.png', 200), ('pdf', 50)]

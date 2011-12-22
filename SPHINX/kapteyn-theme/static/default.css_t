@@ -264,7 +264,7 @@ tt {
     font-size: 110%;
 }
 
-img.align-center {
+div.figure img {
    border: 1px solid lightgray;
 }
 
