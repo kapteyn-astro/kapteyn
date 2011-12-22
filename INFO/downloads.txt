@@ -145,7 +145,7 @@ ENSTINET, Egypt @ 195.43.6.11
 Kyoto University @ 130.54.130.230
 University of Tokyo @ 133.11.165.104
 Delhi University @ 202.141.141.35
+Academia Sinica @ 140.109.177.184
 
-
-tot: Mon Dec 12 12:07:22 CET 2011
-Mon Dec  5 14:45:36 CET 2011
+tot: Wed Dec 21 11:47:08 CET 2011
+Mon Dec 12 12:07:22 CET 2011

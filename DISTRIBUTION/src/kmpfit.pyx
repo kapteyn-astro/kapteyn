@@ -781,11 +781,11 @@ def simplefit(model, p0, x, y, err=1.0, **kwargs):
 :param p0:
    a sequence with the initial parameter values.
 :param x:
-   array with independent variable values.
+   a sequence with independent variable values.
 :param y:
-   array with dependent variable values.
+   a sequence with dependent variable values.
 :param err:
-   array with :math:`1 \sigma` errors.
+   a sequence with :math:`1 \sigma` errors.
 :param ...:
    other arguments, each corresponding with one of the configuration
    attributes for an object of class :class:`Fitter`.
