@@ -10,9 +10,12 @@ Least squares fitting with kmpfit
 Introduction
 ------------
 
-In this tutorial we try to show how flexible the least squares fit routine in
-:mod:`kmpfit` is. We added practical examples which are explained with
-the necessary theoretical background. The fit routine *kmpfit* has many similar
+In this tutorial we try to show the flexibility of the least squares
+fit routine in :mod:`kmpfit` by showing examples and some background
+theory. The *kmpfit* module is an excellent tool to demonstrate
+features of the least squares fitting theory. It is a Python module
+so the examples are simple and almost self explanatory.
+The fit routine *kmpfit* has many similar
 aspects in common with SciPy's *leastsq* function,
 but its interface is a more friendly and flexible.
 
@@ -22,6 +25,9 @@ These data points are measured and often :math:`y_i` has a measurement error
 that is much smaller than the error in :math:`x_i`. Then we call *x* the
 independent and *y* the dependent variable. In this tutorial we will
 also deal with examples where the errors are comparable.
+
+Objective function
++++++++++++++++++++
 
 The method of least squares adjusts the parameters of a model function
 *f(parameters, independent_variable)* by finding a minimum of a so called
@@ -38,7 +44,7 @@ parameters will be if we repeat the experiment, which produces the
 data points, many times. But it can do that only for objective functions
 if they return the (weighted) sum of squared residuals (WSSR). The
 least squares fitting procedure is then a maximum-likelihood estimation (MLE)
-And the objective function *S* is also called chi square (:math:`\chi^2`).
+and the objective function *S* is then also called chi square (:math:`\chi^2`).
 
 If we define :math:`\mathbf{p}` as the set of parameters and take *x* for the independent data
 then we define a residual as the difference between the actual dependent variable
@@ -47,7 +53,7 @@ then we define a residual as the difference between the actual dependent variabl
 .. math::
    :label: Residuals_function
 
-   r(\mathbf{p}, (x_i,y_i)) = y_i - f(\mathbf{p},x_i)
+   r(\mathbf{p}, [x_i,y_i]) = y_i - f(\mathbf{p},x_i)
 
 One is not restricted to one independent (*explanatory*) variable. For example, 
 for a plane the dependent (*response*) variable :math:`y_i`
@@ -62,6 +68,89 @@ afterwards.
    For *kmpfit*, you need only to specify a residuals function.
    The least squares fit method in *kmpfit* does the squaring and summing
    of the residuals.
+
+
+Linearity
+++++++++++
+
+For many least squares fit problems we can use analytical methods to find
+the best-fit parameters. This is the category of linear problems.
+For linear least-squares problems (LLS) the second and higher derivatives of the fitting
+function with respect to the parameters are zero. If this is not true then
+the problem is a so called non-linear least-squares problem (NLLS). We use *kmpfit*
+to find best-fit parameters for both problems and use the analytical methods
+of the first category to check the output of *kmpfit*.
+An example of a LLS problem is finding the best fit parameters of the model:
+
+
+.. math::
+   :label: linearexample
+
+   f(a,x) = a * \sin(x)
+
+   \frac{\partial f}{\partial a} = \sin(x)\,  \Rightarrow \frac{\partial^2 f}{\partial a^2} = 0
+
+
+An example of a NLLS problem is finding the best fit parameters of the model:
+
+.. math::
+   :label: nonlinearexample
+
+   f(a,x) = \sin(a*x)
+
+   \frac{\partial y}{\partial a} = x\cos(ax)\, \Rightarrow \frac{\partial^2 y}{\partial a^2} \neq 0
+
+
+Stop criteria
+++++++++++++++
+
+LLS and NLLS problems are solved by *kmpfit* by an iterative procedure.
+The fit routine attempts to find the minimum by doing a search. Each iteration
+gives an improved set of parameters and the sum of the squared residuals is
+calculated again. *kmpfit* is based on the C version of *mpfit* which
+uses the Marquardt-Levenberg algorithm to select the parameter values for the
+next iteration. These iterations are repeated until a criterion is met.
+They are set with parameters for the constructor of the *Fitter*
+object in *kmpfit* or with the appropriate attributes. From the documentation
+of the original C code we copy:
+
+   * ``ftol`` - a nonnegative input variable. Termination occurs when both
+     the actual and predicted relative reductions in the sum of
+     squares are at most ``ftol``.  Therefore, ``ftol`` measures the
+     relative error desired in the sum of squares.
+     The default is: 1e-10
+
+   * ``xtol`` - a nonnegative input variable. Termination occurs when the
+     relative error between two consecutive iterates is at most
+     ``xtol``. therefore, ``xtol`` measures the relative error desired
+     in the approximate solution.
+     The default is: 1e-10
+
+   * ``gtol`` - a nonnegative input variable. Termination occurs when the
+     cosine of the angle between *fvec* (is an internal input array which
+     must contain the functions evaluated at x)
+     and any column of the
+     jacobian is at most ``gtol`` in absolute value. Therefore, ``gtol``
+     measures the orthogonality desired between the function
+     vector and the columns of the jacobian.
+     The default is: 1e-10
+
+   * ``maxiter`` - Maximum number of iterations. The default is: 200
+
+   * ``maxfev`` - Maximum number of function evaluations.
+     The default is: 0 (no limit)
+
+
+Goal
++++++++
+
+The function that we choose is based on a model which should describe the data
+so that *kmpfit* finds best-fit values for the free parameters in this model.
+These values can be used for interpolation or prediction of data based
+on the measurements and the best-fit parameters.
+We will discuss a familiar example for astronomy when we find best fit
+parameters for a Gaussian to find the characteristics of a profile like
+the position of the maximum and the width of a peak.
 
 
 
@@ -88,7 +177,7 @@ Parameter ``x`` is a NumPy array and ``p`` is an array with model
 parameters *a* and *b*. This function calculates response Y values
 for a given set of parameters and an array with explanatory X values.
 
-Then it is simple to define the residuals function :math:`r(\mathbf{p}, (x_i,y_i))`
+Then it is simple to define the residuals function :math:`r(\mathbf{p}, [x_i,y_i])`
 which calculates the
 residuals between data points and model::
 
@@ -225,143 +314,6 @@ The advantages of this method:
 .. literalinclude:: EXAMPLES/kmpfit_example_easyinterface.py
 
 
-Explicit partial derivatives
------------------------------
-
-Gaussian profiles
-++++++++++++++++++
-
-There are many examples where an astronomer needs to know the characteristics of a Gaussian profile.
-Fitting best parameters for a model that represents a Gauss function, is a way to obtain a measure for
-the peak value, the position of the peak and the width of the peak. It does not reveal any skewness or
-kurtosis of the profile, but often these are not important. We write the Gauss function as:
-
-.. math::
-   :label: gaussianfunction
-
-   f(x) = A{e^{-\frac{1}{2} {\left(\frac{x - \mu}{\sigma}\right)}^2}} + z_0
-
-Here :math:`A` represents the peak of the Gauss, :math:`\mu` the mean, i.e. the position of the peak
-and :math:`\sigma` the width of the peak. We added :math:`z_0` to add a background to the profile
-characteristics. In the early days of fitting software, there were no implementations that did not need
-partial derivatives to find the best fit parameters. The fit routine in `kmpfit` is based on 
-Craig Markwardt's non-linear least squares curve fitting routines for IDL called MPFIT.
-It uses the Levenberg-Marquardt technique to solve the least-squares problem, 
-which is a particular strategy for iteratively searching for the best fit. 
-
-
-Partial derivatives for a Gaussian
----------------------------------------------
-
-In the documentation of the IDL version of *mpfit.pro*, the author states that it
-is often sufficient and even faster to allow the fit routine to calculate the
-derivatives numerically. With explicit partial derivatives
-we usually gain an increase in speed of about 20%, at least for fitting Gaussian profiles.
-The real danger in using explicit partial derivatives seems to be that one easily makes
-small mistakes in deriving the necessary equations. This is not always obvious in test-runs.
-For the Gauss function in :eq:`gaussianfunction` we derived the following partial derivatives:
-
-
-.. math::
-   :label: partialderivatives
-
-   \frac{\partial f(x)}{\partial A} &= e^{-\frac{1}{2} {\left(\frac{x - \mu}{\sigma}\right)}^2}\\
-   \frac{\partial f(x)}{\partial \mu} &= A{e^{-\frac{1}{2} {\left(\frac{x-\mu}{\sigma}\right)}^2}}. \frac{(x-\mu)}{\sigma^2}\\
-   \frac{\partial f(x)}{\partial \sigma} &= A{e^{-\frac{1}{2} {\left(\frac{x-\mu}{\sigma}\right)}^2}}. \frac{{(x-\mu)}^2}{\sigma^3}\\
-   \frac{\partial f(x)}{\partial z_0} &= 1
-
-
-If we want to use explicit partial derivatives in *kmpfit* we need the external residuals
-to return the derivative of the model f(x) at x, with respect to any of the parameters.
-If we denote a parameter from the set of parameters :math:`P = (A,\mu,\sigma,z_0)` 
-with index i, then one calculates 
-the derivative with a function ``FGRAD(P,x,i)``.
-In fact, kmpfit needs the derivative of the **residuals** and if we defined the residuals
-as ``residuals = (data-model)/err``, the residuals function should return:
-
-.. math::
-   :label: dervresidual
-
-   \frac{\partial f(x)}{\partial P(i)} =\frac{ -FGRAD(P,x,i)}{err}
-
-where ``err`` is the array with weights.
-
-Below, we show a code example of how one can implement explicit partial derivatives.
-We created a function, called ``my_derivs`` which calculates the derivatives for each 
-parameter. We tried to make the code efficient but you should be able to recognize 
-the equations from :eq:`partialderivatives`. The return value is equivalent with :eq:`dervresidual`.
-The function has a fixed signature because it is called by the fitter which expects
-that the arguments are in the right order. This order is:
-
-   * p               
-     -List with model parameters, generated by the fit routine
-   * a1, a2, ... an
-     -References to data in the ``data`` argument in the constructor of the Fitter object.
-   * dflags            
-     -List with booleans. One boolean for each model parameter.
-     If the value is ``True`` then an explicit partial derivative is
-     required. The list is generated by the fit routine.
-
-There is no need to process the ``dflags`` list in your code. There is no problem if 
-you return all the derivatives even when they are not necessary.
-
-.. note::
-
-   A function which returns derivatives should create its own work array to store the 
-   calculated values. The shape of the array should be (parameter_array.size, x_data_array.size).
-
-The function ``my_derivs`` is then::
-
-   def my_derivs(p, data, dflags):
-      #-----------------------------------------------------------------------
-      # This function is used by the fit routine to find the values for
-      # the explicit partial derivatives. Argument 'dflags' is an array
-      # with booleans. If an element is True then an explicit partial
-      # derivative is required.
-      #-----------------------------------------------------------------------
-      x, y, err = data
-      A, mu, sigma, zerolev = p
-      pderiv = numpy.zeros([len(p), len(x)])  # You need to create the required array
-      sig2 = sigma*sigma
-      sig3 = sig2 * sigma
-      xmu  = x-mu
-      xmu2 = xmu**2
-      expo = numpy.exp(-xmu2/(2.0*sig2))
-      fx = A * expo
-      for i, flag in enumerate(dflags):
-         if flag:
-            if i == 0:
-               pderiv[0] = expo
-            elif i == 1:
-               pderiv[1] = fx * xmu/(sig2)
-            elif i == 2:
-               pderiv[2] = fx * xmu2/(sig3)
-            elif i == 3:
-               pderiv[3] = 1.0
-      return pderiv/-err
-
-Note that all the values per parameter are stored in a row. A minus sign is added to 
-to the error array to fulfill the 
-requirement in equation :eq:`dervresidual`.
-The constructor of the Fitter object is as follows (the function ``my_residuals`` is
-not given here)::
-
-
-   fitobj = kmpfit.Fitter(residuals=my_residuals, deriv=my_derivs, data=(x, y, err))
-
-
-The next code and plot show an example of finding and plotting best fit parameters given a Gauss
-function as model. If you want to compare the speed between a fit with  explicit partial derivatives
-and a fit using numerical derivatives, add a second Fitter object by omitting the ``deriv`` argument.
-In our experience, the code with the explicit partial derivatives is about 20% faster because it
-needs considerably fewer function calls to the residual function.
-
-**Example: kmpfit_example_partialdervs.py - Finding best fit parameters for a Gaussian model**
-
-.. plot:: EXAMPLES/kmpfit_example_partialdervs.py
-   :include-source:
-   :align: center
-
 
 
 .. _standard_errors:
@@ -424,73 +376,552 @@ The results for an arbitrary run::
 As you can see, the value of chi-square has increased with ~1. 
 
 
-In the (astronomical) literature one often lists best-fit parameters with
-the standard errors derived from the covariance matrix (in fact they are the
-square root of the diagonal values of this matrix).
-But note that this is only a good approximation of the Bootstrap standard errors
-if you are sure that you are using weights and that
-these weights are derived from real measurement errors (:math:`w_i=1/\sigma_i^2`)
-and these errors should be normally distributed.
-If you fit is unweighted or your weights are relative weights, then one needs
-to rescale the covariance elements. 
 
+Standard errors in Weighted fits
+++++++++++++++++++++++++++++++++++
+
+In the literature [Num]_ we can find analytical expressions for the standard errors
+of weighted fits for standard linear regression. We want to discuss the
+derivation of analytical errors for weighted fits to demonstrate that these errors
+are also represented by the elements of the so called covariance matrix,
+which is also a result of a fit with *kmpfit* (attribute ``Fitter.covar``).
+How should we interpret these errors? For instance in Numerical Recipes, [Num]_
+we find the expressions for the best fit parameters of a model :math:`y=a+bx`
+
+Define:
+
+.. math::
+   :label: numrep_linear1
+
+   S \equiv \sum_{i=0}^{N-1} \frac{1}{\sigma_i^2}\ \ S_x \equiv \sum_{i=0}^{N-1} \frac{x_i}{\sigma_i^2} \ \ S_y \equiv \sum_{i=0}^{N-1} \frac{y_i}{\sigma_i^2}\\
+   S_{xx} \equiv \sum_{i=0}^{N-1} \frac{x_i^2}{\sigma_i^2}\ \ S_{xy} \equiv \sum_{i=0}^{N-1} \frac{x_iy_i}{\sigma_i^2}
+
+Then the system is rewritten into the simple equations:
+
+.. math::
+   :label: numrep_linear
+
+   aS + bS_x = S_y\ \ \ aS_x + bS_{xx} = S_{xy}
+
+Then in matrix notation:
+
+.. math::
+   :label: equationmatrix
+
+   \begin{bmatrix} S & S_x\\ S_x & S_{xx}\end{bmatrix} \begin{pmatrix} a \\ b\end{pmatrix} =\begin{pmatrix}S_y\\ S_{xy}\end{pmatrix}
+
+If we define:
+
+.. math::
+   :label: covariancematrix
+
+   C = \frac{1}{SS_{xx} - (S_x)^2}\begin{bmatrix} S_{xx} & -S_x\\ -S_x & S\end{bmatrix}
+
+which gives the solution:
+
+.. math::
+   :label: lsqsolution
+
+   \begin{pmatrix} a \\ b\end{pmatrix} = C \begin{pmatrix}S_y\\ S_{xy}\end{pmatrix}
+
+Define:
+
+.. math::
+   :label: numrep_linear3
+
+   \Delta \equiv SS_{xx} - (S_x)^2
+
+
+The solutions for *a* and *b* are:
+
+.. math::
+   :label: numrep_linear4
+
+   a = \frac{S_{xx}S_y - S_xS_{xy}}{\Delta}\\
+   b = \frac{S_{}S_{xy} - S_xS_{y}}{\Delta}
+
+
+For the standard errors we will derive the error in parameter *a* and *b*.
+The error in *a* is by the law of propagation of errors:
+
+.. math::
+   :label: properrors
+
+   \sigma_a^2 = \sum_{i} \sigma_i^2 \left(\frac{\partial{a}}{\partial{y_i}}\right)^2
+
+From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
+
+.. math::
+   :label: parderivA
+
+   \frac{\partial{a}}{\partial{y_i}} = \frac{\frac{S_{xx}}{\sigma_i^2}-\frac{S_xx_i}{\sigma_i^2} }{\Delta}= \frac{S_{xx}-S_xx_i}{\sigma_i^2\Delta}
+
+
+With :eq:`properrors` we find
+
+.. math::
+   :label: deriverrorA
+
+   \sigma_a^2  &=  \sum_{i} \sigma_i^2 \left(\frac{\partial{a}}{\partial{y_i}}\right)^2 \\
+               &=  \sum_{i} \sigma_i^2 \left( \frac{S_{xx}-S_xx_i}{\sigma_i^2\Delta} \right)^2 \\
+               &=  \frac{1}{\Delta^2}\left\{ S_{xx}^2\Sigma\frac{1}{\sigma_i^2} -2S_xS_{xx} \Sigma\frac{x_i}{\sigma_i^2} + S_x^2\Sigma\frac{x_i^2}{\sigma_i^2}\right\} \\
+               &=  \frac{1}{\Delta^2}\left\{S_{xx}^2S-2S_xS_{xx}S_x+S_{xx}S_x^2 \right\} \\
+               &=  \frac{1}{\Delta^2}\left\{S_{xx}(S_{xx}S-S_x^2)\right\} \\
+               &=  \frac{1}{\Delta^2}S_{xx}\Delta \\
+               &=  \frac{S_{xx}}{\Delta}
+
+
+Applying the same procedure to *b*:
+
+.. math::
+   :label: parderivB
+
+   \frac{\partial{b}}{\partial{y_i}} = \frac{\frac{Sx_i}{\sigma_i^2}-\frac{S_x} {\sigma_i^2}}{\Delta}=\frac{Sx_i-S_x}{\sigma_i^2\Delta}
+
+With :eq:`properrors` we find
+
+.. math::
+   :label: deriverrorB
+
+   \sigma_b^2  &=  \sum_{i} \sigma_i^2 \left(\frac{\partial{b}}{\partial{y_i}}\right)^2 \\
+               &=  \sum_{i} \sigma_i^2 \left( \frac{S_xx_i-S_x}{\sigma_i^2\Delta} \right)^2 \\
+               &=  \frac{1}{\Delta^2}\left\{ S^2\Sigma\frac{x_i^2}{\sigma_i^2} -2S_xS \Sigma\frac{x_i^2}{\sigma_i^2} + S_x^2\Sigma\frac{x_i^2}{\sigma_i^2}\right\} \\
+               &=  \frac{1}{\Delta^2}\left\{S^2S-2S_xSS_x+S_x^2S \right\} \\
+               &=  \frac{1}{\Delta^2}\left\{S(S_{xx}S-S_x^2)\right\} \\
+               &=  \frac{1}{\Delta^2}S\Delta \\
+               &=  \frac{S}{\Delta}
+
+
+To summarize:
+
+.. math::
+   :label: deriverrorAB
+
+   \boxed{\sigma_a = \sqrt{\frac{S_{xx}}{\Delta}}}
+
+   \boxed{\sigma_b = \sqrt{\frac{S}{\Delta}}}
+
+
+A classical implementation to find analytical best-fit parameters using NumPy
+is as follows::
+
+   def lingres(xa, ya, err):
+      w = numpy.where(err==0.0, 0.0, 1.0/(err*err))
+      sum   =  w.sum()
+      sumX  = (w*xa).sum()
+      sumY  = (w*ya).sum()
+      sumX2 = (w*xa*xa).sum()
+      sumY2 = (w*ya*ya).sum()
+      sumXY = (w*xa*ya).sum()
+      delta = sum * sumX2 - sumX * sumX
+      a = (sumX2*sumY - sumX*sumXY) / delta
+      b = (sumXY*sum - sumX*sumY) / delta
+      siga = numpy.sqrt(abs(sumX2/delta))
+      sigb = numpy.sqrt(abs(sum/delta))
+      return a, b, siga, sigb, delta, sum, sumX2, sumX
+
+Note that these formulas are susceptible to roundoff error and Numerical Recipes
+derives alternative formulas (Section 15.2). However, our functions work
+with double precision numbers and we didn't (yet) encounter a situation where
+roundoff errors were obvious.
+
+
+If we compare these results with the elements of the covariance matrix in
+:eq:`covariancematrix`, then we observe that the expressions for the
+parameter variances, are the square root of the diagonal values of this matrix.
+The co-variance between *a* and *b* can be calculated also
+and the formula turn out to be the same as the
+off diagonal elements of the covariance matrix. This value is:
+
+.. math::
+   :label: covariance
+
+    \mathrm{Cov}(a,b) = C_{12} = C_{21} = \frac{-S_x}{\Delta}
+
+It is easy to demonstrate that these errors are the same as those we find with
+*kmpfit* in attribute ``xerror``, which are the square-root diagonal values of
+the covariance matrix in attribute ``covar``.
+
+The covariance matrix elements :math:`C_{jk}` for best-fit parameters
+**p** can be written as:
+
+.. math::
+   :label: covarianceelements
+
+   C_{jk} = \sum\limits_{i=0}^{i=N} \sigma_i \left(\frac{\partial p_j}{\partial y_i}\right) \left(\frac{\partial p_k}{\partial y_i}\right)
+
+where we used *j* to indicate the matrix row and *k* the matrix column.
+If *j=k* then:
+
+.. math::
+   :label: covariance_error
+
+   C_{jj} = \sum\limits_{i=0}^{i=N} \sigma_i \left(\frac{\partial p_j}{\partial y_i}\right)^2
+
+from which follows that the square root of the diagonal elements of the covariance matrix
+are the estimates of the best-fit parameter uncertainties.
+
+
+.. note::
+
+   * Parameter variances and covariance between parameters can be read from a
+     covariance matrix. This is true for any model, not just a straight line.
+     It is also true for models that are non-linear in their parameters.
+   * The covariance matrix C is in stored as an attribute of the 'kmpfit.Fitter' object
+     The attribute is called ``covar``.
+   * Error estimates for best-fit parameter are stored as an attribute of
+     the 'kmpfit.Fitter' object.
+     The attribute is called ``xerror``
+
+Example program :download:`kmpfit_linearreg.py <EXAMPLES/kmpfit_linearreg.py>`
+compares the analytical covariance matrix with the *kmpfit* version for
+linear regression, using the previously derived formulas  in this section.
+The output of an example run demonstrates the similarity between the
+analytical and the *kmpfit* method::
+
+
+   -- Results analytical solution:
+   Best fit parameters:                         [0.57857142857143595, 5.5285714285714258]
+   Parameter errors weighted fit:               [0.84515425472851657, 0.1889822365046136]
+   Parameter errors un-/relative weighted fit:  [1.0696652156022404, 0.2391844135253578]
+   Minimum chi^2:                               8.00928571429
+   Covariance matrix:
+   0.714285714286 -0.142857142857
+   -0.142857142857 0.0357142857143
+
+   -- Results kmpfit:
+   Best-fit parameters:                         [0.57857145533008425, 5.5285714226701863]
+   Parameter errors weighted fit:               [ 0.84515434  0.18898225]
+   Parameter errors un-/relative weighted fit:  [ 1.06966532  0.23918443]
+   Minimum chi^2:                               8.00928571429
+   Covariance matrix:
+   [[ 0.71428585 -0.14285717]
+   [-0.14285717  0.03571429]]
+
+
+When to use weights?
++++++++++++++++++++++
+
+Sometimes there is a good reason to use a fit method that can deal with weights.
+Usually you assign weights if you have additional knowledge about your measurements.
+Some points get more weight if they are more reliable than others. Therefore you should
+expect that the best-fit parameters are different between weighted and un-weighted
+fits. Also the accuracy of the results will improve, because besides the
+data you are using the quality of the data (weights).
+The difference in best-fit parameters and the quality of the results are shown
+with program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py >`::
+
+   Data x: [ 1.  2.  3.  4.  5.  6.  7.]
+   Data y: [  6.9   11.95  16.8   22.5   26.2   33.5   41.  ]
+   Errors: [ 0.05  0.1   0.2   0.5   0.8   1.5   4.  ]
+
+   -- Results kmpfit unit weighting wi=1.0:
+   Best-fit parameters:                         [0.57857145533008425, 5.5285714226701863]
+   Parameter errors weighted fit:               [ 0.84515434  0.18898225]
+   Minimum chi^2:                               8.00928571429
+   Covariance matrix:
+   [[ 0.71428585 -0.14285717]
+   [-0.14285717  0.03571429]]
+
+   -- Results kmpfit with weights:
+   Best-fit parameters:                         [1.8705399823164173, 5.0290902421858439]
+   Parameter errors weighted fit:               [ 0.09922304  0.06751229]
+   Minimum chi^2:                               4.66545480308
+   Covariance matrix:
+   [[ 0.00984521 -0.00602421]
+   [-0.00602421  0.00455791]]
+
+
+If you examine the residuals function in this program, you will observe
+that we use a weight of :math:`1/err_i` in the residuals function, which is squared by *kmpfit*,
+so in fact the weighting is  :math:`1/\sigma_i^2`.
+First we set all the errors to 1.0. This is called *unit weighting* and effectively
+this fit does not weight at all.
+The second fit has different weights.
+Important is the observation that these weights can be relative.
+Then they contain information about the quality of the data but do not necessarily
+contain correct information about the errors on the data points and therefore
+give incorrect errors on the parameter estimates.
+This is shown in the same
+program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py >`
+where we scaled the errors with a factor 10. The errors in the parameter estimates
+are increased with a factor 10.::
+
+
+   -- Results kmpfit with scaled individual errors (factor=10):
+   Best-fit parameters:                         [1.870539984453957, 5.0290902408769238]
+   Parameter errors weighted fit:               [ 0.99223048  0.6751229 ]
+   Minimum chi^2:                               0.0466545480308
+   Covariance matrix:
+   [[ 0.98452132 -0.60242076]
+   [-0.60242076  0.45579092]]
+
+
+This demonstrates that if weights are relative or when unit weighting is
+applied, one cannot rely on the covariance errors to represent real
+errors on the parameter estimates. The covariance errors are still
+based on a change in :math:`chi^2` of 1.0, but the weights do not
+represent the variances of the data correctly.
+
+To summarize the weighting schemes.
+
+   * *Unweighted* or *unit weighting*. Set  :math:`w_i=1/\sigma_i^2` to 1.0
+   * *Relative weighting*. Set :math:`w_i=1/\sigma_i^2` but the errors on
+     the parameter estimates in *kmpfit*'s attribute ``xerror`` cannot
+     be used.
+   * *Statistical weighting*. Set :math:`w_i=1/\sigma_i^2`. The errors on
+     the parameter estimates in *kmpfit*'s attribute ``xerror`` are correct.
+     An important assumption of this method is that the error distribution
+     of the measured data is Gaussian and that the data errors are
+     measured accurately (absolute uncertainties).
+   * Other weighting schemes like Poisson weighting :math:`w_i=1/y_i`
+
+
+Reduced chi squared
++++++++++++++++++++++
+
+From the theory of maximum likelihood we find that for a least squares solution
+we need to maximize the probability that a measurement :math:`y_i` with given
+:math:`\sigma_i` is in a
+a small interval :math:`dy_i` around :math:`y_i` by minimizing the sum
+chi squared [Ds1]_ :
+
+.. math::
+   :label: maximumlikelihood
+
+   \chi^2 = \sum\limits_{i}^{} {\left(\frac{\Delta y_i}{\sigma_i}\right)}^2 = \sum\limits_{i}^{} \frac{({y_i-f(x_{i}))}^2}{\sigma_i^2}
+
+with:
+
+   * N is the number of data points
+   * :math:`y_i` the measured data at  :math:`x_i`
+   * :math:`\sigma_i` is the standard deviation of measurement i
+   * f is the model for which we want to find the best-fit parameters.
+
+The sum is often called chi squared because it follows the :math:`\chi^2` distribution
+if we repeat the experiment to get new measurements.
+The expectation value of :math:`\chi^2` is
+(see proof in [Ds3]_):
+
+.. math::
+   :label: expectationchi2
+
+   \langle \chi^2 \rangle = N - n
+
+where *n* is the number of free parameters in the fit. The *reduced* chi squared
+:math:`\chi_{\nu}^2` is defined as:
+
+.. math::
+   :label: reducedchi2
+
+   \chi^2_{\nu} = \frac{\chi^2}{N - n} = \frac{\chi^2}{\nu}
+
+where :math:`\nu = N-n`. From :eq:`expectationchi2` we derive for the
+expectation value of :math:`\chi_{\nu}^2`:
+
+.. math::
+   :label: expectationreducedchi2
+
+   \langle \chi^2_{\nu} \rangle = 1
+
+Fitting with :eq:`maximumlikelihood` as objective function is often called
+chi squared fitting. The value of :math:`\chi^2_{\nu}` is a measure of
+the *goodness of fit* and is returned by *kmpfit* in a Fitter object as
+attribute ``rchi2_min``. The number of degrees of freedom is stored
+in attribute ``dof``.
+
+.. note::
+
+   *  :math:`\chi_{\nu}^2` follows the chi square statistic. This statistic measures
+      both the spread of the data and the accuracy of the fit.
+   *  The reduced chi squared  :math:`\chi_{\nu}^2` is a measure of the goodness of fit.
+      Its expectation value is 1. 
+   *  A value of :math:`\chi_{\nu}^2 \approx 1` indicates
+      that there is a match between measurements, best-fit parameters and error variances.
+   *  A large value of :math:`\chi_{\nu}^2` (e.g. > 1.5) indicates a poor model fit.
+   *  A :math:`\chi_{\nu}^2 < 1` indicates that probably the error variance has been over-estimated.
+   *  A :math:`\chi_{\nu}^2 > 1` indicates that probably the error variance has been under-estimated.
+
+
+In the literature we find relations between the standard deviation of the sample
+and the true standard deviation of the underlying distribution . For least squares
+analysis we replace the average value of *y* (i.e. :math:`\bar{y}`) in those
+formulas by the model with the best-fit parameters :math:`f(p,x)`.
+
+
+What should we expect of the variance :math:`\sigma_i` compared to the
+sample deviations for each sample point?
 Assume we have N data points and each data point has an individual error of
-:math:`\sigma_i`. Then chi-square (which we try to minimalize in our fits) is
-defined as:
+:math:`\sigma_i`.
+From :eq:`expectationchi2` we have:
 
 .. math::
-   :label: bevington8_3
+   :label: expectationreducedchi2_2
+
+   \left\langle \sum\limits_{i=0}^{N-1} \frac{\big(y_i-f(x_i)\big)^2}{\sigma_i^2} \right\rangle = N-n
+
+With the observation that the expectation value of each of the *N* terms is the same
+we derive for each data point:
+
+.. math::
+   :label: expectationdatapoint
+
+   \left\langle \big(y_i-f(x_i)\big)^2\right\rangle = (1-\frac{n}{N}) \sigma_i
    
-   \chi^2 = \sum\limits_{i=0}^{N-1} {\left(\frac{\Delta y_i}{\sigma_i}\right)}^2 = \sum\limits_{i=0}^{N-1} \left[\frac{({y_i-ymodel_{i})}^2}{\sigma_i^2} \right]
+So for a good fit the true deviation of a measurement :math:`\sigma_i`
+for large *N* is almost equal to the deviation between data point and fit.
+The less the scatter of data about the best fit, the smaller :math:`\sigma_i`
+should be.
 
-The estimated sample variance of the fit does not include weighting and
-is defined as:
+The *sample variance*, :math:`s_y^2` is then written as [Ds2]_ :
 
 .. math::
-   :label: bevington8_29
+   :label: standarddeviation
+
+   s_y^2 = \frac{1}{N-n} \sum\limits_{i}^{} \left(y_i-f(x_i)\right)^2
+
+If we replace all :math:`\sigma_i` with :math:`\sigma_y` in equation :eq:`expectationreducedchi2_2`,
+then we derive a familiar relationship:
+
+.. math::
+   :label: expectationvariance
+
+   \frac{s_y^2}{\sigma_y^2} = \chi_{\nu}\, \rightarrow \, \langle s_y^2 \rangle = \sigma_y^2
+
+so that the value of :math:`s_y^2` of the measurements is an unbiased estimate of the true variance :math:`\sigma_y^2`
+of the underlying distribution. For an unbiased estimator, the expected value and the
+true value are the same.
+
+
+The weighted version of the sample variance is defined as:
+
+.. math::
+   :label: weightedvariance
+
+   sw_y^2 = \frac{\frac{1}{N-n}\sum\limits_i^{} w_i(y_i-f(x_i))^2 } {\frac{1}{N}\sum\limits_i^{}w_i}
    
-   s^2 = \frac{1}{N-n} \sum\limits_{i=0}^{N-1} ({y_i-ymodel_{i})}^2
-
-*N* is the number of data points and *n* is the number of (free) parameters.
-The number *N-n* is also called the *number of degrees of freedom*.
-Kmpfit returns this number as attribute ``dof``.
-
-Unweighted fit
-+++++++++++++++++
-
-We know that the best experimental estimate of the *parent standard deviation* 
-:math:`\sigma` is given by the experimental sample standard deviation *s*.
-If the standard deviations :math:`\sigma_i` for the data points :math:`y_i`
-are all equal then :math:`\sigma_i=\sigma` and therefore:
+If we use :math:`1/\sigma_i^2` as weight, then:
 
 .. math::
-   :label: bevington8_30
+   :label: weightedvariance2
+
+   sw_y^2 \times \frac{1}{N}\sum\limits_i^{}\frac{1}{\sigma_i^2} = \chi^2_\nu
+
+Bevington [Bev]_ defines the weighted average of the individual variances
+:math:`\bar{\sigma}_i^2` as:
+
+.. math::
+   :label: weightedvariance3
+
+   \bar{\sigma}_i^2 = \frac{\frac{1}{N}\sum\limits_i^{}\left(\frac{1}{\sigma_i^2}\sigma_i^2\right)}{\frac{1}{N}\sum\limits_i^{}\frac{1}{\sigma_i^2}} = \frac{1}{\frac{1}{N}\sum\limits_i^{}\frac{1}{\sigma_i^2}}
+
+Then:
+
+.. math::
+   :label: varianceratio1
+
+    \frac{sw_y^2}{\bar{\sigma}_i^2} = \chi^2_\nu
    
-   \sigma_i^2 = \sigma^2 \approx s^2
 
-
-Combining :eq:`bevington8_29` and :eq:`bevington8_30` we find:
-
-.. math::
-   :label: bevington_combined
-
-   \sigma_i^2 = \sigma^2 \approx s^2 = \frac{\chi^2}{N-n} \equiv \chi_{\nu}^2
-
-Then the variance in a fitted parameter is approximately the value from the
-covariance matrix diagonal times the variance *s* derived with :math:`\sigma_i=1`.
-If a parameter :math:`p_j` has covariance error :math:`C_{jj}` then:
+If we set all weights to the same value :math:`w_i=1/\sigma_y^2` then :math:`sw_y = s_y`
+and:
 
 .. math::
-   :label: bevington_scalederror
+   :label: sampleandparentvar
 
-   \sigma_{p_j} \approx \sqrt{s^2 C_{jj}}
+   \frac{s_y^2}{\sigma_y^2}  = \chi^2_\nu
 
-The uncertainties from the covariance matrix in *kmpfit* are called ``xerror``.
-The scaled uncertainties are used in unweighted fits are called ``stderr``.
+which is consistent with :eq:`expectationvariance`.
+
+
+For chi squared fitting it is therefore important to have correct values for :math:`\sigma_i`.
+Over-estimated values give a :math:`\chi^2_{\nu}` which is smaller than 1 and
+under-estimated values give a value bigger than 1 (If you get very large values,
+then probably fit and data are not in agreement). If the values for :math:`\sigma_i`
+are unreliable then also the error estimates of the best-fit parameters are unreliable,
+because they are functions of :math:`\sigma_i` (see e.g. the analytical
+expressions for these errors in a linear regression in :eq:`deriverrorAB`).
+According to equations :eq:`varianceratio1` and :eq:`sampleandparentvar` it is
+reasonable then to scale the values of :math:`\sigma_i` in a way that we
+force :math:`\chi^2_{\nu}` to take its expectation value of 1.
+
+We noted earlier that scaling the weights does not change the values of the
+best-fit parameters but they affect the values of the parameter error
+estimates because they depend on the values of :math:`\sigma_i`.
+If for example values of :math:`\sigma_i` are all too small with a factor
+2 with respect to those that make :math:`\chi_{\nu} =1`.
+Then the errors in the parameter estimates are to small with a
+factor 2x2=4 (see e.g. :eq:`deriverrorA` and :eq:`deriverrorB` for
+the straight line model).
+The value of :math:`\chi_{\nu}` will be 2x2=4. So to correct the
+errors on the parameter estimates, we can multiply the variances
+with the value of :math:`\chi_{\nu}`.
+If we recall equation :eq:`covariance_error`, then we see that this scaling
+can be applied to arbitrary models.
+This scaling is exactly what happens in *kmpfit* for the values in attribute
+``stderr``.
+
+In *kmpfit* we use the weights as given by the user and calculate
+the value of :math:`\chi_{\nu}`. The asymptotic standard errors in
+``xerror`` are then multiplied by the square root of the value
+of :math:`\chi_{\nu}` and stored in attribute ``stderr``. We demonstrate
+this with the output of a small example
+:download:`kmpfit_linearreg.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`.
+with data from [Wol]_:
+
+
+[:download:`Source of kmpfit_compare_wei_unwei.py<EXAMPLES/kmpfit_compare_wei_unwei.py>`]
+::
+
+   Data x: [ 1.  2.  3.  4.  5.  6.  7.]
+   Data y: [  6.9   11.95  16.8   22.5   26.2   33.5   41.  ]
+   Errors: [ 0.05  0.1   0.2   0.5   0.8   1.5   4.  ]
+
+   -- Results kmpfit unit weighting wi=1.0:
+   Best-fit parameters:                               [0.57857145533008425, 5.5285714226701863]
+   Parameter errors using measurement uncertainties:  [ 0.84515434  0.18898225]
+   Parameter errors unit-/relative weighted fit:      [ 1.06966532  0.23918443]
+   Minimum chi^2:                                     8.00928571429
+   Covariance matrix:
+   [[ 0.71428585 -0.14285717]
+   [-0.14285717  0.03571429]]
+
+   -- Results kmpfit with (scaled) equal weights wi=10*1.0:
+   Best-fit parameters:                               [0.57857138144083398, 5.5285714191292534]
+   Parameter errors using measurement uncertainties:  [ 8.45154585  1.8898234 ]
+   Parameter errors unit-/relative weighted fit:      [ 1.06966563  0.23918454]
+   Minimum chi^2:                                     0.0800928571429
+   Covariance matrix:
+   [[ 71.42862727 -14.28572963]
+   [-14.28572963   3.57143248]]
+
+   -- Results kmpfit with weights:
+   Best-fit parameters:                               [1.8705399823164173, 5.0290902421858439]
+   Parameter errors using measurement uncertainties:  [ 0.09922304  0.06751229]
+   Parameter errors unit-/relative weighted fit:      [ 0.09584611  0.0652146 ]
+   Minimum chi^2:                                     4.66545480308
+   Covariance matrix:
+   [[ 0.00984521 -0.00602421]
+   [-0.00602421  0.00455791]]
+
+   -- Results kmpfit with scaled individual errors (factor=10):
+   Best-fit parameters:                               [1.870539984453957, 5.0290902408769238]
+   Parameter errors using measurement uncertainties:  [ 0.99223048  0.6751229 ]
+   Parameter errors unit-/relative weighted fit:      [ 0.09584612  0.0652146 ]
+   Minimum chi^2:                                     0.0466545480308
+   Covariance matrix:
+   [[ 0.98452132 -0.60242076]
+   [-0.60242076  0.45579092]]
+
+
 
 
 The next code example is a small script that shows that the scaled error estimates
 are realistic if we compare them to errors found with a bootstrap method.
+We start with values of :math:`\sigma_i` that are under-estimated. This
+results in a value for :math:`\chi_{\nu}` which is too low. The re-scaled
+errors in ``stderr`` match with those that are estimated with a Monte-Carlo method.
+In the example we used the Bootstrap Method.
 The plot shows the fit and the bootstrap distributions of parameter *A* and *B*.
 We will explain the Bootstrap Method in the next section.
 
@@ -552,78 +983,99 @@ deviation of this distribution (i.e. for one parameter), gives the uncertainty.
 
 
 
+Relative weighting or unit weighting
+++++++++++++++++++++++++++++++++++++++
 
-Weighted fits
-+++++++++++++
-
-In the literature we find analytical expressions for the standard errors
-of weighted fits for standard linear regression or orthogonal regression.
-How should we interpret these errors? For instance in Numerical Recipes, [Num]_
-we find the expressions for the best fit parameters of a model :math:`y=a+bx`
-
-Define:
-
-.. math::
-   :label: numrep_linear1
-
-   S \equiv \sum_{i=0}^{N-1} \frac{1}{\sigma_i^2}\ \ S_x \equiv \sum_{i=0}^{N-1} \frac{x_i}{\sigma_i^2} \ \ S_y \equiv \sum_{i=0}^{N-1} \frac{y_i}{\sigma_i^2}\\
-   S_{xx} \equiv \sum_{i=0}^{N-1} \frac{x_i^2}{\sigma_i^2}\ \ S_{xy} \equiv \sum_{i=0}^{N-1} \frac{x_iy_i}{\sigma_i^2}
-
-Then the system is rewritten into the simple equations:
+:math:`\sigma^2` is the sample variance.
+If we use relative weights :math:`\sigma_i = \lambda_i \sigma`, then
+:math:`S_{xx} = \frac{1}{\sigma^2} S_{xx}'` with :math:`S_{xx}' = \Sigma\frac{x_i^2}{\lambda^2}`
+and :math:`\Delta'= \frac{1}{\sigma^4}\Delta`
+with :math:`\Delta' = S'S_{xx}' - (S_x')^2` (we use versions of the sums in :eq:`numrep_linear1`
+with :math:`1/\sigma^2_i` replaced by :math:`1/\lambda^2_i`), then:
 
 .. math::
-   :label: numrep_linear
+   :label: errorwithsamplevarianceA
 
+   \sigma_a^2 = \frac{S_{xx}}{\Delta} = \frac{1/\sigma^2}{1/\sigma^4}\frac{S_{xx}'}{\Delta'} = \sigma^2 \frac{S_{xx}'}{\Delta'}
 
-   aS + bS_x = S_y\ \ \ aS_x + bS_{xx} = S_{xy}
-
-.. math::
-   :label: numrep_linear3
-
-   \Delta \equiv SS_{xx} - (S_x)^2
-
-
-The solutions for *a* and *b* are:
+Together with :eq:`bevington_combined` we derive:
 
 .. math::
-   :label: numrep_linear4
+   :label: errorwithsamplevarianceA2
 
-   a = \frac{S_{xx}S_y - S_xS_{xy}}{\Delta}\\
-   b = \frac{S_{}S_{xy} - S_xS_{y}}{\Delta}
+   \sigma_a^2 = \chi^2_\nu \frac{S_{xx}'}{\Delta'}
 
-and the standard errors are:
+For *b* we find:
 
 .. math::
-   :label: numrep_standarderrors
+   :label: errorwithsamplevarianceB2
 
-   \sigma_a^2 = \frac{S_{xx}}{\Delta}\\
-   \sigma_b^2 = \frac{S}{\Delta}
+   \sigma_b^2 = \chi^2_\nu \frac{S'}{\Delta'}
 
-
-It is easy to demonstrate that these errors are the same as those we find with
-*kmpfit* in attribute ``xerror``, which are square-root diagonal values of
-the covariance matrix in attribute ``covar``.
-
-
-.. literalinclude:: EXAMPLES/kmpfit_linearreg.py
-
+Omitting weights is the same as taking all the weights :math:`\lambda_i=1`.
+Note that in that situation :math:`S_{xx}'= \Sigma x_i^2` and :math:`S' = \Sigma\, 1 = N`.
+Omitting weights is also called *unit weighting*.
 
 .. note::
-   
-   In the example output of the program you can verify that if we scale
-   the measurement errors with factor 10, the covariance errors are also
-   scaled with a factor 10, while the errors in attribute ``stderr``
-   are unaltered and therefore not sensitive to the absolute values
-   of the measurement errors.
+
+   * For unit- or relative weighting, we find errors that correspond to
+     attribute ``stderr`` in kmpfit.
+   * For weighted fits where the weigths are derived from measurement errors,
+     the errors correspond to attribute ``xerror`` in kmpfit.
+
+We compare the analytical best-fit parameters and their errors with
+the values we get from kmpfit in program
+:download:`kmpfit_linearreg.py <EXAMPLES/kmpfit_linearreg.py>`.
+
+[:download:`Source<EXAMPLES/kmpfit_linearreg.py>`]
+
+The program uses data from a table in [Wol]_. For this data we get the output::
+
+   -- Results analytical solution:
+   Best fit parameters:                         [0.57857142857143595, 5.5285714285714258]
+   Parameter errors weighted fit:               [0.84515425472851657, 0.1889822365046136]
+   Parameter errors un-/relative weighted fit:  [1.0696652156022404, 0.2391844135253578]
+   Minimum chi^2:                               8.00928571429
+   Covariance matrix:
+   0.714285714286 -0.142857142857
+   -0.142857142857 0.0357142857143
+
+   -- Results kmpfit:
+   Best-fit parameters:                         [0.57857145533008425, 5.5285714226701863]
+   Parameter errors weighted fit:               [ 0.84515434  0.18898225]
+   Parameter errors un-/relative weighted fit:  [ 1.06966532  0.23918443]
+   Minimum chi^2:                               8.00928571429
+   Covariance matrix:
+   [[ 0.71428585 -0.14285717]
+   [-0.14285717  0.03571429]]
+
+   -- Results kmpfit with scaled individual errors (factor=10):
+   Best-fit parameters:                         [0.57857138144083398, 5.5285714191292534]
+   Parameter errors weighted fit:               [ 8.45154585  1.8898234 ]
+   Parameter errors un-/relative weighted fit:  [ 1.06966563  0.23918454]
+   Minimum chi^2:                               0.0800928571429
+   Covariance matrix:
+   [[ 71.42862727 -14.28572963]
+   [-14.28572963   3.57143248]]
+
+
+We observe:
+
+   * The analytical values of the best-fit parameters and those from *kmpfit*
+     correspond. The same applies to the errors for the unweighted fit or
+     fit with relative weights.
+
+   * In the example output of the program you can verify that if we scale
+     the measurement errors with factor 10, the covariance errors are also
+     scaled with a factor 10, while the errors in attribute ``stderr``
+     are unaltered and therefore not sensitive to the absolute values
+     of the measurement errors.
    
 .. note::
 
-   The script above demonstrates (at least for one model) that analytical
-   errors are the same as those we find as with *kmpfit* in attribute
-   ``xerror`` which are the square root of the diagonal elements of the
-   covariance matrix (attribute ``covar``).
-   The discussion about which standard errors to use (scaled or unscaled),
-   also applies to the analytically derived standard errors.
+   One should only use uncertainties derived from the diagonal elements of
+   the covariance matrix (attribute ``xerror``), if absolute weights are used
+   (i.e. real measurement errors).
 
 .. note::
 
@@ -679,6 +1131,167 @@ If you examine the example output of the script, you can verify this behaviour.
      given in attribute ``Fitter.stderr`` assuming :math:`\chi^2_{\nu} \approx 1`
      but even then they can differ significantly from the values we find with
      Monte Carlo simulations.
+
+
+**Extra meteriaal nog verwerken**
+
+Rather than determine confidence intervals, *kmpfit* reports parameter error
+estimates which are readily obtained from the variance-covariance matrix after
+the final iteration. By convention, these estimates are called "standard errors"
+or "asymptotic standard errors", since they are calculated in the same way as
+the standard errors (standard deviation of each parameter) of a linear
+least-squares problem, even though the statistical conditions for designating
+the quantity calculated to be a standard deviation are not generally valid
+for the NLLS problem. The asymptotic standard errors are generally
+over-optimistic and should not be used for determining confidence levels,
+but are useful for qualitative purposes.
+
+At the conclusion `fit` reports 'stdfit', the standard deviation of the fit,
+which is the rms of the residuals, and the variance of the residuals,
+also called 'reduced chisquare' when the data points are weighted.
+The number of degrees of freedom (the number of data points minus the number
+of fitted parameters) is used in these estimates because the parameters used
+in calculating the residuals of the datapoints were obtained from the same data.
+
+
+*kmpfit* with Explicit partial derivatives
+------------------------------------------------
+
+Gaussian profiles
+++++++++++++++++++
+
+There are many examples where an astronomer needs to know the characteristics of a Gaussian profile.
+Fitting best parameters for a model that represents a Gauss function, is a way to obtain a measure for
+the peak value, the position of the peak and the width of the peak. It does not reveal any skewness or
+kurtosis of the profile, but often these are not important. We write the Gauss function as:
+
+.. math::
+   :label: gaussianfunction
+
+   f(x) = A{e^{-\frac{1}{2} {\left(\frac{x - \mu}{\sigma}\right)}^2}} + z_0
+
+Here :math:`A` represents the peak of the Gauss, :math:`\mu` the mean, i.e. the position of the peak
+and :math:`\sigma` the width of the peak. We added :math:`z_0` to add a background to the profile
+characteristics. In the early days of fitting software, there were no implementations that did not need
+partial derivatives to find the best fit parameters. The fit routine in `kmpfit` is based on
+Craig Markwardt's non-linear least squares curve fitting routines for IDL called MPFIT.
+It uses the Levenberg-Marquardt technique to solve the least-squares problem,
+which is a particular strategy for iteratively searching for the best fit.
+
+
+Partial derivatives for a Gaussian
++++++++++++++++++++++++++++++++++++++
+
+In the documentation of the IDL version of *mpfit.pro*, the author states that it
+is often sufficient and even faster to allow the fit routine to calculate the
+derivatives numerically. With explicit partial derivatives
+we usually gain an increase in speed of about 20%, at least for fitting Gaussian profiles.
+The real danger in using explicit partial derivatives seems to be that one easily makes
+small mistakes in deriving the necessary equations. This is not always obvious in test-runs.
+For the Gauss function in :eq:`gaussianfunction` we derived the following partial derivatives:
+
+
+.. math::
+   :label: partialderivatives
+
+   \frac{\partial f(x)}{\partial A} &= e^{-\frac{1}{2} {\left(\frac{x - \mu}{\sigma}\right)}^2}\\
+   \frac{\partial f(x)}{\partial \mu} &= A{e^{-\frac{1}{2} {\left(\frac{x-\mu}{\sigma}\right)}^2}}. \frac{(x-\mu)}{\sigma^2}\\
+   \frac{\partial f(x)}{\partial \sigma} &= A{e^{-\frac{1}{2} {\left(\frac{x-\mu}{\sigma}\right)}^2}}. \frac{{(x-\mu)}^2}{\sigma^3}\\
+   \frac{\partial f(x)}{\partial z_0} &= 1
+
+
+If we want to use explicit partial derivatives in *kmpfit* we need the external residuals
+to return the derivative of the model f(x) at x, with respect to any of the parameters.
+If we denote a parameter from the set of parameters :math:`P = (A,\mu,\sigma,z_0)`
+with index i, then one calculates
+the derivative with a function ``FGRAD(P,x,i)``.
+In fact, kmpfit needs the derivative of the **residuals** and if we defined the residuals
+as ``residuals = (data-model)/err``, the residuals function should return:
+
+.. math::
+   :label: dervresidual
+
+   \frac{\partial f(x)}{\partial P(i)} =\frac{ -FGRAD(P,x,i)}{err}
+
+where ``err`` is the array with weights.
+
+Below, we show a code example of how one can implement explicit partial derivatives.
+We created a function, called ``my_derivs`` which calculates the derivatives for each
+parameter. We tried to make the code efficient but you should be able to recognize
+the equations from :eq:`partialderivatives`. The return value is equivalent with :eq:`dervresidual`.
+The function has a fixed signature because it is called by the fitter which expects
+that the arguments are in the right order. This order is:
+
+   * p
+     -List with model parameters, generated by the fit routine
+   * a1, a2, ... an
+     -References to data in the ``data`` argument in the constructor of the Fitter object.
+   * dflags
+     -List with booleans. One boolean for each model parameter.
+     If the value is ``True`` then an explicit partial derivative is
+     required. The list is generated by the fit routine.
+
+There is no need to process the ``dflags`` list in your code. There is no problem if
+you return all the derivatives even when they are not necessary.
+
+.. note::
+
+   A function which returns derivatives should create its own work array to store the
+   calculated values. The shape of the array should be (parameter_array.size, x_data_array.size).
+
+The function ``my_derivs`` is then::
+
+   def my_derivs(p, data, dflags):
+      #-----------------------------------------------------------------------
+      # This function is used by the fit routine to find the values for
+      # the explicit partial derivatives. Argument 'dflags' is an array
+      # with booleans. If an element is True then an explicit partial
+      # derivative is required.
+      #-----------------------------------------------------------------------
+      x, y, err = data
+      A, mu, sigma, zerolev = p
+      pderiv = numpy.zeros([len(p), len(x)])  # You need to create the required array
+      sig2 = sigma*sigma
+      sig3 = sig2 * sigma
+      xmu  = x-mu
+      xmu2 = xmu**2
+      expo = numpy.exp(-xmu2/(2.0*sig2))
+      fx = A * expo
+      for i, flag in enumerate(dflags):
+         if flag:
+            if i == 0:
+               pderiv[0] = expo
+            elif i == 1:
+               pderiv[1] = fx * xmu/(sig2)
+            elif i == 2:
+               pderiv[2] = fx * xmu2/(sig3)
+            elif i == 3:
+               pderiv[3] = 1.0
+      return pderiv/-err
+
+Note that all the values per parameter are stored in a row. A minus sign is added to
+to the error array to fulfill the
+requirement in equation :eq:`dervresidual`.
+The constructor of the Fitter object is as follows (the function ``my_residuals`` is
+not given here)::
+
+
+   fitobj = kmpfit.Fitter(residuals=my_residuals, deriv=my_derivs, data=(x, y, err))
+
+
+The next code and plot show an example of finding and plotting best fit parameters given a Gauss
+function as model. If you want to compare the speed between a fit with  explicit partial derivatives
+and a fit using numerical derivatives, add a second Fitter object by omitting the ``deriv`` argument.
+In our experience, the code with the explicit partial derivatives is about 20% faster because it
+needs considerably fewer function calls to the residual function.
+
+**Example: kmpfit_example_partialdervs.py - Finding best fit parameters for a Gaussian model**
+
+.. plot:: EXAMPLES/kmpfit_example_partialdervs.py
+   :include-source:
+   :align: center
+
+
 
 
 Fitting data when both variables have uncertainties
@@ -1210,6 +1823,152 @@ the parabola in the previous section.
    :align: center
 
 
+Confidence- and prediction intervals
+-------------------------------------
+
+Experimenters often want to find the best-fit parameters *p* of their model to
+predict a value *f(p,x)* at given *x*. To get the predicted value
+:math:`\hat{y}` is trivial: :math:`\hat{y} = f(p,x)`, but to estimate
+the error in :math:`\hat{y}` ( :math:`\sigma_f)` is not.
+Wolberg [Wol]_ starts with an expression for :math:`\Delta f`:
+
+.. math::
+   :label: wolberg_taylor
+
+   \Delta f \cong \frac{\partial f}{\partial p_1} \Delta p_1 + \frac{\partial f}{\partial p_2} \Delta p_2 + \cdots + \frac{\partial f}{\partial p_n} \Delta p_n
+
+which is a Taylor expansion  of the error in y neglecting higher order terms.
+If one repeats the experiment many times, Wolberg finds an expression for
+the average error :math:`\bar{{\Delta f}^2}= \sigma^2_f` in terms of the
+elements of the covariance matrix:
+
+
+.. math::
+   :label: wolberg_df2
+
+   \sigma^2_f = \sum\limits_{j=0}^{j=n}\sum\limits_{k=0}^{k=n}\frac{\partial f}{\partial p_j}\frac{\partial f}{\partial p_k}\, C_{jk}
+
+which implies, as already seen in :eq:`wolberg_taylor` that this error includes
+all variances and covariances in the covariance matrix.
+Note that for unit weighting or relative weighting we need to rescale
+the covariance matrix elements with :math:`\chi_{\nu}^2`, and get:
+
+.. math::
+   :label: wolberg_df2Cov
+
+   \sigma^2_f = \chi_{\nu}^2 \sum\limits_{j=0}^{j=n}\sum\limits_{k=0}^{k=n}\frac{\partial f}{\partial p_j}\frac{\partial f}{\partial p_k}\, C_{jk}
+
+This *confidence* interval is interpreted as the region in which there is a probability of
+68.3% to find the true value of *f*.
+To find a confidence region for another probability (e.g. 95%), we need to
+scale the error using Student-t statistics. If we use 
+:math:`100(1-\alpha)` percent to define the confidence interval on any fitted
+:math:`\hat{y}_{i}`, then the scale factor is :math:`t_{\alpha/2, \nu}`.
+where *t* is the upper :math:`\alpha/2` critical value for the t distribution with
+N-n degrees of freedom.
+All the information needed to construct a confidence interval
+can be found in *kpmfit*'s Fitter object:
+
+   * Degrees of freedom :math:`\nu` = ``Fitter.dof``
+   * Reduced chi square: :math:`\chi_{\nu}^2` = ``Fitter.rchi2_min``
+   * Covariance matrix: *C* = ``Fitter.covar``
+   * Best-fit parameters: *p* = ``Fitter.params``
+
+Confidence bands are often used in plots to give an impression of the quality
+of the predictions. To calculate confidence bands we vectorize
+:eq:`wolberg_df2Cov`:
+
+
+.. math::
+   :label: confidence_interval
+
+   CB = \hat{y} \pm \sigma_f
+
+which is the short version of:
+
+.. math::
+   :label: confidence_interval_covariance
+
+   \boxed{CB = \hat{y} \pm t_{\alpha/2, \nu}\, \sqrt{\chi_{\nu}^2\, \sum\limits_{j=0}^{j=n}\sum\limits_{k=0}^{k=n}\frac{\partial f}{\partial p_j}\frac{\partial f}{\partial p_k}\, C_{jk} }}
+
+
+If your model *f* is for example a parabola :math:`f(x) = a + bx +cx^2`,
+then we have derivatives:
+
+.. math::
+   :label: confidence_derivatives
+
+   \frac{\partial f}{\partial p_0} = \frac{\partial f}{\partial a} = 1, \hspace{1.5 cm} \frac{\partial f}{\partial p_1} = \frac{\partial f}{\partial b} = x \hspace{0.5 cm} \mathrm{and} \hspace{0.5 cm} \frac{\partial f}{\partial p_2} = \frac{\partial f}{\partial c} =  x^2
+
+and the confidence band is calculated using:
+
+.. math::
+   :label: confidence_interval_covariance2
+
+   CB = f(p,x) \pm t_{\alpha/2, \nu}\,\sqrt{\chi_{\nu}^2\, \left[(1\times 1)C_{00}+(1\times x)C_{01}+(1\times x^2)C_{02} + (x\times 1)C_{10} + \cdots\, (x^2\times x^2)C_{22}\right]}
+
+Next code example shows a function which implements the confidence interval
+for a given model (variable ``model`` is a function or a lambda expression).
+The list ``dfdp`` is a list with derivatives evaluated at the values of ``x``.
+The values in ``x`` need not to be the same values as the x coordinates
+of your data values.
+The code uses  statistics module ``stats.t`` from SciPy to get the crital value for
+``t`` with method ``ppf`` (*percent point function*).
+Then with the information in Fitter object ``fitobj``, it creates a
+NumPy array with the lower values of the confidence interval (``lowerband``) and
+an array with the upper values of the confidence interval (``upperband``).
+
+::
+
+   def confidence_band(x, dfdp, alpha, fitobj, model, abswei):
+      from scipy.stats import t
+      # Given the confidence probability confprob = 100(1-alpha)
+      # we derive for alpha: alpha = 1 - confprob/100
+      alpha = 1 - confprob/100.0
+      prb = 1.0 - alpha/2
+      tval = t.ppf(prb, fitobj.dof)
+
+      C = fitobj.covar
+      n = len(fitobj.params)              # Number of parameters from covariance matrix
+      p = fitobj.params
+      N = len(x)
+      if abswei:
+         covscale = 1.0
+      else:
+         covscale = fitobj.rchi2_min
+      df2 = numpy.zeros(N)
+      for j in range(n):
+         for k in range(n):
+            df2 += dfdp[j]*dfdp[k]*C[j,k]
+      df = numpy.sqrt(fitobj.rchi2_min*df2)
+      y = f(p, x)
+      delta = tval * df
+      upperband = y + delta
+      lowerband = y - delta
+      return y, upperband, lowerband
+
+   
+   def model(p, x):
+      # Model: Y = a + b*x + c*x*x
+      a,b,c = p
+      return a + b*x + c*x*x
+
+
+   dfdp = [1, x, x**2]
+   alpha = 0.05
+   yhat, upperband, lowerband = confidence_band(x, dfdp, alpha, fitobj, model)
+
+
+Confidence bands are plotted in the next program. It uses a 95% confidence
+probability to draw bands for a fit with weigths in y only and for a fit with errors
+both in x and y using the effective variance method. We used data
+and weights, so the weights should be treated as relative weights (``abswei=False``).
+
+**Example:  kmpfit_ODRparabola_confidence - Confidence bands fit of parabola**
+
+.. plot:: EXAMPLES/kmpfit_ODRparabola_confidence.py
+   :align: center
+
 
 
 Glossary
@@ -1230,9 +1989,22 @@ Glossary
       Usually the **y** in a measurement. It is also
       called the response variable
 
+   LLS
+      Linear Least-Squares
+
+   NLLS
+      Non-Linear Least Squares
+
    Numpy
       NumPy is the fundamental package needed for scientific computing with Python.
       See also information on the Internet at: `numpy.scipy.org <http://numpy.scipy.org/>`_
+
+   SE
+      Standard error
+
+   WSSR
+      Weighted Sum of Squared Residuals (WSSR)
+
 
 References
 ----------
@@ -1241,11 +2013,25 @@ References
    in Nonlinear Regression: Comparison of Monte Carlo and Parametric Statistics*,
    J. Phys. Chem., 1990, 94 (11), pp 4747–4751 (Journal of Physical Chemistry)
 
+.. [And] Andrae, R, *Error estimation in astronomy: A guide*,
+   arXiv:1009.2755v3 [astro-ph.IM] 29 Oct 2010
+
 .. [Bev] Bevington, Philip R. , *Data Reduction and Error Analysis for the Physical Sciences*,
    1969, McGraw-Hill
 
 .. [Clu] Clutton-Brock, *Likelihood Distributions for Estimating Functions
    When Both Variables Are Subject to Error*, Technometrics, Vol. 9, No. 2 (May, 1967), pp. 261-269
+
+.. [Ds1] DeSerio, R., *Statistical Analysis of Data for PHY48803L*, Advanced Physics Laboratory,
+   University of Florida (version 1)
+   Local copy: :download:`statmain-florida.pdf <EXAMPLES/statmain-florida.pdf>`
+
+.. [Ds2] DeSerio, R., *Statistical Analysis of Data for PHY48803L*, Advanced Physics Laboratory,
+   University of Florida (version 2)
+   Local copy: :download:`statmain.pdf <EXAMPLES/statmain.pdf>`
+
+.. [Ds3] DeSerio, R., *Regression Algebra*,
+   Local copy: :download:`matproof_statmain.pdf <EXAMPLES/matproof_statmain.pdf>`
 
 .. [Num] William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
    *Numerical Recipes in C, The Art of Scientific Computing*,
