@@ -1,11 +1,14 @@
 .. _kmpfit_tutorial:
    
-Least squares fitting with kmpfit (M. Vogelaar)
+Least squares fitting with kmpfit
 ================================================
+
+(M. Vogelaar, January 2012)
 
 .. highlight:: python
    :linenothreshold: 10
 
+.. sectionauthor:: M. Vogelaar <gipsy@astro.rug.nl>
 
 Introduction
 ------------
@@ -90,7 +93,7 @@ first as in::
       return w*(y-model(p,x))     # An array with (weighted) residuals)
 
 It is more efficient to store the square root of the weights beforehand so that
-it is not necessary to repeat this (often many times) in the resuduals function
+it is not necessary to repeat this (often many times) in the residuals function
 itself. This is different if your weights depend on the model parameters,
 which are adjusted in the iterations to get a best-fit. An example is the
 residuals function for an orthogonal fit of a straight line::
@@ -154,7 +157,7 @@ function that describes a Gaussian profile as in::
 .. note::
 
    In the linear case, parameter values can be determined analytically with
-   staightforward linear algebra.
+   straightforward linear algebra.
    *kmpfit* finds best-fit parameters for models that are either linear or non-linear
    in their parameters. If efficiency is an issue, one should find and apply
    an analytical method.
@@ -174,7 +177,7 @@ on the measurements and the best-fit parameters.
 values which minimize the objective function. Then, either it stops and
 returns a result because it found these *best-fit* parameters, or it
 stops because it met one of the stop criteria in *kmpfit* (see next section).
-Without these criteria, a fit that is not converging would never stop.
+Without these criteria, a fit procedure that is not converging would never stop.
 
 Later we will discuss a familiar example for astronomy when we find best-fit
 parameters for a Gaussian to find the characteristics of a profile like
@@ -210,9 +213,9 @@ of the original C code we copy:
      cosine of the angle between *fvec* (is an internal input array which
      must contain the functions evaluated at x)
      and any column of the
-     jacobian is at most ``gtol`` in absolute value. Therefore, ``gtol``
+     Jacobian is at most ``gtol`` in absolute value. Therefore, ``gtol``
      measures the orthogonality desired between the function
-     vector and the columns of the jacobian.
+     vector and the columns of the Jacobian.
      The default is: 1e-10
 
    * ``maxiter`` - Maximum number of iterations. The default is: 200
@@ -261,7 +264,7 @@ with only one minimum.
 The quality of the values of the initial estimates are therefore not important.
 
 The initial estimates are entered in parameter ``params0``. You can enter this
-either in the contructor of the ``Fitter`` object or in the method ``fit()``.
+either in the constructor of the ``Fitter`` object or in the method ``fit()``.
 In most examples we use the latter because it becomes obvious that one can repeat
 the same fit with different initial estimates::
 
@@ -453,7 +456,7 @@ The advantages of this method:
 
 
 **Example:** :download:`kmpfit_example_easyinterface.py <EXAMPLES/kmpfit_example_easyinterface.py>`
-- Simple method
+**- Simple method**
 
 .. literalinclude:: EXAMPLES/kmpfit_example_easyinterface.py
 
@@ -543,14 +546,14 @@ Define:
    S \equiv \sum_{i=0}^{N-1} \frac{1}{\sigma_i^2}\ \ S_x \equiv \sum_{i=0}^{N-1} \frac{x_i}{\sigma_i^2} \ \ S_y \equiv \sum_{i=0}^{N-1} \frac{y_i}{\sigma_i^2}\\
    S_{xx} \equiv \sum_{i=0}^{N-1} \frac{x_i^2}{\sigma_i^2}\ \ S_{xy} \equiv \sum_{i=0}^{N-1} \frac{x_iy_i}{\sigma_i^2}
 
-Then the system is rewritten into the simple equations:
+One can solve for the best-fit parameter with the equations:
 
 .. math::
    :label: numrep_linear
 
    aS + bS_x = S_y\ \ \ aS_x + bS_{xx} = S_{xy}
 
-Then in matrix notation:
+which is in matrix notation:
 
 .. math::
    :label: equationmatrix
@@ -727,7 +730,7 @@ The output of an arbitrary example run demonstrates the similarity between the
 analytical and the *kmpfit* method:
 
 **Example:** :download:`kmpfit_linearreg.py <EXAMPLES/kmpfit_linearreg.py>`
-- Compare output analytical method and kmpfit
+**- Compare output analytical method and kmpfit**
 
 ::
 
@@ -767,10 +770,10 @@ expect that the best-fit parameters are different between weighted and un-weight
 fits. Also the accuracy of the results will improve, because besides the
 data you are using the quality of the data (weights).
 The difference in best-fit parameters and the quality of the results are shown
-with program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py >`
+with program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
 
 **Example:** :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
-- Compare output for unweighted (unit weighting) and weighted fit
+**- Compare output for unweighted (unit weighting) and weighted fit**
 
 ::
 
@@ -806,12 +809,12 @@ Then they contain information about the quality of the data but do not necessari
 contain correct information about the errors on the data points and therefore
 give incorrect errors on the parameter estimates.
 This is shown in the same
-program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py >`
+program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
 where we scaled the errors with a factor 10. The errors in the parameter estimates
 are increased with a factor 10.
 
 **Example:** :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
-- Compare output for unweighted (unit weighting) and weighted fit
+**- Compare output for unweighted (unit weighting) and weighted fit**
 
 ::
 
@@ -1039,7 +1042,7 @@ this with the output of a small example
 with data from [Wol]_:
 
 **Example:** :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
-- Compare output for unweighted (unit weighting) and weighted fit
+**- Compare output for unweighted (unit weighting) and weighted fit**
 
 ::
 
@@ -1137,9 +1140,6 @@ Notes about weighting
 
 **Unweighted (i.e. unit weighting) and relative weighted fits**
 
-
-.. note::
-
    * For unit- or relative weighting, we find errors that correspond to
      attribute ``stderr`` in *kmpfit*.
    * The errors on the best-fit parameters are scaled (internally) which is
@@ -1176,15 +1176,15 @@ much lower than the diagonal.
 
 From [And]_ we summarize the conditions which must be met before one can
 safely use the values in ``stderr`` (i.e. demanding that :math:`\chi_{\nu} = 1`):
-In this appraoch of scaling, the error in the best-fit parameters
+In this approach of scaling, the error in the best-fit parameters
 we make three assumptions:
 
-   1) The error distribution has to be gaussian.
+   1) The error distribution has to be Gaussian.
    2) The model has to be linear in all parameters. If the model is
       nonlinear, we cannot demand that :math:`\chi_{\nu} = 1`, because
-      the derivation of :math:`\langle \chi^2=N-n\rangle`
-      implicitely assumes linearity in all parameters.
-   3) By demanding :math:`\chi_{\nu} = 1`, we explicitely claim that the model
+      the derivation of :math:`\langle\chi\rangle^2=N-n`
+      implicitly assumes linearity in all parameters.
+   3) By demanding :math:`\chi_{\nu} = 1`, we explicitly claim that the model
       we are using is the **correct** model that was underlying the data.
       This is a rather optimistic claim. This claim requires justification.
    4) Even if all these assumptions above are met, the method is in fact only
@@ -1198,39 +1198,37 @@ we make three assumptions:
 The conclusion is that one should be careful with the use of standard errors
 in ``stderr``. A Monte Carlo method should be applied to prove that the
 values in ``stderr`` can be used.
-For weighted fits it is advertized not to use the Bootstrap method.
+For weighted fits it is advertised not to use the Bootstrap method.
 Experiments show that for weighted fits the Bootstrap results
 (errors in the best-fit parameters) are close to the errors in ``stderr``
 only when we repeat fits in the Bootstrap procedure with unit weighting.
 In the next example we compare the Bootstrap method with weights and without weights.
-The example plots all individual results in the Bootstrap procedure.
+The example plots all trial results in the Bootstrap procedure.
+The yellow lines represent weighted fits in the Bootstrap procedure.
+The green lines represent unweighted fits in the Bootstrap procedure.
 
 **Example:** :download:`kmpfit_weighted_bootstrap.py <EXAMPLES/kmpfit_weighted_bootstrap.py>`
-- Compare Bootstrap with weighted and unweighted fits.
+**- Compare Bootstrap with weighted and unweighted fits**
 
 ::
 
-   ======== Results kmpfit weighted fit =========
-   Params:         [-0.065049626052961038, 3.0408982828387439]
-   Errors from covariance matrix         :  [ 0.00666959  0.00257506]
-   Uncertainties assuming reduced Chi^2=1:  [ 0.04355097  0.01681459]
-   Chi^2 min:      8442.32372614
-   Reduced Chi^2:  42.6379986169
+   ======= Results kmpfit weighted fit =========
+   Params:         [-1.1694491304350085, 2.4654432828616515]
+   Errors from covariance matrix         :  [ 0.00299542  0.00264989]
+   Uncertainties assuming reduced Chi^2=1:  [ 0.06413585  0.0567377 ]
+   Chi^2 min:      90771.98002
+   Reduced Chi^2:  458.444343535
    Iterations:     3
    Function ev:    7
    Status:         1
-   Covariance matrix:  [[  4.44834843e-05  -4.13359517e-08]
-   [ -4.13359517e-08   6.63094969e-06]]
+   Covariance matrix:  [[  8.97253321e-06   5.98812996e-06]
+   [  5.98812996e-06   7.02193663e-06]]
 
 
-   Bootstrap errors in A, B: 0.217078929838 0.0843735869564
-   Bootstrap errors in A, B: 0.0556166957536 0.0182834446054
-
-
-**Example: kmpfit_weighted_bootstrap.py - Compare Bootstrap with weighted and unweighted fits.**
+   Bootstrap errors in A, B for procedure with weighted fits: 0.685701834156 0.329034985381
+   Bootstrap errors in A, B for procedure with unweighted fits: 0.0556354741114 0.0194388973321
 
 .. plot:: EXAMPLES/kmpfit_weighted_bootstrap.py
-   :include-source:
    :align: center
 
 
@@ -1640,12 +1638,12 @@ as the bisector which has no relation to orthogonal fitting procedures.
    which we derive the slope :math:`b = \tan(\theta)`. The advantage of this method
    is that it also finds fits for data points that represent vertical lines.
 
-**Example:  kmpfit_Pearsonsdata - Pearsons data and method (1901)**
+**Example:  kmpfit_Pearsonsdata.py - Pearsons data and method (1901)**
 
 .. plot:: EXAMPLES/kmpfit_Pearsonsdata.py
    :align: center
 
-The output of the ``kmpfit_Pearsonsdata.py`` is::
+The output of this program is::
 
 
    Analytical solution
@@ -1998,7 +1996,7 @@ for a given model (variable ``model`` is a function or a lambda expression).
 The list ``dfdp`` is a list with derivatives evaluated at the values of ``x``.
 The values in ``x`` need not to be the same values as the x coordinates
 of your data values.
-The code uses  statistics module ``stats.t`` from SciPy to get the crital value for
+The code uses  statistics module ``stats.t`` from SciPy to get the critical value for
 ``t`` with method ``ppf`` (*percent point function*).
 Then with the information in Fitter object ``fitobj``, it creates a
 NumPy array with the lower values of the confidence interval (``lowerband``) and

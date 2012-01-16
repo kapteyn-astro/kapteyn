@@ -51,16 +51,13 @@ frame.errorbar(x, y, yerr=err, fmt='bo', label='Observed data')
 frame.plot(x, a0+b0*x, 'r', label='True model')
 frame.plot(x, A1+B1*x, '--c', alpha=0.5, lw=4, label='kmpfit')
 frame.set_xlabel("X"); frame.set_ylabel("Y")
-frame.set_title("Bootstrap with weighted and unweighted fits", fontsize=8)
+frame.set_title("Bootstrap with weighted and unweighted fits", fontsize=10)
 frame.grid(True)
-frame.legend(loc='upper left')
-
 
 xr = x.copy()
 yr = y.copy()
 err *= numpy.sqrt(fitobj.rchi2_min)
 scaled_err = err.copy() 
-
 
 fitobj2 = kmpfit.Fitter(residuals=residuals, data=(xr, yr, scaled_err))
 fitobj2.fit(params0=[1,1])
@@ -69,7 +66,7 @@ if (fitobj2.status <= 0):
    print 'error message =', fitobj2.errmsg
    raise SystemExit
 
-print "\n\n======== Results kmpfit weighted fit with reduced chi^2 forced to 1.0 ========="
+print "\n\n===== Results kmpfit weighted fit with reduced chi^2 forced to 1.0 ====="
 print "Params:        ", fitobj2.params
 print "Errors from covariance matrix         : ", fitobj2.xerror
 print "Uncertainties assuming reduced Chi^2=1: ", fitobj2.stderr
@@ -107,10 +104,21 @@ for k in [0,1]:
          #print fitobj2.rchi2_min
          slopes.append(slope)
          offsets.append(offs)
-         frame.plot(x, offs+slope*x, col[k], alpha=0.1)
-
+         if i == 0:
+            if k == 0:
+               frame.plot(x, offs+slope*x, col[k], alpha=0.1,
+                          label='Bootstrap with weighted fits')
+            else:
+               frame.plot(x, offs+slope*x, col[k], alpha=0.1,
+                          label='Bootstrap with unweighted fits')
+         else:
+            frame.plot(x, offs+slope*x, col[k], alpha=0.1)
    slopes = numpy.array(slopes) - B1
    offsets = numpy.array(offsets) - A1
-   print "Bootstrap errors in A, B:", offsets.std(), slopes.std()
+   if k == 0:
+      print "Bootstrap errors in A, B for procedure with weighted fits:", offsets.std(), slopes.std()
+   else:
+      print "Bootstrap errors in A, B for procedure with unweighted fits:", offsets.std(), slopes.std()
 
+frame.legend(loc='upper left')
 show()
