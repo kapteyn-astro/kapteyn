@@ -42,6 +42,7 @@ x = numpy.array([1,2,3,4,5,6,7])
 y = numpy.array([6.9,11.95,16.8,22.5,26.2,33.5,41.0])
 N = len(y)
 err = numpy.ones(N)
+err = numpy.array([0.05, 0.1, 0.2, 0.5, 0.8, 1.5, 4.0])
 
 A0, B0, sigA0, sigB0, delta, S, Sxx, Sx  = lingres(x, y, err)
 chi2 = (((y-model((A0,B0),x))/err)**2).sum()
@@ -62,16 +63,6 @@ print -Sx/delta, S/delta
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err))
 fitobj.fit(params0=[1,1])
 print "\n-- Results kmpfit:"
-print "Best-fit parameters:                        ", fitobj.params
-print "Parameter errors weighted fit:              ", fitobj.xerror
-print "Parameter errors un-/relative weighted fit: ", fitobj.stderr
-print "Minimum chi^2:                              ", fitobj.chi2_min
-print "Covariance matrix:"
-print fitobj.covar
-
-fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err*10))
-fitobj.fit(params0=[1,1])
-print "\n-- Results kmpfit with scaled individual errors (factor=10):"
 print "Best-fit parameters:                        ", fitobj.params
 print "Parameter errors weighted fit:              ", fitobj.xerror
 print "Parameter errors un-/relative weighted fit: ", fitobj.stderr

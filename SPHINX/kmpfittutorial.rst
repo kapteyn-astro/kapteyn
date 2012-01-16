@@ -1,7 +1,7 @@
 .. _kmpfit_tutorial:
    
-Least squares fitting with kmpfit
-===================================
+Least squares fitting with kmpfit (M. Vogelaar)
+================================================
 
 .. highlight:: python
    :linenothreshold: 10
@@ -12,7 +12,7 @@ Introduction
 
 In this tutorial we try to show the flexibility of the least squares
 fit routine in :mod:`kmpfit` by showing examples and some background
-theory. The *kmpfit* module is an excellent tool to demonstrate
+theory which enhance its use. The *kmpfit* module is an excellent tool to demonstrate
 features of the least squares fitting theory. It is a Python module
 so the examples are simple and almost self explanatory.
 The fit routine *kmpfit* has many similar
@@ -42,9 +42,10 @@ Objective functions are also called *merit* functions.
 Least squares routines also predict what the range of best-fit
 parameters will be if we repeat the experiment, which produces the
 data points, many times. But it can do that only for objective functions
-if they return the (weighted) sum of squared residuals (WSSR). The
-least squares fitting procedure is then a maximum-likelihood estimation (MLE)
-and the objective function *S* is then also called chi square (:math:`\chi^2`).
+if they return the (weighted) sum of squared residuals (WSSR). If the
+least squares fitting procedure uses measurement errors as weights, then
+the is. then the objective function *S*  can be written as a
+maximum-likelihood estimator (MLE) and *S* is then called chi square (:math:`\chi^2`).
 
 If we define :math:`\mathbf{p}` as the set of parameters and take *x* for the independent data
 then we define a residual as the difference between the actual dependent variable
@@ -55,13 +56,54 @@ then we define a residual as the difference between the actual dependent variabl
 
    r(\mathbf{p}, [x_i,y_i]) = y_i - f(\mathbf{p},x_i)
 
+A model function :math:`f(\mathbf{p},x_i)` could be::
+
+   def model(p, x):       # The model that should represent the data
+      a, b = p            # p == (a,b)
+      return a + b*x      # x is explanatory variable
+
+A residual function :math:`r(\mathbf{p}, [x_i,y_i])` could be::
+
+   def residuals(p, my_arrays):   # Function needed by fit routine
+      x, y, err = my_arrays       # The values for x, y and weights
+      a, b = p                    # The parameters for the model function
+      return (y-model(p,x))/err   # An array with (weighted) residuals)
+
 One is not restricted to one independent (*explanatory*) variable. For example, 
 for a plane the dependent (*response*) variable :math:`y_i`
-depends on two independent variables :math:`(x1_i,x2_i)`
+depends on two independent variables :math:`(x_{1_i},x_{2_i})`
 
-*kmpfit* needs a specification of the residuals function :eq:`Residuals_function`.
-It defines the objective function itself by squaring the residuals and summing them
-afterwards.
+>>>    x1, x2, y, err = my_arrays
+
+The Python variable ``my_arrays`` could also be an object with arrays as attributes.
+
+*kmpfit* needs only a specification of the residuals function :eq:`Residuals_function`.
+It defines the objective function *S* itself by squaring the residuals and summing them
+afterwards. So if you pass an array with weights :math:`w_i` which are calculated
+from :math:`1/\sigma_i^2`, then you need to take the square root of these numbers
+first as in::
+
+   def residuals(p, my_arrays):   # Function needed by fit routine
+      x, y, w = my_arrays         # The values for x, y and weights
+      a, b = p                    # The parameters for the model function
+      w = numpy.sqrt(w)           # kmpfit does the squaring
+      return w*(y-model(p,x))     # An array with (weighted) residuals)
+
+It is more efficient to store the square root of the weights beforehand so that
+it is not necessary to repeat this (often many times) in the resuduals function
+itself. This is different if your weights depend on the model parameters,
+which are adjusted in the iterations to get a best-fit. An example is the
+residuals function for an orthogonal fit of a straight line::
+
+   def residuals(p, data):
+      # Residuals function for data with errors in both coordinates
+      a, theta = p
+      x, y = data
+      B = numpy.tan(theta)
+      wi = 1/numpy.sqrt(1.0 + B*B)
+      d = wi*(y-model(p,x))
+      return d
+
 
 .. note::
 
@@ -86,7 +128,7 @@ An example of a LLS problem is finding the best fit parameters of the model:
 .. math::
    :label: linearexample
 
-   f(a,x) = a * \sin(x)
+   f(a,x) = a\, \sin(x)
 
    \frac{\partial f}{\partial a} = \sin(x)\,  \Rightarrow \frac{\partial^2 f}{\partial a^2} = 0
 
@@ -96,9 +138,47 @@ An example of a NLLS problem is finding the best fit parameters of the model:
 .. math::
    :label: nonlinearexample
 
-   f(a,x) = \sin(a*x)
+   f(a,x) = \sin(a\,x)
 
-   \frac{\partial y}{\partial a} = x\cos(ax)\, \Rightarrow \frac{\partial^2 y}{\partial a^2} \neq 0
+   \frac{\partial f}{\partial a} = x\cos(a\,x)\, \Rightarrow \frac{\partial^2 f}{\partial a^2} \neq 0
+
+
+A well known example of a model that is non-linear in its parameters, is a
+function that describes a Gaussian profile as in::
+
+   def my_model(p, x):
+      A, mu, sigma, zerolev = p
+      return( A * numpy.exp(-(x-mu)*(x-mu)/(2.0*sigma*sigma)) + zerolev )
+
+
+.. note::
+
+   In the linear case, parameter values can be determined analytically with
+   staightforward linear algebra.
+   *kmpfit* finds best-fit parameters for models that are either linear or non-linear
+   in their parameters. If efficiency is an issue, one should find and apply
+   an analytical method.
+
+
+In the linear case, parameter values can be determined by comparatively simple linear
+algebra, in one direct step.
+
+Goal
++++++++
+
+The function that we choose is based on a model which should describe the data
+so that *kmpfit* finds best-fit values for the free parameters in this model.
+These values can be used for interpolation or prediction of data based
+on the measurements and the best-fit parameters.
+*kmpfit* varies the values of the free parameters until it finds a set of
+values which minimize the objective function. Then, either it stops and
+returns a result because it found these *best-fit* parameters, or it
+stops because it met one of the stop criteria in *kmpfit* (see next section).
+Without these criteria, a fit that is not converging would never stop.
+
+Later we will discuss a familiar example for astronomy when we find best-fit
+parameters for a Gaussian to find the characteristics of a profile like
+the position of the maximum and the width of a peak.
 
 
 Stop criteria
@@ -141,16 +221,76 @@ of the original C code we copy:
      The default is: 0 (no limit)
 
 
-Goal
-+++++++
+A ``Fitter`` object
+++++++++++++++++++++++
 
-The function that we choose is based on a model which should describe the data
-so that *kmpfit* finds best-fit values for the free parameters in this model.
-These values can be used for interpolation or prediction of data based
-on the measurements and the best-fit parameters.
-We will discuss a familiar example for astronomy when we find best fit
-parameters for a Gaussian to find the characteristics of a profile like
-the position of the maximum and the width of a peak.
+After we defined a residuals function, we need to create a Fitter object.
+A Fitter object is an object of class **Fitter**. This object tells the fit
+procedure which arrays should be passed to the residuals function. So it needs
+the name of the residuals function and an object that sets the arrays
+with data. In most of our examples we will use a tuple with references to arrays.
+Assume we have a residuals function called *residuals* and two arrays *x* and *y*
+with data from a measurement, then a ``Fitter`` object is created by::
+
+   fitobj = kmpfit.Fitter(residuals=residuals, data=(x,y))
+
+Note that the *fitobj* is an arbitrary name. You need it to retrieve the results
+of the fit.
+The real fit is started when we call method ``fit``. This is now a method
+of object ``fitobj``. The fit procedure needs start values. Often the fit
+procedure is not sensitive to these values and you can enter 1 as a value
+for each parameter. But there are also examples where these *initial estimates*
+are important. Starting with values that are not close to the best-fit
+parameters could result in a solution that is a local minimum and not
+a global minimum.
+
+If you imagine a surface which is a function of parameter values and heights
+given by the the sum of the residuals as function of these parameters and this surface
+shows more than one minimum, you must be sure that you start your
+fit nearby the global minimum.
+
+
+.. image:: EXAMPLES/chi2landscape.png
+   :scale: 50 %
+   :alt: Chi-squared landscape
+   :align: center
+
+The figure shows the parameter landscape for a model that represents a straight
+line with parameters *a* and *b*. This is an example of a very simple landscape
+with only one minimum.
+The quality of the values of the initial estimates are therefore not important.
+
+The initial estimates are entered in parameter ``params0``. You can enter this
+either in the contructor of the ``Fitter`` object or in the method ``fit()``.
+In most examples we use the latter because it becomes obvious that one can repeat
+the same fit with different initial estimates::
+
+   fitobj.fit(params0=[1,1])
+
+The results are stored in the attributes of *fitobj*.
+For example the best-fit parameters are stored in ``fitobj.params``.
+For a list of all attributes and their meaning, see the documentation
+of :mod:`kmpfit`.
+
+An example of an overview of the results could be::
+
+   print "Fit status: ", fitobj.message
+   print "Best-fit parameters:      ", fitobj.params
+   print "Covariance errors:        ", fitobj.xerror
+   print "Standard errors           ", fitobj.stderr
+   print "Chi^2 min:                ", fitobj.chi2_min
+   print "Reduced Chi^2:            ", fitobj.rchi2_min
+   print "Iterations:               ", fitobj.niter
+   print "Number of function calls: ", fitobj.nfev
+   print "Number of free pars.:     ", fitobj.nfree
+   print "Degrees of freedom:       ", fitobj.dof
+   print "Number of pegged pars.:   ", fitobj.npegged
+
+
+We wrote a section about the use and interpretation of parameter errors
+in :ref:`standard_errors`.
+In the next chapter we will put the previous information together and compile a
+complete example.
 
 
 
@@ -269,7 +409,9 @@ it has the same type as the sequence with the initial parameter (i.e. NumPy arra
 
 Below we show a complete example. If you run it, you should get a plot like the one
 below the source code. It will not be exactly the same because we used a random number generator
-to add some noise to the data.
+to add some noise to the data. The plots are created with Matplotlib. A plot is
+a simple but effective tool to qualify a fit. For most of the examples in this
+tutorial we added a plot.
 
 **Example: kmpfit_example_simple.py - Simple use of kmpfit**
 
@@ -308,12 +450,12 @@ The advantages of this method:
   * As a result you get a Fitter object with all the attributes
   * It is (still) possible to tune the fit routine with keyword arguments,
     no limitations here.
- 
-**Example: kmpfit_example_easyinterface.py - Simple interface**
+
+
+**Example:** :download:`kmpfit_example_easyinterface.py <EXAMPLES/kmpfit_example_easyinterface.py>`
+- Simple method
 
 .. literalinclude:: EXAMPLES/kmpfit_example_easyinterface.py
-
-
 
 
 .. _standard_errors:
@@ -346,12 +488,16 @@ a second time with the second parameter fixed. The example also shows how to set
 parameters to 'fixed' in *kmpfit*.
 The model is a straight line. If you run
 the example you will see that it shows exactly the behaviour as in 
-:eq:`bevington11_31`. This proves that the covariance matrix of *kmpfit* can be used to
+:eq:`bevington11_31`. This proves that the covariance matrix (explained later)
+of *kmpfit* can be used to
 derive standard errors.
 Note the use of the ``parinfo`` attribute of the *Fitter* object to fix 
 parameters. One can use an index to set values for one parameter or one can set
 the values for all parameters. These values are given as a Python dictionary.
 An easy way to create a dictionary is to use Python's ``dict()`` function.
+
+**Example:** :download:`kmpfit_errors_chi2delta.py <EXAMPLES/kmpfit_errors_chi2delta.py>`
+- Meaning of asymptotic errors
 
 .. literalinclude:: EXAMPLES/kmpfit_errors_chi2delta.py
 
@@ -383,7 +529,8 @@ Standard errors in Weighted fits
 In the literature [Num]_ we can find analytical expressions for the standard errors
 of weighted fits for standard linear regression. We want to discuss the
 derivation of analytical errors for weighted fits to demonstrate that these errors
-are also represented by the elements of the so called covariance matrix,
+are also represented by the elements of the so called variance-covariance matrix
+(or just covariance matrix),
 which is also a result of a fit with *kmpfit* (attribute ``Fitter.covar``).
 How should we interpret these errors? For instance in Numerical Recipes, [Num]_
 we find the expressions for the best fit parameters of a model :math:`y=a+bx`
@@ -576,9 +723,13 @@ are the estimates of the best-fit parameter uncertainties.
 Example program :download:`kmpfit_linearreg.py <EXAMPLES/kmpfit_linearreg.py>`
 compares the analytical covariance matrix with the *kmpfit* version for
 linear regression, using the previously derived formulas  in this section.
-The output of an example run demonstrates the similarity between the
-analytical and the *kmpfit* method::
+The output of an arbitrary example run demonstrates the similarity between the
+analytical and the *kmpfit* method:
 
+**Example:** :download:`kmpfit_linearreg.py <EXAMPLES/kmpfit_linearreg.py>`
+- Compare output analytical method and kmpfit
+
+::
 
    -- Results analytical solution:
    Best fit parameters:                         [0.57857142857143595, 5.5285714285714258]
@@ -599,6 +750,13 @@ analytical and the *kmpfit* method::
    [-0.14285717  0.03571429]]
 
 
+We observe:
+
+   * The analytical values of the best-fit parameters and those from *kmpfit*
+     correspond. The same applies to the errors for the unweighted fit/fit with
+     relative weights.
+
+
 When to use weights?
 +++++++++++++++++++++
 
@@ -609,7 +767,12 @@ expect that the best-fit parameters are different between weighted and un-weight
 fits. Also the accuracy of the results will improve, because besides the
 data you are using the quality of the data (weights).
 The difference in best-fit parameters and the quality of the results are shown
-with program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py >`::
+with program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py >`
+
+**Example:** :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
+- Compare output for unweighted (unit weighting) and weighted fit
+
+::
 
    Data x: [ 1.  2.  3.  4.  5.  6.  7.]
    Data y: [  6.9   11.95  16.8   22.5   26.2   33.5   41.  ]
@@ -645,8 +808,12 @@ give incorrect errors on the parameter estimates.
 This is shown in the same
 program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py >`
 where we scaled the errors with a factor 10. The errors in the parameter estimates
-are increased with a factor 10.::
+are increased with a factor 10.
 
+**Example:** :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
+- Compare output for unweighted (unit weighting) and weighted fit
+
+::
 
    -- Results kmpfit with scaled individual errors (factor=10):
    Best-fit parameters:                         [1.870539984453957, 5.0290902408769238]
@@ -660,10 +827,10 @@ are increased with a factor 10.::
 This demonstrates that if weights are relative or when unit weighting is
 applied, one cannot rely on the covariance errors to represent real
 errors on the parameter estimates. The covariance errors are still
-based on a change in :math:`chi^2` of 1.0, but the weights do not
+based on a change in :math:`\chi^2` of 1.0, but the weights do not
 represent the variances of the data correctly.
 
-To summarize the weighting schemes.
+To summarize the weighting schemes:
 
    * *Unweighted* or *unit weighting*. Set  :math:`w_i=1/\sigma_i^2` to 1.0
    * *Relative weighting*. Set :math:`w_i=1/\sigma_i^2` but the errors on
@@ -844,6 +1011,8 @@ expressions for these errors in a linear regression in :eq:`deriverrorAB`).
 According to equations :eq:`varianceratio1` and :eq:`sampleandparentvar` it is
 reasonable then to scale the values of :math:`\sigma_i` in a way that we
 force :math:`\chi^2_{\nu}` to take its expectation value of 1.
+Then one gets values for the errors in ``stderr`` which are insensitive
+to arbitrary scaling factors of the weights.
 
 We noted earlier that scaling the weights does not change the values of the
 best-fit parameters but they affect the values of the parameter error
@@ -861,66 +1030,46 @@ can be applied to arbitrary models.
 This scaling is exactly what happens in *kmpfit* for the values in attribute
 ``stderr``.
 
-In *kmpfit* we use the weights as given by the user and calculate
+In *kmpfit* we use the unit- or relative weights as given by the user and calculate
 the value of :math:`\chi_{\nu}`. The asymptotic standard errors in
 ``xerror`` are then multiplied by the square root of the value
 of :math:`\chi_{\nu}` and stored in attribute ``stderr``. We demonstrate
 this with the output of a small example
-:download:`kmpfit_linearreg.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`.
+(:download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`)
 with data from [Wol]_:
 
+**Example:** :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
+- Compare output for unweighted (unit weighting) and weighted fit
 
-[:download:`Source of kmpfit_compare_wei_unwei.py<EXAMPLES/kmpfit_compare_wei_unwei.py>`]
 ::
 
    Data x: [ 1.  2.  3.  4.  5.  6.  7.]
    Data y: [  6.9   11.95  16.8   22.5   26.2   33.5   41.  ]
    Errors: [ 0.05  0.1   0.2   0.5   0.8   1.5   4.  ]
 
-   -- Results kmpfit unit weighting wi=1.0:
-   Best-fit parameters:                               [0.57857145533008425, 5.5285714226701863]
-   Parameter errors using measurement uncertainties:  [ 0.84515434  0.18898225]
-   Parameter errors unit-/relative weighted fit:      [ 1.06966532  0.23918443]
-   Minimum chi^2:                                     8.00928571429
-   Covariance matrix:
-   [[ 0.71428585 -0.14285717]
-   [-0.14285717  0.03571429]]
+   New array with measurement errors, scaled with factor 0.933091 to give
+   a reduced chi-squared of 1.0:
+   [ 0.04829832  0.09659663  0.19319327  0.48298317  0.77277307  1.4489495
+   3.86386534]
 
-   -- Results kmpfit with (scaled) equal weights wi=10*1.0:
-   Best-fit parameters:                               [0.57857138144083398, 5.5285714191292534]
-   Parameter errors using measurement uncertainties:  [ 8.45154585  1.8898234 ]
-   Parameter errors unit-/relative weighted fit:      [ 1.06966563  0.23918454]
-   Minimum chi^2:                                     0.0800928571429
-   Covariance matrix:
-   [[ 71.42862727 -14.28572963]
-   [-14.28572963   3.57143248]]
-
-   -- Results kmpfit with weights:
-   Best-fit parameters:                               [1.8705399823164173, 5.0290902421858439]
-   Parameter errors using measurement uncertainties:  [ 0.09922304  0.06751229]
-   Parameter errors unit-/relative weighted fit:      [ 0.09584611  0.0652146 ]
-   Minimum chi^2:                                     4.66545480308
-   Covariance matrix:
-   [[ 0.00984521 -0.00602421]
-   [-0.00602421  0.00455791]]
-
-   -- Results kmpfit with scaled individual errors (factor=10):
-   Best-fit parameters:                               [1.870539984453957, 5.0290902408769238]
-   Parameter errors using measurement uncertainties:  [ 0.99223048  0.6751229 ]
+   -- Results kmpfit with scaled individual errors to force red_chi2=1:
+   Best-fit parameters:                               [1.8705399822570359, 5.029090242191204]
+   Parameter errors using measurement uncertainties:  [ 0.09584612  0.0652146 ]
    Parameter errors unit-/relative weighted fit:      [ 0.09584612  0.0652146 ]
-   Minimum chi^2:                                     0.0466545480308
+   Minimum chi^2:                                     5.0
+   Minimum reduced chi^2:                             1.0
    Covariance matrix:
-   [[ 0.98452132 -0.60242076]
-   [-0.60242076  0.45579092]]
-
+   [[ 0.00918648 -0.00562113]
+   [-0.00562113  0.00425294]]
 
 
 
 The next code example is a small script that shows that the scaled error estimates
-are realistic if we compare them to errors found with a bootstrap method.
+in attribute ``stderr`` for unit- and relative weighting are realistic if we
+compare them to errors found with a Monte Carlo method.
 We start with values of :math:`\sigma_i` that are under-estimated. This
 results in a value for :math:`\chi_{\nu}` which is too low. The re-scaled
-errors in ``stderr`` match with those that are estimated with a Monte-Carlo method.
+errors in ``stderr`` match with those that are estimated with the Monte-Carlo method.
 In the example we used the Bootstrap Method.
 The plot shows the fit and the bootstrap distributions of parameter *A* and *B*.
 We will explain the Bootstrap Method in the next section.
@@ -983,175 +1132,106 @@ deviation of this distribution (i.e. for one parameter), gives the uncertainty.
 
 
 
-Relative weighting or unit weighting
-++++++++++++++++++++++++++++++++++++++
+Notes about weighting
++++++++++++++++++++++++ 
 
-:math:`\sigma^2` is the sample variance.
-If we use relative weights :math:`\sigma_i = \lambda_i \sigma`, then
-:math:`S_{xx} = \frac{1}{\sigma^2} S_{xx}'` with :math:`S_{xx}' = \Sigma\frac{x_i^2}{\lambda^2}`
-and :math:`\Delta'= \frac{1}{\sigma^4}\Delta`
-with :math:`\Delta' = S'S_{xx}' - (S_x')^2` (we use versions of the sums in :eq:`numrep_linear1`
-with :math:`1/\sigma^2_i` replaced by :math:`1/\lambda^2_i`), then:
+**Unweighted (i.e. unit weighting) and relative weighted fits**
 
-.. math::
-   :label: errorwithsamplevarianceA
-
-   \sigma_a^2 = \frac{S_{xx}}{\Delta} = \frac{1/\sigma^2}{1/\sigma^4}\frac{S_{xx}'}{\Delta'} = \sigma^2 \frac{S_{xx}'}{\Delta'}
-
-Together with :eq:`bevington_combined` we derive:
-
-.. math::
-   :label: errorwithsamplevarianceA2
-
-   \sigma_a^2 = \chi^2_\nu \frac{S_{xx}'}{\Delta'}
-
-For *b* we find:
-
-.. math::
-   :label: errorwithsamplevarianceB2
-
-   \sigma_b^2 = \chi^2_\nu \frac{S'}{\Delta'}
-
-Omitting weights is the same as taking all the weights :math:`\lambda_i=1`.
-Note that in that situation :math:`S_{xx}'= \Sigma x_i^2` and :math:`S' = \Sigma\, 1 = N`.
-Omitting weights is also called *unit weighting*.
 
 .. note::
 
    * For unit- or relative weighting, we find errors that correspond to
-     attribute ``stderr`` in kmpfit.
-   * For weighted fits where the weigths are derived from measurement errors,
-     the errors correspond to attribute ``xerror`` in kmpfit.
+     attribute ``stderr`` in *kmpfit*.
+   * The errors on the best-fit parameters are scaled (internally) which is
+     equivalent to scaling the weights in a way that the value of the reduced chi-squared
+     becomes 1.0
+   * For unweighted fits, the standard errors from ``Fitter.stderr`` are comparable to
+     errors we find with Monte Carlo simulations.
 
-We compare the analytical best-fit parameters and their errors with
-the values we get from kmpfit in program
-:download:`kmpfit_linearreg.py <EXAMPLES/kmpfit_linearreg.py>`.
-
-[:download:`Source<EXAMPLES/kmpfit_linearreg.py>`]
-
-The program uses data from a table in [Wol]_. For this data we get the output::
-
-   -- Results analytical solution:
-   Best fit parameters:                         [0.57857142857143595, 5.5285714285714258]
-   Parameter errors weighted fit:               [0.84515425472851657, 0.1889822365046136]
-   Parameter errors un-/relative weighted fit:  [1.0696652156022404, 0.2391844135253578]
-   Minimum chi^2:                               8.00928571429
-   Covariance matrix:
-   0.714285714286 -0.142857142857
-   -0.142857142857 0.0357142857143
-
-   -- Results kmpfit:
-   Best-fit parameters:                         [0.57857145533008425, 5.5285714226701863]
-   Parameter errors weighted fit:               [ 0.84515434  0.18898225]
-   Parameter errors un-/relative weighted fit:  [ 1.06966532  0.23918443]
-   Minimum chi^2:                               8.00928571429
-   Covariance matrix:
-   [[ 0.71428585 -0.14285717]
-   [-0.14285717  0.03571429]]
-
-   -- Results kmpfit with scaled individual errors (factor=10):
-   Best-fit parameters:                         [0.57857138144083398, 5.5285714191292534]
-   Parameter errors weighted fit:               [ 8.45154585  1.8898234 ]
-   Parameter errors un-/relative weighted fit:  [ 1.06966563  0.23918454]
-   Minimum chi^2:                               0.0800928571429
-   Covariance matrix:
-   [[ 71.42862727 -14.28572963]
-   [-14.28572963   3.57143248]]
-
-
-We observe:
-
-   * The analytical values of the best-fit parameters and those from *kmpfit*
-     correspond. The same applies to the errors for the unweighted fit or
-     fit with relative weights.
-
-   * In the example output of the program you can verify that if we scale
-     the measurement errors with factor 10, the covariance errors are also
-     scaled with a factor 10, while the errors in attribute ``stderr``
-     are unaltered and therefore not sensitive to the absolute values
-     of the measurement errors.
-   
-.. note::
-
-   One should only use uncertainties derived from the diagonal elements of
-   the covariance matrix (attribute ``xerror``), if absolute weights are used
-   (i.e. real measurement errors).
-
-.. note::
-
-   The uncertainties given in attribute ``xerror`` and ``stderr`` are the same,
-   only when :math:`\chi_{\nu}^2 = 1`
-
-
-
-**Weights from measurement errors**
-
-In fits with weights, one often uses the individual standard errors of the data
-points as weights.
-In equation :eq:`bevington8_3` we see that the weights :math:`w_i` are defined as
-:math:`w_i = 1/\sigma_i^2`. This choice has the practical advantage that scaling of the
-measurement errors does not change the values of the best-fit parameters.
-If we use real measurement errors and and use weighted fit procedures then
-the value of :math:`\chi_{\nu}^2` can be used as a *goodness of fit* estimator.
-If we assume a correct model and its value is smaller than 1,
-we underestimated our errors in the data points. If we assume a correct model
-and its value is (much) bigger than 1, we probably overestimated
-these errors.
 Alper, [Alp]_ states that for some combinations of model, data and weights,
 *the standard error estimates from diagonal elements of the covariance
 matrix neglect the interdependencies between parameters and lead
 to erroneous results*. Often the measurement errors are difficult to obtain precisely,
-sometimes these errors are not normally distributed.
+sometimes these errors are not normally distributed. For this category of
+weighting schemes, one should always inspect the covariance matrix (attribute
+``covar``) to get an idea how big the covariances are with respect to
+the variances (diagonal elements of the matrix).
+The off-diagonal elements of the covariance matrix should be
+much lower than the diagonal.
 
 
-**Relative weights**
+**Weighted fits with weights derived from real measurement errors**
 
-If the weights are relative weights, we don't have any idea how well chi-square
-estimates the sample variance. Then we scale the standard errors in the same way
-as in the unweighted fit. Implicitly we assume a perfect fit (:math:`\chi_{\nu}^2 = 1`).
-This sounds reasonable because these scaled errors in attribute ``stderr`` do not
-change when we scale the weights. Scaling the weights with scale factor *q*
-will scale the reduced chi-square with :math:`1/q^2` (:eq:`bevington8_3`), but
-scale the covariance errors with :math:`q^2`. According to our correction formula
-in :eq:`bevington_scalederror`, this implies that the standard error does
-not change. This is the expected behaviour if we work with relative weights.
-If you examine the example output of the script, you can verify this behaviour.
-
-.. note::
-
-   Some conclusions:
-
-   * For unweighted fits, the standard errors on the best-fit parameters are
-     the scaled errors given in attribute ``Fitter.stderr``
-   * For unweighted fits, the standard errors from ``Fitter.stderr`` are comparable to
-     errors we find with Monte Carlo simulations.
-   * For weighted fits with real measurement errors we use the standard errors
-     derived from the covariance matrix given in attribute ``Fitter.xerror``
-   * For weighted fits with relative weights we use the standard errors
-     given in attribute ``Fitter.stderr`` assuming :math:`\chi^2_{\nu} \approx 1`
-     but even then they can differ significantly from the values we find with
-     Monte Carlo simulations.
+   * For weighted fits where the weigths are derived from measurement errors,
+     the errors correspond to attribute ``xerror`` in *kmpfit*.
+     Only for this type of weights, we get a value of
+     (reduced) chi-squared that can be used a a measure of *goodness of fit**.
+   * The fit results depend on the accuracy of the measurement errors :math:`\sigma_i.`
+   * A basic assumption of the chi-squared objective function is that the error
+     distribution of the measured data is Gaussian. If this assumption is
+     violated, the value of chi squared does not make sense.
+   * The uncertainties given in attribute ``xerror`` and ``stderr`` are the same,
+     only when :math:`\chi_{\nu}^2 = 1`
 
 
-**Extra meteriaal nog verwerken**
+From [And]_ we summarize the conditions which must be met before one can
+safely use the values in ``stderr`` (i.e. demanding that :math:`\chi_{\nu} = 1`):
+In this appraoch of scaling, the error in the best-fit parameters
+we make three assumptions:
 
-Rather than determine confidence intervals, *kmpfit* reports parameter error
-estimates which are readily obtained from the variance-covariance matrix after
-the final iteration. By convention, these estimates are called "standard errors"
-or "asymptotic standard errors", since they are calculated in the same way as
-the standard errors (standard deviation of each parameter) of a linear
-least-squares problem, even though the statistical conditions for designating
-the quantity calculated to be a standard deviation are not generally valid
-for the NLLS problem. The asymptotic standard errors are generally
-over-optimistic and should not be used for determining confidence levels,
-but are useful for qualitative purposes.
+   1) The error distribution has to be gaussian.
+   2) The model has to be linear in all parameters. If the model is
+      nonlinear, we cannot demand that :math:`\chi_{\nu} = 1`, because
+      the derivation of :math:`\langle \chi^2=N-n\rangle`
+      implicitely assumes linearity in all parameters.
+   3) By demanding :math:`\chi_{\nu} = 1`, we explicitely claim that the model
+      we are using is the **correct** model that was underlying the data.
+      This is a rather optimistic claim. This claim requires justification.
+   4) Even if all these assumptions above are met, the method is in fact only
+      applicable if the degrees of freedom *N-n* is large.
+      The reason is that the uncertainty in the measured data
+      data does not only cause an uncertainty in the model parameters,
+      but also an uncertainty in the value of :math:`\chi^2` itself.
+      If *N-n* is small, :math:`\chi^2` may deviate substantially from *N-n* even
+      though the model is linear and correct.
 
-At the conclusion `fit` reports 'stdfit', the standard deviation of the fit,
-which is the rms of the residuals, and the variance of the residuals,
-also called 'reduced chisquare' when the data points are weighted.
-The number of degrees of freedom (the number of data points minus the number
-of fitted parameters) is used in these estimates because the parameters used
-in calculating the residuals of the datapoints were obtained from the same data.
+The conclusion is that one should be careful with the use of standard errors
+in ``stderr``. A Monte Carlo method should be applied to prove that the
+values in ``stderr`` can be used.
+For weighted fits it is advertized not to use the Bootstrap method.
+Experiments show that for weighted fits the Bootstrap results
+(errors in the best-fit parameters) are close to the errors in ``stderr``
+only when we repeat fits in the Bootstrap procedure with unit weighting.
+In the next example we compare the Bootstrap method with weights and without weights.
+The example plots all individual results in the Bootstrap procedure.
+
+**Example:** :download:`kmpfit_weighted_bootstrap.py <EXAMPLES/kmpfit_weighted_bootstrap.py>`
+- Compare Bootstrap with weighted and unweighted fits.
+
+::
+
+   ======== Results kmpfit weighted fit =========
+   Params:         [-0.065049626052961038, 3.0408982828387439]
+   Errors from covariance matrix         :  [ 0.00666959  0.00257506]
+   Uncertainties assuming reduced Chi^2=1:  [ 0.04355097  0.01681459]
+   Chi^2 min:      8442.32372614
+   Reduced Chi^2:  42.6379986169
+   Iterations:     3
+   Function ev:    7
+   Status:         1
+   Covariance matrix:  [[  4.44834843e-05  -4.13359517e-08]
+   [ -4.13359517e-08   6.63094969e-06]]
+
+
+   Bootstrap errors in A, B: 0.217078929838 0.0843735869564
+   Bootstrap errors in A, B: 0.0556166957536 0.0182834446054
+
+
+**Example: kmpfit_weighted_bootstrap.py - Compare Bootstrap with weighted and unweighted fits.**
+
+.. plot:: EXAMPLES/kmpfit_weighted_bootstrap.py
+   :include-source:
+   :align: center
 
 
 *kmpfit* with Explicit partial derivatives
@@ -1679,8 +1759,10 @@ If you run the program you will observe that the three methods agree very well.
 Effective variance method for various models
 +++++++++++++++++++++++++++++++++++++++++++++
 
-Model :math:`f([a,b],x) = ax - b/x`
+Model with a 1/x factor
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+**:math:`f([a,b],x) = ax - b/x`**
 
 We used data from an experiment described in Orear's article [Ore]_ to test the
 effective variance method.
@@ -1733,8 +1815,10 @@ as being much smaller than the errors in y.
    :align: center
 
 
-Model :math:`f([a,b,c],x) = ax^2+bx+c`
+Model with a parabola
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!                             
+
+**:math:`f([a,b,c],x) = ax^2+bx+c`**
 
 Applying the effective variance method for a parabola
 we  an objective function:
@@ -1783,8 +1867,10 @@ it performs worse with really wrong fits.
    :align: center
 
 
-Model :math:`f([a,b,c],x) = a\sin(bx+c)`
+Model with a sine function
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+ **:math:`f([a,b,c],x) = a\sin(bx+c)`**
 
 If your model is a model that is not linear in its parameters, then the
 effective variance method can still be applied.

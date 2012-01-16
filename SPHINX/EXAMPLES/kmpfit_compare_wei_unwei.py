@@ -59,15 +59,36 @@ print "Best-fit parameters:                              ", fitobj.params
 print "Parameter errors using measurement uncertainties: ", fitobj.xerror
 print "Parameter errors unit-/relative weighted fit:     ", fitobj.stderr
 print "Minimum chi^2:                                    ", fitobj.chi2_min
+print "Minimum reduced chi^2:                            ", fitobj.rchi2_min
 print "Covariance matrix:"
 print fitobj.covar
+rchi2 = fitobj.rchi2_min      # Store for future scaling purposes
 
-fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, errw*10))
+
+errw10 = errw * 10.0
+fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, errw10))
 fitobj.fit(params0=[1,1])
 print "\n-- Results kmpfit with scaled individual errors (factor=10):"
 print "Best-fit parameters:                              ", fitobj.params
 print "Parameter errors using measurement uncertainties: ", fitobj.xerror
 print "Parameter errors unit-/relative weighted fit:     ", fitobj.stderr
 print "Minimum chi^2:                                    ", fitobj.chi2_min
+print "Minimum reduced chi^2:                            ", fitobj.rchi2_min
+print "Covariance matrix:"
+print fitobj.covar
+
+scaled_errw = errw * numpy.sqrt(rchi2)
+print """\n\nNew array with measurement errors, scaled with factor %g to give 
+a reduced chi-squared of 1.0:"""%rchi2 
+print scaled_errw
+
+fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y,  scaled_errw))
+fitobj.fit(params0=[1,1])
+print "\n-- Results kmpfit with scaled individual errors to force red_chi2=1:"
+print "Best-fit parameters:                              ", fitobj.params
+print "Parameter errors using measurement uncertainties: ", fitobj.xerror
+print "Parameter errors unit-/relative weighted fit:     ", fitobj.stderr
+print "Minimum chi^2:                                    ", fitobj.chi2_min
+print "Minimum reduced chi^2:                            ", fitobj.rchi2_min
 print "Covariance matrix:"
 print fitobj.covar
