@@ -146,6 +146,11 @@ Kyoto University @ 130.54.130.230
 University of Tokyo @ 133.11.165.104
 Delhi University @ 202.141.141.35
 Academia Sinica @ 140.109.177.184
+Johns Hopkins University Applied Physics Laboratory @ 128.244.9.7
+Fraunhofer ISE @ 153.96.32.62
+Divisao de Astrofisica (Brasil) @ 150.163.28.232
+Thueringer Landessternwarte Tautenburg @ 194.94.209.38
+Fermilab @ 131.225.23.168
 
-tot: Wed Dec 21 11:47:08 CET 2011
-Mon Dec 12 12:07:22 CET 2011
+tot: Tue Jan 17 17:06:26 CET 2012
+Mon Jan  9 11:02:44 CET 2012
