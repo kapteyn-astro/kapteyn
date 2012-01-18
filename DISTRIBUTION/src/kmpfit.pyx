@@ -3,7 +3,7 @@ u"""
 Module kmpfit
 =============
 
-.. moduleauthor:: Hans Terlouw <J.P.Terlouw@astro.rug.nl>
+.. author:: Hans Terlouw <J.P.Terlouw@astro.rug.nl>
 .. highlight:: python
    :linenothreshold: 5
 

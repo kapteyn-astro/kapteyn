@@ -57,7 +57,7 @@ master_doc = 'contents'
 
 # General information about the project.
 project = u'Kapteyn Package'
-copyright = u'2010-2011, Kapteyn Astronomical Institute'
+copyright = u'2010-2012, Kapteyn Astronomical Institute'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -99,6 +99,7 @@ exclude_trees = ['_build']
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
 #show_authors = False
+show_authors = True
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -265,3 +266,7 @@ def my_clear_state():
 plot_directive.align = my_align
 plot_directive.clear_state = my_clear_state
 
+# Introduce 'author' directive
+#
+from sphinx.directives import Author
+directives.register_directive('author', Author)
