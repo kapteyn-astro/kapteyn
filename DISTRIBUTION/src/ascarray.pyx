@@ -3,7 +3,7 @@
 Module ascarray
 ================
 
-.. moduleauthor:: Hans Terlouw <J.P.Terlouw@astro.rug.nl>
+.. author:: Hans Terlouw <gipsy@astro.rug.nl>
 
 This module is the base containing the function on which :mod:`tabarray`
 has been built.
