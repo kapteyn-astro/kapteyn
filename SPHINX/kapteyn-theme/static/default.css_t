@@ -268,6 +268,10 @@ div.figure img {
    border: 1px solid lightgray;
 }
 
+div.figure p.caption img {
+   border: 0
+}
+
 li.toctree-l1 {
    font-weight: bold;
    font-size: 125%;

@@ -1268,7 +1268,7 @@ Example::
          try:
             systype = skytab[lngtyp]
          except:
-            self.systype = None
+            systype = None
          if systype in (equatorial, ecliptic):
             if self.radesys==icrs:
                self.skysys = (skytab[lngtyp], icrs)
