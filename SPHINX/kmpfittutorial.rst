@@ -3,8 +3,6 @@
 Least squares fitting with kmpfit
 ================================================
 
-(M. Vogelaar, January 2012)
-
 .. highlight:: python
    :linenothreshold: 10
 
@@ -252,16 +250,58 @@ given by the the sum of the residuals as function of these parameters and this s
 shows more than one minimum, you must be sure that you start your
 fit nearby the global minimum.
 
+**Example:** :download:`kmpfit_chi2landscape_gauss.py <EXAMPLES/kmpfit_chi2landscape_gauss.py>`
+**- Chi-squared landscape for model that represents a Gaussian profile**
 
-.. image:: EXAMPLES/chi2landscape.png
-   :scale: 50 %
+.. image:: EXAMPLES/chi2_landscape_gauss.png
+   :scale: 70 %
    :alt: Chi-squared landscape
    :align: center
 
-The figure shows the parameter landscape for a model that represents a straight
-line with parameters *a* and *b*. This is an example of a very simple landscape
-with only one minimum.
-The quality of the values of the initial estimates are therefore not important.
+
+The figure shows the parameter landscape for a model that represents a Gaussian.
+The landscape axes are model parameters the position of the peak :math:`\mu` and
+:math:`\sigma` which is a measure for the width of the peak (half width at 1/e of
+peak). The relation between
+:math:`\sigma` and the the full width at half maximum (FWHM) is:
+:math:`\mathrm{FWHM} = 2\sigma \sqrt{2ln2} \approx 2.35\, \sigma`.
+If you imagine this landscape as a solid surface and release a marble, then it
+rolls to the real minimum (red dot in the figure) only if you are not too
+far from this minimum.
+If you start for example in the front right corner, the marble will never end in the real
+minimum. Note that the parameter space is in fact 4 dimensional (4 free parameters)
+and therefore more complicated than this example.
+In the figure we scaled the value for chi-squared to avoid the labeling of big
+numbers. From Matplotlib version 1.1.0 it is possible to format also labels
+along the z-axis.
+
+Another representation of the parameter space is a contour plot. It is created
+by the same example code:
+
+
+.. image:: EXAMPLES/chi2_landscape_gauss_contours.png
+   :scale: 50 %
+   :alt: Chi-squared landscape with contours
+   :align: center
+
+These contour plots are very useful when you compare different objective functions.
+For instance if you want to compare an objective function for orthogonal fitting
+with an an objective function for robust fitting.
+
+**Example:** :download:`kmpfit_contours_objfunc.py <EXAMPLES/kmpfit_contours_objfunc.py>`
+**- Comparing objective functions with contour plots**
+
+.. image:: EXAMPLES/contours_objfunc.png 
+   :scale: 40 %
+   :alt: Different objective functions
+   :align: center
+
+
+A model which represents a straight line, always shows a very simple landscape
+with only one minimum. Wherever you release the marble, you will always end
+up in the real minimum.
+Then, the quality of the values of the initial estimates are not important to
+the quality of the fit result. 
 
 The initial estimates are entered in parameter ``params0``. You can enter this
 either in the constructor of the ``Fitter`` object or in the method ``fit()``.
@@ -2089,6 +2129,9 @@ Glossary
    WSSR
       Weighted Sum of Squared Residuals (WSSR)
 
+.. only:: latex
+
+   *See Bibliography.* 
 
 References
 ----------
