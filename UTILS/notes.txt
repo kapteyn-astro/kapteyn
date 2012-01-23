@@ -42,6 +42,11 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTILS/make..."
             Voor een definitieve release zal dat
             /net/webserver/var/www/base/internet/software/kapteyn zijn.
 
+- clone.csh
+
+  maakt een verse kopie van de ontwikkelboom, inclusief wcslib.
+  Argument: de directory waar de kopie wordt geplaatst (verplicht).
+
 - wininst.bat (onder ../DISTRIBUTION)
 
   DOS batchfile om een binaire Windows installer te bouwen.
