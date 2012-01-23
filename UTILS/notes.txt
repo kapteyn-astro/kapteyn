@@ -45,7 +45,10 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTILS/make..."
 - clone.csh
 
   maakt een verse kopie van de ontwikkelboom, inclusief wcslib.
-  Argument: de directory waar de kopie wordt geplaatst (verplicht).
+  Argumenten:
+  1. de directory waar de kopie wordt geplaatst (verplicht).
+  2. 'build': bouw het package in de subdirectory 'PACKAGE' (optioneel).
+  N.B. dit script mag vanuit een willekeurige directory worden gedraaid.
 
 - wininst.bat (onder ../DISTRIBUTION)
 
