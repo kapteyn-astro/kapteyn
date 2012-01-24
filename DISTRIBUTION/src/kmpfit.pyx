@@ -451,9 +451,10 @@ are available to the user:
    Message string.
 
 
-**Method:**
+**Methods:**
 
 .. automethod:: fit(params0=None)
+.. automethod:: confidence_band(x, dfdp, confprob, f, abswei=False)
 """
 
    cdef public object parinfo               # parinfo
@@ -770,6 +771,84 @@ Optional argument *params0*: initial fitting parameters.
    def __call__(self, params0=None):
       self.fit(params0)
       return self.params
+
+   def confidence_band(self, x, dfdp, confprob, f, abswei=False):
+      """
+This method requires SciPy.
+After the method :meth:`fit` has been called, this method calculates
+the upper and lower value of the confidence interval for all elements
+of the NumPy array *x*. The model values and
+the arrays with confidence limits are returned and can be used to
+plot confidence bands. 
+
+:param x:
+   NumPy array with the independent values for which the confidence interval
+   is to be found.
+
+:param dfdp:
+   a list with derivatives. There must be as many elements in
+   this list as there are parameters in the model. Each element
+   must be a NumPy array with the same length as *x*.
+
+:param confprob:
+   confidence probability in percent (e.g. 90% or 95%).
+   From this number the confidence level is derived, e.g. 0.05.
+   The Confidence Band is a 100*(1-alpha)% band. This implies
+   that for a given value of *x* the probability that
+   the 'true' value of *f* falls within these limits is
+   100*(1-alpha)%.
+
+:param f:
+   the model function returning the value *y = f(p,x)*.
+   *p* are the best-fit parameters as found by the method :meth:`fit` and
+   *x* is the given NumPy array with independent values.
+
+:param abswei:
+   True if weights are absolute. For absolute weights the
+   unscaled covariance matrix elements are used in the calculations.
+   For unit weighting (i.e. unweighted) and relative 
+   weighting, the covariance matrix elements are scaled with
+   the value of the reduced chi squared.
+
+:returns:
+   A tuple with the following elements, each one is a Numpy array:
+
+   * *y*:          the model values at *x*: *y = f(p,x)*;
+   * *upperband*:  the upper confidence limits;
+   * *lowerband*:  the lower confidence limits.  
+
+.. note::
+
+   If parameters were fixed in the fit, the corresponding 
+   error is 0 and there is no contribution to the confidence
+   interval."""
+
+      from scipy.stats import t
+
+      # Given the confidence probability confprob = 100(1-alpha)
+      # we derive for alpha: alpha = 1 - confprob/100 
+      alpha = 1 - confprob/100.0
+      prb = 1.0 - alpha/2
+      tval = t.ppf(prb, self.dof)
+
+      C = self.covar
+      n = len(self.params)      # Number of parameters from covariance matrix
+      p = self.params
+      N = len(x)
+      if abswei:
+         covscale = 1.0
+      else:
+         covscale = self.rchi2_min
+      df2 = numpy.zeros(N)
+      for j in range(n):
+         for k in range(n):
+           df2 += dfdp[j]*dfdp[k]*C[j,k]
+      df = numpy.sqrt(self.rchi2_min*df2)
+      y = f(p, x)
+      delta = tval * df   
+      upperband = y + delta
+      lowerband = y - delta 
+      return y, upperband, lowerband
 
 def simplefit(model, p0, x, y, err=1.0, **kwargs):
    """Simple interface to :class:`Fitter`.
