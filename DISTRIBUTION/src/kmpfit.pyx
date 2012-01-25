@@ -791,12 +791,12 @@ plot confidence bands.
    must be a NumPy array with the same length as *x*.
 
 :param confprob:
-   confidence probability in percent (e.g. 90% or 95%).
+   confidence probability, e.g. 0.95 (=95%).
    From this number the confidence level is derived, e.g. 0.05.
-   The Confidence Band is a 100*(1-alpha)% band. This implies
+   The Confidence Band is a (1-alpha)*100% band. This implies
    that for a given value of *x* the probability that
    the 'true' value of *f* falls within these limits is
-   100*(1-alpha)%.
+   (1-alpha)*100%.
 
 :param f:
    the model function returning the value *y = f(p,x)*.
@@ -825,9 +825,9 @@ plot confidence bands.
 
       from scipy.stats import t
 
-      # Given the confidence probability confprob = 100(1-alpha)
-      # we derive for alpha: alpha = 1 - confprob/100 
-      alpha = 1 - confprob/100.0
+      # Given the confidence probability
+      # we derive for alpha: alpha = 1 - confprob 
+      alpha = 1 - confprob
       prb = 1.0 - alpha/2
       tval = t.ppf(prb, self.dof)
 
