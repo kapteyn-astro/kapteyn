@@ -41,9 +41,9 @@ astronomical applications with Python.
 The package is suitable for both inexperienced and experienced users and
 developers and documentation is provided for both groups.  The
 documentation also provides in-depth chapters about celestial
-transformations and spectral translations. 
+transformations, spectral translations and non-linear least squares fitting.
 
-Some of the package's features:
+The package's most important features:
 
     * The handling of spatial and spectral coordinates, WCS projections
       and transformations between different sky systems.  Spectral
@@ -63,7 +63,11 @@ Some of the package's features:
     * Utilities for use with matplotlib such as obtaining coordinate
       information from plots, interactively modifiable colormaps and timer
       events (module mplutil); tools for parsing and interpreting coordinate
-      information entered by the user (module positions)."""
+      information entered by the user (module positions).
+
+    * A function to search for gaussian components in a profile (module
+      profiles) and a class for non-linear least squares curve fitting
+      (module kmpfit)"""
 
 classifiers = [
    ['Development Status :: 5 - Production/Stable',
@@ -74,12 +78,13 @@ classifiers = [
    'Intended Audience :: Science/Research',
    'Topic :: Scientific/Engineering :: Astronomy',
    'Topic :: Scientific/Engineering :: Visualization',
+   'Topic :: Scientific/Engineering :: Mathematics',
    'License :: OSI Approved :: BSD License',
    'License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)',
    'Operating System :: POSIX :: Linux',
    'Operating System :: MacOS :: MacOS X',
    'Operating System :: Microsoft :: Windows'
-   ]   
+   ]
 
 download_url = "http://www.astro.rug.nl/software/kapteyn/kapteyn-%s.tar.gz" % version
 
