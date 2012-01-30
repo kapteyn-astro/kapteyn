@@ -1410,6 +1410,39 @@ needs considerably fewer function calls to the residual function.
    :align: center
 
 
+Automatic initial estimates for profiles with multi component Gaussians
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+For single profiles we can obtain reasonable initial estimates by inspection
+of the profile. Processing many profiles e.g. in a data cube with two spatial axes and one
+spectral axis, needs another approach. If your profile has more than 1 Gaussian
+component, the problem becomes even more complicated. So what we need is
+a method that automates the search for reasonable initial estimates.
+
+**Gauest**
+
+Method :meth:`profiles.gauest` is a method which can be used to get basic characteristics of
+a Gaussian profile. The number of Gaussian components in that profile can be
+greater than 1. These characteristics are *amplitude*, *position of the maximum*
+and *dispersion*. They are very useful
+as initial estimates for a least squares fit of this type of
+multi-component Gausian profiles.
+For :meth:`gauest`, the profile is represented by intensities :math:`y_i`, expressed as a
+function of the independent variable :math:`x` at equal intervals :math:`\Delta x=h`
+[Sch]_. A second order polynomial is fitted at each :math:`x_i` by using moments analysis
+(this differs from the method described in [Sch]_), using :math:`q` point distributed
+symmetrically around :math:`x_i`. The coefficient of the second-order term is an approximation
+of the second derivative of the profile. For a Gaussian model, the position of the peak
+and the dispersion are calculated from the main minima of the second derivative.
+The amplitude is derived from the profile intensities.
+The method has parameters to set thresholds in minimum amplitude and dispersion to
+discriminate against spurious components.
+
+**Example:** :download:`kmpfit_gauest_multicomp.py <EXAMPLES/kmpfit_gauest_multicomp.py>`
+**- Method gauest() finds initial estimates in profiles with multi component Gaussians**
+
+.. plot:: EXAMPLES/kmpfit_gauest_multicomp.py
+   :align: center
 
 
 Fitting data when both variables have uncertainties
@@ -2175,6 +2208,10 @@ References
    of points in space*. Philosophical Magazine 2:559-572, 1901.
    A copy of this article can be found at:
    `http://stat.smmu.edu.cn/history <http://stat.smmu.edu.cn/history/pearson1901.pdf/>`_
+
+.. [Sch] Schwarz, U.J., Analysis of an Observed Function into Components, using its Second Derivative,
+   Bull. Astr. Inst. Netherlands, 1968, 19 405-413
+   `(local copy) <http://www.astro.rug.nl/software/kapteyn-alpha/_downloads/Schwarz-1968.pdf>`_
 
 .. [Yor] York, D. *Least-squares fitting of a straight line*,
    Canadian Journal of Physics. Vol. 44, p.1079, 1966
