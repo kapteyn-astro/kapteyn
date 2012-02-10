@@ -11,7 +11,7 @@ Module profiles
 Function
 --------
 
-.. autofunction:: gauest(y, rms, cutamp, cutsig, q [, ncomp=200, smode=0])
+.. autofunction:: gauest(x, y, rms, cutamp, cutsig, q [, ncomp=200, smode=0])
 
 Reference
 ---------
@@ -50,12 +50,15 @@ import_array()
 
 MAXPAR = 200   # same value as MAXPAR parameter in gauestd.c
 
-def gauest(y, rms, cutamp, cutsig, q, ncomp=200, smode=0, window=False):
+def gauest(x, y, rms, cutamp, cutsig, q, ncomp=200, smode=0, window=False):
    """
    Function to search for gaussian components in a profile.
 
+:param x:
+   a one-dimensional NumPy array (or slice) containing the profile's
+   x-coordinates.
 :param y:
-   a one-dimensional NumPy array (or slice) containing the profile.
+   a one-dimensional NumPy array (or slice) containing the profile's values.
 :param rms:
    the  r.m.s. noise level of the profile.
 :param cutamp:
@@ -96,25 +99,69 @@ The gaussians are then estimated as described by
    if smode>2 or smode<0:
       raise ValueError, 'incorrect smode: %d' % smode
 
-   if not y.dtype=='d':
-      y = y.astype('f8')
-   if not (y.flags.contiguous and y.flags.aligned):
-      y = y.copy()
+   if x is _gauest.x and numpy.all(x==_gauest.xcopy): # same x-values?
+      xse = _gauest.xse
+      equidis = _gauest.equidis
+      sortindx = _gauest.sortindx
+   else:
+      _gauest.xcopy = x.copy()
+      if numpy.all(numpy.diff(x)>0):                  # sorted?
+         xs = x
+         sortindx = None
+      else:
+         sortindx = numpy.argsort(x)
+         xs = x[sortindx]
+      _gauest.sortindx = sortindx
+      
+      step = xs[1] - xs[0]
+      equidis = numpy.all(abs(numpy.diff(xs)-step)<0.01*step)
+      _gauest.equidis = equidis
+      if equidis:                                     # equidistant?
+         xse = xs
+      else:
+         xse = numpy.linspace(xs[0], xs[-1], len(xs))
+      _gauest.xse = xse
 
-   y_c      = <double*>PyArray_DATA(y)   
-   n_c      = len(y)
+   if sortindx is not None:                           # should data be sorted?
+      ys = y[sortindx]
+   else:
+      ys = y
+      
+   if equidis:                                        # equidistant?
+      yse = ys
+   else:
+      yse = numpy.interp(xse, xs, ys)
+
+   if not yse.dtype=='d':
+      yse = yse.astype('f8')
+   if not (yse.flags.contiguous and yse.flags.aligned):
+      yse = yse.copy()
+
+   y_c      = <double*>PyArray_DATA(yse)   
+   n_c      = len(yse)
    work_c   = <double*>malloc(n_c*sizeof(double))    
    p_c      = <double*>malloc(3*ncomp_c*sizeof(double))
 
+   d = xse[1]-xse[0]
+   cutsig /= d
    nfound = gauestd_c(y_c, work_c, &n_c, p_c, &ncomp_c,
                       &rms_c, &cutamp_c, &cutsig_c, &q_c, &smode_c)
 
    result = []
    ncomp = min(ncomp, nfound)
    for i_c in range(ncomp):
-      result.append((p_c[i_c*3], p_c[i_c*3+1], p_c[i_c*3+2]))
+      result.append((p_c[i_c*3],
+                     xse[0] + p_c[i_c*3+1]*d,
+                     p_c[i_c*3+2]*d))
 
    free(work_c)
    free(p_c)
 
    return result
+
+class _Gauest(object):
+   def __init__(self):
+      self.x = None
+      self.sortindx = None
+
+_gauest = _Gauest()
