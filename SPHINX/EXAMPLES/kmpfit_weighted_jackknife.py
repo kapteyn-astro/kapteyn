@@ -2,8 +2,8 @@
 #------------------------------------------------------------
 # Purpose: Demonstrate that the scaled covariance errors for
 # weighted fits are comparable (or not) to errors we find with 
-# a bootstrap method.
-# Vog, 13 Nov 2011
+# a Jackknife method.
+# Vog, 09 Feb 2012
 #------------------------------------------------------------
 
 import numpy
@@ -19,16 +19,9 @@ def residuals(p, data):
 
 N = 200
 a0 = 0; b0 = 3
-x = numpy.linspace(-5, 50.0, N)
-y = a0 + b0*x + normal(0.0, 1.8, N)  # Mean,sigma,N
-err = normal(0.0, 0.8, N)
-
-fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err))
-fitobj.fit(params0=[1,1])
-
-if (fitobj.status <= 0):
-   print 'error message =', fitobj.errmsg
-   raise SystemExit
+x = numpy.linspace(-5, 5.0, N)
+y = a0 + b0*x + normal(0.0, 0.8, N)  # Mean,sigma,N
+err = normal(0.0, 2.0, N)
 
 fitobj_uw = kmpfit.Fitter(residuals=residuals, data=(x, y, 1.0))
 fitobj_uw.fit(params0=[1,1])
@@ -48,6 +41,13 @@ print "Function ev:   ", fitobj_uw.nfev
 print "Status:        ", fitobj_uw.status
 
 
+fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err))
+fitobj.fit(params0=[1,1])
+
+if (fitobj.status <= 0):
+   print 'error message =', fitobj.errmsg
+   raise SystemExit
+
 print "\n\n======== Results kmpfit weighted fit ========="
 print "Params:        ", fitobj.params
 print "Errors from covariance matrix         : ", fitobj.xerror
@@ -60,6 +60,7 @@ print "Status:        ", fitobj.status
 print "Covariance matrix: ", fitobj.covar
 
 A1, B1 = fitobj.params
+err *= numpy.sqrt(fitobj.rchi2_min)  # Perfect weights -> chi^2_red = 1
 
 # Plot results
 rc('legend', fontsize=8)
@@ -67,15 +68,16 @@ fig = figure()
 frame = fig.add_subplot(1,1,1)
 frame.errorbar(x, y, yerr=err, fmt='bo', label='Observed data')
 frame.plot(x, a0+b0*x, 'r', label='True model')
-frame.plot(x, A1+B1*x, '--c', alpha=0.5, lw=4, label='kmpfit')
+frame.plot(x, A1+B1*x, '--c', alpha=0.5, lw=4, label='kmpfit weighted fit')
 frame.set_xlabel("X"); frame.set_ylabel("Y")
-frame.set_title("Bootstrap with weighted and unweighted fits", fontsize=10)
+frame.set_title("Jackknife with weighted and unweighted fits", fontsize=10)
 frame.grid(True)
 
 xr = x.copy()
 yr = y.copy()
-err *= numpy.sqrt(fitobj.rchi2_min)
 scaled_err = err.copy() 
+#scaled_err *= numpy.sqrt(fitobj.rchi2_min)
+
 
 fitobj2 = kmpfit.Fitter(residuals=residuals, data=(xr, yr, scaled_err))
 fitobj2.fit(params0=[1,1])
@@ -95,48 +97,50 @@ print "Function ev:   ", fitobj2.nfev
 print "Status:        ", fitobj2.status
 
 
+xr2 = numpy.zeros(N-1)
+yr2 = numpy.zeros(N-1)
+scaled_err2 = numpy.zeros(N-1)
 col = ['y','g']
 for k in [0,1]:
-   if k == 1:
-      fitobj2 = kmpfit.Fitter(residuals=residuals, data=(xr, yr, 1.0))
+   if k == 0:
+      fitobj2 = kmpfit.Fitter(residuals=residuals, data=(xr2, yr2, scaled_err2))
+   else:
+      fitobj2 = kmpfit.Fitter(residuals=residuals, data=(xr2, yr2, 1.0))
    slopes = []
    offsets = []
-   trials = 2000
+   trials = N
    for i in range(trials):       # Start loop over pseudo sample
-      indx = randint(0, N, N)    # Do the resampling using an RNG
-      # indx is an array of random indices. Use this array to create a new one.
-      xr[:] = x[indx]
-      yr[:] = y[indx]
-      scaled_err[:] = err[indx]
-            
-      # Only do a regression if there are at least two different
-      # data points in the pseudo sample
-      ok = (xr != xr[0]).any()
-   
+      xr2[:] = numpy.delete(x,i) # Delete one point
+      yr2[:] = numpy.delete(y,i)
+      scaled_err2[:] = numpy.delete(err,i)
+
+      ok = True
       if (not ok):
          print "All elements are the same. Invalid sample."
          print xr, yr
       else:
          fitobj2.fit(params0=[1,1])
          offs, slope = fitobj2.params
-         #print fitobj2.rchi2_min
+         # print offs, slope, fitobj2.rchi2_min
          slopes.append(slope)
          offsets.append(offs)
          if i == 0:
             if k == 0:
-               frame.plot(x, offs+slope*x, col[k], alpha=0.1,
-                          label='Bootstrap with weighted fits')
+               frame.plot(x, offs+slope*x, col[k], alpha=0.5,
+                          label='Jackknife with weighted fits')
             else:
-               frame.plot(x, offs+slope*x, col[k], alpha=0.1,
-                          label='Bootstrap with unweighted fits')
+               frame.plot(x, offs+slope*x, col[k], alpha=0.5,
+                          label='Jackknife with unweighted fits')
          else:
-            frame.plot(x, offs+slope*x, col[k], alpha=0.1)
-   slopes = numpy.array(slopes) - B1
-   offsets = numpy.array(offsets) - A1
+            frame.plot(x, offs+slope*x, col[k], alpha=0.5)
+   slopes = numpy.array(slopes)
+   offsets = numpy.array(offsets)
+   offdelta = numpy.sqrt(((offsets-offsets.mean())**2).sum() * (N-1)/N)
+   slopedelta = numpy.sqrt(((slopes-slopes.mean())**2).sum() * (N-1)/N)
    if k == 0:
-      print "Bootstrap errors in A, B for procedure with weighted fits:", offsets.std(), slopes.std()
+      print "Jackknife errors in A, B for procedure with weighted fits:", offdelta, slopedelta
    else:
-      print "Bootstrap errors in A, B for procedure with unweighted fits:", offsets.std(), slopes.std()
+      print "Jackknife errors in A, B for procedure with unweighted fits:", offdelta, slopedelta
 
 frame.legend(loc='upper left')
 show()

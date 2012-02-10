@@ -468,7 +468,7 @@ Function ``simplefit()``
 -----------------------------
 
 For simple fit problems we provided a simple interface.
-It is a method which is used  as follows:
+It is a function which is used as follows:
 
 >>> p0 = (0,0)
 >>> fitobj = kmpfit.simplefit(model, p0, x, y, err=err, xtol=1e-8)
@@ -485,7 +485,7 @@ how to make an unweighted fit and how to print the right parameter uncertainties
 For an explanation of parameter uncertainties, see section :ref:`standard_errors`.
 
 
-The advantages of this method:
+The advantages of this function:
 
   * You need only to worry about a model function
   * No need to create a *Fitter* object first
@@ -496,7 +496,7 @@ The advantages of this method:
 
 
 **Example:** :download:`kmpfit_example_easyinterface.py <EXAMPLES/kmpfit_example_easyinterface.py>`
-**- Simple method**
+**- Simple function**
 
 .. literalinclude:: EXAMPLES/kmpfit_example_easyinterface.py
 
@@ -1173,6 +1173,26 @@ deviation of this distribution (i.e. for one parameter), gives the uncertainty.
    the Bootstrap results as in the example.
 
 
+Jackknife method
++++++++++++++++++++++++
+
+Another Monte Carlo method is the Jackknife method.
+The Jackknife method finds errors on best-fit parameters of a model and
+*N* data points using *N* samples. In each sample a data point
+is left out, starting with the first, then the second and so on.
+For each of these samples we do a fit and store the parameters. For example,
+for a straight line we store the slopes and offsets. If we concentrate on one parameter
+and call this parameter :math:`\theta` then for each run *i* we find
+the estimated slope
+:math:`\theta_i`. The average of all the slopes is :math:`\bar{\theta^*})`.
+Then the Jackknife error is:
+
+.. math::
+   :label: jackknife_error
+
+   \sigma_{jack} = \sqrt{ \frac{N-1}{N} \sum\limits_{i=0}^{N-1} {(\theta_i-\bar{\theta^*})}^2 }
+
+
 
 
 Notes about weighting
@@ -1205,7 +1225,7 @@ much lower than the diagonal.
    * For weighted fits where the weigths are derived from measurement errors,
      the errors correspond to attribute ``xerror`` in *kmpfit*.
      Only for this type of weights, we get a value of
-     (reduced) chi-squared that can be used a a measure of *goodness of fit**.
+     (reduced) chi-squared that can be used a a measure of **goodness of fit**.
    * The fit results depend on the accuracy of the measurement errors :math:`\sigma_i.`
    * A basic assumption of the chi-squared objective function is that the error
      distribution of the measured data is Gaussian. If this assumption is
@@ -1239,37 +1259,64 @@ The conclusion is that one should be careful with the use of standard errors
 in ``stderr``. A Monte Carlo method should be applied to prove that the
 values in ``stderr`` can be used.
 For weighted fits it is advertised not to use the Bootstrap method.
-Experiments show that for weighted fits the Bootstrap results
-(errors in the best-fit parameters) are close to the errors in ``stderr``
-only when we repeat fits in the Bootstrap procedure with unit weighting.
 In the next example we compare the Bootstrap method with weights and without weights.
 The example plots all trial results in the Bootstrap procedure.
 The yellow lines represent weighted fits in the Bootstrap procedure.
 The green lines represent unweighted fits in the Bootstrap procedure.
+One can observe that the weighted version shows errors that are much too big.
 
 **Example:** :download:`kmpfit_weighted_bootstrap.py <EXAMPLES/kmpfit_weighted_bootstrap.py>`
 **- Compare Bootstrap with weighted and unweighted fits**
 
 ::
 
-   ======= Results kmpfit weighted fit =========
-   Params:         [-1.1694491304350085, 2.4654432828616515]
-   Errors from covariance matrix         :  [ 0.00299542  0.00264989]
-   Uncertainties assuming reduced Chi^2=1:  [ 0.06413585  0.0567377 ]
-   Chi^2 min:      90771.98002
-   Reduced Chi^2:  458.444343535
+   ======== Results kmpfit UNweighted fit =========
+   Params:         [-0.081129823700123893, 2.9964571786959704]
+   Errors from covariance matrix         :  [ 0.12223491  0.0044314 ]
+   Uncertainties assuming reduced Chi^2=1:  [ 0.21734532  0.00787946]
+   Chi^2 min:      626.001387167
+   Reduced Chi^2:  3.16162316751
+   Iterations:     2
+   Function ev:    7
+   Status:         1
+
+
+   ======== Results kmpfit weighted fit =========
+   Params:         [-1.3930156818836363, 3.0345053718712571]
+   Errors from covariance matrix         :  [ 0.01331314  0.0006909 ]
+   Uncertainties assuming reduced Chi^2=1:  [ 0.10780843  0.00559485]
+   Chi^2 min:      12984.0423449
+   Reduced Chi^2:  65.575971439
    Iterations:     3
    Function ev:    7
    Status:         1
-   Covariance matrix:  [[  8.97253321e-06   5.98812996e-06]
-   [  5.98812996e-06   7.02193663e-06]]
+   Covariance matrix:  [[  1.77239564e-04  -6.78626129e-06]
+   [ -6.78626129e-06   4.77344773e-07]]
 
 
-   Bootstrap errors in A, B for procedure with weighted fits: 0.685701834156 0.329034985381
-   Bootstrap errors in A, B for procedure with unweighted fits: 0.0556354741114 0.0194388973321
+   ===== Results kmpfit weighted fit with reduced chi^2 forced to 1.0 =====
+   Params:         [-1.3930155828717012, 3.034505368057717]
+   Errors from covariance matrix         :  [ 0.10780841  0.00559485]
+   Uncertainties assuming reduced Chi^2=1:  [ 0.10780841  0.00559485]
+   Chi^2 min:      198.0
+   Reduced Chi^2:  1.0
+   Iterations:     3
+   Function ev:    7
+   Status:         1
+   Bootstrap errors in A, B for procedure with weighted fits: 0.949585141866 0.0273199443168
+   Bootstrap errors in A, B for procedure with unweighted fits: 0.217752459166 0.00778497229684
+
 
 .. plot:: EXAMPLES/kmpfit_weighted_bootstrap.py
    :align: center
+
+The same conclusion applies to the Jackknife method. For unweighted fits, the
+Jackknife error estimates are very good, but for weighted fits, the method can
+not be used. This can be verified with the example script below.
+[Sha]_ proposes a modified Jackknife method to improve the error estimates.
+
+**Example:** :download:`kmpfit_weighted_jackknife.py <EXAMPLES/kmpfit_weighted_jackknife.py>`
+**- Compare Jackknife with weighted and unweighted fits**
 
 
 *kmpfit* with Explicit partial derivatives
@@ -1419,30 +1466,99 @@ spectral axis, needs another approach. If your profile has more than 1 Gaussian
 component, the problem becomes even more complicated. So what we need is
 a method that automates the search for reasonable initial estimates.
 
-**Gauest**
+Gauest
+!!!!!!!!
 
-Method :meth:`profiles.gauest` is a method which can be used to get basic characteristics of
+Function :func:`profiles.gauest` is a function which can be used to get basic characteristics of
 a Gaussian profile. The number of Gaussian components in that profile can be
 greater than 1. These characteristics are *amplitude*, *position of the maximum*
 and *dispersion*. They are very useful
 as initial estimates for a least squares fit of this type of
 multi-component Gausian profiles.
-For :meth:`gauest`, the profile is represented by intensities :math:`y_i`, expressed as a
+For :func:`gauest`, the profile is represented by intensities :math:`y_i`, expressed as a
 function of the independent variable :math:`x` at equal intervals :math:`\Delta x=h`
 [Sch]_. A second order polynomial is fitted at each :math:`x_i` by using moments analysis
-(this differs from the method described in [Sch]_), using :math:`q` point distributed
-symmetrically around :math:`x_i`. The coefficient of the second-order term is an approximation
+(this differs from the method described in [Sch]_), using :math:`q` points distributed
+symmetrically around :math:`x_i`, so that the total number of points in the fit is
+:math:`2q+1` The coefficient of the second-order term is an approximation
 of the second derivative of the profile. For a Gaussian model, the position of the peak
 and the dispersion are calculated from the main minima of the second derivative.
 The amplitude is derived from the profile intensities.
-The method has parameters to set thresholds in minimum amplitude and dispersion to
+The function has parameters to set thresholds in minimum amplitude and dispersion to
 discriminate against spurious components.
 
+
+Thresholds
+!!!!!!!!!!!
+
+Function :func:`gauest` uses an automatic window method to find the signal region of
+a profile.
+If the maximum of the entire profile is below the (user) given cutoff in amplitude
+(*cutamp*), then
+no signal is found and the process of finding Gaussian components is aborted.
+Otherwise, the position of the maximum is selected as the center of the first component
+and from this point on, a region is increased until the difference between
+the total flux and the flux in the region is smaller than or equal to the
+value of parameter *rms*, the noise in the profile.
+Then the method in [Sch]_ is used to find the characteristics of the Gaussian.
+This method is based on fitting (using moments analysis) of a second-order polynomial.
+The distance between the maxima of this polynomial is a measure for
+the width of the peak.
+If this width is greater than the threshold value given by the user in
+parameter *cutsig*, then there is a second check using the amplitude threshold (*cutamp*)
+given by the user. The reason for this is that the amplitude is also
+derived from moment analysis and can give a result that is greater than
+the maximum value in the profile.
+If both tests are passed then the Gaussian is stored as a valid component.
+This component is subtracted from the profile and the procedure is repeated
+until *ncomp* components are found or a signal region could not be found anymore.
+
+Smoothing factor
+!!!!!!!!!!!!!!!!!!!
+
+The parameter *q* is a bit tricky. If *q* is big (e.g. 20) then the routine
+is less effective as with for example 5. But if *q* is too small, you don't always
+find the number of required components. Therefore it is important to find an optimum.
+In the script below we apply an iteration, starting with a reasonable value
+of *q* and increasing it until we found the required number of components or
+until *q* becomes too big. Parameter *q* is also called the *smoothing parameter*.
+If you take more points in the moments analysis of the polynomial, the effect
+will be that you apply smoothing of the data which gives better results if
+you have noisy data.
+
+.. note::
+
+   Function :func:`gauest` requires parameters of which the optimal values
+   depend on the profile data. You need to estimate the noise (*rms*) in the
+   profile, a critical amplitude (*cutamp*) and dispersion (*cutdisp*).
+   Also the smoothing factor *q* has an optimal value that depends on the
+   profile data. Usually it is not difficult to obtain reasonable values
+   for all these parameters.
+
+
 **Example:** :download:`kmpfit_gauest_multicomp.py <EXAMPLES/kmpfit_gauest_multicomp.py>`
-**- Method gauest() finds initial estimates in profiles with multi component Gaussians**
+**- Function gauest() finds initial estimates in profiles with multi component Gaussians**
 
 .. plot:: EXAMPLES/kmpfit_gauest_multicomp.py
    :align: center
+
+
+Messy samples
+!!!!!!!!!!!!!!!
+
+Function :func:`gauest` works with the assumption that your x values run from 0 .. *N* where *N*
+is the number of data points.
+Many profiles have different x values. Sometimes they are not sorted and sometimes
+they do not fall on a regular grid. If you supply the *x* values, then function :func:`gauest`
+will process the data so that it is sorted in x and linear interpolation is
+used to sample data on a regular grid. This could be dangerous if your samples
+are distributed in a messy way, but usually :func:`gauest` will be able to find reasonable
+estimates.
+The procedure which modifies the data to make it usable for  :func:`gauest`
+is based on the code in the next example.
+
+**Example:** :download:`kmpfit_gauest_prepare.py <EXAMPLES/kmpfit_gauest_prepare.py>`
+**- Demonstrate how profile data needs to be prepared for gauest()**
 
 
 Fitting data when both variables have uncertainties
@@ -2080,8 +2196,8 @@ an array with the upper values of the confidence interval (``upperband``).
    def confidence_band(x, dfdp, alpha, fitobj, model, abswei):
       from scipy.stats import t
       # Given the confidence probability confprob = 100(1-alpha)
-      # we derive for alpha: alpha = 1 - confprob/100
-      alpha = 1 - confprob/100.0
+      # we derive for alpha: alpha = 1 - confprob
+      alpha = 1.0 - confprob
       prb = 1.0 - alpha/2
       tval = t.ppf(prb, fitobj.dof)
 
@@ -2162,12 +2278,14 @@ Glossary
    WSSR
       Weighted Sum of Squared Residuals (WSSR)
 
+
+References
+----------
+
 .. only:: latex
 
    *See Bibliography.* 
 
-References
-----------
 
 .. [Alp] Alper, Joseph S., Gelb, Robert I., *Standard Errors and Confidence Intervals
    in Nonlinear Regression: Comparison of Monte Carlo and Parametric Statistics*,
@@ -2209,9 +2327,13 @@ References
    A copy of this article can be found at:
    `http://stat.smmu.edu.cn/history <http://stat.smmu.edu.cn/history/pearson1901.pdf/>`_
 
-.. [Sch] Schwarz, U.J., Analysis of an Observed Function into Components, using its Second Derivative,
+.. [Sch] Schwarz, U.J., *Analysis of an Observed Function into Components, using its Second Derivative*,
    Bull. Astr. Inst. Netherlands, 1968, 19 405-413
    `(local copy) <http://www.astro.rug.nl/software/kapteyn-alpha/_downloads/Schwarz-1968.pdf>`_
+
+.. [Sha] Shao, J., *Jackknifing Weighted Least Squares Estimators*,
+   Journal of the Royal Statistical Society. Series B (Methodological),
+   Vol. 51, No. 1(1989), pp. 139-156
 
 .. [Yor] York, D. *Least-squares fitting of a straight line*,
    Canadian Journal of Physics. Vol. 44, p.1079, 1966
