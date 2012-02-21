@@ -156,5 +156,5 @@ Stanford University @ 171.66.55.221
 Adler Planetarium And Astronomy Museum @ 64.107.216.103
 Apple Computer Inc (MacOS forge) @ 17.254.20.245
 
-tot: Mon Feb  6 15:20:01 CET 2012
-Wed Feb  1 10:53:00 CET 2012
+tot: Mon Feb 13 11:13:59 CET 2012
+Mon Feb  6 15:20:01 CET 2012

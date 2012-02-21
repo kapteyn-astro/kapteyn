@@ -143,6 +143,8 @@ The gaussians are then estimated as described by
    p_c      = <double*>malloc(3*ncomp_c*sizeof(double))
 
    d = xse[1]-xse[0]
+   if d==0.0:
+      raise ValueError, "Zero samples step size"
    cutsig /= d
    nfound = gauestd_c(y_c, work_c, &n_c, p_c, &ncomp_c,
                       &rms_c, &cutamp_c, &cutsig_c, &q_c, &smode_c)
