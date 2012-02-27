@@ -155,6 +155,8 @@ University of Florida @ 128.227.124.179
 Stanford University @ 171.66.55.221
 Adler Planetarium And Astronomy Museum @ 64.107.216.103
 Apple Computer Inc (MacOS forge) @ 17.254.20.245
+INAF -Astronomical Observatory of Padova @ 193.206.241.25
+University of Washington - Astronomy Department @ 128.208.190.104
 
-tot: Mon Feb 13 11:13:59 CET 2012
-Mon Feb  6 15:20:01 CET 2012
+tot: Tue Feb 21 12:26:35 CET 2012
+Mon Feb 13 11:13:59 CET 2012
