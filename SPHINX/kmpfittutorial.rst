@@ -639,7 +639,7 @@ The error in *a* is by the law of propagation of errors:
 
    \sigma_a^2 = \sum_{i} \sigma_i^2 \left(\frac{\partial{a}}{\partial{y_i}}\right)^2
 
-From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
+>From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
 
 .. math::
    :label: parderivA
@@ -890,7 +890,7 @@ To summarize the weighting schemes:
 Reduced chi squared
 +++++++++++++++++++++
 
-From the theory of maximum likelihood we find that for a least squares solution
+>From the theory of maximum likelihood we find that for a least squares solution
 we need to maximize the probability that a measurement :math:`y_i` with given
 :math:`\sigma_i` is in a
 a small interval :math:`dy_i` around :math:`y_i` by minimizing the sum
@@ -963,7 +963,7 @@ What should we expect of the variance :math:`\sigma_i` compared to the
 sample deviations for each sample point?
 Assume we have N data points and each data point has an individual error of
 :math:`\sigma_i`.
-From :eq:`expectationchi2` we have:
+>From :eq:`expectationchi2` we have:
 
 .. math::
    :label: expectationreducedchi2_2
@@ -1234,7 +1234,7 @@ much lower than the diagonal.
      only when :math:`\chi_{\nu}^2 = 1`
 
 
-From [And]_ we summarize the conditions which must be met before one can
+>From [And]_ we summarize the conditions which must be met before one can
 safely use the values in ``stderr`` (i.e. demanding that :math:`\chi_{\nu} = 1`):
 In this approach of scaling, the error in the best-fit parameters
 we make three assumptions:
@@ -1317,6 +1317,211 @@ not be used. This can be verified with the example script below.
 
 **Example:** :download:`kmpfit_weighted_jackknife.py <EXAMPLES/kmpfit_weighted_jackknife.py>`
 **- Compare Jackknife with weighted and unweighted fits**
+
+
+
+Goodness of fit
+-----------------
+
+Chi-squared test
++++++++++++++++++++
+
+As described in a previous section, the value of the reduced chi-squared is
+an indication for the goodness of fit. If its value is near 1 than your
+fit is probably good.
+With the value of chi-squared we can find a threshold value for which we can accept or
+reject the hypothesis that the data and the fitted model are consistent.
+The assumption is that the value of chi-squared follows the :math:`\chi^2` distribution
+with :math:`\nu` degrees of freedom. Let's examine chi-squared in more detail.
+
+In a chi squared fit we sum the relative size of the deviation :math:`\Delta_i` and 
+the error bar :math:`\delta_i`. Data points that are near the fit with the best-fit parameters 
+have a small value :math:`\Delta_i/\delta_i`. Bad points have a ratio that is 
+bigger than 1. At those points the fitted curve does not go through the error bar.
+For a reasonable fit, there will be both small and big deviations but on average the 
+value will be near 1.
+Remember that chi squared is defined as:
+
+.. math::
+   :label:  chi_squared_long
+
+   \chi^2 = {\left(\frac{\Delta_1}{\delta_1}\right)}^2 + {\left(\frac{\Delta_2}{\delta_2}\right)}^2 + {\left(\frac{\Delta_3}{\delta_3}\right)}^2 + \cdots + {\left(\frac{\Delta_N}{\delta_N}\right)}^2
+
+So if we expect that on average the ratios are 1, then we expect that this sum is equal to *N*.
+You can always add more parameters to a model. If you have as many parameter as 
+data points, you can find a curve that hits all data points, but usually
+these curves have no significance. In this case you don't have any *degrees of freedom*.
+The degrees of freedom for a fit with *N* data points and *n* adjustable model parameters
+is:
+
+.. math::
+   :label: dof  
+
+   \nu = N - n
+
+
+To include the degrees of freedom, we define the reduced chi squared as:
+
+.. math::
+   :label: reduced_chi2_2
+
+   \chi^2_{\nu} = \frac{\chi^2}{\nu}
+
+In the literature ([Ds3]_) we can find prove that the expectation value of
+the reduced chi squared is 1.
+If we repeat a measurement many times, then the measured values of :math:`\chi^2` are 
+distributed according to the chi-squared distribution with :math:`\nu` degrees of freedom.
+See for example http://en.wikipedia.org/wiki/Chi-squared_distribution.
+
+We reject the null hypothesis (data is consistent with the model with the
+best fit parameters) if the value of chi-squared is bigger than some threshold value.
+The threshold value can be calculated if we set a value of the change that
+we make a wrong decision in rejecting a true null hypothesis (H0). This
+probability is denoted by :math:`\alpha` and it sets the
+significance level of the test. Usually we want small values for :math:`\alpha`
+like 0.05 or 0.01. For a given value of :math:`\alpha` we calculate
+:math:`1-\alpha`, which is the left tail area under the cumulative distribution
+function. This probability is calculated with :func:`scipy.stats.chi2.cdf`.
+If :math:`\alpha` is given and we want to know the threshold value for
+chi-squared, then we use the Percent Point Function :func:`scipy.stats.chi2.ppf`
+which has :math:`1-\alpha` as its argument.
+
+
+The recipe to obtain a threshold value for :math:`\chi^2` is as follows.
+
+   1. Set the hypotheses:
+         - :math:`H_0`: The data are consistent with the model with the best fit parameters
+         - :math:`H_{\alpha}`: The data are *not* consistent with the model with the best fit parameters
+   2. Make a fit and store the calculated value of :math:`\chi^2` 
+   3. Set a p-value (:math:`\alpha`)
+   4. Use the :math:`\chi^2` cumulative distribution function 
+      for :math:`\nu` degrees of freedom to find the 
+      threshold :math:`\chi^2` for :math:`1-\alpha`. Note
+      that :math:`\alpha` is the right tailed area in this distribution
+      while we use the left tailed area in our calculations.
+   5. Compare the calculated :math:`\chi^2` with the threshold value.
+   6. If it is worse, then reject the hypothesis that the data and the 
+      model with the best-fit parameters are consistent.
+
+In the next figure we show these steps graphically. Note the use of the 
+statistical functions and methods from SciPy.
+
+**Example: kmpfit_goodnessoffit1.py - Goodness of fit based on the value of chi-squared**  
+
+.. plot:: EXAMPLES/kmpfit_goodnessoffit1.py
+   :align: center
+
+
+
+Kolmogorov-Smirnov test
++++++++++++++++++++++++++
+
+Another goodness-of-fit test is constructed by using the critical values of the
+Kolmogorov distribution (Kolmogorov-Smirnov test [Mas]_ ).
+
+For this test we need the normalized cumulative versions of the data and the model with
+the best-fit parameters.
+We call the normalized cumulative version of the model :math:`F_0(x)` and
+the observed normalized cumulative step function of our data sample
+:math:`S_n(x)` then the sampling distribution of
+:math:`D = maximum | F_0(x) - S_n(x) |` follows the Kolmogorov distribution
+which is independent of :math:`F_0(x)` if :math:`F_0(x)` is continuous i.e.
+has no jumps.
+
+For hypotheses testing we define:
+   
+   - :math:`H_0`: The data are consistent with the model with the best fit parameters
+   - :math:`H_{\alpha}`: The data are *not* consistent with the model with the best fit parameters
+   
+
+The null hypothesis is rejected at
+level :math:`\alpha` if :math:`D_n > D_{\alpha}`.
+The value :math:`D_{\alpha}` is a threshold value which can be found if one solves
+the equation:
+
+.. math::
+   :label: KS_threshold
+   
+   Pr(D_n < D_{\alpha}) = 1 - \alpha
+   
+
+We can find critical values for :math:`D_{\alpha}` corresponding to
+a upper tail probability of the test statistic D in a table with critical values
+of *D* for the Kolmogorov-Smirnov Goodness-of-Fit Test, or we can calculate
+the values with SciPy's statistical function :func:`scipy.stats.ksone`.
+The cumulative distribution function *ksone.cdf()* calculates the
+cumulative probability of the Kolmogorov distribution from 0 to x.
+The inverse of *cdf()* is the Percent point function :func:`scipy.stats.ksone.ppf()`.
+We define the critical probability 
+:math:`\alpha` to accept or reject the null hypothesis as:
+
+.. math::
+   :label: critalpha
+
+   \alpha = Pr[D_n \geq D_{\alpha}]
+
+Note that the range of D values is then :math:`[x,\infty>` and we need the results
+of :math:`1-cdf(D_n)` and :math:`ppf(1-\alpha)`
+as demonstrated in the next example which creates a table with critical values.
+::
+
+   from scipy.stats import ksone
+
+   alphas=(0.1, 0.05, 0.025, 0.01, 0.005)
+   header= "\n%5s"%"n"
+   for alpha in alphas:
+      s = "a=%.3f"%alpha
+      header += " %12s"%s
+   print header
+   print "="*len(header)
+
+   for n in range(3,21):
+      s = "%5d"%n
+      rv = ksone(n)
+      for alpha in alphas:
+         Dcrit = rv.ppf(1-alpha)   # Lower tail probability
+         s += " %12.5f"%Dcrit
+      print s
+
+      n      a=0.100      a=0.050      a=0.025      a=0.010      a=0.005
+   =======================================================================
+      3      0.56481      0.63604      0.70760      0.78456      0.82900
+      4      0.49265      0.56522      0.62394      0.68887      0.73424
+      5      0.44698      0.50945      0.56328      0.62718      0.66853
+      6      0.41037      0.46799      0.51926      0.57741      0.61661
+      7      0.38148      0.43607      0.48342      0.53844      0.57581
+      8      0.35831      0.40962      0.45427      0.50654      0.54179
+      9      0.33910      0.38746      0.43001      0.47960      0.51332
+     10      0.32260      0.36866      0.40925      0.45662      0.48893
+     11      0.30829      0.35242      0.39122      0.43670      0.46770
+     12      0.29577      0.33815      0.37543      0.41918      0.44905
+     13      0.28470      0.32549      0.36143      0.40362      0.43247
+     14      0.27481      0.31417      0.34890      0.38970      0.41762
+     15      0.26589      0.30397      0.33760      0.37713      0.40420
+     16      0.25778      0.29472      0.32733      0.36571      0.39201
+     17      0.25039      0.28627      0.31796      0.35528      0.38086
+     18      0.24360      0.27851      0.30936      0.34569      0.37062
+     19      0.23735      0.27136      0.30143      0.33685      0.36117
+     20      0.23156      0.26473      0.29408      0.32866      0.35241
+
+
+If we compare this table with the table in [Mas]_, then one observes that the
+listed values of :math:`\alpha` are twice the values of the :math:`\alpha` in
+our example. The difference can be explained with the fact that [Mas]_ uses a
+two-sided test while we apply the one-sided test.
+
+In the next script we demonstrate that the Kolmogorov-Smirnov test is
+very useful if we have reasonable fits, but bad values of chi-squared due to
+improperly scaled errors on the data points. The :math:`\chi^2` test will
+immediately reject the hypothesis that data and model are consistent.
+The Kolmogorov-Smirnov test depends on the difference between
+the cumulative distributions and does not depend on the scale of these
+errors.
+
+**Example: kmpfit_goodnessoffit2.py - Kolmogorov-Smirnov goodness of fit test**
+
+.. plot:: EXAMPLES/kmpfit_goodnessoffit2.py
+   :align: center
 
 
 *kmpfit* with Explicit partial derivatives
@@ -1920,7 +2125,7 @@ ODR                          5.47991037830    -0.48053343863
 Williamson                   5.47991022403    -0.48053340745
 =========================== ================ ================
 
-From these results we conclude that *kmpfit* with the effective variance
+>From these results we conclude that *kmpfit* with the effective variance
 residuals function, is very well suited to perform weighted
 orthogonal fits for a model that represents a straight line.
 If you run the program, you can observe that also the uncertainties
@@ -2310,6 +2515,9 @@ References
 
 .. [Ds3] DeSerio, R., *Regression Algebra*,
    Local copy: :download:`matproof_statmain.pdf <EXAMPLES/matproof_statmain.pdf>`
+
+.. [Mas] Massey, F. J. *The Kolmogorov-Smirnov Test for Goodness of Fit.*,
+   Journal of the American Statistical Association, Vol. 46, No. 253, 1951, pp. 68-78
 
 .. [Num] William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
    *Numerical Recipes in C, The Art of Scientific Computing*,

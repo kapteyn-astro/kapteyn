@@ -10,4 +10,4 @@ __all__=['celestial', 'wcs', 'wcsgrat', 'tabarray', 'maputils',
          'mplutil', 'positions', 'shapes', 'rulers', 'filters',
          'interpolation']
 
-__version__='2.1.1b15'
+__version__='2.1.1b16'

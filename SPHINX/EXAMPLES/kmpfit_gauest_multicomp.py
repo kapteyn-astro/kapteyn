@@ -51,7 +51,7 @@ rms = 0.3
 ncomps = 0
 Q = 1
 while ncomps != 2 and Q < 8:
-   comps = gauest(y, rms, cutamp, cutsig, q=Q, ncomp=2)
+   comps = gauest(x, y, rms, cutamp, cutsig, q=Q, ncomp=2)
    ncomps = len(comps)
    Q += 1
 
@@ -61,20 +61,14 @@ if ncomps != 2:
 print "Gauest with cutamp, cutsig, rms", cutamp, cutsig, rms
 print "Number of components found:", ncomps
 print "Value of Q for which 2 comps. were found:", Q-1
-print "Found ampl, center, dispersion:", comps
-d = (x.max() - x.min()) / len(x)
-print "Delta d=", d
-#  A, mu, sigma, zerolev = p0
+
 p0 = []
-for comp in comps:
-   p0.append(comp[0])
-   p0.append(x.min()+comp[1]*d), 
-   p0.append(comp[2]*d)
+for c in comps:
+   p0 += c
 p0.append(0.0)   # Zero level
-print "p0=", p0
+print "Initial estimates p0=", p0
 
 # The fit
-#fitobj = kmpfit.Fitter(residuals=my_residuals, deriv=my_derivs, data=(x, y, err, ncomps))
 fitobj = kmpfit.Fitter(residuals=my_residuals, data=(x, y, err, ncomps))
 try:
    fitobj.fit(params0=p0)
