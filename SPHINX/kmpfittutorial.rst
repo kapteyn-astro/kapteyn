@@ -11,14 +11,33 @@ Least squares fitting with kmpfit
 Introduction
 ------------
 
+We like code examples in our documentation, so let's start with an example:
+
+.. literalinclude:: EXAMPLES/kmpfit_start.py
+
+If you run the example, you should get output similar to::
+
+   Fit status kmpfit:
+   ====================
+   Best-fit parameters:         [414.71769219487254, 44.586628080854609]
+   Asymptotic error:            [ 0.60915502  0.02732865]
+   Error assuming red.chi^2=1:  [ 413.07443146   18.53184367]
+   Chi^2 min:                   3218837.22783
+   Reduced Chi^2:               459833.889689
+   Iterations:                  2
+   Number of free pars.:        2
+   Degrees of freedom:          7
+
+
 In this tutorial we try to show the flexibility of the least squares
 fit routine in :mod:`kmpfit` by showing examples and some background
 theory which enhance its use. The *kmpfit* module is an excellent tool to demonstrate
 features of the least squares fitting theory. It is a Python module
 so the examples are simple and almost self explanatory.
-The fit routine *kmpfit* has many similar
-aspects in common with SciPy's *leastsq* function,
-but its interface is a more friendly and flexible.
+The C-based fit routine *kmpfit* has many similar
+aspects in common with SciPy's Fortran-based :func:`scipy.optimize.leastsq`
+function, but its interface is more friendly and flexible and it is a bit faster.
+It has also additional routines to calculate confidence intervals.
 
 A least squares fit method is an algorithm that minimizes a so called
 *objective function* for N data points :math:`(x_i,y_i), i=0, ...,N-1`.
@@ -565,6 +584,7 @@ The results for an arbitrary run::
 As you can see, the value of chi-square has increased with ~1. 
 
 
+.. _standard_errors_weighted_fits:
 
 Standard errors in Weighted fits
 ++++++++++++++++++++++++++++++++++
@@ -674,7 +694,7 @@ With :eq:`properrors` we find
    :label: deriverrorB
 
    \sigma_b^2  &=  \sum_{i} \sigma_i^2 \left(\frac{\partial{b}}{\partial{y_i}}\right)^2 \\
-               &=  \sum_{i} \sigma_i^2 \left( \frac{S_xx_i-S_x}{\sigma_i^2\Delta} \right)^2 \\
+               &=  \sum_{i} \sigma_i^2 \left( \frac{Sx_i-S_x}{\sigma_i^2\Delta} \right)^2 \\
                &=  \frac{1}{\Delta^2}\left\{ S^2\Sigma\frac{x_i^2}{\sigma_i^2} -2S_xS \Sigma\frac{x_i^2}{\sigma_i^2} + S_x^2\Sigma\frac{x_i^2}{\sigma_i^2}\right\} \\
                &=  \frac{1}{\Delta^2}\left\{S^2S-2S_xSS_x+S_x^2S \right\} \\
                &=  \frac{1}{\Delta^2}\left\{S(S_{xx}S-S_x^2)\right\} \\
@@ -738,7 +758,7 @@ The covariance matrix elements :math:`C_{jk}` for best-fit parameters
 .. math::
    :label: covarianceelements
 
-   C_{jk} = \sum\limits_{i=0}^{i=N} \sigma_i \left(\frac{\partial p_j}{\partial y_i}\right) \left(\frac{\partial p_k}{\partial y_i}\right)
+   C_{jk} = \sum\limits_{i=0}^{i=N} \sigma_i^2 \left(\frac{\partial p_j}{\partial y_i}\right) \left(\frac{\partial p_k}{\partial y_i}\right)
 
 where we used *j* to indicate the matrix row and *k* the matrix column.
 If *j=k* then:
@@ -746,7 +766,7 @@ If *j=k* then:
 .. math::
    :label: covariance_error
 
-   C_{jj} = \sum\limits_{i=0}^{i=N} \sigma_i \left(\frac{\partial p_j}{\partial y_i}\right)^2
+   C_{jj} = \sum\limits_{i=0}^{i=N} \sigma_i^2 \left(\frac{\partial p_j}{\partial y_i}\right)^2
 
 from which follows that the square root of the diagonal elements of the covariance matrix
 are the estimates of the best-fit parameter uncertainties.
@@ -886,6 +906,8 @@ To summarize the weighting schemes:
      measured accurately (absolute uncertainties).
    * Other weighting schemes like Poisson weighting :math:`w_i=1/y_i`
 
+
+.. _reduced_chisquared:
 
 Reduced chi squared
 +++++++++++++++++++++
@@ -2151,10 +2173,10 @@ If you run the program you will observe that the three methods agree very well.
 Effective variance method for various models
 +++++++++++++++++++++++++++++++++++++++++++++
 
-Model with a 1/x factor
+Model with an x and 1/x factor
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-**:math:`f([a,b],x) = ax - b/x`**
+:math:`\bf{f([a,b],x) = ax - b/x}`
 
 We used data from an experiment described in Orear's article [Ore]_ to test the
 effective variance method.
@@ -2207,10 +2229,10 @@ as being much smaller than the errors in y.
    :align: center
 
 
-Model with a parabola
+Model parabola
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!                             
 
-**:math:`f([a,b,c],x) = ax^2+bx+c`**
+:math:`\bf{f([a,b,c],x) = ax^2+bx+c}`
 
 Applying the effective variance method for a parabola
 we  an objective function:
@@ -2262,7 +2284,7 @@ it performs worse with really wrong fits.
 Model with a sine function
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
- **:math:`f([a,b,c],x) = a\sin(bx+c)`**
+:math:`\bf{f([a,b,c],x) = a\sin(bx+c)}`
 
 If your model is a model that is not linear in its parameters, then the
 effective variance method can still be applied.
@@ -2447,6 +2469,245 @@ and weights, so the weights should be treated as relative weights (``abswei=Fals
 .. plot:: EXAMPLES/kmpfit_ODRparabola_confidence.py
    :align: center
 
+
+Special topics
+----------------
+
+Rejection of data with Chauvenet's criterion
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+With measurements one often finds one or more data points that appear isolated.
+If you are convinced that such data is a measurement error then of course you
+can throw it away or you can use a criterion based on the normal distribution
+using the (im)probability
+of large deviations. The criterion we want discuss here is called
+Chauvenet's criterion (http://en.wikipedia.org/wiki/Chauvenet's_criterion).
+Suppose you have
+*N* measurments :math:`y_i` from which we first calculate the mean and
+standard deviation.
+If a normal distribution is assumed, we can determine if the probability of a
+particular measurement is less than 1/2N (as proposed by the French mathematician
+Chauvenet).
+So if *P* is the probability then the criterion is:
+
+.. math::
+   :label: chauvenet
+
+    P\left( \frac{y_i-\bar{y}}{\sigma} \right) < \ \frac{1}{2N}
+
+In the next example we implemented this criterion to find outliers in a sample.
+We use the error function :func:`scipy.special.erfc` to calculate
+the probability *P* in the tails of the normal distribution.
+We implemented a clear and simple routine and a NumPy based function
+:func:`chauvenet` which is fast and efficient when we need to filter
+big arrays. This function returns an array of booleans. When an element in
+that array is *False*, we reject the corresponding data element in the
+data arrays::
+
+   def chauvenet(x, y, mean=None):
+      #-----------------------------------------------------------
+      # Input:  NumPy arrays x, y that represent measured data
+      #         A single value of a mean can be entered or a
+      #         sequence of means with the same length as
+      #         the arrays x and y. In the latter case, the
+      #         mean could be a model with best-fit parameters.
+      # Output: It returns a boolean array as filter.
+      #         The False values correspond to the array elements
+      #         that should be excluded
+      #
+      # First standardize the distances to the mean value
+      # d = abs(y-mean)/stdv so that this distance is in terms
+      # of the standard deviation.
+      # Then the  CDF of the normal distr. is given by
+      # phi = 1/2+1/2*erf(d/sqrt(2))
+      # Note that we want the CDF from -inf to -d and from d to +inf.
+      # Note also erf(-d) = -erf(d).
+      # Then the threshold probability = 1-erf(d/sqrt(2))
+      # Note, the complementary error function erfc(d) = 1-erf(d)
+      # So the threshold probability pt = erfc(d/sqrt(2))
+      # If d becomes bigger, this probability becomes smaller.
+      # If this probability (to obtain a deviation from the mean)
+      # becomes smaller than 1/(2N) than we reject the data point
+      # as valid. In this function we return an array with booleans
+      # to set the accepted values.
+      #
+      # use of filter:
+      # xf = x[filter]; yf = y[filter]
+      # xr = x[~filter]; yr = y[~filter]
+      # xf, yf are cleaned versions of x and y and with the valid entries
+      # xr, yr are the rejected values from array x and y
+      #-----------------------------------------------------------
+      if mean is None:
+         mean = y.mean()           # Mean of incoming array y
+      stdv = y.std()               # Its standard deviation
+      N = len(y)                   # Lenght of incoming arrays
+      criterion = 1.0/(2*N)        # Chauvenet's criterion
+      d = abs(y-mean)/stdv         # Distance of a value to mean in stdv's
+      d /= 2.0**0.5                # The left and right tail threshold values
+      prob = erfc(d)               # Area normal dist.
+      filter = prob >= criterion   # The 'accept' filter array with booleans
+      return filter                # Use boolean array outside this function
+
+
+**Example: kmpfit_chauvenet.py  - Exclude bad data with criterion of Chauvenet**
+
+.. plot:: EXAMPLES/kmpfit_chauvenet.py
+   :align: center
+
+
+
+Regression through the origin
++++++++++++++++++++++++++++++++
+In this section we address a special case of linear regression using
+an analytical method. It is a regression
+through the origin. It is used in a practical course where students need
+to find the Hubble constant after they obtained a number of galaxy velocities and
+distances. Hubble's constant can be found if you find the
+slope of the best fit straight line through the data points (distance in Mpc and
+velocity in Km/s) and the origin (assuming velocity is zero when the distance is zero).
+
+Hubble's first fits allowed for an offset and he found an age of the universe
+that was much too small. Now we now the theoretical base and the fit is reduced
+to a problem that is known as 'regression through the origin'.
+
+For a model :math:`y = a + bx` we defined chi squared as:
+
+.. math::
+   :label: reg_orig1
+
+   \chi^2 = \sum_{i=0}^{N-1} {\left( \frac{y_i-a-bx_i}{\sigma_i} \right)}^2
+
+For regression through the origin (leaving paramter *a* out of the equations) we
+find for the minimum chi squared:
+
+.. math::
+   :label: reg_orig2
+
+   0 = \frac{\partial\chi^2}{\partial b} = -2\sum_{i=0}^{N-1}\frac{x_i(y_i-bx_i)}{\sigma_i^2}
+
+from which we derive an expression for slope *b*:
+
+.. math::
+   :label: reg_orig3
+
+   b = \frac{\sum \frac{x_i y_i}{\sigma_i^2}}{{\sum \frac{x_i^2}{\sigma_i^2}}}
+
+
+For the standard error in *b* we follow the procedure described in
+section :ref:`standard_errors_weighted_fits` :eq:`parderivB`.
+The error is defined as:
+
+.. math::
+   :label: reg_orig_error_slope1
+
+   \sigma_b^2 = \sum_{i} \sigma_i^2 \left(\frac{\partial{b}}{\partial{y_i}}\right)^2
+
+with:
+
+.. math::
+   :label: reg_orig_error_slope2
+
+   \frac{\partial b}{\partial y_i} = \frac{\partial \left( \frac{\sum \frac{x_i y_i}{\sigma_i^2}}{{\sum \frac{x_i^2}{\sigma_i^2}}}\right)}{\partial y_i}
+
+where :math:`S_{xx}` does not depend on :math:`y_i`.
+With the notation :math:`S_{xx} = \sum x_i^2 / \sigma_i^2` we write this as:
+
+.. math::
+   :label: reg_orig_error_slope3
+
+   \frac{\partial b}{\partial y_i} = \frac{1}{S_{xx}}\,\frac{\partial \left( \sum \frac{x_i y_i}{\sigma_i^2}\right)}{\partial y_i}
+
+
+Therefore:
+
+.. math::
+   :label: reg_orig_error_slope4
+
+   \frac{\partial b}{\partial y_i} = \frac{x_i}{S_{xx}}
+
+Inserting this in :eq:`reg_orig_error_slope1` gives:
+
+.. math::
+   :label: reg_orig_error_slope5
+
+   \sigma_b^2 &= \sum_{i} \sigma_i^2 \left(\frac{x_i}{S_{xx}}\right)^2\\
+              &= \frac{1}{S_{xx}^2} \sum_{i} \sigma_i^2 \frac{x_i^2}{\sigma_i^2}\\
+              &= \frac{1}{S_{xx}^2} S_{xx}\\
+              &= \frac{1}{S_{xx}}
+
+So finally:
+
+.. math::
+   :label: reg_orig_error_slope6
+
+   \boxed{\sigma_b = \sqrt{\frac{1}{S_{xx}}}}
+
+
+In a small program we will demonstrate that this error is the real 1 sigma error
+for when we exactly know what the errors on the data points are.
+For weights that are unit or if weights are scaled, we should scale the
+error on the fitted parameter with the square root of the reduced chi-squared
+(as described in :ref:`reduced_chisquared`).
+
+The reduced Chi-squared for a regression through the origin is (note we have one
+parameter less to fit compared to a regression which is not forced to
+go through the origin):
+
+.. math::
+   :label: reg_orig_error_slope7
+
+   \chi_{\nu}^2 = \frac{1}{N-1} \sum_{i=0}^{N-1} \frac{{\left(y_i - bx_i\right)}^2}{\sigma_i^2}
+
+Then:
+
+.. math::
+   :label: reg_orig_error_slope8
+
+   \sigma_b=\sqrt{\frac{\chi_{\nu}^2}{\sum x_i^2}}
+
+This is a two pass algorithm because first you have to find slope *b* to get
+the reduced chi-squared. Note that in many references, the unweighted version
+of the :math:`\chi_{\nu}^2` is
+used to derive the error in slope *b*. This gives wrong results as can be seen
+with equal weighting. Many references give the wrong formula so be careful.
+A possible implementation of the formulas above is given in the function
+:func:`lingres_origin`::
+
+
+   def lingres_origin(xa, ya, err):
+      # Apply regression through origin
+      N = len(xa)
+      w = numpy.where(err==0.0, 0.0, 1.0/(err*err))
+      sumX2 = (w*xa*xa).sum()
+      sumXY = (w*xa*ya).sum()
+      sum1divX = (1/(w*xa)).sum()
+      b = sumXY/sumX2
+      sigma_b = 1.0/sumX2
+      chi2 = (w*(ya-b*xa)**2).sum()
+      red_chi2 = chi2 / (N-1)
+      sigma_b_scaled = red_chi2 / sumX2
+      return b, numpy.sqrt(sigma_b), numpy.sqrt(sigma_b_scaled)
+
+
+Next we show an example of estimating the Hubble constant using data pairs
+(distance, velocity) found in lab experiments. We use both the analytical
+method described above and *kmpfit* to compare the results.
+We included the fast NumPy based function to filter possible outliers
+using Chauvenet's criterion.
+This criterion was discussed in the previous section. As a mean, we do not
+use the mean of the sample, but the straight line parameters from
+the literature; in this example it is allowed to apply some prior
+knowledge about the result.
+Note that we applied random weights
+to prove that the errors from *kmpfit* are comparable to
+those derived from the analytical method.
+The scaled parameter error is the error that would be calculated if
+the reduced chi-squared is exactly 1.0 (a perfect fit was assumed).
+
+**Example: kmpfit_hubblefit.py  - Find Hubble constant with fit of line through origin**
+
+.. plot:: EXAMPLES/kmpfit_hubblefit.py
+   :align: center
 
 
 Glossary
