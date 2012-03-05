@@ -1,4 +1,4 @@
-Version 2.1.1 (being developed)
+Version 2.2 (being developed)
 ===============================
 
 * Class maputils.FITSimage:
@@ -25,7 +25,7 @@ Version 2.1.1 (being developed)
 
 * WCSLIB:
 
-  * changed to version 4.10
+  * changed to version 4.12
 
   * use WCSLIB's new error diagnostics system
 
