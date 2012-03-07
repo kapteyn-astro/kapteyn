@@ -158,7 +158,8 @@ Apple Computer Inc (MacOS forge) @ 17.254.20.245
 INAF -Astronomical Observatory of Padova @ 193.206.241.25
 University of Washington - Astronomy Department @ 128.208.190.104
 Fysikum vid Stockholms universitet @ 130.242.128.12
+NASA Jet Propulsion Laboratory @ 137.78.58.25
+Columbia University @ 128.59.247.157
 
-
-tot: Tue Feb 21 12:26:35 CET 2012
-Mon Feb 13 11:13:59 CET 2012
+tot: Wed Mar  7 12:27:49 CET 2012
+Tue Feb 21 12:26:35 CET 2012

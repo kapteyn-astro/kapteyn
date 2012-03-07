@@ -11,7 +11,7 @@ Module profiles
 Function
 --------
 
-.. autofunction:: gauest(x, y, rms, cutamp, cutsig, q [, ncomp=200, smode=0])
+.. autofunction:: gauest(x, y, rms, cutamp, cutsig, q [, ncomp=200, smode=0, flat=False])
 
 Reference
 ---------
@@ -50,7 +50,8 @@ import_array()
 
 MAXPAR = 200   # same value as MAXPAR parameter in gauestd.c
 
-def gauest(x, y, rms, cutamp, cutsig, q, ncomp=200, smode=0, window=False):
+def gauest(x, y, rms, cutamp, cutsig, q, ncomp=200, smode=0, window=False,
+           flat=False):
    """
    Function to search for gaussian components in a profile.
 
@@ -76,9 +77,13 @@ def gauest(x, y, rms, cutamp, cutsig, q, ncomp=200, smode=0, window=False):
 :param smode:
    order in which gaussian components are delivered. 0: decreasing amplitude,
    1: decreasing dispersion, 2: decreasing flux.
+:param flat:
+   True if a 'flat' result shoud be returned. See below.
 :returns: a list with up to *ncomp* tuples of which each tuple contains
    the amplitude, the centre and the dispersion of the gaussian, in that
-   order.
+   order. If the argument *flat* is True, a 'flat' list with
+   *ncomp* * 3 numbers is returned which may directly be used as initial
+   estimates for :class:`kmpfit.Fitter`.
    
 In this function the second derivative of
 the profile in the signal region is calculated by fitting
@@ -159,6 +164,8 @@ The gaussians are then estimated as described by
    free(work_c)
    free(p_c)
 
+   if flat:
+      result = list(reduce(lambda x,y: x+y, result))
    return result
 
 class _Gauest(object):
