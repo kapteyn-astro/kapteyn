@@ -6,7 +6,7 @@ Least squares fitting with kmpfit
 .. highlight:: python
    :linenothreshold: 10
 
-.. sectionauthor:: M. Vogelaar <gipsy@astro.rug.nl>
+.. author:: M. Vogelaar <gipsy@astro.rug.nl>
 
 Introduction
 ------------
@@ -32,14 +32,14 @@ If you run the example, you should get output similar to::
 In this tutorial we try to show the flexibility of the least squares
 fit routine in :mod:`kmpfit` by showing examples and some background
 theory which enhance its use. The *kmpfit* module is an excellent tool to demonstrate
-features of the least squares fitting theory. It is a Python module
-so the examples are simple and almost self explanatory.
+features of the (non-linear) least squares fitting theory. The code examples
+are all in Python. They are not complex and almost self explanatory.
 The C-based fit routine *kmpfit* has many similar
 aspects in common with SciPy's Fortran-based :func:`scipy.optimize.leastsq`
 function, but its interface is more friendly and flexible and it is a bit faster.
 It has also additional routines to calculate confidence intervals.
 
-A least squares fit method is an algorithm that minimizes a so called
+A least squares fit method is an algorithm that minimizes a so-called
 *objective function* for N data points :math:`(x_i,y_i), i=0, ...,N-1`.
 These data points are measured and often :math:`y_i` has a measurement error
 that is much smaller than the error in :math:`x_i`. Then we call *x* the
@@ -50,7 +50,7 @@ Objective function
 +++++++++++++++++++
 
 The method of least squares adjusts the parameters of a model function
-*f(parameters, independent_variable)* by finding a minimum of a so called
+*f(parameters, independent_variable)* by finding a minimum of a so-called
 *objective function*. This objective function is a sum of values:
 
 .. math::
@@ -63,9 +63,9 @@ Least squares routines also predict what the range of best-fit
 parameters will be if we repeat the experiment, which produces the
 data points, many times. But it can do that only for objective functions
 if they return the (weighted) sum of squared residuals (WSSR). If the
-least squares fitting procedure uses measurement errors as weights, then
-the is. then the objective function *S*  can be written as a
-maximum-likelihood estimator (MLE) and *S* is then called chi square (:math:`\chi^2`).
+least squares fitting procedure uses measurement errors as weights,
+then the objective function *S*  can be written as a
+maximum-likelihood estimator (MLE) and *S* is then called chi-squared (:math:`\chi^2`).
 
 If we define :math:`\mathbf{p}` as the set of parameters and take *x* for the independent data
 then we define a residual as the difference between the actual dependent variable
@@ -84,18 +84,29 @@ A model function :math:`f(\mathbf{p},x_i)` could be::
 
 A residual function :math:`r(\mathbf{p}, [x_i,y_i])` could be::
 
-   def residuals(p, my_arrays):   # Function needed by fit routine
-      x, y, err = my_arrays       # The values for x, y and weights
+   def residuals(p, data):        # Function needed by fit routine
+      x, y, err = data            # The values for x, y and weights
       a, b = p                    # The parameters for the model function
       return (y-model(p,x))/err   # An array with (weighted) residuals)
+
+The arguments of the residuals function are *p* and *data*. You can give them
+any name you want. Only the order is important. The first parameter is a sequence
+of model parameters (e.g. slope and offset in a linear regression model). These
+parameters are changed by the fitter routine until the best-fit values are found.
+The number of model parameters is given by a sequence of initial estimates.
+We will explain this in more detail in the section about initial estimates.
+
+The second parameter of the *residuals()* function contains the data.
+Usually this is a tuple with a number of arrays (e.g. x, y and weights), but
+one is not restricted to tuples to pass the data. It could also be an object with
+arrays as attributes. The parameter is set in the constructor of a *Fitter*
+object. We will show some examples when we discuss the *Fitter* object.
 
 One is not restricted to one independent (*explanatory*) variable. For example, 
 for a plane the dependent (*response*) variable :math:`y_i`
 depends on two independent variables :math:`(x_{1_i},x_{2_i})`
 
->>>    x1, x2, y, err = my_arrays
-
-The Python variable ``my_arrays`` could also be an object with arrays as attributes.
+>>>    x1, x2, y, err = data
 
 *kmpfit* needs only a specification of the residuals function :eq:`Residuals_function`.
 It defines the objective function *S* itself by squaring the residuals and summing them
@@ -103,8 +114,8 @@ afterwards. So if you pass an array with weights :math:`w_i` which are calculate
 from :math:`1/\sigma_i^2`, then you need to take the square root of these numbers
 first as in::
 
-   def residuals(p, my_arrays):   # Function needed by fit routine
-      x, y, w = my_arrays         # The values for x, y and weights
+   def residuals(p, data):        # Function needed by fit routine
+      x, y, w = data              # The values for x, y and weights
       a, b = p                    # The parameters for the model function
       w = numpy.sqrt(w)           # kmpfit does the squaring
       return w*(y-model(p,x))     # An array with (weighted) residuals)
@@ -139,7 +150,7 @@ For many least squares fit problems we can use analytical methods to find
 the best-fit parameters. This is the category of linear problems.
 For linear least-squares problems (LLS) the second and higher derivatives of the fitting
 function with respect to the parameters are zero. If this is not true then
-the problem is a so called non-linear least-squares problem (NLLS). We use *kmpfit*
+the problem is a so-called non-linear least-squares problem (NLLS). We use *kmpfit*
 to find best-fit parameters for both problems and use the analytical methods
 of the first category to check the output of *kmpfit*.
 An example of a LLS problem is finding the best fit parameters of the model:
@@ -163,7 +174,7 @@ An example of a NLLS problem is finding the best fit parameters of the model:
    \frac{\partial f}{\partial a} = x\cos(a\,x)\, \Rightarrow \frac{\partial^2 f}{\partial a^2} \neq 0
 
 
-A well known example of a model that is non-linear in its parameters, is a
+A well-known example of a model that is non-linear in its parameters, is a
 function that describes a Gaussian profile as in::
 
    def my_model(p, x):
@@ -204,15 +215,14 @@ the position of the maximum and the width of a peak.
 Stop criteria
 ++++++++++++++
 
-LLS and NLLS problems are solved by *kmpfit* by an iterative procedure.
+LLS and NLLS problems are solved by *kmpfit* by using an iterative procedure.
 The fit routine attempts to find the minimum by doing a search. Each iteration
 gives an improved set of parameters and the sum of the squared residuals is
-calculated again. *kmpfit* is based on the C version of *mpfit* which
-uses the Marquardt-Levenberg algorithm to select the parameter values for the
+calculated again. *kmpfit* is based on the C version of *mpfit* (created by Craig Markwardt)
+which uses the Marquardt-Levenberg algorithm to select the parameter values for the
 next iteration. These iterations are repeated until a criterion is met.
-They are set with parameters for the constructor of the *Fitter*
-object in *kmpfit* or with the appropriate attributes. From the documentation
-of the original C code we copy:
+Criteria are set with parameters for the constructor of the *Fitter*
+object in *kmpfit* or with the appropriate attributes:
 
    * ``ftol`` - a nonnegative input variable. Termination occurs when both
      the actual and predicted relative reductions in the sum of
@@ -246,18 +256,18 @@ A ``Fitter`` object
 
 After we defined a residuals function, we need to create a Fitter object.
 A Fitter object is an object of class **Fitter**. This object tells the fit
-procedure which arrays should be passed to the residuals function. So it needs
-the name of the residuals function and an object that sets the arrays
-with data. In most of our examples we will use a tuple with references to arrays.
+procedure which data should be passed to the residuals function. So it needs
+the name of the residuals function and an object which provides the data.
+In most of our examples we will use a tuple with references to arrays.
 Assume we have a residuals function called *residuals* and two arrays *x* and *y*
 with data from a measurement, then a ``Fitter`` object is created by::
 
    fitobj = kmpfit.Fitter(residuals=residuals, data=(x,y))
 
-Note that the *fitobj* is an arbitrary name. You need it to retrieve the results
-of the fit.
-The real fit is started when we call method ``fit``. This is now a method
-of object ``fitobj``. The fit procedure needs start values. Often the fit
+Note that *fitobj* is an arbitrary name. You need to store the result
+to be able to retrieve the results of the fit.
+The real fit is started when we call method ``fit``.
+The fit procedure needs start values. Often the fit
 procedure is not sensitive to these values and you can enter 1 as a value
 for each parameter. But there are also examples where these *initial estimates*
 are important. Starting with values that are not close to the best-fit
@@ -272,14 +282,13 @@ fit nearby the global minimum.
 **Example:** :download:`kmpfit_chi2landscape_gauss.py <EXAMPLES/kmpfit_chi2landscape_gauss.py>`
 **- Chi-squared landscape for model that represents a Gaussian profile**
 
-.. image:: EXAMPLES/chi2_landscape_gauss.png
-   :scale: 70 %
+.. figure:: EXAMPLES/chi2_landscape_gauss.png
    :alt: Chi-squared landscape
    :align: center
 
 
 The figure shows the parameter landscape for a model that represents a Gaussian.
-The landscape axes are model parameters the position of the peak :math:`\mu` and
+The landscape axes are model parameters: the position of the peak :math:`\mu` and
 :math:`\sigma` which is a measure for the width of the peak (half width at 1/e of
 peak). The relation between
 :math:`\sigma` and the the full width at half maximum (FWHM) is:
@@ -290,16 +299,14 @@ far from this minimum.
 If you start for example in the front right corner, the marble will never end in the real
 minimum. Note that the parameter space is in fact 4 dimensional (4 free parameters)
 and therefore more complicated than this example.
-In the figure we scaled the value for chi-squared to avoid the labeling of big
-numbers. From Matplotlib version 1.1.0 it is possible to format also labels
-along the z-axis.
+In the figure we scaled the value for chi-squared to avoid labels with big
+numbers.
 
 Another representation of the parameter space is a contour plot. It is created
 by the same example code:
 
 
-.. image:: EXAMPLES/chi2_landscape_gauss_contours.png
-   :scale: 50 %
+.. figure:: EXAMPLES/chi2_landscape_gauss_contours.png
    :alt: Chi-squared landscape with contours
    :align: center
 
@@ -310,8 +317,7 @@ with an an objective function for robust fitting.
 **Example:** :download:`kmpfit_contours_objfunc.py <EXAMPLES/kmpfit_contours_objfunc.py>`
 **- Comparing objective functions with contour plots**
 
-.. image:: EXAMPLES/contours_objfunc.png 
-   :scale: 40 %
+.. figure:: EXAMPLES/contours_objfunc.png
    :alt: Different objective functions
    :align: center
 
@@ -324,8 +330,8 @@ the quality of the fit result.
 
 The initial estimates are entered in parameter ``params0``. You can enter this
 either in the constructor of the ``Fitter`` object or in the method ``fit()``.
-In most examples we use the latter because it becomes obvious that one can repeat
-the same fit with different initial estimates::
+In most examples we use the latter because then one can repeat
+the same fit with different initial estimates as in::
 
    fitobj.fit(params0=[1,1])
 
@@ -349,7 +355,7 @@ An example of an overview of the results could be::
    print "Number of pegged pars.:   ", fitobj.npegged
 
 
-We wrote a section about the use and interpretation of parameter errors
+There is a section about the use and interpretation of parameter errors
 in :ref:`standard_errors`.
 In the next chapter we will put the previous information together and compile a
 complete example.
@@ -375,7 +381,7 @@ could be written in Python as::
       y = a + b*x
       return y
 
-Parameter ``x`` is a NumPy array and ``p`` is an array with model
+Parameter ``x`` is a NumPy array and ``p`` is a NumPy array containing the model
 parameters *a* and *b*. This function calculates response Y values
 for a given set of parameters and an array with explanatory X values.
 
@@ -388,9 +394,9 @@ residuals between data points and model::
       return y - model(p,x)
 
 This residuals function has always two parameters.
-The first one is ``p`` which is an array
+The first one ``p`` is an array
 with parameter values in the order as defined in your model, and ``data``
-which is an object that stores the data arrays that you need in your residual function.
+is an object that stores the data arrays that you need in your residuals function.
 The object could be anything but a list or tuple is often most practical to store
 the required data. We will explain a bit more about this object when we discuss
 the constructor of a *Fitter* object.
@@ -406,9 +412,7 @@ to plot the model using different sets of best-fit parameters.
 .. note::
 
    A residuals function should always return a NumPy double-precision floating-point number
-   array (i.e. dtype='d'). If your data in argument ``data`` is a list or is an array
-   with single precision floating point numbers, you need to convert the result to
-   the required type.
+   array (i.e. dtype='d').
 
 .. note::
 
@@ -473,7 +477,7 @@ Below we show a complete example. If you run it, you should get a plot like the 
 below the source code. It will not be exactly the same because we used a random number generator
 to add some noise to the data. The plots are created with Matplotlib. A plot is
 a simple but effective tool to qualify a fit. For most of the examples in this
-tutorial we added a plot.
+tutorial a plot is included.
 
 **Example: kmpfit_example_simple.py - Simple use of kmpfit**
 
@@ -592,7 +596,7 @@ Standard errors in Weighted fits
 In the literature [Num]_ we can find analytical expressions for the standard errors
 of weighted fits for standard linear regression. We want to discuss the
 derivation of analytical errors for weighted fits to demonstrate that these errors
-are also represented by the elements of the so called variance-covariance matrix
+are also represented by the elements of the so-called variance-covariance matrix
 (or just covariance matrix),
 which is also a result of a fit with *kmpfit* (attribute ``Fitter.covar``).
 How should we interpret these errors? For instance in Numerical Recipes, [Num]_
@@ -1996,7 +2000,7 @@ with:
 
    r_{xy} = \frac{\sum\limits^{N-1}_{i=0}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum\limits^{N-1}_{i=0}(x_i - \bar{x})^2} \sqrt{\sum\limits^{N-1}_{i=0}(y_i - \bar{y})^2}}
 
-With :eq:`Pearson` and :eq:`Pearsonsslope` we get the well known relation between
+With :eq:`Pearson` and :eq:`Pearsonsslope` we get the well-known relation between
 the slopes of the two regression lines and the correlation coefficient:
 
 .. math::
