@@ -409,6 +409,42 @@ This is a bit more efficient in Python,
 but usually it is handy to have the model function available if you  need
 to plot the model using different sets of best-fit parameters.
 
+The objective function which is often used to fit the best-fit parameters
+of a straight line model is for example:
+
+.. math::
+   :label: objective_function_lingres1
+
+   \chi^2([a,b],x) = \sum_{i=0}^{N-1} \left( \frac{y_i-a-bx_i}{\sigma_i} \right)^2
+
+Assume that the values :math:`\sigma_i` are given in array *err*, then this
+objective function translates to a residuals function::
+
+   def residuals(p, data):
+      x, y, err = data
+      ym = a + b*x            # Model data
+      return (y-ym)/err       # Squaring is done in Fitter routine
+
+
+Another example is an objective function for *robust* (i.e. less sensitive to
+outliers) for a straight line model without weights.
+For robust fitting one does not use the square of the residuals but
+the absolute value.
+
+.. math::
+   :label: objective_function_robust_lingres
+
+   S = \sum |y_i-a-bx_i|
+
+We cannot avoid that the Fitter routine squares the residuals
+so to undo this squaring we need to take the square-root as in::
+
+   def residuals(p, data):
+      x, y = data
+      ym = a + b*x            # Model data
+      r = abs(y - ym)         # Absolute residuals for robust fitting
+      return numpy.sqrt(r)    # Squaring is done in Fitter routine
+
 .. note::
 
    A residuals function should always return a NumPy double-precision floating-point number
@@ -418,8 +454,8 @@ to plot the model using different sets of best-fit parameters.
 
    It is also possible to write residual functions that represent objective
    functions used in orthogonal fit procedures
-   where both variables **x** and **y** have errors.
-
+   where both variables **x** and **y** have errors. We will give some examples
+   in the section about orthogonal fitting.
 
 
 Artificial data for experiments
@@ -490,7 +526,7 @@ tutorial a plot is included.
 Function ``simplefit()``
 -----------------------------
 
-For simple fit problems we provided a simple interface.
+For simple fit problems we provide a simple interface.
 It is a function which is used as follows:
 
 >>> p0 = (0,0)
@@ -498,9 +534,9 @@ It is a function which is used as follows:
 >>> print fitobj.params
 
 Argument ``model`` is a function, just like the model in the previous section. 
-``p0`` is a sequence with initial values with length equal to the number of parameters
-that defined in your model. Argument ``x`` and ``y`` are the arrays or lists that represent 
-you measurement data. Argument ``err`` is an array with 1 :math:`\sigma` errors,
+``p0`` is a sequence with initial values with a length equal to the number of parameters
+that is defined in your model. Argument ``x`` and ``y`` are the arrays or lists that represent 
+your measurement data. Argument ``err`` is an array with 1 :math:`\sigma` errors,
 one for each data point. Then you can enter values to tune the fit routine
 with keyword arguments (e.g. *gtol*, *xtol*, etc.).
 In the next example we demonstrate how to use lists for your data points, 
@@ -539,7 +575,7 @@ The standard error (often denoted by SE) is a measure of the average amount that
 the model over- or under-predicts.
 
 According to [Bev]_ , the standard error is an uncertainty which corresponds to an
-increase of :math:`\chi^2` = 1. That implies that if we we add the standard error
+increase of :math:`\chi^2` by 1. That implies that if we we add the standard error
 :math:`\sigma_i` to
 its corresponding parameter, fix it in a second fit and fit again, the value of
 :math:`\chi^2` will be increased by 1.
@@ -590,7 +626,7 @@ As you can see, the value of chi-square has increased with ~1.
 
 .. _standard_errors_weighted_fits:
 
-Standard errors in Weighted fits
+Standard errors in weighted fits
 ++++++++++++++++++++++++++++++++++
 
 In the literature [Num]_ we can find analytical expressions for the standard errors
@@ -601,6 +637,23 @@ are also represented by the elements of the so-called variance-covariance matrix
 which is also a result of a fit with *kmpfit* (attribute ``Fitter.covar``).
 How should we interpret these errors? For instance in Numerical Recipes, [Num]_
 we find the expressions for the best fit parameters of a model :math:`y=a+bx`
+Use the *chi-squared* objective function:
+
+
+.. math::
+   :label: objective_function_lingres2
+
+   \chi^2([a,b],x) = \sum_{i=0}^{N-1} \left( \frac{y_i-a-bx_i}{\sigma_i} \right)^2
+
+To find analytical expressions for the best-fit values of *a* and *b*, we
+need to take derivatives of this objective function:
+
+.. math::
+   :label: objective_function_derivative
+
+   \frac{\partial \chi^2}{\partial a} &= -2  \sum_{i=0}^{N-1} \frac{y_i-a-bx_i}{\sigma_i^2}\\
+   \frac{\partial \chi^2}{\partial b} &= -2  \sum_{i=0}^{N-1} \frac{x_i(y_i-a-bx_i)}{\sigma_i^2}
+
 
 Define:
 
@@ -610,12 +663,15 @@ Define:
    S \equiv \sum_{i=0}^{N-1} \frac{1}{\sigma_i^2}\ \ S_x \equiv \sum_{i=0}^{N-1} \frac{x_i}{\sigma_i^2} \ \ S_y \equiv \sum_{i=0}^{N-1} \frac{y_i}{\sigma_i^2}\\
    S_{xx} \equiv \sum_{i=0}^{N-1} \frac{x_i^2}{\sigma_i^2}\ \ S_{xy} \equiv \sum_{i=0}^{N-1} \frac{x_iy_i}{\sigma_i^2}
 
-One can solve for the best-fit parameter with the equations:
+
+
+Then one can rewrite :eq:`objective_function_derivative` into:
 
 .. math::
    :label: numrep_linear
 
-   aS + bS_x = S_y\ \ \ aS_x + bS_{xx} = S_{xy}
+   aS + bS_x &= S_y\\
+   aS_x + bS_{xx} &= S_{xy}
 
 which is in matrix notation:
 
@@ -663,7 +719,7 @@ The error in *a* is by the law of propagation of errors:
 
    \sigma_a^2 = \sum_{i} \sigma_i^2 \left(\frac{\partial{a}}{\partial{y_i}}\right)^2
 
->From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
+From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
 
 .. math::
    :label: parderivA
@@ -721,18 +777,18 @@ is as follows::
 
    def lingres(xa, ya, err):
       w = numpy.where(err==0.0, 0.0, 1.0/(err*err))
-      sum   =  w.sum()
+      Sum   =  w.sum()
       sumX  = (w*xa).sum()
       sumY  = (w*ya).sum()
       sumX2 = (w*xa*xa).sum()
       sumY2 = (w*ya*ya).sum()
       sumXY = (w*xa*ya).sum()
-      delta = sum * sumX2 - sumX * sumX
+      delta = Sum * sumX2 - sumX * sumX
       a = (sumX2*sumY - sumX*sumXY) / delta
-      b = (sumXY*sum - sumX*sumY) / delta
+      b = (sumXY*Sum - sumX*sumY) / delta
       siga = numpy.sqrt(abs(sumX2/delta))
-      sigb = numpy.sqrt(abs(sum/delta))
-      return a, b, siga, sigb, delta, sum, sumX2, sumX
+      sigb = numpy.sqrt(abs(Sum/delta))
+      return a, b, siga, sigb, delta, Sum, sumX2, sumX
 
 Note that these formulas are susceptible to roundoff error and Numerical Recipes
 derives alternative formulas (Section 15.2). However, our functions work
@@ -744,8 +800,8 @@ If we compare these results with the elements of the covariance matrix in
 :eq:`covariancematrix`, then we observe that the expressions for the
 parameter variances, are the square root of the diagonal values of this matrix.
 The co-variance between *a* and *b* can be calculated also
-and the formula turn out to be the same as the
-off diagonal elements of the covariance matrix. This value is:
+and the formula turns out to be the same as the
+off-diagonal elements of the covariance matrix. This value is:
 
 .. math::
    :label: covariance
@@ -832,8 +888,8 @@ Usually you assign weights if you have additional knowledge about your measureme
 Some points get more weight if they are more reliable than others. Therefore you should
 expect that the best-fit parameters are different between weighted and un-weighted
 fits. Also the accuracy of the results will improve, because besides the
-data you are using the quality of the data (weights).
-The difference in best-fit parameters and the quality of the results are shown
+data you are using the quality of the data.
+The difference in best-fit parameters and the quality of the results is shown
 with program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
 
 **Example:** :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
@@ -875,7 +931,7 @@ give incorrect errors on the parameter estimates.
 This is shown in the same
 program :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
 where we scaled the errors with a factor 10. The errors in the parameter estimates
-are increased with a factor 10.
+are increased by a factor 10.
 
 **Example:** :download:`kmpfit_compare_wei_unwei.py <EXAMPLES/kmpfit_compare_wei_unwei.py>`
 **- Compare output for unweighted (unit weighting) and weighted fit**
@@ -916,7 +972,7 @@ To summarize the weighting schemes:
 Reduced chi squared
 +++++++++++++++++++++
 
->From the theory of maximum likelihood we find that for a least squares solution
+From the theory of maximum likelihood we find that for a least squares solution
 we need to maximize the probability that a measurement :math:`y_i` with given
 :math:`\sigma_i` is in a
 a small interval :math:`dy_i` around :math:`y_i` by minimizing the sum
@@ -925,14 +981,14 @@ chi squared [Ds1]_ :
 .. math::
    :label: maximumlikelihood
 
-   \chi^2 = \sum\limits_{i}^{} {\left(\frac{\Delta y_i}{\sigma_i}\right)}^2 = \sum\limits_{i}^{} \frac{({y_i-f(x_{i}))}^2}{\sigma_i^2}
+   \chi^2 = \sum\limits_{i=0}^{N-1} {\left(\frac{\Delta y_i}{\sigma_i}\right)}^2 = \sum\limits_{i=0}^{N-1} \frac{({y_i-f(x_{i}))}^2}{\sigma_i^2}
 
 with:
 
    * N is the number of data points
    * :math:`y_i` the measured data at  :math:`x_i`
    * :math:`\sigma_i` is the standard deviation of measurement i
-   * f is the model for which we want to find the best-fit parameters.
+   * *f* is the model for which we want to find the best-fit parameters.
 
 The sum is often called chi squared because it follows the :math:`\chi^2` distribution
 if we repeat the experiment to get new measurements.
@@ -989,7 +1045,7 @@ What should we expect of the variance :math:`\sigma_i` compared to the
 sample deviations for each sample point?
 Assume we have N data points and each data point has an individual error of
 :math:`\sigma_i`.
->From :eq:`expectationchi2` we have:
+From :eq:`expectationchi2` we have:
 
 .. math::
    :label: expectationreducedchi2_2
@@ -1173,8 +1229,8 @@ we assume that the shape of the distribution of Monte Carlo set :math:`p_{(i)}-p
 the shape of the real world set :math:`p_{(i)}-p_{true}`
 
 The *Bootstrap Method* [Num]_ uses the data set that you used to find the best-fit parameters.
-We generate different synthetic data sets, all with *N* data points, by drawing 
-randomly *N* data points, with replacement from the original data.
+We generate different synthetic data sets, all with *N* data points, by randomly drawing 
+*N* data points, with replacement from the original data.
 In Python we realize this as follows::
 
    indx = randint(0, N, N)    # Do the re-sampling using an RNG
@@ -1251,7 +1307,7 @@ much lower than the diagonal.
    * For weighted fits where the weigths are derived from measurement errors,
      the errors correspond to attribute ``xerror`` in *kmpfit*.
      Only for this type of weights, we get a value of
-     (reduced) chi-squared that can be used a a measure of **goodness of fit**.
+     (reduced) chi-squared that can be used as a measure of **goodness of fit**.
    * The fit results depend on the accuracy of the measurement errors :math:`\sigma_i.`
    * A basic assumption of the chi-squared objective function is that the error
      distribution of the measured data is Gaussian. If this assumption is
@@ -1260,10 +1316,10 @@ much lower than the diagonal.
      only when :math:`\chi_{\nu}^2 = 1`
 
 
->From [And]_ we summarize the conditions which must be met before one can
+From [And]_ we summarize the conditions which must be met before one can
 safely use the values in ``stderr`` (i.e. demanding that :math:`\chi_{\nu} = 1`):
-In this approach of scaling, the error in the best-fit parameters
-we make three assumptions:
+In this approach of scaling the error in the best-fit parameters,
+we make some assumptions:
 
    1) The error distribution has to be Gaussian.
    2) The model has to be linear in all parameters. If the model is
@@ -1271,7 +1327,7 @@ we make three assumptions:
       the derivation of :math:`\langle\chi\rangle^2=N-n`
       implicitly assumes linearity in all parameters.
    3) By demanding :math:`\chi_{\nu} = 1`, we explicitly claim that the model
-      we are using is the **correct** model that was underlying the data.
+      we are using is the **correct** model that corresponds to the data.
       This is a rather optimistic claim. This claim requires justification.
    4) Even if all these assumptions above are met, the method is in fact only
       applicable if the degrees of freedom *N-n* is large.
@@ -1285,7 +1341,7 @@ The conclusion is that one should be careful with the use of standard errors
 in ``stderr``. A Monte Carlo method should be applied to prove that the
 values in ``stderr`` can be used.
 For weighted fits it is advertised not to use the Bootstrap method.
-In the next example we compare the Bootstrap method with weights and without weights.
+In the next example we compare the Bootstrap method with and without weights.
 The example plots all trial results in the Bootstrap procedure.
 The yellow lines represent weighted fits in the Bootstrap procedure.
 The green lines represent unweighted fits in the Bootstrap procedure.
@@ -1353,20 +1409,20 @@ Chi-squared test
 +++++++++++++++++++
 
 As described in a previous section, the value of the reduced chi-squared is
-an indication for the goodness of fit. If its value is near 1 than your
+an indication for the goodness of fit. If its value is near 1 then your
 fit is probably good.
 With the value of chi-squared we can find a threshold value for which we can accept or
 reject the hypothesis that the data and the fitted model are consistent.
 The assumption is that the value of chi-squared follows the :math:`\chi^2` distribution
 with :math:`\nu` degrees of freedom. Let's examine chi-squared in more detail.
 
-In a chi squared fit we sum the relative size of the deviation :math:`\Delta_i` and 
+In a chi-squared fit we sum the relative size of the deviation :math:`\Delta_i` and
 the error bar :math:`\delta_i`. Data points that are near the fit with the best-fit parameters 
 have a small value :math:`\Delta_i/\delta_i`. Bad points have a ratio that is 
 bigger than 1. At those points the fitted curve does not go through the error bar.
 For a reasonable fit, there will be both small and big deviations but on average the 
 value will be near 1.
-Remember that chi squared is defined as:
+Remember that chi-squared is defined as:
 
 .. math::
    :label:  chi_squared_long
@@ -1374,7 +1430,7 @@ Remember that chi squared is defined as:
    \chi^2 = {\left(\frac{\Delta_1}{\delta_1}\right)}^2 + {\left(\frac{\Delta_2}{\delta_2}\right)}^2 + {\left(\frac{\Delta_3}{\delta_3}\right)}^2 + \cdots + {\left(\frac{\Delta_N}{\delta_N}\right)}^2
 
 So if we expect that on average the ratios are 1, then we expect that this sum is equal to *N*.
-You can always add more parameters to a model. If you have as many parameter as 
+You can always add more parameters to a model. If you have as many parameters as 
 data points, you can find a curve that hits all data points, but usually
 these curves have no significance. In this case you don't have any *degrees of freedom*.
 The degrees of freedom for a fit with *N* data points and *n* adjustable model parameters
@@ -1401,7 +1457,7 @@ See for example http://en.wikipedia.org/wiki/Chi-squared_distribution.
 
 We reject the null hypothesis (data is consistent with the model with the
 best fit parameters) if the value of chi-squared is bigger than some threshold value.
-The threshold value can be calculated if we set a value of the change that
+The threshold value can be calculated if we set a value of the probability that
 we make a wrong decision in rejecting a true null hypothesis (H0). This
 probability is denoted by :math:`\alpha` and it sets the
 significance level of the test. Usually we want small values for :math:`\alpha`
@@ -1426,7 +1482,7 @@ The recipe to obtain a threshold value for :math:`\chi^2` is as follows.
       that :math:`\alpha` is the right tailed area in this distribution
       while we use the left tailed area in our calculations.
    5. Compare the calculated :math:`\chi^2` with the threshold value.
-   6. If it is worse, then reject the hypothesis that the data and the 
+   6. If the calculated value is bigger, then reject the hypothesis that the data and the
       model with the best-fit parameters are consistent.
 
 In the next figure we show these steps graphically. Note the use of the 
@@ -1449,9 +1505,9 @@ For this test we need the normalized cumulative versions of the data and the mod
 the best-fit parameters.
 We call the normalized cumulative version of the model :math:`F_0(x)` and
 the observed normalized cumulative step function of our data sample
-:math:`S_n(x)` then the sampling distribution of
+:math:`S_n(x)`. Then the sampling distribution of
 :math:`D = maximum | F_0(x) - S_n(x) |` follows the Kolmogorov distribution
-which is independent of :math:`F_0(x)` if :math:`F_0(x)` is continuous i.e.
+which is independent of :math:`F_0(x)` if :math:`F_0(x)` is continuous; i.e.
 has no jumps.
 
 For hypotheses testing we define:
@@ -1531,9 +1587,9 @@ as demonstrated in the next example which creates a table with critical values.
      20      0.23156      0.26473      0.29408      0.32866      0.35241
 
 
-If we compare this table with the table in [Mas]_, then one observes that the
+If we compare this table with the table in [Mas]_, then we observe that the
 listed values of :math:`\alpha` are twice the values of the :math:`\alpha` in
-our example. The difference can be explained with the fact that [Mas]_ uses a
+our example. The difference can be explained by the fact that [Mas]_ uses a
 two-sided test while we apply the one-sided test.
 
 In the next script we demonstrate that the Kolmogorov-Smirnov test is
@@ -1580,10 +1636,12 @@ Partial derivatives for a Gaussian
 
 In the documentation of the IDL version of *mpfit.pro*, the author states that it
 is often sufficient and even faster to allow the fit routine to calculate the
-derivatives numerically. With explicit partial derivatives
-we usually gain an increase in speed of about 20%, at least for fitting Gaussian profiles.
+derivatives numerically. In contrast with this
+we usually gain an increase in speed of about 20% if we use explicit partial derivatives,
+at least for fitting Gaussian profiles.
 The real danger in using explicit partial derivatives seems to be that one easily makes
-small mistakes in deriving the necessary equations. This is not always obvious in test-runs.
+small mistakes in deriving the necessary equations. This is not always obvious in test-runs,
+but *kmpfit* is capable of providing diagnostics.
 For the Gauss function in :eq:`gaussianfunction` we derived the following partial derivatives:
 
 
@@ -1597,7 +1655,7 @@ For the Gauss function in :eq:`gaussianfunction` we derived the following partia
 
 
 If we want to use explicit partial derivatives in *kmpfit* we need the external residuals
-to return the derivative of the model f(x) at x, with respect to any of the parameters.
+to return the derivative of the model *f(x)* at *x*, with respect to any of the parameters.
 If we denote a parameter from the set of parameters :math:`P = (A,\mu,\sigma,z_0)`
 with index i, then one calculates
 the derivative with a function ``FGRAD(P,x,i)``.
@@ -1609,7 +1667,7 @@ as ``residuals = (data-model)/err``, the residuals function should return:
 
    \frac{\partial f(x)}{\partial P(i)} =\frac{ -FGRAD(P,x,i)}{err}
 
-where ``err`` is the array with weights.
+where *err* is the array with weights.
 
 Below, we show a code example of how one can implement explicit partial derivatives.
 We created a function, called ``my_derivs`` which calculates the derivatives for each
@@ -1618,11 +1676,11 @@ the equations from :eq:`partialderivatives`. The return value is equivalent with
 The function has a fixed signature because it is called by the fitter which expects
 that the arguments are in the right order. This order is:
 
-   * p
+   * *p*
      -List with model parameters, generated by the fit routine
-   * a1, a2, ... an
-     -References to data in the ``data`` argument in the constructor of the Fitter object.
-   * dflags
+   * *data*
+     -A reference to the ``data`` argument in the constructor of the Fitter object.
+   * *dflags*
      -List with booleans. One boolean for each model parameter.
      If the value is ``True`` then an explicit partial derivative is
      required. The list is generated by the fit routine.
@@ -1692,7 +1750,7 @@ Automatic initial estimates for profiles with multi component Gaussians
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 For single profiles we can obtain reasonable initial estimates by inspection
-of the profile. Processing many profiles e.g. in a data cube with two spatial axes and one
+of the profile. Processing many profiles, e.g. in a data cube with two spatial axes and one
 spectral axis, needs another approach. If your profile has more than 1 Gaussian
 component, the problem becomes even more complicated. So what we need is
 a method that automates the search for reasonable initial estimates.
@@ -1711,7 +1769,7 @@ function of the independent variable :math:`x` at equal intervals :math:`\Delta 
 [Sch]_. A second order polynomial is fitted at each :math:`x_i` by using moments analysis
 (this differs from the method described in [Sch]_), using :math:`q` points distributed
 symmetrically around :math:`x_i`, so that the total number of points in the fit is
-:math:`2q+1` The coefficient of the second-order term is an approximation
+:math:`2q+1`. The coefficient of the second-order term is an approximation
 of the second derivative of the profile. For a Gaussian model, the position of the peak
 and the dispersion are calculated from the main minima of the second derivative.
 The amplitude is derived from the profile intensities.
@@ -1777,12 +1835,14 @@ you have noisy data.
 Messy samples
 !!!!!!!!!!!!!!!
 
-Function :func:`gauest` works with the assumption that your x values run from 0 .. *N* where *N*
+The original C version of function :func:`gauest` works with the assumption that
+your x values run from 0 .. *N* where *N*
 is the number of data points.
 Many profiles have different x values. Sometimes they are not sorted and sometimes
-they do not fall on a regular grid. If you supply the *x* values, then function :func:`gauest`
-will process the data so that it is sorted in x and linear interpolation is
-used to sample data on a regular grid. This could be dangerous if your samples
+they are not equally spaced. The current function :func:`gauest` inspects
+the data in argument *x*. If necessary, it sorts the data and forces it to be
+equally spaced by linear interpolation.
+This could be dangerous if your samples
 are distributed in a messy way, but usually :func:`gauest` will be able to find reasonable
 estimates.
 The procedure which modifies the data to make it usable for  :func:`gauest`
@@ -1795,7 +1855,7 @@ is based on the code in the next example.
 Fitting data when both variables have uncertainties
 ----------------------------------------------------
 
-Sometimes your data contains errors in the *response* (dependent) variable
+Sometimes your data contains errors in both the *response* (dependent) variable
 y (i.e. we have values for :math:`\sigma_y`) and in the *explanatory* (independent) variable x
 (i.e. we have values for :math:`\sigma_x`).
 In the next sections we describe a method to use *kmpfit* for this category
@@ -1895,7 +1955,7 @@ Best parameters for a straight line
 ++++++++++++++++++++++++++++++++++++
 
 Equation :eq:`common_distance` can be used to create an objective function.
-We sow this for a model which represents a straight line :math:`f(x)=a+bx`.
+We show this for a model which represents a straight line :math:`f(x)=a+bx`.
 For a straight line the Taylor approximation :eq:`Taylor` is exact.
 This can be seen as follows:
 With :math:`f^\prime(x) = b`. The relation :math:`f(x) = f(x_i)+(x-x_i)f^{\prime}(x_i)`
@@ -2049,7 +2109,7 @@ as the bisector which has no relation to orthogonal fitting procedures.
    Pearson's method is an example of an orthogonal fit procedure. It cannot
    handle weights nor does it give you estimates of the errors
    on the best-fit parameters. We discussed the method because it is
-   historically important and it proves that *kmpfit* can be used for its
+   historically important and we wanted to prove that *kmpfit* can be used for its
    implementation.
 
 .. note::
@@ -2151,7 +2211,7 @@ ODR                          5.47991037830    -0.48053343863
 Williamson                   5.47991022403    -0.48053340745
 =========================== ================ ================
 
->From these results we conclude that *kmpfit* with the effective variance
+From these results we conclude that *kmpfit* with the effective variance
 residuals function, is very well suited to perform weighted
 orthogonal fits for a model that represents a straight line.
 If you run the program, you can observe that also the uncertainties
@@ -2188,9 +2248,9 @@ Orear starts with a model :math:`f([a,b],x) = ax - b/x`. He
 tried to minimize the objective function by an iteration using 
 :eq:`extra_condition` with the derivative :math:`f^{\prime}([a,b],x) = a + b/x^2`
 and calls this the exact solution. He also iterates
-using the effective variance method as in :eq:`Orear` and find small differences
+using the effective variance method as in :eq:`Orear` and finds small differences
 between these methods. This must be the result of an insufficient convergence
-criterion or numerical instability because we don't find significant difference
+criterion or numerical instability because we don't find a significant difference
 using these methods in a program (see example below).
 The corresponding residual function for the minimum distance expression is::
 
@@ -2239,7 +2299,7 @@ Model parabola
 :math:`\bf{f([a,b,c],x) = ax^2+bx+c}`
 
 Applying the effective variance method for a parabola
-we  an objective function:
+we use the objective function:
 
 .. math::
    :label: objective_function_parabola
@@ -2259,13 +2319,13 @@ for *kmpfit*::
       return d
 
 How good is our Taylor approximation here?
-Using :math:`f(x) \approx f(x_i)+(x-x_i)(b+2cx_i)` we find that f(x) can be approximated
+Using :math:`f(x) \approx f(x_i)+(x-x_i)(b+2cx_i)` we find that *f(x)* can be approximated
 by: :math:`f(x) = a + bx + cx^2 - c(x-x_i)^2`. So this approximation works if
 the difference between :math:`x_i` and :math:`x` remains small.
 For *kmpfit* this implies that also the initial parameter estimates must be
 of reasonable quality.
 Using the code of residuals function above, we observed that this approach works
-adequate. It is interesting to compare the results of *kmpfit* with the results
+adequately. It is interesting to compare the results of *kmpfit* with the results
 of Scipy's ODR routine. Often the results are comparable. That is, if we start
 with model parameters ``(a, b, c) = (-6, 1, 0.5)`` and initial estimates
 ``beta0 = (1,1,1)``,
@@ -2290,7 +2350,7 @@ Model with a sine function
 
 :math:`\bf{f([a,b,c],x) = a\sin(bx+c)}`
 
-If your model is a model that is not linear in its parameters, then the
+If your model is not linear in its parameters, then the
 effective variance method can still be applied.
 If your model is given for example by :math:`f(x) = a\sin(bx+c)`, which
 is not linear in parameter *b*,
@@ -2411,7 +2471,7 @@ and the confidence band is calculated using:
 
    CB = f(p,x) \pm t_{\alpha/2, \nu}\,\sqrt{\chi_{\nu}^2\, \left[(1\times 1)C_{00}+(1\times x)C_{01}+(1\times x^2)C_{02} + (x\times 1)C_{10} + \cdots\, (x^2\times x^2)C_{22}\right]}
 
-Next code example shows a function which implements the confidence interval
+The next code example shows a function which implements the confidence interval
 for a given model (variable ``model`` is a function or a lambda expression).
 The list ``dfdp`` is a list with derivatives evaluated at the values of ``x``.
 The values in ``x`` need not to be the same values as the x coordinates
@@ -2484,7 +2544,10 @@ With measurements one often finds one or more data points that appear isolated.
 If you are convinced that such data is a measurement error then of course you
 can throw it away or you can use a criterion based on the normal distribution
 using the (im)probability
-of large deviations. The criterion we want discuss here is called
+of large deviations.
+In this section we discuss a method to remove outliers where a data point
+is an outlier in the y direction only. 
+The criterion we want discuss here is called
 Chauvenet's criterion (http://en.wikipedia.org/wiki/Chauvenet's_criterion).
 Suppose you have
 *N* measurments :math:`y_i` from which we first calculate the mean and
@@ -2508,7 +2571,7 @@ big arrays. This function returns an array of booleans. When an element in
 that array is *False*, we reject the corresponding data element in the
 data arrays::
 
-   def chauvenet(x, y, mean=None):
+   def chauvenet(x, y, mean=None, stdv=None):
       #-----------------------------------------------------------
       # Input:  NumPy arrays x, y that represent measured data
       #         A single value of a mean can be entered or a
@@ -2543,7 +2606,8 @@ data arrays::
       #-----------------------------------------------------------
       if mean is None:
          mean = y.mean()           # Mean of incoming array y
-      stdv = y.std()               # Its standard deviation
+      if stdv is None:
+         stdv = y.std()            # Its standard deviation
       N = len(y)                   # Lenght of incoming arrays
       criterion = 1.0/(2*N)        # Chauvenet's criterion
       d = abs(y-mean)/stdv         # Distance of a value to mean in stdv's
@@ -2553,10 +2617,31 @@ data arrays::
       return filter                # Use boolean array outside this function
 
 
+In the next example we use the model with the best fit parameters a
+the mean and the standard deviation of the residuals as the standard deviation
+for all data points. Note that removing these type of outliers do not change
+the values of the best-fit parameters much.
+
 **Example: kmpfit_chauvenet.py  - Exclude bad data with criterion of Chauvenet**
 
 .. plot:: EXAMPLES/kmpfit_chauvenet.py
    :align: center
+
+
+Another example uses data from [BRo]_. A weighted fit gives a value of chi-squared
+which is too big to accept the hypothesis that the data is consistent with the model.
+When we use the model and its best-fit parameters as mean and the errors on the
+data as standard deviation in the function :func:`chauvenet`, then one data
+point is excluded. When we redo the fit, we find a value for chi-squared that
+is small enough to accept the Null hypothesis that data and model are
+consistent.
+
+**Example: kmpfit_chauvenet2.py  - Apply Chauvenet for a weighted fit**
+
+.. plot:: EXAMPLES/kmpfit_chauvenet2.py
+   :align: center
+
+For outliers in the x direction, one need different methods.
 
 
 
@@ -2571,7 +2656,7 @@ slope of the best fit straight line through the data points (distance in Mpc and
 velocity in Km/s) and the origin (assuming velocity is zero when the distance is zero).
 
 Hubble's first fits allowed for an offset and he found an age of the universe
-that was much too small. Now we now the theoretical base and the fit is reduced
+that was much too small. Now we know the theoretical base and the fit is reduced
 to a problem that is known as 'regression through the origin'.
 
 For a model :math:`y = a + bx` we defined chi squared as:
@@ -2673,7 +2758,7 @@ This is a two pass algorithm because first you have to find slope *b* to get
 the reduced chi-squared. Note that in many references, the unweighted version
 of the :math:`\chi_{\nu}^2` is
 used to derive the error in slope *b*. This gives wrong results as can be seen
-with equal weighting. Many references give the wrong formula so be careful.
+with equal weighting. Many references give the wrong formula, so be careful.
 A possible implementation of the formulas above is given in the function
 :func:`lingres_origin`::
 
@@ -2766,6 +2851,9 @@ References
 
 .. [Bev] Bevington, Philip R. , *Data Reduction and Error Analysis for the Physical Sciences*,
    1969, McGraw-Hill
+
+.. [BRo] Bevington, P.R.,  Robinson D.K., *Data Reduction and Error Analysis for the Physical Sciences*,
+   Version 2.0 RLM (23 August 2003)
 
 .. [Clu] Clutton-Brock, *Likelihood Distributions for Estimating Functions
    When Both Variables Are Subject to Error*, Technometrics, Vol. 9, No. 2 (May, 1967), pp. 261-269

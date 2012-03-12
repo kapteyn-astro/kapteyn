@@ -35,7 +35,7 @@ The transformations between pixel coordinates and world coordinates
 are based on module 
 :mod:`wcs` which is a Python binding for Mark R. Calabretta's library
 `WCSLIB <http://www.atnf.csiro.au/people/mcalabre/WCS>`_.
->From *WCSLIB* we use only the core transformation routines.
+From *WCSLIB* we use only the core transformation routines.
 Header parsing is done with module :mod:`wcs`.
 
 Axes types that are not recognized by this software is treated as being linear.

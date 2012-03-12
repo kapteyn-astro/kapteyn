@@ -161,5 +161,5 @@ Fysikum vid Stockholms universitet @ 130.242.128.12
 NASA Jet Propulsion Laboratory @ 137.78.58.25
 Columbia University @ 128.59.247.157
 
-tot: Wed Mar  7 12:27:49 CET 2012
-Tue Feb 21 12:26:35 CET 2012
+tot: Mon Mar 12 11:45:52 CET 2012
+Wed Mar  7 12:27:49 CET 2012

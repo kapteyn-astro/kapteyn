@@ -96,7 +96,7 @@ delta = (xchi.max()-xchi.min())/40.0
 frame3.plot(xchi, ychi, label="Degrees of freedom = %d"%(fitter.dof))
 frame3.set_xlabel("$\chi^2$")
 frame3.set_ylabel("$\mathrm{Probability}$")
-frame3.set_title("$\chi^2 \mathrm{Probability\ density\ function for\, } \\nu=%d$"%fitter.dof)
+frame3.set_title("$\chi^2 \mathrm{Probability\ density\ function\ for\, } \\nu=%d$"%fitter.dof)
 frame3.plot((xc,xc),(0,ychi.max()), 'g', label="chi square (fit) = %g"%fitter.chi2_min)
 frame3.plot((chi2_threshold,chi2_threshold),(0,ychi.max()), 'r', label="chi square threshold = %g"%chi2_threshold)
 

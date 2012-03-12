@@ -89,7 +89,7 @@ of a position in system 0, then the corresponding position vector can be written
 
 Note that the longitude and latitude applies to the other sky systems too, but then 
 we use other symbols, like (:math:`\lambda, \beta`), (l,b) or (sgl, sgb).
->From any position (x,y,z) we calculate the longitude and latitude with the expressions:
+From any position (x,y,z) we calculate the longitude and latitude with the expressions:
 
 .. math::
    :label: eq90

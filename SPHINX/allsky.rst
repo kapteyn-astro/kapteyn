@@ -417,7 +417,7 @@ Fig.25: Polyconic projection (PCO)
 Near the poles we have a problem to draw graticule lines at constant latitude.
 With the defaults for the Graticule constructor we would observe a
 horizontal line that connects longitudes -180 and 180 deg. near the poles.
->From a plotting point of view the range -180 to 180 deg. means a closed
+From a plotting point of view the range -180 to 180 deg. means a closed
 shape (e.g. a circle near a pole).
 To prevent horizontal jumps in such plots we defined a jump in terms of pixels.
 If the distance between two points is much bigger than the pixel sampling

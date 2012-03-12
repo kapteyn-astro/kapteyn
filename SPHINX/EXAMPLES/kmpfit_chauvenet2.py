@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Demonstrate criterion of Chauvenet to exclude poor data
+# Use data example from Bevington & Robinson
 
 from numpy.random import normal
 from scipy.special import erf, erfc
@@ -54,9 +55,8 @@ def chauvenet(x, y, mean=None, stdv=None):
 
 def residuals(p, data):
    a, b = p
-   x, y = data
-   return (y-a-b*x)
-
+   x, y, err = data
+   return (y-a-b*x)/err
 
 def prob( Xlo, Xhi ):
    sq2 = numpy.sqrt(2.0)
@@ -64,15 +64,9 @@ def prob( Xlo, Xhi ):
    return 1.0 - 0.5 * (erf(Xhi/sq2) - erf(Xlo/sq2))
 
 # Artificial data
-N = 100
-a0 = 2; b0 = 3
-x = numpy.linspace(0.0, 2.0, N)
-y = a0 + b0*x + normal(0.0, 1.0, N)  # Mean 0, sigma 1
-
-# Add outlier(s)
-y[40] = 14       
-y[7] = 12
-y[-5] = 0.2
+x = numpy.array([2, 4, 6, 8, 10, 12])
+y = numpy.array([3.5, 7.2, 9.5, 17.1, 20.0, 25.5])
+err = numpy.array([0.55, 0.65, 0.74, 0.5, 0.85, 0.6])
 
 # Prepare plot
 fig = figure()
@@ -83,8 +77,9 @@ frame.set_xlabel("x")
 frame.set_ylabel("y")
 frame.set_title("Exclude poor data with criterion of Chauvenet")
 
-fitter = kmpfit.Fitter(residuals=residuals, data=(x,y))
-fitter.fit(params0=(a0,b0))
+params0 = (1,1)
+fitter = kmpfit.Fitter(residuals=residuals, data=(x,y,err))
+fitter.fit(params0=params0)
 
 print "======== Fit results all data included =========="
 print "Params:                      ", fitter.params
@@ -96,15 +91,21 @@ print "dof:                         ", fitter.dof
 print "chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min
 print "Status:                      ", fitter.status
 
+from scipy.stats import chi2
+rv = chi2(fitter.dof)
+print "If H0 was correct, then" 
+print "the probability to find a chi-squared higher than this:  ", 1-rv.cdf(fitter.chi2_min)
+print "If we set the threshold to alpha=0.05, we REJECT H0."
+   
 
-
-#mean = y.mean() # Use this for data with slope 0
 a, b = fitter.params
+N = len(y)
 mean = a + b*x
-stdv = (y-mean).std()
+stdv = err
 criterion = 1.0/(2*N)
-for xf, yf, m in zip(x, y, mean):
-   d = abs(yf-m)/stdv
+print "\nExclude loop:"
+for xf, yf, m, std in zip(x, y, mean, stdv):
+   d = abs(yf-m)/std
    P = prob(-d, d)
    if P < criterion:
       print "Data y=%f has distance %fsigma to mean (%f), prob.=%f" %(yf,d,m,P)
@@ -113,19 +114,32 @@ for xf, yf, m in zip(x, y, mean):
       frame.plot((xf,), (yf,), 'rx', ms=20)
 
 # The function chauvenet() does it the NumPy way
-filter = chauvenet(x, y)
-xf = x[filter]; yf = y[filter]
-xe = x[~filter]; ye = y[~filter]
+filter = chauvenet(x, y, mean, stdv)
+xf = x[filter]; yf = y[filter]; errf = err[filter]
+xe = x[~filter]; ye = y[~filter]; erre = err[~filter]
 print "Excluded by function chauvenet() are:"
 print zip(xe, ye)
-fitter = kmpfit.Fitter(residuals=residuals, data=(xf,yf))
-fitter.fit(params0=(a0,b0))
+fitter = kmpfit.Fitter(residuals=residuals, data=(xf,yf,errf))
+fitter.fit(params0=params0)
 
 print "\n======== Fit results with filtered data =========="
 print "Params:                      ", fitter.params
+print "Uncertainties:               ", fitter.xerror
+print "Errors assuming red.chi^2=1: ", fitter.stderr
+print "Iterations:                  ", fitter.niter 
+print "Function ev:                 ", fitter.nfev
+print "dof:                         ", fitter.dof
+print "chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min
+print "Status:                      ", fitter.status
 
+rv = chi2(fitter.dof)
+print "If H0 was correct, then"
+print "the probability to find a chi-squared higher than this:  ", 1-rv.cdf(fitter.chi2_min)
+print "If we set the threshold to alpha=0.05, we ACCEPT H0."
 
 frame.set_ylim(0, 1.1*y.max())
+frame.errorbar(xf, yf, errf, fmt='go')
+frame.errorbar(xe, ye, erre, fmt='ro')
 frame.plot(x, a+b*x, 'g', label="Fit unfilterd data")
 a, b = fitter.params
 frame.plot(x, a+b*x, 'b', label="Fit filterd data")
