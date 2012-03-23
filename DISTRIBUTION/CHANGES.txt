@@ -25,7 +25,7 @@ Version 2.2 (being developed)
 
 * WCSLIB:
 
-  * changed to version 4.12
+  * changed to version 4.13.1
 
   * use WCSLIB's new error diagnostics system
 
