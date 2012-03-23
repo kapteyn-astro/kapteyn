@@ -719,7 +719,7 @@ The error in *a* is by the law of propagation of errors:
 
    \sigma_a^2 = \sum_{i} \sigma_i^2 \left(\frac{\partial{a}}{\partial{y_i}}\right)^2
 
-From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
+>From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
 
 .. math::
    :label: parderivA
@@ -972,7 +972,7 @@ To summarize the weighting schemes:
 Reduced chi squared
 +++++++++++++++++++++
 
-From the theory of maximum likelihood we find that for a least squares solution
+>From the theory of maximum likelihood we find that for a least squares solution
 we need to maximize the probability that a measurement :math:`y_i` with given
 :math:`\sigma_i` is in a
 a small interval :math:`dy_i` around :math:`y_i` by minimizing the sum
@@ -1045,7 +1045,7 @@ What should we expect of the variance :math:`\sigma_i` compared to the
 sample deviations for each sample point?
 Assume we have N data points and each data point has an individual error of
 :math:`\sigma_i`.
-From :eq:`expectationchi2` we have:
+>From :eq:`expectationchi2` we have:
 
 .. math::
    :label: expectationreducedchi2_2
@@ -1316,7 +1316,7 @@ much lower than the diagonal.
      only when :math:`\chi_{\nu}^2 = 1`
 
 
-From [And]_ we summarize the conditions which must be met before one can
+>From [And]_ we summarize the conditions which must be met before one can
 safely use the values in ``stderr`` (i.e. demanding that :math:`\chi_{\nu} = 1`):
 In this approach of scaling the error in the best-fit parameters,
 we make some assumptions:
@@ -1503,102 +1503,98 @@ Kolmogorov distribution (Kolmogorov-Smirnov test [Mas]_ ).
 
 For this test we need the normalized cumulative versions of the data and the model with
 the best-fit parameters.
-We call the normalized cumulative version of the model :math:`F_0(x)` and
-the observed normalized cumulative step function of our data sample
-:math:`S_n(x)`. Then the sampling distribution of
-:math:`D = maximum | F_0(x) - S_n(x) |` follows the Kolmogorov distribution
-which is independent of :math:`F_0(x)` if :math:`F_0(x)` is continuous; i.e.
+We call the cumulative distribution function of the model :math:`F_0(x)` and
+the observed cumulative distribution function of our data sample
+:math:`S_n(x)` then the sampling distribution of
+:math:`D = \max| F_0(x) - S_n(x) |` follows the Kolmogorov distribution
+which is independent of :math:`F_0(x)` if :math:`F_0(x)` is continuous, i.e.
 has no jumps.
 
+The cumulative distribution of the sample is called the *empirical distribution
+function* (ECDF). To create the ECDF we need to order the sample values
+:math:`y_0, y_1, ..., y_n` from small to high values. Then the ECDF is defined as:
+
+.. math::
+   :label: ecdf
+
+   S_N = \frac{n(i)}{N}
+
+The value of :math:`n(i)` is the number of sample values :math:`y` that are smaller than
+or equal to :math:`y_i`. So the first value would be *1/N*, the second *2/N* etc.
+
+The cumulative distribution function (CDF) of the model can be calculated in the same way.
+First we find the best-fit parameters for a model using *kmpfit*.
+Select a number of *X* values to find *Y* values of your model. Usually
+the number of model samples is much higher than the number of data samples.
+With these (model) *Y* values we create a CDF using the criteria (ordered *Y* values)
+of the data. If *dat1* are the ordered sample *Y* values and *dat2* are the
+ordered model *Y* values, then a function that calculates the CDF could be::
+
+    def cdf(Y_ord_data, Y_ord_model):
+       cdfnew = []
+       n = len(Y_ord_model)
+       for yy in Y_ord_data:
+          fr = len(Y_ord_model[Y_ord_model <= yy])/float(n)
+          cdfnew.append(fr)
+       return numpy.asarray(cdfnew)
+
+which is not the most efficient procedure but it is simple and it just works.
+
+
 For hypotheses testing we define:
-   
+
    - :math:`H_0`: The data are consistent with the model with the best fit parameters
    - :math:`H_{\alpha}`: The data are *not* consistent with the model with the best fit parameters
-   
 
-The null hypothesis is rejected at
-level :math:`\alpha` if :math:`D_n > D_{\alpha}`.
-The value :math:`D_{\alpha}` is a threshold value which can be found if one solves
-the equation:
+
+Note that the ECDF is a step function and this step function could be interpreted
+in two ways. Therefore the Kolmogorov-Smirnov (KS) test statistic is defined as:
+
+.. math::
+   :label: KS-statistic
+
+   D_n = \max_{0\leq i \leq N-1}\bigl(\frac{i+1}{N}-F_0(y_i),\, F_0(y_i)-\frac{i}{N}\bigr)
+
+where we note that :math:`F_0` is a continuous distribution function (a requirement
+for the KS-test).
+
+The null hypothesis is rejected at a critical probability
+:math:`\alpha` (confidence level) if :math:`D_n > D_{\alpha}`.
+The value :math:`D_{\alpha}` is a threshold value. Given the value of :math:`\alpha`,
+we need to find :math:`D_{\alpha}` by solving:
 
 .. math::
    :label: KS_threshold
-   
+
    Pr(D_n < D_{\alpha}) = 1 - \alpha
    
+To find this probability we use the Kolmogorov-Smirnov **two**-sided test which
+can be approximated with SciPy's method :meth:`scipy.stats.kstwobign`.
+This test uses :math:`D_n/\sqrt(N)` as input and the output of :meth:`kstwobign.ppf`
+is :math:`D_n*\sqrt(N)`. Given a value for *N*, we find threshold values for
+:math:`D_n` for frequently used values of confidence level :math:`\alpha`, as
+follows::
 
-We can find critical values for :math:`D_{\alpha}` corresponding to
-a upper tail probability of the test statistic D in a table with critical values
-of *D* for the Kolmogorov-Smirnov Goodness-of-Fit Test, or we can calculate
-the values with SciPy's statistical function :func:`scipy.stats.ksone`.
-The cumulative distribution function *ksone.cdf()* calculates the
-cumulative probability of the Kolmogorov distribution from 0 to x.
-The inverse of *cdf()* is the Percent point function :func:`scipy.stats.ksone.ppf()`.
-We define the critical probability 
-:math:`\alpha` to accept or reject the null hypothesis as:
+   N = ...
+   from scipy.stats import kstwobign
+   # Good approximation for the exact distribution if N>4
+   dist = kstwobign()
+   alphas = [0.2, 0.1, 0.05, 0.025, 0.01]
+   for a in alphas:
+      Dn_crit = dist.ppf(1-a)/numpy.sqrt(N)
+      print "Critical value of D at alpha=%.3f(two sided):  %g"%(a, Dn_crit)
 
-.. math::
-   :label: critalpha
-
-   \alpha = Pr[D_n \geq D_{\alpha}]
-
-Note that the range of D values is then :math:`[x,\infty>` and we need the results
-of :math:`1-cdf(D_n)` and :math:`ppf(1-\alpha)`
-as demonstrated in the next example which creates a table with critical values.
-::
-
-   from scipy.stats import ksone
-
-   alphas=(0.1, 0.05, 0.025, 0.01, 0.005)
-   header= "\n%5s"%"n"
-   for alpha in alphas:
-      s = "a=%.3f"%alpha
-      header += " %12s"%s
-   print header
-   print "="*len(header)
-
-   for n in range(3,21):
-      s = "%5d"%n
-      rv = ksone(n)
-      for alpha in alphas:
-         Dcrit = rv.ppf(1-alpha)   # Lower tail probability
-         s += " %12.5f"%Dcrit
-      print s
-
-      n      a=0.100      a=0.050      a=0.025      a=0.010      a=0.005
-   =======================================================================
-      3      0.56481      0.63604      0.70760      0.78456      0.82900
-      4      0.49265      0.56522      0.62394      0.68887      0.73424
-      5      0.44698      0.50945      0.56328      0.62718      0.66853
-      6      0.41037      0.46799      0.51926      0.57741      0.61661
-      7      0.38148      0.43607      0.48342      0.53844      0.57581
-      8      0.35831      0.40962      0.45427      0.50654      0.54179
-      9      0.33910      0.38746      0.43001      0.47960      0.51332
-     10      0.32260      0.36866      0.40925      0.45662      0.48893
-     11      0.30829      0.35242      0.39122      0.43670      0.46770
-     12      0.29577      0.33815      0.37543      0.41918      0.44905
-     13      0.28470      0.32549      0.36143      0.40362      0.43247
-     14      0.27481      0.31417      0.34890      0.38970      0.41762
-     15      0.26589      0.30397      0.33760      0.37713      0.40420
-     16      0.25778      0.29472      0.32733      0.36571      0.39201
-     17      0.25039      0.28627      0.31796      0.35528      0.38086
-     18      0.24360      0.27851      0.30936      0.34569      0.37062
-     19      0.23735      0.27136      0.30143      0.33685      0.36117
-     20      0.23156      0.26473      0.29408      0.32866      0.35241
-
-
-If we compare this table with the table in [Mas]_, then we observe that the
-listed values of :math:`\alpha` are twice the values of the :math:`\alpha` in
-our example. The difference can be explained by the fact that [Mas]_ uses a
-two-sided test while we apply the one-sided test.
 
 In the next script we demonstrate that the Kolmogorov-Smirnov test is
-very useful if we have reasonable fits, but bad values of chi-squared due to
+useful if we have reasonable fits, but bad values of chi-squared due to
 improperly scaled errors on the data points. The :math:`\chi^2` test will
 immediately reject the hypothesis that data and model are consistent.
 The Kolmogorov-Smirnov test depends on the difference between
 the cumulative distributions and does not depend on the scale of these
-errors.
+errors. The empirical and model cdf's show where the fit deviates most from the
+model. A plot with these cdf's can be a starting point to reconsider a model if
+the deviations are too large.
+
 
 **Example: kmpfit_goodnessoffit2.py - Kolmogorov-Smirnov goodness of fit test**
 
@@ -2211,7 +2207,7 @@ ODR                          5.47991037830    -0.48053343863
 Williamson                   5.47991022403    -0.48053340745
 =========================== ================ ================
 
-From these results we conclude that *kmpfit* with the effective variance
+>From these results we conclude that *kmpfit* with the effective variance
 residuals function, is very well suited to perform weighted
 orthogonal fits for a model that represents a straight line.
 If you run the program, you can observe that also the uncertainties
@@ -2534,6 +2530,25 @@ and weights, so the weights should be treated as relative weights (``abswei=Fals
    :align: center
 
 
+With a small change in the confidence routine we can also derive a prediction interval.
+The values for a prediction band are derived from:
+
+.. math::
+   :label: prediction_band
+
+   \sigma_{pred}^2 = \sigma_{f}^2 + \sigma_y^2
+
+So we need the array with the data errors to derive the prediction interval.
+Note that this band is only smooth if we use unit weighting. Otherwise one
+observes a distorted band due to fluctuations in the weighting as demonstrated
+on the next example.
+
+**Example:  kmpfit_example_partialdervs_confidence - Confidence bands fit of parabola**
+
+.. plot:: EXAMPLES/kmpfit_example_partialdervs_confidence.py
+   :align: center
+
+
 Special topics
 ----------------
 
@@ -2550,7 +2565,7 @@ is an outlier in the y direction only.
 The criterion we want discuss here is called
 Chauvenet's criterion (http://en.wikipedia.org/wiki/Chauvenet's_criterion).
 Suppose you have
-*N* measurments :math:`y_i` from which we first calculate the mean and
+*N* measurements :math:`y_i` from which we first calculate the mean and
 standard deviation.
 If a normal distribution is assumed, we can determine if the probability of a
 particular measurement is less than 1/2N (as proposed by the French mathematician
@@ -2608,7 +2623,7 @@ data arrays::
          mean = y.mean()           # Mean of incoming array y
       if stdv is None:
          stdv = y.std()            # Its standard deviation
-      N = len(y)                   # Lenght of incoming arrays
+      N = len(y)                   # Length of incoming arrays
       criterion = 1.0/(2*N)        # Chauvenet's criterion
       d = abs(y-mean)/stdv         # Distance of a value to mean in stdv's
       d /= 2.0**0.5                # The left and right tail threshold values
@@ -2644,6 +2659,93 @@ consistent.
 For outliers in the x direction, one need different methods.
 
 
+Variance Reduction
+++++++++++++++++++++++++
+
+To value a model we use a technique called Variance Reduction [Wol]_.
+It can be applied to both linear and nonlinear models.
+Variance Reduction (VR) is defined as the percentage of the variance in the
+dependent variable that is explained by the model. The variance of the sample is
+given by:
+
+.. math::
+   :label: sample_variance
+
+   \sigma_s = \frac{\sum\limits_{i=0}^{N-1} (y_i-\bar{y})^2 }{N-1}
+
+The variance given by the model with its best-fit parameters is:
+
+.. math::
+   :label: model_variance
+
+   \sigma_m = \frac{\sum\limits_{i=0}^{N-1} (y_i-y_{model})^2 }{N-1}
+
+The Variance Reduction is defined as:
+
+.. math::
+   :label: variance reduction
+
+   VR = 100 * \left(1-\frac{\sigma_m^2}{\sigma_s^2}\right) = 100 * \left(1- \frac{\sum \limits_{i=0}^{N-1} (y_i-\bar{y})^2}{\sum\limits_{i=0}^{N-1} (y_i-y_{model})^2} \right)
+
+If the quality of your model is good and your data is well behaved, then the
+model variance is small and the VR is close to 100%. Wrong models, or data with
+outliers have lower values, which even can be negative.
+We use VR to identify outliers in data where one (or more) points have a
+significant error in *x*. If we calculate the VR for samples where we
+exclude one data point and repeat this action for all data points, then
+it is possible to identify the outlier because exclusion of this outlier
+will improve the VR significantly. Note that for this type of outliers, one
+cannot use Chauvenet's criterion because the initial (bad) fit is required to
+exclude data points.
+
+The VR can be calculated in a script as follows::
+
+   fitter.fit(params0=params0)                 # Find best-fit parameters
+   varmod = (y-model(fitter.params,x))**2.0    # The model variance
+   varmod = varmod.sum()/(N-1)
+   vardat = y.var()                            # Sample variance
+   # A vr of 100% implies that the model is perfect
+   # A bad model gives much lower values (sometimes negative)
+   vr = 100.0*(1-(varmod/vardat))
+
+Below, the script that uses the VR to identify an outlier. It removes the
+data point that, when omitted, improves the VR the most.
+
+**Example: kmpfit_varreduct.py  - Use Variance Reduction to identify outlier**
+
+.. plot:: EXAMPLES/kmpfit_varreduct.py
+   :align: center
+
+In [Wol]_ an example is given of data and a fit with using a good model
+and a bad model.
+The difference between those models should be clear if we inspect the VR of
+both. With :download:`kmpfit_varreduct_wol.py <EXAMPLES/kmpfit_varreduct_wol.py>`
+we reproduced table 3.4.1 of [Wol]_ for both weighted and unweighted fits.
+We get the same values, with only a small deviation of the weighted fit
+with the straight line model ([Wol]_ gives -48.19, which is probably a
+typo). The data was derived from a parabolic model so we know that a parabola
+should be the most suitable model. From the table we learn that indeed the
+parabola gives the best VR. For weighted fits, the result is
+even more obvious because the errors on the data increase if the distance from the
+bottom of the parabola increases. For a weighted fit this is a recipe to get
+a bad value for the VR.
+
+
++----------------------------+--------------+--------------------------+
+| Model                      | :math:`w_i=1`| :math:`w_i=1/\sigma_i^2` |
++============================+==============+==========================+
+| :math:`y = a+b\,x`         | +80.29       | -48.29                   |
++----------------------------+--------------+--------------------------+
+| :math:`y = a+b\,x+c\,x^2`  | +99.76       | +99.72                   |
++----------------------------+--------------+--------------------------+
+
+
+**Example: kmpfit_varreduct_wol.py  - Use Variance Reduction to examine model**
+
+.. plot:: EXAMPLES/kmpfit_varreduct_wol.py
+   :align: center
+
+
 
 Regression through the origin
 +++++++++++++++++++++++++++++++
@@ -2666,7 +2768,7 @@ For a model :math:`y = a + bx` we defined chi squared as:
 
    \chi^2 = \sum_{i=0}^{N-1} {\left( \frac{y_i-a-bx_i}{\sigma_i} \right)}^2
 
-For regression through the origin (leaving paramter *a* out of the equations) we
+For regression through the origin (leaving parameter *a* out of the equations) we
 find for the minimum chi squared:
 
 .. math::
@@ -2784,14 +2886,36 @@ method described above and *kmpfit* to compare the results.
 We included the fast NumPy based function to filter possible outliers
 using Chauvenet's criterion.
 This criterion was discussed in the previous section. As a mean, we do not
-use the mean of the sample, but the straight line parameters from
-the literature; in this example it is allowed to apply some prior
-knowledge about the result.
-Note that we applied random weights
-to prove that the errors from *kmpfit* are comparable to
-those derived from the analytical method.
-The scaled parameter error is the error that would be calculated if
-the reduced chi-squared is exactly 1.0 (a perfect fit was assumed).
+use the mean of the sample, but the model with the best fit parameters.
+As standard deviation we use the (artificial) errors on the data as we did
+in the second example of Chauvenet's criterion.
+
+We also included a loop which gives the variance reduction when we omit
+one data point. The variance reduction for the unfiltered data is low
+which implies that the model is not the best model or that we have one or more
+outliers::
+
+   Variance reduction unfiltered data: 37.38%
+
+         Excluded data      chi^2  red.chi^2         VR
+   =====================================================
+   (   42.00,  1294.00)      32.56       4.65      80.55
+   (    6.75,   462.00)     101.76      14.54      31.44
+   (   25.00,  2562.00)      65.93       9.42      41.20
+   (   33.80,  2130.00)     101.49      14.50      28.46
+   (    9.36,   750.00)     100.85      14.41      36.82
+   (   21.80,  2228.00)      75.80      10.83      44.28
+   (    5.58,   598.00)      99.94      14.28      35.27
+   (    8.52,   224.00)      99.45      14.21      26.44
+   (   15.10,   971.00)     101.73      14.53      38.26
+   =====================================================
+
+Based on this table we can conclude that data point (42,1294) can be
+regarded as an outlier. Removing this point decreases the variance of
+the data with respect to the model, significantly, which results in a big
+improvement of the variance reduction.
+In this case, a filter based on exclusion of data based on variance reduction,
+improves the fit more than a filter based on Chauvenet's criterion.
 
 **Example: kmpfit_hubblefit.py  - Find Hubble constant with fit of line through origin**
 

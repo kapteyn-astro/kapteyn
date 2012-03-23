@@ -18,8 +18,8 @@ def confpred_band(x, dfdp, prob, fitobj, f, prediction, abswei=False, err=None):
    #----------------------------------------------------------   
    from scipy.stats import t
    # Given the confidence or prediction probability prob = 1-alpha
-   # we derive alpha = 1 - confprob 
-   alpha = 1 - confprob
+   # we derive alpha = 1 - prob 
+   alpha = 1 - prob
    prb = 1.0 - alpha/2
    tval = t.ppf(prb, fitobj.dof)
    
@@ -36,9 +36,7 @@ def confpred_band(x, dfdp, prob, fitobj, f, prediction, abswei=False, err=None):
       for k in range(n):
          df2 += dfdp[j]*dfdp[k]*C[j,k]
    if prediction:
-      df = numpy.sqrt(err*err*(1+covscale*df2))
-      print "Abs wei, red chi^2?", abswei, covscale
-      print "df min, max", df.min(), df.max()
+      df = numpy.sqrt(err*err+covscale*df2)
    else:
       df = numpy.sqrt(covscale*df2)
    y = f(p, x)
@@ -180,10 +178,10 @@ def my_derivs(p, data, dflags):
    # with booleans. If an element is True then an explicit partial
    # derivative is required.
    #-----------------------------------------------------------------------
-   x, y, err = data
+   x, y, err = data    # y is dummy here
    A, mu, sigma, zerolev = p
    pderiv = numpy.zeros([len(p), len(x)])  # You need to create the required array
-   sig2 = sigma*sigma
+   sig2 = sigma * sigma
    sig3 = sig2 * sigma
    xmu  = x-mu
    xmu2 = xmu**2
@@ -199,12 +197,11 @@ def my_derivs(p, data, dflags):
             pderiv[2] = fx * xmu2/(sig3)
          elif i == 3:
             pderiv[3] = 1.0
-   pderiv /= -err
-   return pderiv
+   return pderiv/-err
 
 
 # Artificial data
-N = 40
+N = 50
 x = numpy.linspace(-5, 10, N)
 truepars = [10.0, 5.0, 1.0, 0.0]
 p0 = [9, 4.5, 0.8, 0]
@@ -212,7 +209,8 @@ rms_data = 0.8
 rms_err = 0.1
 y = my_model(truepars, x) + numpy.random.normal(0.0, rms_data, N)
 err = numpy.random.normal(0.6, rms_err, N)
-#err *= 0.0+1
+#err = err*0 + 1
+
 
 # The fit
 fitobj = kmpfit.Fitter(residuals=my_residuals, deriv=my_derivs, data=(x, y, err))
@@ -234,15 +232,15 @@ print "Status:        ", fitobj.status
 print "Status Message:", fitobj.message
 print "Covariance:\n", fitobj.covar 
 
-
+# Re-use my_derivs() but rescale derivatives back again with -err
 dervs = my_derivs(fitobj.params, (x,y,err), (True,True,True,True))*-err
 
 dfdp = [dervs[0], dervs[1], dervs[2], dervs[3]]
 confprob = 0.95
-ydummy, upperband, lowerband = confidence_band(x, dfdp, confprob, fitobj, my_model, err=err)
+ydummy, upperband, lowerband = confidence_band(x, dfdp, confprob, fitobj, my_model)
 verts_conf = zip(x, lowerband) + zip(x[::-1], upperband[::-1])
 
-predprob = 0.95
+predprob = 0.90
 ydummy, upperband, lowerband = prediction_band(x, dfdp, predprob, fitobj, my_model, 
                                err=err, abswei=False)
 verts_pred = zip(x, lowerband) + zip(x[::-1], upperband[::-1])
@@ -253,19 +251,22 @@ rc('font', size=9)
 rc('legend', fontsize=8)
 fig = figure()
 frame = fig.add_subplot(1,1,1)
+X = numpy.linspace(x.min(), x.max(), 100)
 frame.errorbar(x, y, yerr=err, fmt='go', alpha=0.7, label="Noisy data")
-frame.plot(x, my_model(truepars,x), 'r', label="True data")
-frame.plot(x, my_model(fitobj.params,x), 'b', lw=2, label="Fit with kmpfit")
+frame.plot(X, my_model(truepars,X), 'r', label="True data")
+frame.plot(X, my_model(fitobj.params,X), 'b', lw=2, label="Fit with kmpfit")
 poly = Polygon(verts_conf, closed=True, fc='g', ec='g', alpha=0.3, 
-               label="CI (95%)")
+               label="CI (%g)"%confprob)
 frame.add_patch(poly)
 poly = Polygon(verts_pred, closed=True, fc='r', ec='r', alpha=0.3, 
-               label="PI (95%)")
+               label="PI (%g)"%predprob)
 frame.add_patch(poly)
 frame.set_xlabel("X")
 frame.set_ylabel("Measurement data")
-frame.set_title("Least-squares fit to noisy Gaussian data using KMPFIT",
+frame.set_title("Confidence- and prediction bands for Gaussian model",
                 fontsize=10)
+delta = (x.max()-x.min())/10.0
+frame.set_xlim(x.min()-delta, x.max()+delta)
 frame.grid(True)
 
 # Check prediction intervals
