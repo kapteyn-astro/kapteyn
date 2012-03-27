@@ -286,8 +286,10 @@ fit nearby the global minimum.
    :alt: Chi-squared landscape
    :align: center
 
+   Chi-squared parameter landscape for Gaussian model. The value of
+   chi-squared is plotted along the z-axis.
 
-The figure shows the parameter landscape for a model that represents a Gaussian.
+The figure shows the chi-squared parameter landscape for a model that represents a Gaussian.
 The landscape axes are model parameters: the position of the peak :math:`\mu` and
 :math:`\sigma` which is a measure for the width of the peak (half width at 1/e of
 peak). The relation between
@@ -1751,6 +1753,8 @@ spectral axis, needs another approach. If your profile has more than 1 Gaussian
 component, the problem becomes even more complicated. So what we need is
 a method that automates the search for reasonable initial estimates.
 
+.. _gauest:
+
 Gauest
 !!!!!!!!
 
@@ -2923,6 +2927,211 @@ improves the fit more than a filter based on Chauvenet's criterion.
    :align: center
 
 
+Fitting Voigt profiles
++++++++++++++++++++++++
+
+
+The Voigt profile
++++++++++++++++++++
+
+The line-shapes of spectroscopic
+transitions depend on the broadening mechanisms
+of the initial and final states, and include natural broadening,
+collisional broadening, power broadening, and
+Doppler broadening. Natural, collisional, and power broadening are
+homogeneous mechanisms and produce Lorentzian line-shapes.
+Doppler broadening is a form of inhomogeneous broadening and has a
+Gaussian line-shape. Combinations of
+Lorentzian and Gaussian line-shapes can be approximated by a Voigt profile.
+In fact, the Voigt profile is a convolution of
+Lorentzian and Doppler line broadening mechanisms:
+
+.. math::
+   :label: voigt-4
+
+    \phi_{Lorentz}(\nu)=\frac{1}{\pi} \frac{\alpha_L}{(\nu-\nu_0)^2 + \alpha_L^2}
+
+.. math::
+   :label: voigt-5
+
+   \phi_{Doppler}(\nu)=\frac{1}{\alpha_D} \sqrt{\frac{\ln{2}}{\pi}} e^{-\ln{2} \frac{(\nu-\nu_0)^2}{\alpha_D^2}}
+
+
+Both functions are normalized, :math:`\alpha_D` and :math:`\alpha_L` are **half** widths
+at **half** maximum [Scr]_.
+Convolution is given by the relation:
+
+.. math::
+   :label: voigt-6
+
+   f(\nu) \star g(\nu)=\int\limits_{-\infty}^\infty {f(\nu - t ) g(t) dt}
+
+Define the ratio of Lorentz to Doppler widths as:
+
+.. math::
+   :label: voigt-7
+
+   y \equiv \frac{\alpha_L}{\alpha_D} \sqrt{\ln{2}}
+
+
+and the frequency scale (in units of the Doppler Line-shape half-width  :math:`\alpha_D`):
+
+.. math::
+   :label: voigt-8
+
+   x \equiv \frac{\nu-\nu_0}{\alpha_D} \sqrt{\ln{2}}
+
+
+The convolution of both functions is:
+
+.. math::
+   :label: voigt-11
+
+   \phi_\nu(\nu)=\phi_L(\nu)\star\phi_D(\nu)=\
+   \frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\,
+   \frac{y}{\pi}\int\limits_{-\infty}^\infty {\frac{e^{-t^2}}{(x-t)^2+y^2}dt}
+ 
+Part of the expression of the Voigt line-shape is the Voigt function :math:`K(x,y)`.
+The definition of this function is:
+
+.. math::
+   :label: voigt-11a
+
+   K(x,y) = \frac{y}{\pi} {\int\limits_{- \infty} ^{\infty}} \frac{e^{-t^{2}}}{y^2 + {(x - t)}^2} dt
+
+Then:
+
+.. math::
+   :label: voigt-11b
+
+   \phi_\nu(\nu)=\frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\, K(x,y)
+
+Using the expressions for *x* and *y* from :eq:`voigt-8` and :eq:`voigt-7`, this can be rewritten
+in terms of the physical parameters as [Vog]_:
+
+.. math::
+   :label: voigt-12
+
+   \phi_\nu(\nu)=\
+   \frac{\alpha_L}{\alpha_D^2}\
+   \frac{\ln{2}} {\pi^{\frac{3}{2}}}\
+   \int\limits_{-\infty}^\infty {\frac{e^{-t^2}}{\left(\frac{\nu-\nu_0}{\alpha_D} \sqrt{\ln{2}}-t\right)^2+\,\
+   \left({\frac{\alpha_L}{\alpha_D} \sqrt{\ln{2}}}\right)^2}dt}
+
+   \label{Voigtprofile_ex2}
+
+
+Note that :math:`\alpha_L` and :math:`\alpha_D` are both **half-width at half maximum** and not FWHM's.
+In [Vog]_, it is proved that:
+
+.. math::
+   :label: voigt-13
+
+   \int\limits_{-\infty}^\infty {\phi_\nu(\nu)d\nu} = 1
+
+so the Voigt line-shape (eq. :eq:`voigt-11`) is also normalized.
+When we want to find the best-fit parameters of the Voigt line-shape model, we
+need to be able to process profiles with arbitrary area and we need a scaling factor
+*A*. The expression for the Voigt line-shape becomes:
+
+
+.. math::
+   :label: voigt-13a
+
+   \boxed{\phi_\nu(\nu)= A\, \frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\, K(x,y)}
+   
+
+One can prove [Vog_] with the substitution of:
+
+.. math::
+   :label: voigt-14
+
+   \framebox{z = x + iy}
+
+that the Voigt function can be expressed as the real part of a special function:
+
+.. math::
+   :label: voigt-16
+
+   \boxed{K(x,y) = \Re \{\omega(z)\} }
+
+:math:`\omega(z)` is called the complex probability function,
+also known as the Faddeeva function. Scipy has
+implemented this function under the name :func:`scipy.special.wofz`.
+
+The amplitude is found at :math:`\nu=\nu_0`. Then the relation between amplitude and area is
+:math:`amp=\phi (\nu_0)`:
+
+.. math::
+   :label: voigt-18
+
+   \boxed{amp = \phi (\nu_0) = \frac {A} {\alpha_D} \sqrt{\frac {\ln 2} {\pi}} K(0,y)}
+
+
+In [Scr]_ we read that the half width at half maximum can be found with:
+
+.. math::
+   :label: voigt-19
+
+   \boxed{hwhm = \frac{1}{2}\, \left(c_1\, \alpha_L + \sqrt{c_2\,\alpha_L^2+4\,\alpha_D^2}\right)}
+
+with :math:`c_1 = 1.0692` and :math:`c_2= 0.86639`.
+
+
+The Voigt function can be implemented using SciPy's function :func:`wofz`.
+In the next code fragments, it should be easy to find correspondence between
+code and boxed formulas::
+
+   def voigt(x, y):
+      # The Voigt function is also the real part of
+      # w(z) = exp(-z^2) erfc(iz), the complex probability function,
+      # which is also known as the Faddeeva function. Scipy has
+      # implemented this function under the name wofz()
+      z = x + 1j*y
+      I = wofz(z).real
+      return I
+
+
+   def Voigt(nu, alphaD, alphaL, nu_0, A, a=0, b=0):
+      # The Voigt line shape in terms of its physical parameters
+      f = numpy.sqrt(ln2)
+      x = (nu-nu_0)/alphaD * f
+      y = alphaL/alphaD * f
+      backg = a + b*nu
+      V = A*f/(alphaD*numpy.sqrt(numpy.pi)) * voigt(x, y) + backg
+      return V
+
+   # Half width and amplitude
+   c1 = 1.0692
+   c2 = 0.86639
+   hwhm = 0.5*(c1*alphaL+numpy.sqrt(c2*alphaL**2+4*alphaD**2))
+   f = numpy.sqrt(ln2)
+   y = alphaL/alphaD * f
+   amp = A/alphaD*numpy.sqrt(ln2/numpy.pi)*voigt(0,y)
+
+with:
+
+   * nu: x-values, usually frequencies.
+   * alphaD: Half width at half maximum for Doppler profile
+   * alphaL: Half width at half maximum for Lorentz profile
+   * nu_0: Central frequency
+   * A: Area under profile
+   * a, b: Background as in a + b*x
+
+In the example below, we compare a Gaussian model with a Voigt
+model. We had some knowledge about the properties of the profile data so
+finding appropriate initial estimates is not difficult. If you need to
+automate the process of finding initial estimates, you can use function
+:func:`gauest` (:ref:`gauest`) from the section about initial estimates.
+However, note that you need to invert the data because :func:`gauest` can
+only process peaks (positive amplitudes).
+
+**Example: kmpfit_voigt.py  - The Voigt line shape**
+
+.. plot:: EXAMPLES/kmpfit_voigt.py
+   :align: center
+
+
 Glossary
 --------
 
@@ -3012,6 +3221,10 @@ References
    A copy of this article can be found at:
    `http://stat.smmu.edu.cn/history <http://stat.smmu.edu.cn/history/pearson1901.pdf/>`_
 
+.. [Scr] Schreier, Franz, *Optimized implementations of rational approximations for the
+   Voigt and complex error function*,
+   Journal of Quantitative Spectroscopy & Radiative Transfer 112 (2011) 1010-1025
+
 .. [Sch] Schwarz, U.J., *Analysis of an Observed Function into Components, using its Second Derivative*,
    Bull. Astr. Inst. Netherlands, 1968, 19 405-413
    `(local copy) <http://www.astro.rug.nl/software/kapteyn-alpha/_downloads/Schwarz-1968.pdf>`_
@@ -3022,6 +3235,8 @@ References
 
 .. [Yor] York, D. *Least-squares fitting of a straight line*,
    Canadian Journal of Physics. Vol. 44, p.1079, 1966
+
+.. [Vog] Vogelaar, M.G.R., XGAUPROF, `local copy <http://www.astro.rug.nl/~gipsy/xgauprof/xgauprof.pdf>`_
 
 .. [Wil] Williamson, *Least-squares fitting of a straight line*,
    J.A., Can. J. Phys, 1968, 46, 1845-1847
