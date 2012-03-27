@@ -721,7 +721,7 @@ The error in *a* is by the law of propagation of errors:
 
    \sigma_a^2 = \sum_{i} \sigma_i^2 \left(\frac{\partial{a}}{\partial{y_i}}\right)^2
 
->From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
+From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
 
 .. math::
    :label: parderivA
@@ -974,7 +974,7 @@ To summarize the weighting schemes:
 Reduced chi squared
 +++++++++++++++++++++
 
->From the theory of maximum likelihood we find that for a least squares solution
+From the theory of maximum likelihood we find that for a least squares solution
 we need to maximize the probability that a measurement :math:`y_i` with given
 :math:`\sigma_i` is in a
 a small interval :math:`dy_i` around :math:`y_i` by minimizing the sum
@@ -1047,7 +1047,7 @@ What should we expect of the variance :math:`\sigma_i` compared to the
 sample deviations for each sample point?
 Assume we have N data points and each data point has an individual error of
 :math:`\sigma_i`.
->From :eq:`expectationchi2` we have:
+From :eq:`expectationchi2` we have:
 
 .. math::
    :label: expectationreducedchi2_2
@@ -1318,7 +1318,7 @@ much lower than the diagonal.
      only when :math:`\chi_{\nu}^2 = 1`
 
 
->From [And]_ we summarize the conditions which must be met before one can
+From [And]_ we summarize the conditions which must be met before one can
 safely use the values in ``stderr`` (i.e. demanding that :math:`\chi_{\nu} = 1`):
 In this approach of scaling the error in the best-fit parameters,
 we make some assumptions:
@@ -2211,7 +2211,7 @@ ODR                          5.47991037830    -0.48053343863
 Williamson                   5.47991022403    -0.48053340745
 =========================== ================ ================
 
->From these results we conclude that *kmpfit* with the effective variance
+From these results we conclude that *kmpfit* with the effective variance
 residuals function, is very well suited to perform weighted
 orthogonal fits for a model that represents a straight line.
 If you run the program, you can observe that also the uncertainties
