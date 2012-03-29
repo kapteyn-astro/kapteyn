@@ -721,7 +721,7 @@ The error in *a* is by the law of propagation of errors:
 
    \sigma_a^2 = \sum_{i} \sigma_i^2 \left(\frac{\partial{a}}{\partial{y_i}}\right)^2
 
-From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
+>From :eq:`numrep_linear4` and :eq:`numrep_linear1` we derive:
 
 .. math::
    :label: parderivA
@@ -974,7 +974,7 @@ To summarize the weighting schemes:
 Reduced chi squared
 +++++++++++++++++++++
 
-From the theory of maximum likelihood we find that for a least squares solution
+>From the theory of maximum likelihood we find that for a least squares solution
 we need to maximize the probability that a measurement :math:`y_i` with given
 :math:`\sigma_i` is in a
 a small interval :math:`dy_i` around :math:`y_i` by minimizing the sum
@@ -1047,7 +1047,7 @@ What should we expect of the variance :math:`\sigma_i` compared to the
 sample deviations for each sample point?
 Assume we have N data points and each data point has an individual error of
 :math:`\sigma_i`.
-From :eq:`expectationchi2` we have:
+>From :eq:`expectationchi2` we have:
 
 .. math::
    :label: expectationreducedchi2_2
@@ -1318,7 +1318,7 @@ much lower than the diagonal.
      only when :math:`\chi_{\nu}^2 = 1`
 
 
-From [And]_ we summarize the conditions which must be met before one can
+>From [And]_ we summarize the conditions which must be met before one can
 safely use the values in ``stderr`` (i.e. demanding that :math:`\chi_{\nu} = 1`):
 In this approach of scaling the error in the best-fit parameters,
 we make some assumptions:
@@ -1604,8 +1604,9 @@ the deviations are too large.
    :align: center
 
 
-*kmpfit* with Explicit partial derivatives
-------------------------------------------------
+Profile fitting
+----------------
+
 
 Gaussian profiles
 ++++++++++++++++++
@@ -1850,6 +1851,387 @@ is based on the code in the next example.
 
 **Example:** :download:`kmpfit_gauest_prepare.py <EXAMPLES/kmpfit_gauest_prepare.py>`
 **- Demonstrate how profile data needs to be prepared for gauest()**
+
+
+Fitting Voigt profiles
++++++++++++++++++++++++
+
+
+The line-shapes of spectroscopic
+transitions depend on the broadening mechanisms
+of the initial and final states, and include natural broadening,
+collisional broadening, power broadening, and
+Doppler broadening. Natural, collisional, and power broadening are
+homogeneous mechanisms and produce Lorentzian line-shapes.
+Doppler broadening is a form of inhomogeneous broadening and has a
+Gaussian line-shape. Combinations of
+Lorentzian and Gaussian line-shapes can be approximated by a Voigt profile.
+In fact, the Voigt profile is a convolution of
+Lorentzian and Doppler line broadening mechanisms:
+
+.. math::
+   :label: voigt-4
+
+    \phi_{Lorentz}(\nu)=\frac{1}{\pi} \frac{\alpha_L}{(\nu-\nu_0)^2 + \alpha_L^2}
+
+.. math::
+   :label: voigt-5
+
+   \phi_{Doppler}(\nu)=\frac{1}{\alpha_D} \sqrt{\frac{\ln{2}}{\pi}} e^{-\ln{2} \frac{(\nu-\nu_0)^2}{\alpha_D^2}}
+
+
+Both functions are normalized, :math:`\alpha_D` and :math:`\alpha_L` are **half** widths
+at **half** maximum [Scr]_.
+Convolution is given by the relation:
+
+.. math::
+   :label: voigt-6
+
+   f(\nu) \star g(\nu)=\int\limits_{-\infty}^\infty {f(\nu - t ) g(t) dt}
+
+Define the ratio of Lorentz to Doppler widths as:
+
+.. math::
+   :label: voigt-7
+
+   y \equiv \frac{\alpha_L}{\alpha_D} \sqrt{\ln{2}}
+
+
+and the frequency scale (in units of the Doppler Line-shape half-width  :math:`\alpha_D`):
+
+.. math::
+   :label: voigt-8
+
+   x \equiv \frac{\nu-\nu_0}{\alpha_D} \sqrt{\ln{2}}
+
+
+The convolution of both functions is:
+
+.. math::
+   :label: voigt-11
+
+   \phi_\nu(\nu)=\phi_L(\nu)\star\phi_D(\nu)=\
+   \frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\,
+   \frac{y}{\pi}\int\limits_{-\infty}^\infty {\frac{e^{-t^2}}{(x-t)^2+y^2}dt}
+
+Part of the expression of the Voigt line-shape is the Voigt function :math:`K(x,y)`.
+The definition of this function is:
+
+.. math::
+   :label: voigt-11a
+
+   K(x,y) = \frac{y}{\pi} {\int\limits_{- \infty} ^{\infty}} \frac{e^{-t^{2}}}{y^2 + {(x - t)}^2} dt
+
+Then:
+
+.. math::
+   :label: voigt-11b
+
+   \phi_\nu(\nu)=\frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\, K(x,y)
+
+Using the expressions for *x* and *y* from :eq:`voigt-8` and :eq:`voigt-7`, this can be rewritten
+in terms of the physical parameters as [Vog]_:
+
+.. math::
+   :label: voigt-12
+
+   \phi_\nu(\nu)=\
+   \frac{\alpha_L}{\alpha_D^2}\
+   \frac{\ln{2}} {\pi^{\frac{3}{2}}}\
+   \int\limits_{-\infty}^\infty {\frac{e^{-t^2}}{\left(\frac{\nu-\nu_0}{\alpha_D} \sqrt{\ln{2}}-t\right)^2+\,\
+   \left({\frac{\alpha_L}{\alpha_D} \sqrt{\ln{2}}}\right)^2}dt}
+
+   \label{Voigtprofile_ex2}
+
+
+Note that :math:`\alpha_L` and :math:`\alpha_D` are both **half-width at half maximum** and not FWHM's.
+In [Vog]_, it is proved that:
+
+.. math::
+   :label: voigt-13
+
+   \int\limits_{-\infty}^\infty {\phi_\nu(\nu)d\nu} = 1
+
+so the Voigt line-shape (eq. :eq:`voigt-11`) is also normalized.
+When we want to find the best-fit parameters of the Voigt line-shape model, we
+need to be able to process profiles with arbitrary area and we need a scaling factor
+*A*. The expression for the Voigt line-shape becomes:
+
+
+.. math::
+   :label: voigt-13a
+
+   \boxed{\phi_\nu(\nu)= A\, \frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\, K(x,y)}
+
+
+One can prove [Vog_] with the substitution of:
+
+.. math::
+   :label: voigt-14
+
+   \boxed{z = x + iy}
+
+that the Voigt function can be expressed as the real part of a special function:
+
+.. math::
+   :label: voigt-16
+
+   \boxed{K(x,y) = \Re \{\omega(z)\} }
+
+:math:`\omega(z)` is called the complex probability function,
+also known as the Faddeeva function. Scipy has
+implemented this function under the name :func:`scipy.special.wofz`.
+
+The amplitude is found at :math:`\nu=\nu_0`. Then the relation between amplitude and area is
+:math:`amp=\phi (\nu_0)`:
+
+.. math::
+   :label: voigt-18
+
+   \boxed{amp = \phi (\nu_0) = \frac {A} {\alpha_D} \sqrt{\frac {\ln 2} {\pi}} K(0,y)}
+
+
+In [Scr]_ we read that the half width at half maximum can be found with:
+
+.. math::
+   :label: voigt-19
+
+   \boxed{hwhm = \frac{1}{2}\, \left(c_1\, \alpha_L + \sqrt{c_2\,\alpha_L^2+4\,\alpha_D^2}\right)}
+
+with :math:`c_1 = 1.0692` and :math:`c_2= 0.86639`.
+
+
+The Voigt function can be implemented using SciPy's function :func:`wofz`.
+In the next code fragments, it should be easy to find correspondence between
+code and boxed formulas::
+
+   def voigt(x, y):
+      # The Voigt function is also the real part of
+      # w(z) = exp(-z^2) erfc(iz), the complex probability function,
+      # which is also known as the Faddeeva function. Scipy has
+      # implemented this function under the name wofz()
+      z = x + 1j*y
+      I = wofz(z).real
+      return I
+
+
+   def Voigt(nu, alphaD, alphaL, nu_0, A, a=0, b=0):
+      # The Voigt line shape in terms of its physical parameters
+      f = numpy.sqrt(ln2)
+      x = (nu-nu_0)/alphaD * f
+      y = alphaL/alphaD * f
+      backg = a + b*nu
+      V = A*f/(alphaD*numpy.sqrt(numpy.pi)) * voigt(x, y) + backg
+      return V
+
+   # Half width and amplitude
+   c1 = 1.0692
+   c2 = 0.86639
+   hwhm = 0.5*(c1*alphaL+numpy.sqrt(c2*alphaL**2+4*alphaD**2))
+   f = numpy.sqrt(ln2)
+   y = alphaL/alphaD * f
+   amp = A/alphaD*numpy.sqrt(ln2/numpy.pi)*voigt(0,y)
+
+with:
+
+   * nu: x-values, usually frequencies.
+   * alphaD: Half width at half maximum for Doppler profile
+   * alphaL: Half width at half maximum for Lorentz profile
+   * nu_0: Central frequency
+   * A: Area under profile
+   * a, b: Background as in a + b*x
+
+In the example below, we compare a Gaussian model with a Voigt
+model. We had some knowledge about the properties of the profile data so
+finding appropriate initial estimates is not difficult. If you need to
+automate the process of finding initial estimates, you can use function
+:func:`gauest` (:ref:`gauest`) from the section about initial estimates.
+However, note that you need to invert the data because :func:`gauest` can
+only process peaks (positive amplitudes).
+
+**Example: kmpfit_voigt.py  - The Voigt line shape**
+
+.. plot:: EXAMPLES/kmpfit_voigt.py
+   :align: center
+
+
+Fitting Gauss-Hermite series
+++++++++++++++++++++++++++++++
+
+If your profile deviates from a Gaussian shape (e.g. asymmetric profiles)
+then you can use the so called {\it Gauss-Hermite} series.
+The series are used to derive skewness and kurtosis of your data distribution.
+The lowest order term of the series is a
+Gaussian. The higher order terms are orthogonal to this Gaussian.
+The higher order that we use in our fits are the
+parameters :math:`h_3` and :math:`h_4` measuring asymmetric and symmetric
+deviations of a Gaussian.
+The Gauss-Hermite function and its applications are described in [Mar]_, but we
+use the (equivalent) formulas from [Vog]_
+
+
+.. math::
+   :label: GH-1
+
+   \phi(x) = A\,e^{-\frac{1}{2}y^2} \left\{ 1+\frac{h_3}{\sqrt{6}}\
+   (2\sqrt{2}y^3-3\sqrt{2}y) +\
+   \frac{h_4}{\sqrt{24}}(4y^4-12y^2+3)   \right\} + Z
+
+
+with: :math:`y \equiv \frac{x-\mu_g}{\sigma_g}`.
+
+Simplify this equation further:
+
+.. math::
+   :label: GH-2
+
+   \phi(x) = A\,E\,\left\{1+h_3(c_1y+c_3y^3)+h_4(c_0+c_2y^2+c_4y^4)\right\}
+
+or:
+
+.. math::
+   :label: GH-3
+
+   \phi(x) =  A\,E\,Q
+
+with :math:`E \equiv e^{-\frac{1}{2}y^2}`
+and :math:`Q = \left\{1+h_3(c_1y+c_3y^3)+h_4(c_0+c_2y^2+c_4y^4)\right\}`
+and its coefficients:
+
+.. math::
+   :label: GH-4
+
+   c_0 = \frac{1}{4}\sqrt{6}\\
+   c_1 = -\sqrt{3}\\
+   c_2 = -\sqrt{6}\\
+   c_3 = \frac{2}{3}\sqrt{3}\\
+   c_4 = \frac{1}{3}\sqrt{6}
+
+
+To find the real maximum (which is not the maximum of the Gaussian part of
+the expression), solve:
+
+.. math::
+   :label: GH-5
+
+   \frac{\partial\phi(x)}{\partial x} = -a\,E\,\frac{1}{c}
+   \left[h_3(-c_1-3c_3y^2)+h_4(-2c_2y-4c_4y^3)+y\,Q\right] = 0
+
+We used SciPy's function :func:`fsolve` in the neighbourhood of 0 to
+find the solution of this expression.
+
+
+**Moments of the GH series** [Vog]_
+
+
+The integrated line strength :math:`\gamma`:
+
+.. math::
+   :label: GH-6
+
+   \boxed{\gamma_{gh} = A\,\sigma_g\, \sqrt{2\pi} (1+\frac{1}{4}\sqrt{6}\,h_4) = \gamma_{g}\,(1+\frac{1}{4}\sqrt{6}\,h_4)}
+
+
+The mean abscissa :math:`\mu_{gh}`:
+
+.. math::
+   :label: GH-7
+
+   \boxed{\mu_{gh} \approx \mu_g + \sqrt{3}\,h_3\,\sigma_g}
+
+The dispersion :math:`\sigma_{gh}`:
+
+.. math::
+   :label: GH-8
+
+   \boxed{\sigma_{gh} \approx \sigma_g \,(1+\sqrt{6}\,h_4)}
+
+
+The Fisher coefficient of Skewness :math:`\xi_1`:
+
+A set of observations that is not symmetrically distributed is said to be skewed.
+If the distribution has a longer tail less than the maximum,
+the function has *negative skewness*. Otherwise, it has
+*positive skewness*.
+
+
+.. math::
+   :label: GH-9
+
+   \boxed{\xi_1 \approx 4\sqrt{3}\,h_3}
+
+
+This is what we could have expected because :math:`h_3` is the parameter that
+measures asymmetric deviations.
+
+The Fisher coefficient of Kurtosis :math:`\xi_2`:
+
+This parameter measures both the *peakedness* of the distribution and the heaviness of its tail:
+
+.. math::
+   :label: GH-10
+
+   \boxed{\xi_2 \approx 3 + 8\sqrt{6}\,h_4}
+
+Or use the definition of excess kurtosis :math:`\xi_f`:
+
+.. math::
+   :label: GH-11
+
+   \boxed{\xi_f = \xi_2 -3 \approx 8\sqrt{6}\,h_4}
+
+A negative value means that distribution is flatter then a pure Gaussian.
+and if it is positive then the distribution is sharper then a pure Gaussian.
+A Gaussian distribution has zero excess kurtosis.
+
+It is obvious that for :math:`h_3 = 0` and :math:`h_4 =0`, all these parameters
+are the same as their Gaussian counterparts.
+A line-shape model based on the Gauss-Hermite series will resemble a pure Gaussian.
+Therefore it is save to set
+the initial guesses for the :math:`h_3` and :math:`h_4` parameters in the least-squares
+fit to zero because. If a fit is successful,
+the profile parameters :math:`\gamma_{gh}`, :math:`\mu_{gh}` and :math:`\sigma_{gh}`, skewness and
+kurtosis are calculated from
+the best fit parameters :math:`A`, :math:`\mu_g`, :math:`\sigma_{g}`, :math:`h_3`
+and :math:`h_4` using the formulas above.
+For the errors in these parameters we derived:
+
+
+.. math::
+   :label: GH-12
+
+   \Delta \gamma_{gh} = \frac{1}{\gamma_{gh}}\,
+   \sqrt{{\left(\frac{\Delta A}{A}\right)}^2+\
+         {\left(\frac{\Delta \sigma_{g}}{\sigma_{g}}\right)}^2+\
+         {\left(\frac{1}{\frac{2}{3}\sqrt{6}+h_4}\right) }^2\
+         {\left(\frac{\Delta h_4}{h_4}\right)}^2 }\\
+   \Delta \mu_{gh} =\
+   \sqrt{ {(\Delta \mu_g)}^2 + 3h_3^2{(\Delta \sigma_{g})}^2 +\
+         3\sigma_{g}^2 {(\Delta h_3)}^2 }\\
+   \Delta \sigma_{gh} =\
+   \sqrt{{(1+\sqrt{6}\,h_4)}^2\, {(\Delta \sigma_{g})}^2 + 6\sigma_{g}^2{(\Delta h_4)}^2  }\\
+   \Delta \xi_1 =  4\sqrt{3}\,\Delta h_3\\
+   \Delta \xi_2 =  8\sqrt{6}\,\Delta h_4
+
+
+These formulas are used in the next example. It is a script that finds
+best-fit parameters of a
+Gaussian, Voigt and Gauss-Hermite model. Only the last model can quantify
+the asymmetry of the data. The data is derived from the GH-series and
+some noise is added.
+The Voigt line-shape has a problem with asymmetric data. It tends to find
+negative values for one of the half widths (:math:`\alpha_D` or :math:`\alpha_L`).
+To avoid this we use the *limits* option in *kmpfit*'s ``parinfo``
+dictionary as follows:
+
+>>> fitter.parinfo = [{'limits':(0,None)}, {'limits':(0,None)}, {}, {}, {}]
+
+
+**Example: kmpfit_gausshermite.py  - The Gauss-Hermite series compared to Voigt and Gauss**
+
+.. plot:: EXAMPLES/kmpfit_gausshermite.py
+   :align: center
+
 
 
 Fitting data when both variables have uncertainties
@@ -2211,7 +2593,7 @@ ODR                          5.47991037830    -0.48053343863
 Williamson                   5.47991022403    -0.48053340745
 =========================== ================ ================
 
-From these results we conclude that *kmpfit* with the effective variance
+>From these results we conclude that *kmpfit* with the effective variance
 residuals function, is very well suited to perform weighted
 orthogonal fits for a model that represents a straight line.
 If you run the program, you can observe that also the uncertainties
@@ -2927,209 +3309,195 @@ improves the fit more than a filter based on Chauvenet's criterion.
    :align: center
 
 
-Fitting Voigt profiles
-+++++++++++++++++++++++
 
 
-The Voigt profile
-+++++++++++++++++++
-
-The line-shapes of spectroscopic
-transitions depend on the broadening mechanisms
-of the initial and final states, and include natural broadening,
-collisional broadening, power broadening, and
-Doppler broadening. Natural, collisional, and power broadening are
-homogeneous mechanisms and produce Lorentzian line-shapes.
-Doppler broadening is a form of inhomogeneous broadening and has a
-Gaussian line-shape. Combinations of
-Lorentzian and Gaussian line-shapes can be approximated by a Voigt profile.
-In fact, the Voigt profile is a convolution of
-Lorentzian and Doppler line broadening mechanisms:
-
-.. math::
-   :label: voigt-4
-
-    \phi_{Lorentz}(\nu)=\frac{1}{\pi} \frac{\alpha_L}{(\nu-\nu_0)^2 + \alpha_L^2}
-
-.. math::
-   :label: voigt-5
-
-   \phi_{Doppler}(\nu)=\frac{1}{\alpha_D} \sqrt{\frac{\ln{2}}{\pi}} e^{-\ln{2} \frac{(\nu-\nu_0)^2}{\alpha_D^2}}
 
 
-Both functions are normalized, :math:`\alpha_D` and :math:`\alpha_L` are **half** widths
-at **half** maximum [Scr]_.
-Convolution is given by the relation:
+Fitting 2D data
+++++++++++++++++
+
+**Finding best-fit parameters of an ellipse**
+
+
+In many astronomical problems, the ellipse plays an
+important role. Examples are planetary orbits, binary star orbits,
+projections of galaxies onto the sky. etc.
+For an overview of ellipse properties and formulas, please visit 
+Wolfram's page about ellipses at http://mathworld.wolfram.com/Ellipse.html
+Assume we got a number of measurements of the orbit of a binary system and all sky positions are
+converted to a rectangular grid positions (i.e. x,y coordinate pairs).
+If one makes a plot of these positions it is usually obvious
+if have to deal with an elliptical orbit. To estimate typical orbit parameters
+(e.g. in Kepler's laws of planetary motion) we have to estimate the best-fit ellipse
+parameters. These parameters are the position of the center of the ellipse,
+the length of the major and minor axes and the position angle (its rotation).
+If we want to fit ellipse parameters we have to find a suitable relation between y and x
+first.
+The equation for an unrotated ellipse with semi-major axis **a** and semi-minor
+axis **b** is:
 
 .. math::
-   :label: voigt-6
+   :label: ellipse1
 
-   f(\nu) \star g(\nu)=\int\limits_{-\infty}^\infty {f(\nu - t ) g(t) dt}
+   \frac{x^2}{a^2} + \frac{y^2}{b^2} = 1
 
-Define the ratio of Lorentz to Doppler widths as:
-
-.. math::
-   :label: voigt-7
-
-   y \equiv \frac{\alpha_L}{\alpha_D} \sqrt{\ln{2}}
-
-
-and the frequency scale (in units of the Doppler Line-shape half-width  :math:`\alpha_D`):
+Rotation of the ellipse follows the mathematical standard, i.e. an angle is positive if
+it is counted anti-clockwise.
+So if we want an expression for a rotated ellipse we use the rotation recipe:
 
 .. math::
-   :label: voigt-8
+   :label: ellipse2
 
-   x \equiv \frac{\nu-\nu_0}{\alpha_D} \sqrt{\ln{2}}
+    x' = x \cos(\phi) - y \sin(\phi)\\
+    y' = x \sin(\phi) + y \cos(\phi)
 
-
-The convolution of both functions is:
-
-.. math::
-   :label: voigt-11
-
-   \phi_\nu(\nu)=\phi_L(\nu)\star\phi_D(\nu)=\
-   \frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\,
-   \frac{y}{\pi}\int\limits_{-\infty}^\infty {\frac{e^{-t^2}}{(x-t)^2+y^2}dt}
- 
-Part of the expression of the Voigt line-shape is the Voigt function :math:`K(x,y)`.
-The definition of this function is:
+If the origin is not centered at position (0,0) then we need a translation also:
 
 .. math::
-   :label: voigt-11a
+   :label: ellipse3
 
-   K(x,y) = \frac{y}{\pi} {\int\limits_{- \infty} ^{\infty}} \frac{e^{-t^{2}}}{y^2 + {(x - t)}^2} dt
+   x'' = x' + x_0\\
+   y'' = y' + y_0
 
-Then:
-
-.. math::
-   :label: voigt-11b
-
-   \phi_\nu(\nu)=\frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\, K(x,y)
-
-Using the expressions for *x* and *y* from :eq:`voigt-8` and :eq:`voigt-7`, this can be rewritten
-in terms of the physical parameters as [Vog]_:
+Introduce a new function Z which depends on variables x and y.
 
 .. math::
-   :label: voigt-12
+   :label: ellipse4
 
-   \phi_\nu(\nu)=\
-   \frac{\alpha_L}{\alpha_D^2}\
-   \frac{\ln{2}} {\pi^{\frac{3}{2}}}\
-   \int\limits_{-\infty}^\infty {\frac{e^{-t^2}}{\left(\frac{\nu-\nu_0}{\alpha_D} \sqrt{\ln{2}}-t\right)^2+\,\
-   \left({\frac{\alpha_L}{\alpha_D} \sqrt{\ln{2}}}\right)^2}dt}
+   Z(x,y) = \frac{x^2}{a^2} + \frac{y^2}{b^2}
 
-   \label{Voigtprofile_ex2}
+This function is plotted in the surface plot below. The ellipse in this landscape
+can be found at a height 1.0. We projected the ellipse on the xy plane to
+prove that the two contours correspond. You can run the example and
+rotate the 3D plot to get an impression of the landscape.
+For a data position :math:`(x,y)` which is exactly on the ellipse :math:`Z(x,y) = 1`.
+But if not, then :math:`Z(x,y)` deviates from 1.0 and it is a measure for
+the deviations we are trying to minimize with a least squares fit.
+Note that the values in :math:`(x,y)` represents the data on the ellipse.
+So in fact the should be written as :math:`(x'',y'')`. To calculate :math:`Z(x,y)`,
+we need to calculate  :math:`(x',y')` first and from those coordinates
+the values of :math:`(x,y)`.
 
+In the code example at the end of this section we need a list with positions
+that we want to use to make a fit.
+The data we used can be found in :download:`ellipse.dat <EXAMPLES/ellipse.dat>`.
+It is data from an artificial ellipse with origin at (5,4)
+semi-major axis is 10, semi-minor axis is 3. Its angle is 60 degrees.
+Noise was added to simulate real data.
 
-Note that :math:`\alpha_L` and :math:`\alpha_D` are both **half-width at half maximum** and not FWHM's.
-In [Vog]_, it is proved that:
+But usually we don't know about the properties of the ellipse represented by the data
+so we need a routine that calculates these
+estimates automatically. For the ellipse there is a method based on *image moments analysis*
+(http://en.wikipedia.org/wiki/Image_moments)
+that can do the job.
 
 .. math::
-   :label: voigt-13
+   :label: ellipse_ie1
 
-   \int\limits_{-\infty}^\infty {\phi_\nu(\nu)d\nu} = 1
+   M_{pq}=\int\limits_{-\infty}^{\infty} \int\limits_{-\infty}^{\infty} x^py^qf(x,y) \,dx\, dy
 
-so the Voigt line-shape (eq. :eq:`voigt-11`) is also normalized.
-When we want to find the best-fit parameters of the Voigt line-shape model, we
-need to be able to process profiles with arbitrary area and we need a scaling factor
-*A*. The expression for the Voigt line-shape becomes:
+The zeroth and first moments for the given set data points (positions) are given by:
+
+.. math::
+   :label: ellipse_ie2
+
+   m_{00} =\sum_{i}\sum_{j} f_{ij}\\
+   m_{10} =\sum_{i}\sum_{j} x\,f_{ij}\\
+   m_{01} =\sum_{i}\sum_{j} y\,f_{ij}
+
+In an image the zeroth moment represents the area of an object. For our positions
+:math:`(x,y)` it is just the number of positions.
+Note that our data points are just positions and not image pixels with an intensity.
+So the value
+of *f* is 1 for a position from the file and 0 for others (but there are no others
+because we don't have an image, just the values in :math:`(x,y)`.
+Therefore we need only to loop over all our positions
+and do the necessary summing. Then the coordinates of the centroid (center of mass) are:
 
 
 .. math::
-   :label: voigt-13a
+   :label: ellipse_ie3
 
-   \boxed{\phi_\nu(\nu)= A\, \frac{1}{\alpha_D}\sqrt{\frac{\ln{2}}{\pi}}\, K(x,y)}
-   
+   \bar{x} = \frac{m_{10}}{m_{00}}\\
+   \bar{y} = \frac{m_{01}}{m_{00}}
 
-One can prove [Vog_] with the substitution of:
-
-.. math::
-   :label: voigt-14
-
-   \framebox{z = x + iy}
-
-that the Voigt function can be expressed as the real part of a special function:
+which is an estimate of the central position of the ellipse.
+How can we find an estimate for the other parameters?
+First we define the so called central moments of the sample:
 
 .. math::
-   :label: voigt-16
+   :label: ellipse_ie4
 
-   \boxed{K(x,y) = \Re \{\omega(z)\} }
+   \mu_{pq} = \int\limits_{-\infty}^{\infty} \int\limits_{-\infty}^{\infty} (x - \bar{x})^p(y - \bar{y})^q f(x,y) dx dy
 
-:math:`\omega(z)` is called the complex probability function,
-also known as the Faddeeva function. Scipy has
-implemented this function under the name :func:`scipy.special.wofz`.
-
-The amplitude is found at :math:`\nu=\nu_0`. Then the relation between amplitude and area is
-:math:`amp=\phi (\nu_0)`:
+Now define:
 
 .. math::
-   :label: voigt-18
+   :label: ellipse_ie5
 
-   \boxed{amp = \phi (\nu_0) = \frac {A} {\alpha_D} \sqrt{\frac {\ln 2} {\pi}} K(0,y)}
+   \mu'_{20} = \frac{\mu_{20}}{\mu_{00}} = \frac{M_{20}}{M_{00}} - \bar{x}^2\\
+   \mu'_{02} = \frac{\mu_{02}}{\mu_{00}} = \frac{M_{02}}{M_{00}} - \bar{y}^2\\
+   \mu'_{11} = \frac{\mu_{11}}{\mu_{00}} = \frac{M_{11}}{M_{00}} - \bar{x}\bar{y}
 
-
-In [Scr]_ we read that the half width at half maximum can be found with:
+With these definitions, one can derive the following relations:
 
 .. math::
-   :label: voigt-19
+   :label: ellipse_ie6
 
-   \boxed{hwhm = \frac{1}{2}\, \left(c_1\, \alpha_L + \sqrt{c_2\,\alpha_L^2+4\,\alpha_D^2}\right)}
+   \theta = \frac{1}{2} \arctan ( \frac{2\mu'_{11}}{\mu'_{20} - \mu'_{02}} )\\
+   \\
+   \lambda_i = \frac{\mu'_{20} + \mu'_{02}}{2}  \pm \frac{\sqrt{4{\mu'}_{11}^2 + ({\mu'}_{20}-{\mu'}_{02})^2  }}{2}
 
-with :math:`c_1 = 1.0692` and :math:`c_2= 0.86639`.
-
-
-The Voigt function can be implemented using SciPy's function :func:`wofz`.
-In the next code fragments, it should be easy to find correspondence between
-code and boxed formulas::
-
-   def voigt(x, y):
-      # The Voigt function is also the real part of
-      # w(z) = exp(-z^2) erfc(iz), the complex probability function,
-      # which is also known as the Faddeeva function. Scipy has
-      # implemented this function under the name wofz()
-      z = x + 1j*y
-      I = wofz(z).real
-      return I
+:math:`\theta` gives us estimate for the angle and :math:`\lambda_i`
+the (squared) length of the semi-major and semi-minor axes.
+We implemented these relations in a routine that finds initial estimates
+of the parameters of an ellipse based on the moments analysis above::
 
 
-   def Voigt(nu, alphaD, alphaL, nu_0, A, a=0, b=0):
-      # The Voigt line shape in terms of its physical parameters
-      f = numpy.sqrt(ln2)
-      x = (nu-nu_0)/alphaD * f
-      y = alphaL/alphaD * f
-      backg = a + b*nu
-      V = A*f/(alphaD*numpy.sqrt(numpy.pi)) * voigt(x, y) + backg
-      return V
+   def getestimates( x, y ):
+      """
+      Method described in http://en.wikipedia.org/wiki/Image_moments
+      in section 'Raw moments' and 'central moments'.
+      Note that we work with scalars and not with arrays. Therefore
+      we use some functions from the math module because the are
+      faster for scalars
+      """
+      m00 = len(x)
+      m10 = numpy.add.reduce(x)
+      m01 = numpy.add.reduce(y)
+      m20 = numpy.add.reduce(x*x)
+      m02 = numpy.add.reduce(y*y)
+      m11 = numpy.add.reduce(x*y)
 
-   # Half width and amplitude
-   c1 = 1.0692
-   c2 = 0.86639
-   hwhm = 0.5*(c1*alphaL+numpy.sqrt(c2*alphaL**2+4*alphaD**2))
-   f = numpy.sqrt(ln2)
-   y = alphaL/alphaD * f
-   amp = A/alphaD*numpy.sqrt(ln2/numpy.pi)*voigt(0,y)
+      Xav = m10/m00
+      Yav = m01/m00
 
-with:
+      mu20 = m20/m00 - Xav*Xav
+      mu02 = m02/m00 - Yav*Yav
+      mu11 = m11/m00 - Xav*Yav
 
-   * nu: x-values, usually frequencies.
-   * alphaD: Half width at half maximum for Doppler profile
-   * alphaL: Half width at half maximum for Lorentz profile
-   * nu_0: Central frequency
-   * A: Area under profile
-   * a, b: Background as in a + b*x
+      theta = (180.0/numpy.pi) * (0.5 * atan(-2.0*mu11/(mu02-mu20)))
+      if (mu20 < mu02):                   # mu20 must be maximum
+         (mu20,mu02) = (mu02,mu20)        # Swap these values
+         theta += 90.0
 
-In the example below, we compare a Gaussian model with a Voigt
-model. We had some knowledge about the properties of the profile data so
-finding appropriate initial estimates is not difficult. If you need to
-automate the process of finding initial estimates, you can use function
-:func:`gauest` (:ref:`gauest`) from the section about initial estimates.
-However, note that you need to invert the data because :func:`gauest` can
-only process peaks (positive amplitudes).
+      d1 = 0.5 * (mu20+mu02)
+      d2 = 0.5 * sqrt( 4.0*mu11*mu11 + (mu20-mu02)**2.0 )
+      maj = sqrt(d1+d2)
+      min = sqrt(d1-d2)
+      return (Xav, Yav, maj, min, theta)
 
-**Example: kmpfit_voigt.py  - The Voigt line shape**
+If you study the code of the next example, you should be able to
+recognize the formulas we used in this section to get initial estimates and
+residuals. The applied method can be used for many fit problems related to 2D data.
 
-.. plot:: EXAMPLES/kmpfit_voigt.py
+**Example: kmpfit_ellipse.py  - Find best-fit parameters of ellipse model**
+
+.. plot:: EXAMPLES/kmpfit_ellipse.py
    :align: center
+
+
+
 
 
 Glossary
@@ -3201,6 +3569,9 @@ References
 
 .. [Ds3] DeSerio, R., *Regression Algebra*,
    Local copy: :download:`matproof_statmain.pdf <EXAMPLES/matproof_statmain.pdf>`
+
+.. [Mar] Marel, P. van der, Franx, M., *A new method for the identification of non-gaussian
+   line profiles in elliptical galaxies*. A.J., **407** 525-539, 1993 April 20
 
 .. [Mas] Massey, F. J. *The Kolmogorov-Smirnov Test for Goodness of Fit.*,
    Journal of the American Statistical Association, Vol. 46, No. 253, 1951, pp. 68-78
