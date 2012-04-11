@@ -160,6 +160,17 @@ University of Washington - Astronomy Department @ 128.208.190.104
 Fysikum vid Stockholms universitet @ 130.242.128.12
 NASA Jet Propulsion Laboratory @ 137.78.58.25
 Columbia University @ 128.59.247.157
+SLAC National Accelerator Laboratory @ 134.104.25.84
+Centrum Astronomii UMK, Torun @ 158.75.7.74
+Nan Jing University @ 180.209.6.186
+Mittuniversitetet, Mid Sweden University @ 193.10.114.248
+Russian Space Science Internet @ 193.232.11.215
+Universidade Federal de Sao Carlos @ 200.18.98.67
+Institute of High Energy Physics, Chinese Academy of Sciences @ 202.122.36.218
+Istituto Nazionale di Fisica Nucleare, Sezione di Pisa @ 212.189.154.13
+Center for High Performance Computing, University of Utah @ 155.101.16.206
 
-tot: Mon Mar 12 11:45:52 CET 2012
-Wed Mar  7 12:27:49 CET 2012
+tot: Wed Apr 11 13:48:42 CEST 2012
+Wed  Apr  4 15:56:19 CET 2012
+
+
