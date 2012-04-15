@@ -34,17 +34,44 @@ fit routine in :mod:`kmpfit` by showing examples and some background
 theory which enhance its use. The *kmpfit* module is an excellent tool to demonstrate
 features of the (non-linear) least squares fitting theory. The code examples
 are all in Python. They are not complex and almost self explanatory.
-The C-based fit routine *kmpfit* has many similar
-aspects in common with SciPy's Fortran-based :func:`scipy.optimize.leastsq`
-function, but its interface is more friendly and flexible and it is a bit faster.
-It has also additional routines to calculate confidence intervals.
+
+*kmpfit* is the Kapteyn Package Python binding for a piece of software
+that provides a robust and relatively fast way to perform non-linear
+least-squares curve and surface fitting. The original software called MPFIT was
+translated to
+`IDL <http://en.wikipedia.org/wiki/IDL_(programming_language)>`_
+from Fortran routines found in `MINPACK-1 <http://www.netlib.org/minpack/>`_
+and later converted to a C version by Craig Markwardt [Mkw]_.
+The routine is stable and fast and has additional features, not found in
+other software, such as model parameters that can be fixed and boundary
+constraints that can be imposed on parameter values.
+We will show an example in section :ref:`voigt_profiles`, where this
+feature is very helpful to keep the profile width parameters
+from becoming negative.
+
+
+*kmpfit* has many similar
+features in common with SciPy's Fortran-based :func:`scipy.optimize.leastsq`
+function, but *kmpfit*'s interface is more friendly and flexible and it is a bit faster.
+It provides also additional routines to calculate confidence intervals.
+And most important: you don't need Fortran to build it because it is based
+on code written in C. 
+Mark Rivers created a Python version from Craig's IDL version (*mpfit.py*).
+We spent a lot of time in debugging this pure Python code (after converting
+its array type from Numarray to NumPy). It it not fast and we couldn't get
+the option of using derivatives to work properly. So we focused on the
+C version of *mpfit* and used `Cython <http://cython.org/>`_
+to build the C extension for Python.
+
+
 
 A least squares fit method is an algorithm that minimizes a so-called
 *objective function* for N data points :math:`(x_i,y_i), i=0, ...,N-1`.
 These data points are measured and often :math:`y_i` has a measurement error
 that is much smaller than the error in :math:`x_i`. Then we call *x* the
 independent and *y* the dependent variable. In this tutorial we will
-also deal with examples where the errors are comparable.
+also deal with examples where the errors in :math:`x_i` and :math:`y_i`
+are comparable.
 
 Objective function
 +++++++++++++++++++
@@ -218,9 +245,12 @@ Stop criteria
 LLS and NLLS problems are solved by *kmpfit* by using an iterative procedure.
 The fit routine attempts to find the minimum by doing a search. Each iteration
 gives an improved set of parameters and the sum of the squared residuals is
-calculated again. *kmpfit* is based on the C version of *mpfit* (created by Craig Markwardt)
+calculated again. *kmpfit* is based on the C version of *mpfit* 
 which uses the Marquardt-Levenberg algorithm to select the parameter values for the
-next iteration. These iterations are repeated until a criterion is met.
+next iteration.
+The Levenberg-Marquardt technique is a particular strategy for iteratively
+searching for the best fit.
+These iterations are repeated until a criterion is met.
 Criteria are set with parameters for the constructor of the *Fitter*
 object in *kmpfit* or with the appropriate attributes:
 
@@ -1624,10 +1654,7 @@ kurtosis of the profile, but often these are not important. We write the Gauss f
 Here :math:`A` represents the peak of the Gauss, :math:`\mu` the mean, i.e. the position of the peak
 and :math:`\sigma` the width of the peak. We added :math:`z_0` to add a background to the profile
 characteristics. In the early days of fitting software, there were no implementations that did not need
-partial derivatives to find the best fit parameters. The fit routine in `kmpfit` is based on
-Craig Markwardt's non-linear least squares curve fitting routines for IDL called MPFIT.
-It uses the Levenberg-Marquardt technique to solve the least-squares problem,
-which is a particular strategy for iteratively searching for the best fit.
+partial derivatives to find the best fit parameters.
 
 
 Partial derivatives for a Gaussian
@@ -1852,6 +1879,8 @@ is based on the code in the next example.
 **Example:** :download:`kmpfit_gauest_prepare.py <EXAMPLES/kmpfit_gauest_prepare.py>`
 **- Demonstrate how profile data needs to be prepared for gauest()**
 
+
+.. _voigt_profiles:
 
 Fitting Voigt profiles
 +++++++++++++++++++++++
@@ -3575,6 +3604,12 @@ References
 
 .. [Mas] Massey, F. J. *The Kolmogorov-Smirnov Test for Goodness of Fit.*,
    Journal of the American Statistical Association, Vol. 46, No. 253, 1951, pp. 68-78
+
+.. [Mkw] Markwardt, C. B. 2008, "Non-Linear Least Squares Fitting in IDL with MPFIT,"
+   in proc. Astronomical Data Analysis Software and Systems XVIII, Quebec, Canada,
+   ASP Conference Series, Vol. 411, eds. D. Bohlender, P. Dowler & D. Durand
+   (Astronomical Society of the Pacific: San Francisco), p. 251-254 (ISBN: 978-1-58381-702-5)
+   Website: `http://purl.com/net/mpfit <http://purl.com/net/mpfit/>`_
 
 .. [Num] William H. Press, Saul A. Teukolsky, William T. Vetterling and Brian P. Flannery,
    *Numerical Recipes in C, The Art of Scientific Computing*,

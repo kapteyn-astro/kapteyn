@@ -20,7 +20,7 @@ def model(p, x):
 # The residual function
 #======================
 def residuals(p, data):
-   x, y = data                     # arrays is a tuple given by programmer
+   x, y = data                     # 'data' is a tuple given by programmer
    return y - model(p,x)
 
 
