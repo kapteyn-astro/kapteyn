@@ -13,7 +13,7 @@ setenv PYTHONPATH ../PACKAGE/
 mkdir ${destdir} >& /dev/null                 # try to make home directory
 
 cd SPHINX
-tar cfz examples.tar.gz EXAMPLES
+tar cfz examples.tar.gz EXAMPLES/*.py EXAMPLES/*.dat EXAMPLES/*.fits EXAMPLES/WDB
 sphinx-build -E -b html . ${destdir}          # make html doc
 \mv examples.tar.gz ${destdir}/_downloads/    # example sources
 cd ..
