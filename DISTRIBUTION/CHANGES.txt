@@ -1,5 +1,5 @@
-Version 2.2
-===========
+Version 2.2 (Apr 16, 2012)
+==========================
 
 * Class maputils.FITSimage:
 
