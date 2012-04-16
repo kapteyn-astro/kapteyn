@@ -138,19 +138,8 @@ if sys.platform == 'win32':
     define_macros.append(('YY_NO_UNISTD_H', None))
     define_macros.append(('_CRT_SECURE_NO_WARNINGS', None))
 
-# avoid using buggy Apple compiler
+# setup()
 #
-if sys.platform=='darwin':
-   from distutils import ccompiler
-   import subprocess
-   import re
-   c = ccompiler.new_compiler()
-   process = subprocess.Popen(c.compiler+['--version'], stdout=subprocess.PIPE)
-   output = process.communicate()[0].strip()
-   version = output.split()[0]
-   if re.match('i686-apple-darwin[0-9]*-llvm-gcc-4.2', version):
-      os.environ['CC'] = 'clang'
-
 setup(
    name="kapteyn",
    version=version,

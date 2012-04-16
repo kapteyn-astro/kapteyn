@@ -8,6 +8,6 @@ package_dir = path.abspath(path.dirname(__file__))
 
 __all__=['celestial', 'wcs', 'wcsgrat', 'tabarray', 'maputils',
          'mplutil', 'positions', 'shapes', 'rulers', 'filters',
-         'interpolation']
+         'interpolation','kmpfit']
 
-__version__='2.2b3'
+__version__='2.2'
