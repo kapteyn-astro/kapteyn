@@ -172,8 +172,9 @@ Mac OS X Compiler problem
 There is a known problem with Apple's llvm-gcc-4.2 compiler.
 This compiler is known to crash with an internal compiler error
 (Segmentation fault: 11) when WCSLIB routine wcserr.c is compiled.
-It may help when the clang compiler is
-used instead of llvm-gcc-4.2. To do so, prefix a
+For this reason, setup.py tries to detect this compiler and use
+the clang compiler instead. If compilation still
+fails, one could try to prefix a
 shell variable definition to the install command like this::
 
    export CC=CLANG; python setup.py install ...
