@@ -9,9 +9,10 @@ Netherlands.
 
 New features:
 
-- A class for solving least-squares problems using the Levenberg-Marquardt
-  technique. It is based on the implementation in C of Craig Markwardt’s
-  MPFIT routines.
+- A class for solving non-linear least squares problems using the
+  Levenberg-Marquardt technique. It is based on the implementation in C
+  of Craig Markwardt’s MPFIT routine Besides reference documentation,
+  an extensive tutorial is provided. 
 
 - many smaller improvements and some bugfixes.
 
@@ -35,7 +36,7 @@ Other features:
 - A class for the efficient reading, writing and manipulating of simple
   table-like structures in text files. 
 
-- A function for estimating gaussian components in a profile. These
+- A function for estimating Gaussian components in a profile. These
   estimates could subsequently be used as initial estimates for a least
   squares fit. 
 
