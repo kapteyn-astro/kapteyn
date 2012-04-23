@@ -8,6 +8,8 @@ The Kapteyn Package is provided under the following license:
 
 .. literalinclude:: ../DISTRIBUTION/LICENSE.txt
 
+See also section :ref:`citing`.
+
 SciPy modules
 -------------
 
@@ -32,21 +34,12 @@ is provided under the following license:
 .. literalinclude:: ../DISTRIBUTION/MPFIT-LICENSE.txt
 
 
+.. _citing:
+
 Citing the Kapteyn Package
 --------------------------
 
 If you have used the Kapteyn Package in the preparation of a paper,
-we would appreciate that you cite it
-in the following form (BibTeX format)::
+we would appreciate that you cite it as follows (BibTeX format):
 
-    @preamble("\usepackage{url}")
-    @MANUAL{KP2.2,
-      organization = "{Kapteyn Astronomical Institute}",
-      author       = "{{Terlouw}, J.~P. and {Vogelaar}, M.~G.~R.}",
-      title        = "{Kapteyn Package}",
-      year         = 2012,
-      month        = "April",
-      edition      = "version 2.2",
-      address      = "Groningen",
-      note         = "available from \url{http://www.astro.rug.nl/software/kapteyn/}"
-    }
+.. literalinclude:: ../DISTRIBUTION/kapteyn.bib
