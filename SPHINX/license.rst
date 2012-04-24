@@ -8,7 +8,8 @@ The Kapteyn Package is provided under the following license:
 
 .. literalinclude:: ../DISTRIBUTION/LICENSE.txt
 
-See also section :ref:`citing`.
+.. seealso::
+   :ref:`citing`.
 
 SciPy modules
 -------------
