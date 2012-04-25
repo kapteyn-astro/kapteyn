@@ -3,6 +3,7 @@ include MANIFEST
 include setup.py
 include INSTALL.txt LICENSE.txt SciPy-LICENSE.txt WCSLIB-LICENSE.txt CHANGES.txt
 include windist.bat wininstlogo.bmp
+include kapteyn.bib
 graft   kapteyn
 graft   src
 graft   src/wcslib*

@@ -4,12 +4,12 @@ License
 Kapteyn Package
 ---------------
 
+.. seealso::
+   :ref:`citing`.
+
 The Kapteyn Package is provided under the following license:
 
 .. literalinclude:: ../DISTRIBUTION/LICENSE.txt
-
-.. seealso::
-   :ref:`citing`.
 
 SciPy modules
 -------------
@@ -40,7 +40,7 @@ is provided under the following license:
 Citing the Kapteyn Package
 --------------------------
 
-If you have used the Kapteyn Package in the preparation of a paper,
-we would appreciate that you cite it as follows (BibTeX format):
+If you have used the Kapteyn Package in the preparation of a publication,
+you may cite it as follows (BibTeX format):
 
 .. literalinclude:: ../DISTRIBUTION/kapteyn.bib
