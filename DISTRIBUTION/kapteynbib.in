@@ -1,0 +1,9 @@
+@MANUAL{KapteynPackage,
+   organization = "{Kapteyn Astronomical Institute}",
+   author       = {{Terlouw}, J.~P. and {Vogelaar}, M.~G.~R.},
+   title        = "{Kapteyn Package, version %s}",
+   year         = %s,
+   month        = %s,
+   address      = "Groningen",
+   note         = "Available from \url{http://www.astro.rug.nl/software/kapteyn/}"
+} 
