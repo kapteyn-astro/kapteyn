@@ -5,3 +5,17 @@ National Aeronautics and Space Administration (NASA) @ 128.158.1.166
 Max-Planck-Institut fuer Astronomie @ 149.217.1.5
 Japan Aerospace Exploration Agency @ 133.56.195.32
 Northwestern University (CIERA) @ 129.105.65.146
+Argelander-Institut fuer Astronomie (Univ. Bonn) @ 131.220.98.101
+Dipartimento di Fisica Universita degli Studi di Udine @ 158.110.150.37
+NRAO Charlottesville @ 192.131.232.128
+NRAO @ 146.88.10.243
+Universidade Federal de Sao Carlos @ 200.18.98.67
+Max-Planck-Instituts fuer extraterrestrische Physik @ 130.183.130.40
+Max-Planck-Institut fuer Radioastronomie @ 134.104.20.240
+Universitaet zu Koeln @ 134.95.46.96
+Oulun yliopisto/ University of Oulu, Finland @ 130.231.91.21
+Fysikum vid Stockholms universitet @ 130.242.128.93
+Tertiary Education Network (South Afrca) @ 196.24.41.254
+California Institute of Technology @ 131.215.194.14
+
+tot: Thu May  3 12:53:42 CEST 2012
