@@ -7,4 +7,6 @@ if ( ${#argv} >= 1 ) then
    endif
 endif
 python setup.py install --install-lib ../PACKAGE
+setenv PYTHONPATH ../PACKAGE
+python ../UTILS/makebib.py
 cd ..
