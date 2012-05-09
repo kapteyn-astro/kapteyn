@@ -17,5 +17,11 @@ Oulun yliopisto/ University of Oulu, Finland @ 130.231.91.21
 Fysikum vid Stockholms universitet @ 130.242.128.93
 Tertiary Education Network (South Afrca) @ 196.24.41.254
 California Institute of Technology @ 131.215.194.14
+Laboratoire d'Astrophysique de Bordeaux @ 147.210.44.6
+Institut national de physique nucleaire et de physique des particules (IN2P3) @ 134.158.185.218
+Universite Paris Diderot @ 194.254.61.1
+New Mexico Tech @ 129.138.42.45
+National Optical Astronomy Observatory @ 139.229.3.231
 
-tot: Thu May  3 12:53:42 CEST 2012
+tot: Mon May  7 13:23:27 CEST 2012
+Thu May  3 12:53:42 CEST 2012
