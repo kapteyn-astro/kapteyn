@@ -15,13 +15,41 @@ Max-Planck-Institut fuer Radioastronomie @ 134.104.20.240
 Universitaet zu Koeln @ 134.95.46.96
 Oulun yliopisto/ University of Oulu, Finland @ 130.231.91.21
 Fysikum vid Stockholms universitet @ 130.242.128.93
-Tertiary Education Network (South Afrca) @ 196.24.41.254
+Tertiary Education Network (South Africa) @ 196.24.41.254
 California Institute of Technology @ 131.215.194.14
 Laboratoire d'Astrophysique de Bordeaux @ 147.210.44.6
 Institut national de physique nucleaire et de physique des particules (IN2P3) @ 134.158.185.218
 Universite Paris Diderot @ 194.254.61.1
 New Mexico Tech @ 129.138.42.45
 National Optical Astronomy Observatory @ 139.229.3.231
+Astronomisches Institut Ruhr-Universitaet Bochum @ 134.147.158.41
+Divisao de Astrofisica (Brasil) @ 150.163.28.232
+University of Hertfordshire @ 147.197.230.41
+Korea Astronomy Observatoy @ 210.219.33[B.212
+National University of Singapore @ 137.132.250.13
+Institut d'Astrophysique Spatiale (IAS) @ 129.175.67.67
+Universitaet Wien, Institut fuer Astronomie @ 131.130.51.17
+Fachbereich Physik der Freien Universitaet Berlin @ 160.45.35.30
+Dipartimento di Fisica, Universita degli Studi di Palermo @ 147.163.21.28
+University of California, Berkeley @ 128.32.15.89
+University of Tokyo @ 157.82.226.85
+Instituto de Astrofisica de Andalucia @ 161.111.165.38
+The Royal Observatory, Edinburgh @ 195.194.120.96
+Istituto Nazionale di Fisica Nucleare sezione di Bari @ 192.135.20.31
+United States Naval Research Laboratory @ 132.250.22.6
+Johns Hopkins University Applied Physics Laboratory @ 128.244.9.9
+Carnegie Institution for Science - The Observatories @ 192.91.178.59
+Max-Planck-Institut fuer Radioastronomie @ 134.104.20.240
+Meteo France @ 137.129.13.90
+Commissariat a l'Energie Atomique @ 192.54.209.32
+CSIRO @ 202.8.37.218
+Canadian Institute for Theoretical Astrophysics @ 128.100.76
+Instituto Nacional de Astrofisica, Optica y Electronica (Mexico) @ 200.23.5.100
+Institut d'Astrophysique de Paris @ 194.57.221.3
+University of Tasmania, Australia @ 131.217.255.209
+Egyptian National Scientific & Technical Information Network @ 195.43.6.11
+Observatoire de Paris-Meudon @ 145.238.174.57
+McGill University, Department of Physics @ 132.206.92.226
 
-tot: Mon May  7 13:23:27 CEST 2012
-Thu May  3 12:53:42 CEST 2012
+tot: Tue Jun  5 12:17:48 CEST 2012
+Tue May 29 11:00:00 CEST 2012
