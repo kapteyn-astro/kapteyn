@@ -92,6 +92,11 @@ determines the number of points used for this (:math:`2q+1`).
 The gaussians are then estimated as described by
 [Schwarz1968]_.
 
+.. seealso::
+   :ref:`Tutorial chapter <gauest>` "Automatic
+   initial estimates for profiles with multi component Gaussians."
+
+
 """
 
    cdef double *y_c, *work_c, *p_c

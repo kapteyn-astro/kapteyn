@@ -50,6 +50,13 @@ University of Tasmania, Australia @ 131.217.255.209
 Egyptian National Scientific & Technical Information Network @ 195.43.6.11
 Observatoire de Paris-Meudon @ 145.238.174.57
 McGill University, Department of Physics @ 132.206.92.226
+Harvard-Smithsonian Center for Astrophysics @ 131.142.42.148
+Sabanci Universitesi (Turkije) @ 193.255.135.1
+CLS - Collection Localisation Satellites @ 193.42.151.219
+Instituto de Astrofisica de Canarias (IAC)  @ 161.72.12.152
+Institute for Astronomy - University of Hawaii @ 128.171.227.195
+University of Oxford, Department of Physics @ 1163.1.174.25
+Michigan State University @ 35.13.177.242
 
-tot: Tue Jun  5 12:17:48 CEST 2012
-Tue May 29 11:00:00 CEST 2012
+tot: Mon Jun 11 11:20:00 CEST 2012
+Tue Jun  5 12:17:48 CEST 2012
