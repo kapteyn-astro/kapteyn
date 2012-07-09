@@ -57,6 +57,11 @@ Instituto de Astrofisica de Canarias (IAC)  @ 161.72.12.152
 Institute for Astronomy - University of Hawaii @ 128.171.227.195
 University of Oxford, Department of Physics @ 1163.1.174.25
 Michigan State University @ 35.13.177.242
+Perimeter Institute for Theoretical Physics (Ontario, Canada) @ 38.117.109.20
+Durham University @ 129.234.184.211
+Onsala rymdobservatorium (Chalmers) @ 129.16.208.235
+Department of Computer Science - Daimi (University of Aarhus) @ 130.225.0.251
+Yale University @ 128.36.249.151
 
-tot: Mon Jun 11 11:20:00 CEST 2012
-Tue Jun  5 12:17:48 CEST 2012
+tot: Mon Jun 18 10:59:00 CEST 2012
+Mon Jun 11 11:20:00 CEST 2012

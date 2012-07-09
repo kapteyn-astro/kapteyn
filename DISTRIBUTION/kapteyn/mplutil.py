@@ -92,16 +92,37 @@ except:
    pass
 
 
-# Work-around for the qt4agg backend which does not report resize events.
+# Work-arounds for the qt4agg backend.
 #
 try:
    from matplotlib.backends import backend_qt4agg
 
+#
+#  Enable reporting resize events which the qt4agg normally doesn't do.
+#
    def resizeEvent( self, e ):
       backend_qt4agg.FigureCanvasQT.resizeEvent( self, e )
       self.resize_event()
 
+#
+#  Allow keypress events also when auto-repeating. By default these
+#  are suppressed as of matplotlib version 1.1.0.
+#
+   def _get_key( self, event ):
+###        if event.isAutoRepeat():
+###            return None
+        if event.key() < 256:
+            key = str(event.text())
+        elif event.key() in self.keyvald:
+            key = self.keyvald[ event.key() ]
+        else:
+            key = None
+          
+        return key 
+
+
    backend_qt4agg.FigureCanvasQTAgg.resizeEvent = resizeEvent
+   backend_qt4agg.FigureCanvasQTAgg._get_key = _get_key
 except:
    pass
 
@@ -412,7 +433,6 @@ there is no position involved.
 
    def __handler():
       def __handler(event):
-         if event.canvas.widgetlock.locked(): return
          for callback in CanvasCallback.__scheduled:
             if event.canvas is callback.canvas and \
                   event.name==callback.eventtype:

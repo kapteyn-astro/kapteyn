@@ -14,3 +14,5 @@ Test met matplotlib 1.1.0
 - De links naar de voorbeeld scripts wijzen nu naar ./EXAMPLES i.p.v. naar
   ./plot_directive/EXAMPLES/mu_simple.py, maar daar staan de scripts niet.
   Sphinx-matplotlib mismatch?
+  Update: ook door andere gebruiker gemeld:
+  https://github.com/matplotlib/matplotlib/issues/954
