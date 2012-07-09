@@ -450,7 +450,7 @@ from os.path import basename
 from numpy import ma
 from matplotlib.colors import Colormap
 from matplotlib import cm
-from tabarray import tabarray
+from kapteyn.tabarray import tabarray
 from kapteyn import package_dir
 
 class VariableColormap(Colormap):
@@ -734,6 +734,9 @@ Values should be between 0.0 and 1.0.
             image.changed()
       for canvas in self.canvases:
          canvas.draw()
+         # VOG: 5-7-12, needed flag for canvas to identify whether a draw_event
+         # came from this color update.
+         canvas.modifiedcolor = True
 
 
 # ==========================================================================
