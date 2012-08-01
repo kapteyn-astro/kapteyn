@@ -62,6 +62,33 @@ Durham University @ 129.234.184.211
 Onsala rymdobservatorium (Chalmers) @ 129.16.208.235
 Department of Computer Science - Daimi (University of Aarhus) @ 130.225.0.251
 Yale University @ 128.36.249.151
+University of Helsinki, Department of Astronomy @ 128.214.14.178
+Rochester Institute of Technology @ 129.21.56.118
+Wright State University @ 130.108.214.108
+Vrije Universiteit, Amsterdam @ 130.37.34.136
+University of Cambridge @ 131.111.69.235
+Ondrejov Asteroid Photometry Project @ 147.231.76.24
+National Renewable Energy Laboratory @ 192.174.37.50
+Astronomical Institute of Slovak Academy of Sciences @ 193.87.1.91
+University of Cape Town @ 137.158.153.206
+Boston University @ 128.197.64.34
+Departamento de Astronomia | Universidad de Concepcion (Chile) @ 152.74.238.2
+Wellesley College @ 149.130.163.210
+Institute of High Energy Physics, Chinese Academy of Sciences @ 202.122.36.30
+Aalto University Student Union (Finland) @ 82.130.41.135
+Department of Physics, Nagoya University @ 133.6.42.196
+University of Lethbridge @ 142.66.41.110
+Dept. of Physics and Atmospheric Science, Dalhousie University @ 129.173.120.16
+SESE, Arizona State University @ 129.219.108.214
+Lanzhou University, China @ 202.201.10.234
+Xiamen University Zhangzhou Campus, China @ 59.77.36.53
+University of Alaska @ 199.165.96.52
+SLAC National Accelerator Laboratory @ 198.129.37.71
+University of Wisconsin Madison @ 144.92.205.55
+Astronomisches Rechen-Institut (ARI) Heidelberg @ 129.206.110.224
+CSIRO @ 152.83.198.76
+Lawrence Berkeley National Laboratory @ 128.3.23.207
+McMaster University @ 130.113.193.57
 
-tot: Mon Jun 18 10:59:00 CEST 2012
-Mon Jun 11 11:20:00 CEST 2012
+tot: Wed Aug  1 12:56:00 CEST 2012
+Thu Jul 19 12:35:00 CEST 2012
