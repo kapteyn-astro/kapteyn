@@ -107,6 +107,21 @@ University of North Carolina at Chapel Hill (Phys. and Astr.) @ 152.2.5.247
 Carnegie Institution - Geophysical Laboratory @ 206.205.250.4
 [CHINA SCIENCE AND TECHNOLOGY NETWORK] @ 159.226.71.122
 Commissariat a l'Energie Atomique - HEPTech @ 132.166.13.40
+Princeton University @ 140.180.4.238
+Osaka Prefecture University, School of Science @ 157.16.88.169
+Uppsala Universitet, astronomi och rymdfysik @ 130.238.192.4
+Federal University of Rio de Janeiro @ 146.164.37.56
+University of Pennsylvania, School of Arts and Sciences @ 128.91.79.158
+Nan Jing University @ 180.209.7.0
+Julius-Maximilians-Universitaet Wuerzburg, Physik und Astronomie @ 132.187.47.188
+University of Nottingham @ 128.243.253.117
+Australian National University @ 150.203.89.166
+University of Florida @ 128.227.209.95
+Departament d'Astronomia i Meteorologia (Barcelona) @ 161.116.78.230
+Stanford University @ 171.66.70.102
+INAF -Astronomical Observatory of Padova @ 193.206.154.57
+Osservatorio Astronomico di Collurania Teramo @ 193.204.1.165
 
-tot: Mon Aug 27 15:25:35 CEST 2012
-Mon Aug 13 11:14:52 CEST 2012
+tot: Thu Sep 13 09:30:00 CEST 2012
+Mon Aug 27 15:25:35 CEST 2012
+

@@ -734,9 +734,6 @@ Values should be between 0.0 and 1.0.
             image.changed()
       for canvas in self.canvases:
          canvas.draw()
-         # VOG: 5-7-12, needed flag for canvas to identify whether a draw_event
-         # came from this color update.
-         canvas.modifiedcolor = True
 
 
 # ==========================================================================

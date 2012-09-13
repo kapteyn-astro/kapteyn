@@ -31,5 +31,9 @@ Some of the package's features:
      events (module mplutil); tools for parsing and interpreting coordinate
      information entered by the user (module positions).
 
+   * A function to search for gaussian components in a profile
+     (module profiles) and a class for non-linear least squares fitting
+     (module kmpfit). 
+
 ---
 *) Currently Hans Terlouw and Martin Vogelaar

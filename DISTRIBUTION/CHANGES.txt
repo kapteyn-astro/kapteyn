@@ -1,6 +1,16 @@
 Version 2.2.1 (being developed)
 ===============================
 
+* WCSLIB:
+
+  * changed to version 4.14
+
+  * modified spc.c
+
+* Module mplutil:
+
+  * added sunbow color maps
+
 Version 2.2 (Apr 19, 2012)
 ==========================
 

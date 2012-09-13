@@ -2,7 +2,8 @@ Installation Instructions
 =========================
 
 Requirements for installing this package are Python, numpy
-and a suitable C compiler.
+and a suitable C compiler. For using it, the availability
+of PyFITS and matplotlib is recommended.
 
 There are three installation options:
 
@@ -27,6 +28,8 @@ There are three installation options:
 
       python setup.py install --install-lib $gip_exe
 
+   The GIPSY installation procedure normally does this automatically, so
+   usually this will not be necessary. 
 
-                                            11-08-2010, JPT
+                                            13-09-2012, JPT
 
