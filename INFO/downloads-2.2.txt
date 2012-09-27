@@ -121,7 +121,11 @@ Departament d'Astronomia i Meteorologia (Barcelona) @ 161.116.78.230
 Stanford University @ 171.66.70.102
 INAF -Astronomical Observatory of Padova @ 193.206.154.57
 Osservatorio Astronomico di Collurania Teramo @ 193.204.1.165
+Jodrell Bank Centre for Astrophysics @ 130.88.24.75
+International Arctic Research Center, Univ. of Alaska Fairbanks @ 137.229.93.181
+Georgia Tech School of Physics @ 130.207.141.156
+Monash University @ 130.194.245.209
 
-tot: Thu Sep 13 09:30:00 CEST 2012
-Mon Aug 27 15:25:35 CEST 2012
+tot: Fri Sep 21 11:00:00 CEST 2012
+Thu Sep 13 09:30:00 CEST 2012
 
