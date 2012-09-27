@@ -126,7 +126,7 @@ try:
 except:
    pass
 
-
+import weakref
    
 # ==========================================================================
 #                             class AxesCallback
@@ -245,7 +245,8 @@ first :class:`AxesCallback` object `draw` as an attribute.
 
    def __init__(self, proc, axes, eventtype, schedule=True, **attr):
       self.proc      = proc
-      self.axes      = axes
+      self.axes      = weakref.proxy(axes)
+      self.axref     = weakref.ref(axes)
       self.eventtype = eventtype
       self.canvas    = axes.get_figure().canvas
       for name in attr.keys():
@@ -262,6 +263,8 @@ first :class:`AxesCallback` object `draw` as an attribute.
       objects so that its callback function will be called before others.
       """
 
+      if self.axref() is None:
+         raise Exception, 'Axes object does not exist anymore'
       if self.active:
          self.__scheduled.remove(self)        # remove from current position ..
          self.__scheduled.insert(0, self)     # .. and move to front of list
@@ -302,13 +305,16 @@ first :class:`AxesCallback` object `draw` as an attribute.
       def __handler(event):
          if event.canvas.widgetlock.locked(): return
          for callback in AxesCallback.__scheduled:
+            axes = callback.axref()
+            if axes is None:
+               callback.deschedule()
+               continue
             if event.canvas is callback.canvas   and \
                   event.name==callback.eventtype and \
-                  callback.axes.contains(event)[0]:
+                  axes.contains(event)[0]:
                callback.event = event
                callback.xdata, callback.ydata = \
-                  callback.axes.transData.inverted().transform(
-                                                        (event.x, event.y))
+                  axes.transData.inverted().transform((event.x, event.y))
                if callback.proc(callback):
                   break
       return __handler

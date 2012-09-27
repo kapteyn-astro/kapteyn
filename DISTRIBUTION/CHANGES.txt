@@ -3,13 +3,13 @@ Version 2.2.1 (being developed)
 
 * WCSLIB:
 
-  * changed to version 4.14
-
-  * modified spc.c
+  * changed to version 4.15
 
 * Module mplutil:
 
-  * added sunbow color maps
+  * added sunbow color maps.
+
+  * in class AxesCallback use weak references to Axes objects.
 
 Version 2.2 (Apr 19, 2012)
 ==========================
