@@ -131,7 +131,18 @@ Dept. of Earth and Space Science, Grad. School of Science - Osaka Univ. @ 133.1.
 Cardiff University @ 131.251.254.172
 Harvard University @ 67.134.207.235
 Raman Research Institute - RRI Bangalore @ 14.139.157.118
+Deutsches Elektronen-Synchrotron @ 131.169.139.42
+National University of Ireland, Galway @ 140.203.12.5
+University of Portsmouth @ 148.197.150.85
+The University of Sydney @ 129.78.32.22
+Canadian Institute for Theoretical Astrophysics @ 128.100.76.158
+KU Leuven @ 193.190.253.145
+Bergische Universitaet Wuppertal @ 132.195.41.21
+Leibniz-Institut fuer Astrophysik, Potsdam @ 141.33.55.98
+Pune University @ 202.52.53.220
+NASA Goddard Space Flight Center @ 198.119.56.43
+Ufa Scientific Center of the Russian Academy of Sciences @ 212.193.132.253
+Universite de Geneve @ 129.194.169.16
 
-tot: Fri Oct 05 12:58:57 CEST 2012
-Fri Sep 21 11:00:00 CEST 2012
-
+tot: Wed Oct 24 14:31:18 CEST 2012
+Fri Oct 05 12:58:57 CEST 2012
