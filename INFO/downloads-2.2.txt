@@ -125,7 +125,13 @@ Jodrell Bank Centre for Astrophysics @ 130.88.24.75
 International Arctic Research Center, Univ. of Alaska Fairbanks @ 137.229.93.181
 Georgia Tech School of Physics @ 130.207.141.156
 Monash University @ 130.194.245.209
+Mullard Space Science Laboratory - University College London @ 128.40.71.105
+South African Astronomical Observatory @ 196.21.185.1
+Dept. of Earth and Space Science, Grad. School of Science - Osaka Univ. @ 133.1.160.223
+Cardiff University @ 131.251.254.172
+Harvard University @ 67.134.207.235
+Raman Research Institute - RRI Bangalore @ 14.139.157.118
 
-tot: Fri Sep 21 11:00:00 CEST 2012
-Thu Sep 13 09:30:00 CEST 2012
+tot: Fri Oct 05 12:58:57 CEST 2012
+Fri Sep 21 11:00:00 CEST 2012
 
