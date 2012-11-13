@@ -682,6 +682,24 @@ class WrappedHeader(dict):
       except:
          return self.header[key]
 
+# ========================================================================== 
+#                             Function MinimalHeader
+# --------------------------------------------------------------------------
+#
+#  Function returning a minimal representation of the header supplied
+#  in the argument. Can be used to construct a minimal Projection object
+#  when the current header contains errors which would prevent a
+#  full Projection object to be made.
+#
+def MinimalHeader(header):
+   result = {}
+   naxis = header['NAXIS']
+   result['NAXIS'] = naxis
+   for i in range(1,naxis+1):
+      keyword = 'NAXIS%d' % i
+      result[keyword] = header[keyword]
+   return result
+
 # ==========================================================================
 #                             Class Projection
 # --------------------------------------------------------------------------
@@ -983,7 +1001,7 @@ Example::
 
 
    def __init__(self, source=None, rowvec=False, skyout=None,
-                      usedate=False, gridmode=False, alter=''):
+                      usedate=False, gridmode=False, alter='', minimal=False):
 
       wcserr_enable(1)
       dict_type, undef_type = range(2)
@@ -1019,8 +1037,11 @@ Example::
 
       if source_type==dict_type:
          self.source = source
-         header = WrappedHeader(source, alter)
-         header.freqtype()
+         if minimal:
+            header = MinimalHeader(source)
+         else:
+            header = WrappedHeader(source, alter)
+            header.freqtype()
          naxis = header['NAXIS']
          if wcsini(1, naxis, param):
             free(param)

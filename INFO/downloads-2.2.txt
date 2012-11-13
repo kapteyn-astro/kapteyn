@@ -143,6 +143,16 @@ Pune University @ 202.52.53.220
 NASA Goddard Space Flight Center @ 198.119.56.43
 Ufa Scientific Center of the Russian Academy of Sciences @ 212.193.132.253
 Universite de Geneve @ 129.194.169.16
+Universiteit Leiden (Leiden Observatory) @ 132.229.224.90
+University of Southampton @ 152.78.195.44
+Virginia Military Institute @ 144.75.182.111
+Saitama University @ 133.38.41.24
+Max-Planck-Institut fuer Chemie @ 192.67.218.50
+University of Science and Technology of China, Anhui @ 202.141.176.10
+Observatoire Astronomique de Marseille-Provence @ 195.221.212.242
+Department fuer Physik der FAU Erlangen Nuernberg @ 131.188.163.41
+ESO @ 134.171.35.36
+Fermilab @ 131.225.23.168
 
-tot: Wed Oct 24 14:31:18 CEST 2012
-Fri Oct 05 12:58:57 CEST 2012
+tot: Tue Nov 13 13:46:43 CET 2012
+Wed Oct 24 14:31:18 CEST 2012
