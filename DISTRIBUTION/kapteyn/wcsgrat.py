@@ -35,7 +35,7 @@ The transformations between pixel coordinates and world coordinates
 are based on module 
 :mod:`wcs` which is a Python binding for Mark R. Calabretta's library
 `WCSLIB <http://www.atnf.csiro.au/people/mcalabre/WCS>`_.
-From *WCSLIB* we use only the core transformation routines.
+>From *WCSLIB* we use only the core transformation routines.
 Header parsing is done with module :mod:`wcs`.
 
 Axes types that are not recognized by this software is treated as being linear.
@@ -112,7 +112,7 @@ Class Insidelabels
 .. autoclass:: Insidelabels
 
 """
-
+from sys import stdout
 from kapteyn import wcs        # The Kapteyn Python binding to WCSlib, including celestial transformations
 from kapteyn.positions import str2pos, parsehmsdms, unitfactor
 from kapteyn import rulers
@@ -455,6 +455,7 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
             lab += r"^{\prime\prime}"
    if sign == -1 and not Dlab:
       lab = "-"+lab
+
    return lab
 
 
@@ -688,10 +689,19 @@ class Gratline(object):
                       1/2 pixel in all directions
          --------------------------------------------------------------
          """
-         if x >= box[2] or x <= box[0] or y >= box[3] or y <= box[1]:
-            return False
-         else: 
-            return True
+         if box[0] <= box[2]:
+            if x >= box[2] or x <= box[0]:
+               return False
+         else:
+            if x >= box[0] or x <= box[2]:
+               return False
+         if box[1] <= box[3]:
+            if y >= box[3] or y <= box[1]:
+               return False
+         else:
+            if y >= box[1] or y <= box[3]:
+               return False
+         return True
 
 
       def __handlecrossing(box, x1, y1, x2, y2):
@@ -752,14 +762,14 @@ class Gratline(object):
          xw = numpy.zeros(linesamples) + constval
          dw = (wylims[1] - wylims[0])/1000.0  # Ensure that we cross borders
          yw = numpy.linspace(wylims[0]-dw, wylims[1]+dw, linesamples)
-      elif wcsaxis == 1:             # constant value on Y axis
+      elif wcsaxis == 1:            # constant value on Y axis
          dw = (wxlims[1] - wxlims[0])/1000.0
          xw = numpy.linspace(wxlims[0]-dw, wxlims[1]+dw, linesamples)
          yw = numpy.zeros(linesamples) + constval
-      else:                    # A grid line without one of the coordinates being constant e.g. a border
+      else:  # A grid line without one of the coordinates being constant e.g. a border
          xw = addx
          yw = addy
-      if (mixgrid == None):    # Probably matching axis pair of two independent axes
+      if (mixgrid == None):  # Probably matching axis pair or two independent axes
          world = (xw, yw)
          if wcsaxis in [0,1]:
             pixel = gmap.topixel(world)
@@ -768,13 +778,15 @@ class Gratline(object):
                pixel = (addx, addy)
             else:           # A set with world coordinates for a border is provided.
                pixel = gmap.topixel(world)
-      else:                    # wcs coordinate pair with one extra grid coordinate
+      else:                 # wcs coordinate pair with one extra grid coordinate
          unknown = numpy.zeros(linesamples)
          unknown += numpy.nan
          zp = numpy.zeros(linesamples) + mixgrid
          world = (xw, yw, unknown)
          pixel = (unknown, unknown, zp)
-         (world, pixel) = gmap.mixed(world, pixel)
+         (world, pixel) = gmap.mixed(world, pixel, iter=10)
+         #print "WCSGRAT world=",world
+         #print "WCSGRAT pixel=",pixel
       if wcsaxis == 0 or wcsaxis == 1:
          self.axtype = gmap.types[wcsaxis]
       else:
@@ -799,7 +811,6 @@ class Gratline(object):
       # but this is then an attribute of the tick
       self.ticks = []
       self.kwargs = {}
-
       # Special care for 'jumps' in a plot. A jump can occur for example near 180 deg where
       # for an all sky plot 180 deg is a position left in the box while a world
       # coordinate > 180 deg is a position at the right side of the box. 
@@ -813,13 +824,16 @@ class Gratline(object):
       box = (pxlims[0]-0.5, pylims[0]-0.5, pxlims[1]+0.5, pylims[1]+0.5)
       for p in zip(pixel[0], pixel[1]):     # Works for 2 and 3 element world tuples
          xp = p[0]; yp = p[1]
+#         print "WCSGRAT xp, yp", xp, yp
+         #if wcsaxis == 0 and numpy.isnan(xp):
+         #   print xp, yp, box, constval
          if not numpy.isnan(xp) and not numpy.isnan(yp):  # NaN's can occur with divergent projections
             currentinside = __inbox(xp, yp, box)
             if lastx != None  and (lastinside or currentinside):
                # These jump conditions are somewhat arbitrary.
                # If the projection diverges then these steps sizes may be
                # not enough to have a full coverage.
-               jump = abs(lastx-xp) > 10.0*stepx or abs(lasty-yp) > 10.0*stepy
+               jump = abs(lastx-xp) > abs(10.0*stepx) or abs(lasty-yp) > abs(10.0*stepy)
                if jump:
                   # print "JUMP: ", lastx, lasty, xp, yp, abs(lastx-xp), abs(lasty-yp), stepx, stepy
                   if countin > 0:
@@ -842,7 +856,7 @@ class Gratline(object):
                   # We are crossing from inside to outside
                   crossing2out = True
                   countin = 0
-               countout += 1
+               countout += 1            
             if crossing2in or crossing2out:
                axisnr, xlab, ylab = __handlecrossing(box, lastx, lasty, xp, yp)
                if self.axtype != 'border':    # Border lines sometimes do not have a constant world coordinate
@@ -1551,7 +1565,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
    :exc:`ValueError` *Number of samples along graticule line must be >= 2 to avoid a step size of zero*
       The value of parameter *gridsamples* is too low. Low values give
-      distorted graticule lines. Hogher values (like the default) give
+      distorted graticule lines. Higher values (like the default) give
       smooth results.
 
 
@@ -2071,7 +2085,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
             x1 *= fact; x2 *= fact
             d = x2 - x1
-            step2 = 0.9*d/2.0         # We want at least two graticule lines in this range
+            step2 = 0.9*d/3.0         # We want at least two graticule lines in this range
             for p in nicenumber:
                k = int(step2/p)
                if k >= 1.0:
@@ -2115,17 +2129,17 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # Calculate a precision for the seconds along spatial axes.
       pstep = step
       if axtype in ['longitude', 'latitude']:
-         if skysys == wcs.equatorial and axtype == 'longitude':
+         if wcs.equatorial in skysys and axtype == 'longitude':
             pstep *= 240.0
          else:
             pstep *= 3600.0
       # Set the precision for the seconds
+      # We found an optimum precision by trial and error
       f0 = numpy.floor( numpy.log10(pstep) )
       if f0 < 0.0:
          prec = int(abs(f0))
       else:
          prec = 0
-      
       startx = None
       if start != None:
          startx = start
@@ -2300,6 +2314,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          else:
             self.pylim = pylim
 
+
       # wcs.debug=True
       # Create the wcs projection object
       if spectrans == None:
@@ -2336,13 +2351,17 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          gmap = proj.sub([self.xaxnum, self.yaxnum])
          self.mixpix = None
 
+
       # Set the spectral translation and make Projection object an attribute
       # First process the string
       if spectrans != None:
          st2 = spectrans.split('-')
          if len(st2) == 1:
             spectrans += '-???'
-         self.gmap = gmap.spectra(spectrans)
+         try:
+            self.gmap = gmap.spectra(spectrans)
+         except:
+           raise Exception, "Cannot create object with current spectral translation" 
       else:
          self.gmap = gmap
       self.gmap.allow_invalid = True
@@ -2426,9 +2445,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.offsety = offsety
       spatialx = self.gmap.types[0] in ['longitude', 'latitude']
       spatialy = self.gmap.types[1] in ['longitude', 'latitude']
-      if self.offsetx == None:
+      if self.offsetx is None:
          self.offsetx = spatialx and not spatialy
-      if self.offsety == None:
+      if self.offsety is None:
          self.offsety = spatialy and not spatialx
 
       self.prec  = [0, 0]
@@ -2464,27 +2483,31 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.funx = self.funy = None
       self.fmtx = self.fmty = None
       self.radoffsetx = self.radoffsety = False
-      if spatialx and not spatialy and self.offsetx:
+      #if spatialx and not spatialy and self.offsetx:
+      if (spatialx and not spatialy) or (self.offsetx and (spatialx and spatialy)):
          # Then the offsets are distances on a sphere
          xmax = self.pxlim[1] + 0.5
          xmin = self.pxlim[0] - 0.5
          ymin = self.pylim[0] - 0.5
          x1 = xmin; x2 = xmax; y1 = y2 = ymin
          Lambda = getlambda(startpixX, xmin, xmax)
-         ruler = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=Lambda, step=deltax, units=unitsx)
-         self.xstarts = ruler.xw
+         rulerx = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=Lambda, step=deltax, units=unitsx)
+         #print "WCSGRAT ruler xw, yw", rulerx.xw, rulerx.yw, rulerx.stepsizeW, rulerx.offsets
+         #print "WCSGRAT ruler x, y", rulerx.x, rulerx.y
+         
+         self.xstarts = rulerx.xw
          self.prec[0] = 0
-         self.delta[0] = ruler.stepsizeW
-         self.offsetvaluesx = ruler.offsets
-         self.funx = ruler.fun
-         self.fmtx = ruler.fmt
+         self.delta[0] = rulerx.stepsizeW
+         self.offsetvaluesx = rulerx.offsets
+         self.funx = rulerx.fun
+         self.fmtx = rulerx.fmt
          self.radoffsetx = True
       elif issequence(startx):
          self.xstarts = startx
          if len(startx) >= 2:
             self.delta[0] = startx[1] - startx[0]  # Assume this delta also for not equidistant values in startx
       else:
-         # startx is a scalar
+         # startx is a scalar or None
          if startx == None and self.offsetx:
             startx = (self.wxlim[1] + self.wxlim[0]) / 2.0
          self.xstarts, self.offsetvaluesx, self.prec[0], self.delta[0] = self.__nicenumbers(self.wxlim[0],self.wxlim[1],
@@ -2492,20 +2515,24 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                                         delta=deltax, 
                                                         axtype=self.gmap.types[0], 
                                                         skysys=self.__skysys)
-      if spatialy and not spatialx and self.offsety:
+
+      if (spatialy and not spatialx) or (self.offsety and (spatialx and spatialy)):
          # Then the offsets are distances on a sphere
          ymax = self.pylim[1] + 0.5
          xmin = self.pxlim[0] - 0.5
          ymin = self.pylim[0] - 0.5
          x1 = xmin; x2 = xmin; y1 = ymin; y2 = ymax
          Lambda = getlambda(startpixY, ymin, ymax)
-         ruler = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=Lambda, step=deltay, units=unitsy)
-         self.ystarts = ruler.xw    # NOTE: do not change in yw!
+         rulery = self.Ruler(x1=x1, y1=y1, x2=x2, y2=y2, lambda0=Lambda, step=deltay, units=unitsy)         
+         if spatialx and spatialy:
+            self.ystarts = rulery.yw
+         else:
+            self.ystarts = rulery.xw    # NOTE: do not change in yw!
          self.prec[1] = 0
-         self.delta[1] = ruler.stepsizeW
-         self.offsetvaluesy = ruler.offsets
-         self.funy = ruler.fun
-         self.fmty = ruler.fmt
+         self.delta[1] = rulery.stepsizeW
+         self.offsetvaluesy = rulery.offsets
+         self.funy = rulery.fun
+         self.fmty = rulery.fmt
          self.radoffsety = True
       elif issequence(starty):
          self.ystarts = starty
@@ -2520,8 +2547,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                                         delta=deltay, 
                                                         axtype=self.gmap.types[1], 
                                                         skysys=self.__skysys)
-
-      # We have two sets of lines. For spatial maps, these are the 
+      # We have two sets of lines. For spatial maps, these are the
       # meridians and the parallels. If other axes are involved, it is 
       # better to use the name grid line with constant x or constant
       # y to identify the graticule lines.
@@ -2617,7 +2643,22 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                              gridsamples,self.mixpix, self.__skysys,
                              offsetlabel=offsetlabel,
                              fun=fie, fmt=fmt)
-
+            # Special case. Both axes are spatial but a user required
+            # to label the x axis in offsets. The graticule line however is
+            # calculated using the value of 'startx' and a non constant value
+            # for the other axis (e.g. the declination axis). This is the way
+            # we calculate the usual graticule lines, but we required an offset
+            # which is not constant along the graticule line. As a trick we
+            # replace the pixel coordinates of the x coordinate, by the x
+            # value of the ruler. This value is the pixel value of 'startx'.
+            # If this graticule line is curved and does not cross e.g. the top
+            # x axis, then we will see a partial graticule line. Usually
+            # this will be an exception.
+            if offsetx and spatialx and spatialy:
+               xoff0 = rulerx.x[i]
+               for lp in gridl.linepieces:
+                  for ll in range(len(lp[0])):
+                     lp[0][ll] = xoff0
             self.graticule.append(gridl)
             gridl.kwargs = {'color': '0.75', 'lw': 1}
 
@@ -2655,6 +2696,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                              gridsamples,self.mixpix, self.__skysys,
                              offsetlabel=offsetlabel,
                              fun=fie, fmt=fmt)
+           
+            if offsety and spatialx and spatialy:
+               yoff0 = rulery.y[i]    
+               for lp in gridl.linepieces:
+                  for ll in range(len(lp[1])):
+                     lp[1][ll] = yoff0
             gridl.kwargs = {'color': '0.75', 'lw': 1}
             self.graticule.append(gridl)
 
@@ -2696,16 +2743,43 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.objlist = []              # Initialize list with Graticules & derived objects
 
 
-   def plot(self, framebase):
+   def plot(self, framebase, frame=None, frame2=None):
       """
       -----------------------------------------------------------
       Purpose:      Plot the graticule lines and labels
                     Labels are either along the plot axes or 
                     inside the plot.
       Parameters:
-        graticule - An object from class Graticule
+        framebase   An Axes object to which the graticules are
+                    scaled. Two new Axes objects are created to hold two
+                    independent graticules.
+        frame       If not None, this is an Axes object, previously used
+                    to hold a graticule. So one can re-use this frame,
+                    which is in fact a requirement if one wants to
+                    zoom/dezoom images with graticule and be able
+                    to restore different zoom stages with the toolbar buttons.
+        frame2      See frame.
+        
       Returns:      --
-      Notes:        --
+      Notes:        In Sep 2012 we changed this method to be able to
+                    interactively zoom an image with a graticule.
+                    There is no method to (re)set the pixel limits of
+                    a graticule object, so for zooming one should
+                    destroy an old graticule and make a new one.
+                    This is not an ideal situation, but it works.
+                    However it is often dangerous to add Axes objects while
+                    zooming, so we added the option to reuse existing frames.
+                    We copy an example from module maputils:
+
+
+                    frame1 = cube.grat.frame
+                    frame2 = cube.grat.frame2
+                    cube.grat = currentimage.Graticule(pxlim=newpxlim, pylim=newpylim)
+                    cube.grat.plot(currentimage.frame, frame1, frame2)
+
+                    TODO: We should check other plot methods. If they are
+                    also used in zoom/dezoom/pan actions, then they should also
+                    have the option to reuse existing frames.
       -----------------------------------------------------------
       """
       # We need to sort and format the ticks for the 4 plot axes
@@ -2714,33 +2788,61 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       pos, lab, kwargs, Mkwargs = graticule.sortticks(tex=tex)
       aspect = framebase.get_aspect()
       adjust = framebase.get_adjustable()
-      framelabel= 'FR'+join([choice(letters) for i in range(8)], "")
-      # Each graticule holds two frames for two times two axes
-      try:
-         r,c,n = framebase.get_geometry()
-         frame = framebase.figure.add_subplot(r, c, n,
-                                    aspect=aspect,
-                                    adjustable=adjust,
-                                    autoscale_on=False,
-                                    frameon=False,
-                                    label=framelabel)
 
-         # If a colorbar is requested then the original frame (framebase) is
-         # altered. The add_subplot method does not see this altered position.
-         frame.set_position(framebase.get_position())
-      except: 
-         frame = framebase.figure.add_axes(framebase.get_position(),
-                                    aspect=aspect,
-                                    adjustable=adjust,
-                                    autoscale_on=False,
-                                    frameon=False,
-                                    label=framelabel)
+      # Each graticule holds two frames for two times two axes
+      if not frame:
+         framelabel= 'FR'+join([choice(letters) for i in range(8)], "")
+         try:
+            r,c,n = framebase.get_geometry()
+            frame = framebase.figure.add_subplot(r, c, n,
+                                       aspect=aspect,
+                                       adjustable=adjust,
+                                       autoscale_on=False,
+                                       frameon=False,
+                                       label=framelabel)
+
+            # If a colorbar is requested then the original frame (framebase) is
+            # altered. The add_subplot method does not see this altered position.
+            frame.set_position(framebase.get_position())
+         except:
+            frame = framebase.figure.add_axes(framebase.get_position(),
+                                       aspect=aspect,
+                                       adjustable=adjust,
+                                       autoscale_on=False,
+                                       frameon=False,
+                                       label=framelabel)
 
       graticule.frame = frame  # Store frame so that frame can be identified with events
-      xlo = graticule.pxlim[0]-0.5; ylo = graticule.pylim[0]-0.5 
-      xhi = graticule.pxlim[1]+0.5; yhi = graticule.pylim[1]+0.5  
+      # In Matplotlib, it is possible that the upper pixel limit is
+      # lower than the lower value. To get graticules for entire pixels in your image
+      # we add 0.5, but as an extension. So if hi < lo, we should change the sign of
+      # the delta we want to add. However... we work with FITS files or FITS related
+      # files where always hi > lo.
+      # This is important for the following special case.
+      # Assume a user zoomed an area and the area does not include enire border
+      # pixels. Then we have a different situation than that of standard image limits
+      # which are always in integer pixels. Then one has to avoid the 0.5 correction
+      # by adding/subtracting this value before calling the constructor.
+      # Assume now that we have an area smaller than 1 pixel. Then this correction
+      # is the cause that hi < lo and we add the wrong delta's which increases
+      # the area instead of keeping it constant. So we omit the special case
+      # that hi < lo.
+      deltax = deltay = 0.5
+      """
+      if graticule.pxlim[0] <= graticule.pxlim[1]:
+         deltax = 0.5
+      else:
+         deltax = -0.5
+      if graticule.pylim[0] <= graticule.pylim[1]:
+         deltay = 0.5
+      else:
+         deltay = -0.5
+      """
+      xlo = graticule.pxlim[0]-deltax; ylo = graticule.pylim[0]-deltay
+      xhi = graticule.pxlim[1]+deltax; yhi = graticule.pylim[1]+deltay
       frame.set_yticks(pos[left])
       frame.set_yticklabels(lab[left])
+      #print "WCSGRAT ticks=", str(frame.yaxis.get_major_ticks())
       for tick, kw, mkw in zip(frame.yaxis.get_major_ticks(), kwargs[left], Mkwargs[left]):
          tick.label1.set(**kw)
          if len(mkw) != 0:
@@ -2758,23 +2860,24 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          tick.tick2on = False
          tick.tick2line.set_visible(False) 
 
-      framelabel= 'SFR'+join([choice(letters) for i in range(8)], "")
-      try:
-         r,c,n = framebase.get_geometry()
-         frame2 = framebase.figure.add_subplot(r, c, n,
-                                    aspect=aspect,
-                                    adjustable=adjust,
-                                    autoscale_on=False,
-                                    frameon=False,
-                                    label=framelabel)
-         frame2.set_position(framebase.get_position())
-      except: 
-         frame2 = framebase.figure.add_axes(frame.get_position(),
-                                    aspect=aspect,
-                                    adjustable=adjust,
-                                    autoscale_on=False,
-                                    frameon=False,
-                                    label=framelabel)
+      if not frame2:
+         framelabel= 'SFR'+join([choice(letters) for i in range(8)], "")
+         try:
+            r,c,n = framebase.get_geometry()
+            frame2 = framebase.figure.add_subplot(r, c, n,
+                                       aspect=aspect,
+                                       adjustable=adjust,
+                                       autoscale_on=False,
+                                       frameon=False,
+                                       label=framelabel)
+            frame2.set_position(framebase.get_position())
+         except:
+            frame2 = framebase.figure.add_axes(frame.get_position(),
+                                       aspect=aspect,
+                                       adjustable=adjust,
+                                       autoscale_on=False,
+                                       frameon=False,
+                                       label=framelabel)
 
       # frame2 = framebase.figure.add_axes(frame.get_position(), frameon=False, label=framelabel)
       graticule.frame2 = frame2  # Add new attribute
@@ -3303,7 +3406,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                     if not texsexa is None: t.texsexa = texsexa
                     # There are defaults for the precision in seconds for each axis
                     # If the user sets a format with precision in seconds (e.g. HMS.SS)
-                    # then we need to tell this to different methods that dela with this.
+                    # then we need to tell this to different methods that deal with it.
                     if not fmt is None and fmt.find('%') == -1:   # Not a common format, must be a HMS/DMS format
                        s2 = fmt.split('.')
                        if len(s2) > 1:
@@ -3689,7 +3792,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       plotaxis = parseplotaxes(plotaxis)
       for ax in plotaxis:
          # User wants to make something visible, but right and top
-         # axis labels are default invisible. Keyword 'visible' in the
+         # axis labels are by default invisible. Keyword 'visible' in the
          # kwargs list can overrule this default
          #self.axes[ax].kwargs.update({'visible':True})
          if len(kwargs):
@@ -3895,7 +3998,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       if constval == None:
          if wcsaxis == 0:
             constval = self.ystarts[0]
-         else:
+         else:            
             constval = self.xstarts[0]
 
       if type(constval) == StringType:
@@ -3942,6 +4045,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                               phi = numpy.arctan2(yp2-yp1, xp2-xp1)*180.0/numpy.pi
                               if self.gmap.cdelt[1] < 0.0:
                                  phi -= 180.0
+                              if phi < 0:
+                                 phi += 360.0
+                              if 90 <= phi < 270:
+                                 phi += 180.0
+                        else:
+                           phi = 90.0                                                       
                      else:
                         phi = angle
                      defkwargs.update({'rotation':phi+addangle})
@@ -3951,7 +4060,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                          labval,
                                          phi+addangle,
                                          self.gmap.types[wcsaxis],
-                                         skysys=self.gmap.skyout,
+                                         skysys=self.__skysys,   #self.gmap.skyout,
                                          fun=fun,
                                          fmt=fmt,
                                          offset=False,
@@ -3986,6 +4095,11 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                               phi = numpy.arctan2(yp2-yp1, xp2-xp1)*180.0/numpy.pi
                               if self.gmap.cdelt[0] < 0.0:
                                  phi -= 180.0
+                              if phi < 0:
+                                 phi += 360.0
+                              if 90 <= phi < 270:
+                                 phi += 180.0
+                                 
                      else:
                         phi = angle
                      defkwargs.update({'rotation':phi+addangle})
@@ -3995,7 +4109,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                          labval,
                                          phi+addangle,
                                          self.gmap.types[wcsaxis],
-                                         skysys=self.gmap.skyout,
+                                         skysys=self.__skysys,  #self.gmap.skyout,
                                          fun=fun,
                                          fmt=fmt,
                                          offset=False,

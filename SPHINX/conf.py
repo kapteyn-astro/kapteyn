@@ -268,7 +268,7 @@ from matplotlib.sphinxext import plot_directive
 import matplotlib
 def my_align(arg):
    return directives.choice(arg,Image.align_values)
-def my_clear_state():
+def my_clear_state(plot_rcparams):
    plot_directive.plt.close('all')
    matplotlib.rcdefaults()
    # Set a figure size that doesn't overflow typical browser windows:

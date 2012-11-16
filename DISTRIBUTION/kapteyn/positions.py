@@ -1721,8 +1721,11 @@ class Coordparser(object):
       # of plain numbers. It could also be a world coordinate associated
       # with a sky system or a world coordinate followed by a unit
       #-------------------------------------------------------------------
-      number, typ, tposdelta = self.getnumber(tpos, coordindx)
+      number, typ, tposdelta = self.getnumber(tpos, coordindx)         
       if number != None:
+         if typ == 'g' and self.gipsygrids:
+            offgrid2pix = nint(self.crpix[coordindx])
+            number = [w+offgrid2pix for w in number]
          return number, typ, '', '', tposdelta
       else:
          if typ != 'x':
@@ -1794,22 +1797,24 @@ class Coordparser(object):
             # Note that this routine does not know whether pixels or grids
             # are entered. In the context of GIPSY we have to force the
             # pixel that represents 'PC' to a grid, because the calling
-            # environment (GIPSY) expects the input was a grid. In the
-            # GIPSY routine where the coordinate transformation takes place
-            # the grids are transformed to pixels for WCSLIB
+            # environment (GIPSY) expects the input was a grid. The conversion
+            # is done elsewhere in this class (getcoordinate()).
             pc = self.crpix[coordindx]
-            #if self.gipsygrids:
-            #   # Go from FITS pixel to grid
-            #   pc -= nint(self.crpix[coordindx])
+            if self.gipsygrids:
+               # Go from FITS pixel to grid
+               pc -= nint(self.crpix[coordindx])
             return [pc], 'g', 1
          elif currenttoken.upper() == 'AC':
             # Next code is compatible to code in cotrans.c only we made the expression
             # simpler by rewriting the formula so that cotrans' offset is not necessary.
             n = self.naxis[coordindx]
             ac = 0.5 * (n+1)
-            #if self.gipsygrids:
-            #   # Go from FITS pixel to grid. See also comment at 'PC'
-            #   ac -= nint(self.crpix[coordindx])
+            if self.gipsygrids:
+               # Go from FITS pixel to grid. See also comment at 'PC'
+               # We have to do this because elsewhere pixels are
+               # converted to grids if gipsygrids=True. So compensate
+               # that correction here.
+               ac -= nint(self.crpix[coordindx])
             return [ac], 'g', 1
          else:
             # No number nor a sexagesimal number
@@ -1833,10 +1838,6 @@ class Coordparser(object):
             world = [w*unitfact for w in number]
             return world, 'w', 2                 # two tokens scanned
 
-      if self.gipsygrids:
-         # Then apply an offset so that these grids become pixels
-         offgrid2pix = nint(self.crpix[coordindx])
-         number = [w+offgrid2pix for w in number]
       return number, 'g', 1
 
 
@@ -1943,6 +1944,7 @@ class Coordparser(object):
 def dotrans(parsedpositions, subproj, subdim, mixpix=None):
    #-------------------------------------------------------------------
    """
+   This routine expects pixels in gcoord and will also return pixels
    """
    #-------------------------------------------------------------------
    skyout_orig = subproj.skyout            # Store and restore before return

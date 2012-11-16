@@ -1,4 +1,4 @@
-#!/usr/bin/env pythonshowall
+#!/usr/bin/env python
 #----------------------------------------------------------------------
 # FILE:    maputils.py
 # PURPOSE: Provide methods to extract 2-dim image data from FITS file
@@ -30,7 +30,6 @@
 # -Colorbar met optie bar tegen plot aan
 # -WCSflux geschikt maken voor subplots
 # -Truc voor alignment. va=bottom en een delta introduceren
-# -Backquotes in IOutils niet meer nodig
 #----------------------------------------------------------------------
 
 """
@@ -118,13 +117,11 @@ Module level data
 :data:`cmlist`
    Object from class Colmaplist which has attribute *colormaps* which
    is a sorted list with names of colormaps.
-:data:`colormaps`
-   The actual list of colormaps.
 
 :Example:
 
    >>> from kapteyn import maputils
-   >>> print maputils.colormaps
+   >>> print maputils.cmlist.colormaps
    >>> cmap = raw_input("Enter name of a colormap: ")
    ['Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'Dark2',
     'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn',
@@ -243,16 +240,25 @@ Class MovieContainer
 # Use this to change the default backend
 #from matplotlib import use
 use('qt4agg')
-# Use this to find the current backend
-from matplotlib import rcParams
-backend = rcParams['backend']
-print "Backend=",backend
+
 from matplotlib import __version__ as mplversion
 print "Matplotlib version:", mplversion
 # Experiment with a local LaTeX e.g. to improve horizontal label alignment
 #from matplotlib import rc
 #rc('text', usetex=True)
 """
+# Use this to find the current backend. We need this parameter to find
+# out whether we work with a QT canvas or not. For a QT canvas we deal with
+# toolbar messages in a different way.
+from matplotlib import rcParams
+backend = rcParams['backend'].upper()
+
+# !!!!!!!!!!!!
+# Uitproberen met nieuwe MPL versies. Het wijzigt de default
+# file format in savefig:
+#rcParams['savefig.extension'] = 'pdf'
+#rcParams['savefig.format'] = 'pdf'
+
 
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
 from matplotlib.pyplot import figure, show
@@ -260,30 +266,44 @@ from matplotlib import cm
 from matplotlib.colors import Colormap, Normalize          #, LogNorm, NoNorm
 from matplotlib.colorbar import make_axes, Colorbar, ColorbarBase
 from matplotlib.patches import Polygon
-from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import MultipleLocator, ScalarFormatter, FormatStrFormatter
+from matplotlib.lines import Line2D
+from matplotlib.text import Text
+from matplotlib.image import AxesImage
+from matplotlib.cbook import report_memory
+import matplotlib.axes as axesclass  
+from mpl_toolkits.axes_grid1 import make_axes_locatable # VOGNEW
 import matplotlib.nxutils as nxutils
 import pyfits
 import numpy
 from kapteyn import wcs, wcsgrat
 from kapteyn.celestial import skyrefsystems, epochs, skyparser, lon2hms, lat2dms, lon2dms
 from kapteyn.tabarray import tabarray, readColumns
-from kapteyn.mplutil import AxesCallback, VariableColormap, TimeCallback, KeyPressFilter
+#from kapteyn.mplutil import AxesCallback, CanvasCallback, VariableColormap, TimeCallback, KeyPressFilter
+from mplutil import AxesCallback, CanvasCallback, VariableColormap, TimeCallback, KeyPressFilter
 from kapteyn.positions import str2pos, mysplit, unitfactor
 from kapteyn.interpolation import map_coordinates  # original from scipy.ndimage.interpolation
 from kapteyn.filters import gaussian_filter
 # Original location was: from scipy.ndimage.filters import gaussian_filter
 from kapteyn import rulers
 import readline
+from gc import collect as garbagecollect
 from types import TupleType as types_TupleType
 from types import ListType as types_ListType
 from types import StringType as types_StringType 
 from string import upper as string_upper
-from string import letters
+from string import letters, join
 from random import choice
 from re import split as re_split
 from datetime import datetime
 import warnings
 import time
+from sys import stdout
+from os import getpid as os_getpid
+from os.path import basename as os_basename
+from subprocess import Popen, PIPE
+from platform import system as os_system
+
 try:
    from gipsy import anyout, typecli
    gipsymod = True
@@ -309,9 +329,129 @@ globalfigmanager = None
 globalmessenger = None
 
 
+
+# Redefine some methods to intercept actions which causes a canvas.draw() call
+# and a change in the Axes bbox.
+
+from matplotlib.backend_bases import NavigationToolbar2
+NavigationToolbar2.ext_callback = None
+NavigationToolbar2.ext_callback2 = None
+def _update_view(self):
+    '''update the viewlim and position from the view and
+    position stack for each axes
+    '''
+    lims = self._views()
+    if lims is None:  return
+    pos = self._positions()
+    if pos is None: return
+    for i, a in enumerate(self.canvas.figure.get_axes()):
+        xmin, xmax, ymin, ymax = lims[i]
+        a.set_xlim((xmin, xmax))
+        a.set_ylim((ymin, ymax))
+        # Restore both the original and modified positions
+        a.set_position( pos[i][0], 'original' )
+        a.set_position( pos[i][1], 'active' )
+    
+    self.draw()
+    if self.ext_callback2:
+       self.ext_callback2()
+    if self.ext_callback:
+       self.ext_callback()
+
+def release(self, event):
+    if self.ext_callback2:
+       self.ext_callback2()
+    if self.ext_callback:
+       self.ext_callback()
+
+
+def drag_pan(self, event):
+    'the drag callback in pan/zoom mode'
+
+    for a, ind in self._xypress:
+        #safer to use the recorded button at the press than current button:
+        #multiple button can get pressed during motion...
+        a.drag_pan(self._button_pressed, event.key, event.x, event.y)
+    self.dynamic_update()
+
+    if self.ext_callback:
+       self.ext_callback()
+
+
+NavigationToolbar2._update_view = _update_view
+NavigationToolbar2.release = release
+NavigationToolbar2.drag_pan = drag_pan
+
+
+from matplotlib.figure import Figure
+Figure.ext_callback = None
+def subplots_adjust(self, *args, **kwargs):
+    """
+    fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
+        wspace=None, hspace=None)
+
+    Update the :class:`SubplotParams` with *kwargs* (defaulting to rc where
+    None) and update the subplot locations
+
+    """
+    self.subplotpars.update(*args, **kwargs)
+    import matplotlib.axes
+    for ax in self.axes:
+        if not isinstance(ax, matplotlib.axes.SubplotBase):
+            # Check if sharing a subplots axis
+            if ax._sharex is not None and isinstance(ax._sharex, matplotlib.axes.SubplotBase):
+                ax._sharex.update_params()
+                ax.set_position(ax._sharex.figbox)
+            elif ax._sharey is not None and isinstance(ax._sharey, matplotlib.axes.SubplotBase):
+                ax._sharey.update_params()
+                ax.set_position(ax._sharey.figbox)
+        else:
+            ax.update_params()
+            ax.set_position(ax.figbox)
+    if self.ext_callback:
+       self.ext_callback()
+       
+Figure.subplots_adjust = subplots_adjust
+
+
+def getmemory():
+#-------------------------------------------------------------------------------
+# Use 'ps' on Linux to get the resident memory in use by the program.
+# For other os, use cbook.report_memory() to get the memory pages.
+# The Linux version is based on the report_memory() but with the # rss,sz
+# options switched, because we want the residential memory here.
+#-------------------------------------------------------------------------------
+   pid = os_getpid()
+   system = os_system()
+   garbagecollect()
+   if system.lower().startswith('linux'):
+      a = Popen('ps -p %d -o sz,rss' % pid, shell=True,
+                 stdout=PIPE).stdout.readlines()
+      mem = int(a[1].split()[1])                     # Res. memory in kB
+      mem /= 1024                                    # in mB
+      mem = "Resident mem.: <b>" + str(mem) + "</b> mB "
+   else:
+      mem = report_memory()
+      mem = "Mem. pages: " + str(mem)
+   return mem
+   
+
 def nint(x):
+#-------------------------------------------------------------------------------
+# GIPSY compatible nearest integer
+#-------------------------------------------------------------------------------
    return numpy.floor(x+0.5)
+
          
+def flushprint(s):
+#-------------------------------------------------------------------------------
+# Helper function to write debug information to the terminal, and because
+# we flush stdout, it will be printed immediately.
+#-------------------------------------------------------------------------------
+   return  # TODO if no debugging is required
+   #print s
+   #stdout.flush()
+
 
 def showall():
    #--------------------------------------------------------------------
@@ -734,6 +874,7 @@ class Positionmessage(object):
    def __init__(self, skysys, skyout, axtype):
       self.pixfmt = "%.1f"
       self.wcsfmt = "%.3g"     # If any is given, this will overrule hms/dms formatting
+      self.wcsuffmt = "%.7f"
       self.zfmt = "%.3e"
       self.hmsdms = True
       self.dmsprec = 1
@@ -775,31 +916,43 @@ class Positionmessage(object):
       s = self.pixfmt%x + ' ' + self.pixfmt%y
       return s
 
-   def wcs2str(self, xw, yw, missingspatial):
+   def wcs2str(self, xw, yw, missingspatial, returnlist=False, unformatted=False):
       # World coordinates to string
-      if self.wcsfmt is None:
+      if not self.wcsfmt and not unformatted:
+         return None
+      if unformatted and self.wcsuffmt is None:
          return None
       vals = (xw, yw)
       if not missingspatial is None:
          vals += (missingspatial,)
-      s = ''
+      if returnlist:
+         s = []
+      else:
+         s = ''
+      if unformatted:
+         wcsfmt = self.wcsuffmt
+      else:
+         wcsfmt = self.wcsfmt
       for atyp, val in zip(self.axtype, vals):
          if val is None:
             coord = "NaN"
          else:
-            if self.hmsdms:
+            if self.hmsdms and not unformatted:
                if atyp == 'longitude':
                   if self.sys == wcs.equatorial:
                      coord = lon2hms(val, prec=self.dmsprec+1) # One extra digit for hms
                   else:
                      coord = lon2dms(val, prec=self.dmsprec)
                elif atyp == 'latitude':
-                  coord = lat2dms(val, prec=self.dmsprec)
-               else:
-                  coord = self.wcsfmt%val
+                     coord = lat2dms(val, prec=self.dmsprec)
+               else:                  
+                  coord = wcsfmt%val
             else:
-               coord = self.wcsfmt%val
-         s += coord + ' '
+               coord = wcsfmt%val
+         if returnlist:
+            s.append(coord)
+         else:
+            s += coord + ' '
       return s
 
 
@@ -821,19 +974,45 @@ class Colmaplist(object):
       
    """
 #-----------------------------------------------------------
+   def compare(self, a, b): return cmp(a.lower(), b.lower())  # For case insensitive sorting
    def __init__(self):
       # A list with available Matplotlib color maps
-      # The '_r' entries are reversed versions
-      self.colormaps = sorted([m for m in cm.datad.keys() if not m.endswith("_r")])
+      # The '_r' entries are reversed versions. We omit these versions
+      # because maputils has an 'inverse' option to generate an inverted version
+      # of each color lut.
+      self.colormaps = [m for m in cm.datad.keys() if not m.endswith("_r")]
+      # Sort this list in a case insensitive way
+      self.colormaps.sort(self.compare)
+      colormaps = self.colormaps
    def add(self, clist):
       if not issequence(clist):
          clist = [clist]
-      for c in clist[::-1]:
-         self.colormaps.insert(0,c)
+      # Just ad and sort afterwards:
+      self.colormaps += clist
+      #for c in clist[::-1]:
+      #   self.colormaps.insert(0,c)
+      self.colormaps.sort(self.compare)
+      colormaps = self.colormaps
+   def addfavorites(self, flist):
+      # Prepend a list with (unsorted) favorites
+      if not issequence(flist):
+         flist = [flist]
+      newlist = flist + self.colormaps
+      self.colormaps = flist + self.colormaps
+      colormaps = self.colormaps
 
 cmlist = Colmaplist()
-cmlist.add(VariableColormap.luts())      # Add luts from lut directory of the fKapteyn Package
-colormaps = cmlist.colormaps
+cmlist.add(VariableColormap.luts())      # Add luts from lut directory of the Kapteyn Package
+#colormaps = cmlist.colormaps
+# Add other attributes like a list with scales and the defaults
+# For the default color map, we cannot set an index because we
+# never know what color maps are added and how they are sorted.
+# So we store only the name, and when necessary we retrieve an index
+# with list method index()
+cmlist.cmap_default = 'jet'
+
+# TODO: Maak ook bovenstaande default een class var.
+
 
 
 def fitsheader2dict(header, comment=True, history=True):
@@ -1536,6 +1715,10 @@ class Image(object):
       self.box = box
       newkwargs = ({'origin':'lower', 'extent':self.box,
                     'interpolation':'nearest'})
+      # Our first choice was interpolation='none' which is an option from
+      # Matplotlib version 1.1.0 and newer. However without interpolation it
+      # is impossible to use the set_alpha method to make an image transparent
+      
       newkwargs.update(kwargs)
       self.kwargs = newkwargs
       self.data = imdata
@@ -1559,10 +1742,11 @@ class Image(object):
       self.frame = frame
       # In the following call to imshow() it seems to be necessary to set the
       # aspect ratio explicitly. We copy its value from the current frame.
-      self.im = self.frame.imshow(self.data, cmap=self.cmap, norm=self.norm, aspect=frame.get_aspect(), **self.kwargs)
+      self.im = self.frame.imshow(self.data, cmap=self.cmap, norm=self.norm,
+                                  aspect=frame.get_aspect(), **self.kwargs)
       self.frame.set_xlim((self.box[0], self.box[1]))
       self.frame.set_ylim((self.box[2], self.box[3]))
-
+      
 
 
 class Contours(object):
@@ -1799,7 +1983,7 @@ class Colorbar(object):
             will be 'stolen' from a mother frame.
             clines: Draw contour lines in colorbar also. Does not matter
             if this comes from an image or contour set.
-      linewidhts: One number to set the line widht of all the contour
+      linewidhts: One number to set the line width of all the contour
             lines in the colorbar. Note that linewidths set for a
             contour level will be copied for the line width of the
             line in the colorbar. However if parameter *linewidths*
@@ -1843,12 +2027,25 @@ class Colorbar(object):
       """
       Plot image object. Usually this is done by method
       :meth:`Annotatedimage.plot` but it can also be used separately.
+
+      Note:
+      We changed the default formatter for the colorbar. This can be done with
+      the 'format' parameter. We changed the formatter to a fixed format string.
+      This prevents that MPL uses an offset and a scaling for the labels.
+      If MPL does this, it adds an extra label, showing the offset and scale
+      in scientific notation. We do not want this extra label because we don't
+      have enough control over it (e.g. it can appear outside your viewport
+      or in a black background with a black font). With the new formatter
+      we are sure to get the real value in our labels.
       """
       #--------------------------------------------------------------------
       self.frame = cbframe                 # self.frame could have been None
-      fig = cbframe.figure                 # We need the figure to get use the colorbar method
-      
-      self.cb = fig.colorbar(mappable, cax=self.frame, norm=self.norm, **self.kwargs)
+      fig = cbframe.figure                 # We need the figure to use the colorbar method
+
+
+      majorFormatter = FormatStrFormatter("%g")
+      self.cb = fig.colorbar(mappable, cax=self.frame, norm=self.norm,
+                             format=majorFormatter, **self.kwargs)
 
       if self.plotcontourlines and self.contourset != None:
          CS = self.contourset.CS
@@ -1974,6 +2171,7 @@ class Skypolygon(object):
                 nangles=6, pa=0.0,
                 units=None,
                 lons=None, lats=None,
+                stepsize=1.0,
                 **kwargs):
 
       self.ptype = "Skypolygon"
@@ -2006,7 +2204,7 @@ class Skypolygon(object):
          if prescription[0].upper() == 'E':
             semimajor = major / 2.0
             semiminor = minor / 2.0
-            startang, endang, delta = (0.0, 360.0, 1.0)
+            startang, endang, delta = (0.0, 360.0, abs(stepsize)) # should be enough samples
             sinP = numpy.sin( pa*Pi/180.0 )
             cosP = numpy.cos( pa*Pi/180.0 )
             phi  = numpy.arange( startang, endang+delta, delta, dtype="f") 
@@ -2015,22 +2213,23 @@ class Skypolygon(object):
             d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
             r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
             lons, lats = dispcoord(xc, yc, r, -1, phi+pa)
-            # for lo,la in zip(lons,lats):
-            #    print "%.1f %.1f"%(lo,la)
+            #for lo,la in zip(lons,lats):
+            #   print "%.1f %.1f"%(lo,la)
          elif prescription[0].upper() == 'R':
             # Create rectangle with Major as the long side and aligned with North
             xs = minor/2.0
             ys = -major/2.0
-            samples = 50
+            samples = 100
             deltax = minor/float(samples)
             deltay = major/float(samples)
             x = numpy.zeros(samples)
             y = numpy.zeros(samples)
             for i in range(samples):
                x[i] = xs
-               y[i] = ys + i *deltax
+               y[i] = ys + i *deltay
             phi1 = numpy.arctan2(y,x)
             r1 = numpy.hypot(x,y)
+
             xs = minor/2.0
             ys = major/2.0
             for i in range(samples):
@@ -2038,6 +2237,7 @@ class Skypolygon(object):
                y[i] = ys
             phi2 = numpy.arctan2(y,x)
             r2 = numpy.hypot(x,y)
+
             xs = -minor/2.0
             ys =  major/2.0
             for i in range(samples):
@@ -2045,6 +2245,7 @@ class Skypolygon(object):
                y[i] = ys - i *deltay
             phi3 = numpy.arctan2(y,x)
             r3 = numpy.hypot(x,y)
+
             xs = -minor/2.0
             ys = -major/2.0
             for i in range(samples):
@@ -2094,9 +2295,11 @@ class Skypolygon(object):
       if len(lon1):
          xp, yp = projection.topixel((lon1, lat1))
          self.p1 = Polygon(zip(xp, yp), closed=True, **kwargs)
+         self.lon1 = lon1; self.lat1 = lat1
       if len(lon2):
          xp, yp = projection.topixel((lon2, lat2))
          self.p2 = Polygon(zip(xp, yp), closed=True, **kwargs)
+         self.lon2 = lon2; self.lat2 = lat2
 
    def plot(self, frame):
       if not self.p1 is None:
@@ -2787,11 +2990,26 @@ this class.
 
    """
 #--------------------------------------------------------------------
+   # Class variables that set the lut scales and keys
+   lutscales = ['linear', 'log', 'exp', 'sqrt', 'square']
+   scalekeys = {'1': 0, '2': 1, '3': 2, '4': 3, '5': 4}
+   scales_default = 0
+   blankcols = ['w', 'k', 'y', 'm', 'c', 'r', 'g', 'b']
+   blanknames = ['White', 'Black', 'Yellow', 'Magenta', 'Cyan', 'Red', 'Green', 'Blue']
+   blankcols_default = 0
+
+   # Class variables for scaling the colormap
+   slopetrans = 4.0   # Scale mouse value between 0 and 1 to colormap slope
+   shifttrans = 0.5   # Translate mouse value between 0 and 1 to -0.5, 0.5
+   
    def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, wcstypes,
                 skyout, spectrans, alter='',
                 mixpix=None,  aspect=1, slicepos=None, sliceaxnames=None, basename=None,
-                cmap='jet', blankcolor='w', clipmin=None, clipmax=None, boxdat=None,
-                sourcename='unknownsource', gridmode=False, externalmessenger=None):
+                cmap=None, blankcolor='w', clipmin=None, clipmax=None, boxdat=None,
+                sourcename='unknownsource', gridmode=False, 
+                adjustable='box', anchor='C', newaspect=None, clipmode=0, clipmn=(4,5),
+                callbackslist={}):
+
       #-----------------------------------------------------------------
       """
       """
@@ -2816,20 +3034,40 @@ this class.
       self.skyout = skyout
       self.spectrans = spectrans
       self.alter = alter
-      self.box = (self.pxlim[0]-0.5, self.pxlim[1]+0.5, self.pylim[0]-0.5, self.pylim[1]+0.5)
+      if self.pxlim[0] <= self.pxlim[1]:
+         deltax = 0.5
+      else:
+         deltax = -0.5
+      if self.pylim[0] <= self.pylim[1]:
+         deltay = 0.5
+      else:
+         deltay = -0.5
+      self.box = (self.pxlim[0]-deltax, self.pxlim[1]+deltax, self.pylim[0]-deltay, self.pylim[1]+deltay)
       self.image = None                          # A Matplotlib instance made with imshow()
       self.aspect = aspect
+      if not newaspect is None:
+         self.aspect = newaspect
+      self.adjustable = adjustable
+      self.anchor = anchor
       self.slicepos = slicepos                   # Information about current slice
       self.gridmode = gridmode
       self.sliceaxnames = sliceaxnames
       self.contours = None
       self.colorbar = None
       self.contourset = None
+      if cmap is None:
+         cmap = cmlist.cmap_default
       self.objlist = []
-      self.frame = self.adjustframe(frame)
-      self.externalmessenger = externalmessenger
+      self.frame = self.adjustframe(frame, adjustable)
       self.figmanager = plt_get_current_fig_manager()
       self.messenger = None
+      self.toolbarkey = None
+      # Keys of class dictionary with callbacks are: slope, offset, ...
+      self.callbackslist = callbackslist
+      if callbackslist.has_key('exmes'):
+         self.externalmessenger = callbackslist['exmes']
+      else:
+         self.externalmessenger = None
       # The next lines need some explanation. The toolbar message
       # is bound to a figure(manager). If a figure changes, then we need
       # new toolbar message function. For multiple frames in one figure
@@ -2843,7 +3081,7 @@ this class.
       if not (self.figmanager is globalfigmanager):
          try: # Sphinx does something with the figure manager, so we need a try
             globalfigmanager = self.figmanager
-            if not externalmessenger is None:
+            if not self.externalmessenger is None:
                globalmessenger = self.externalmessenger
             else:
                globalmessenger = self.figmanager.toolbar.set_message
@@ -2851,33 +3089,69 @@ this class.
          except:
            pass
       self.messenger = globalmessenger
+
+      # In the constructor, the colormap should not update the image
+      # otherwise we get incompatible frames which behave differently
+      # if we resize the plot window. 
+
+      self.autostate = None
+      try:
+         self.autostate = cmap.auto
+         cmap.auto = False
+      except:
+         pass
+
       self.set_colormap(cmap)
       self.set_blankcolor(blankcolor)
+
       # Calculate defaults for clips if nothing is given
+      # If no clip values are entered, then we calculate them either from
+      # the minimum and maximum values of the current data (self.data) or
+      # we use mean-n*rms and mean+m*rms as the default. This depends on the
+      # option given in parameter 'clipmode'.
+      needstats = False
+      datmin = datmax = mean = rms = None
+      if clipmode == 0:
+         if None in [clipmin, clipmax]:
+            needstats = True
+      else:
+         needstats = True
+      if needstats:
+         datmin, datmax, mean, rms = self.get_stats()
+      
+      if clipmin is None:
+         if clipmode in [0, 1]:
+            clipmin = datmin
+         else:
+            if None in [mean, rms]:
+               clipmin = None
+            else:
+               # Clipmode 2 uses mean and rms
+               clipmin = mean - rms*clipmn[0]
+      if clipmax is None:
+         if clipmode in [0, 1]:
+            clipmax = datmax
+         else:
+            if None in [mean, rms]:
+               clipmax = None
+               # Clipmode 2 uses mean and rms
+            else:
+               clipmax = mean + rms*clipmn[1]
+      flushprint("I calculated clip min max=%s %s %d"%(str(clipmin), str(clipmax), clipmode))
       self.clipmin = clipmin
       self.clipmax = clipmax
-      if self.data != None:
-         # If the data is copied from the FITSobject then
-         # it does not contain -inf and inf values, because these are
-         # replaced by NaN's. If this class is used with an external image
-         # you should replace these values in that image data before creating an object
-         # otherwise Matplotlib will fail to plot anything (image, contours).
-         # If somehow the inf values still exist, then we still want to see
-         # an image and therefore discard inf, -inf and nan to find the clip values.
-         mask = numpy.isfinite(self.data)
-         if numpy.any(mask):    # At least one must be a valid number
-            if self.clipmin is None:
-               self.clipmin = self.data[mask].min()
-            self.clipmax = clipmax
-            if self.clipmax is None:
-               self.clipmax = self.data[mask].max()
+      self.datmin = datmin
+      self.datmax = datmax
+      self.mean = mean
+      self.rms = rms
+
       # Give defaults if clips are still None:
       if self.clipmin is None:
          self.clipmin = 0.0
       if self.clipmax is None:
-         self.clipmax = 1.0
+         self.clipmax = self.clipmin + 1.0
 
-      self.callbackids = []                      # A list with 'mpl connect id's. Used for disconnecting
+      self.AxesCallback_ids = []                 # A list with 'mpl connect id's. Used for disconnecting
       self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax, clip=True)
       self.histogram = False                     # Is current image equalized?
       self.data_hist = None                      # There is not yet a hist. eq. version of the data
@@ -2885,6 +3159,8 @@ this class.
       self.data_blur = None
       self.blurfac = (self.pxlim[1]-self.pxlim[0]+1)/200.0
       self.blurindx = 0
+      self.X_lastvisited = None
+      self.Y_lastvisited = None
       self.data_orig = self.data                 # So we can toggle between image versions
       if basename is None:
          self.basename = "Unknown"               # Default name for file with colormap lut data
@@ -2898,6 +3174,82 @@ this class.
          self.set_pixoffset(nint(self.projection.crpix[0]), nint(self.projection.crpix[1]))
       self.rgbs = None                           # If not None, then the image is a
                                                  # composed image with r,g & b components.
+      # Restore the update status of the colormap
+      if not self.autostate is None:
+         cmap.auto = self.autostate
+         self.cmap.auto = self.autostate
+
+      # An Annotatedimage object could be an object for a slice panel.
+      # Then it has its own callback for a motion_notify event to
+      # update a plot.
+      self.regcb = None
+      #if regcallback:
+      #   self.regcb = AxesCallback(regcallback, self.frame, 'motion_notify_event')
+      #   self.AxesCallback_ids.append(self.regcb)
+
+
+   def callback(self, cbid, *arg):
+      #-----------------------------------------------------------------
+      """
+      Helper function for registered callbacks
+      """
+      #-----------------------------------------------------------------
+      if self.callbackslist.has_key(cbid):
+         self.callbackslist[cbid](*arg)
+
+
+   def get_stats(self):
+      #-----------------------------------------------------------------
+      """
+      Get necessary statistics e.g. to set clip levels
+      """
+      #-----------------------------------------------------------------      
+      if self.data is None:
+         return None, None, None, None
+
+      # If the data is copied from the FITSobject then
+      # it does not contain -inf and inf values, because these are
+      # replaced by NaN's. If this class is used with an external image
+      # you should replace these values in that image data before creating an object
+      # otherwise Matplotlib will fail to plot anything (image, contours).
+      # If somehow the inf values still exist, then we still want to see
+      # an image and therefore discard inf, -inf and nan to find the clip values.
+      datmin = datmax = mean = rms = mask = None
+      validmask = False
+      datmin = numpy.nanmin(self.data)       # Fast method first
+      if not numpy.isfinite(datmin):         # value is inf or -inf, try again...
+         mask = numpy.isfinite(self.data)    # We need a mask
+         validmask = numpy.any(mask)         # At least one must be a valid number
+         if validmask:                      
+            datmin = float(self.data[mask].min())
+         else:
+            datmin = None         
+      if validmask:                          # We are sure that there are inf's
+         if numpy.any(mask):                 # At least one must be a valid number
+            datmax = float(self.data[mask].max())
+         else:
+            datmax = None
+      else:      
+         datmax = numpy.nanmax(self.data)    # The fast method
+
+      if validmask:
+         mean = float(self.data[mask].mean())
+         rms  = float(self.data[mask].std())
+      else:
+         # Here we know that there are no inf's, but there could be still NaN's
+         mean = float(self.data.mean())
+         rms  = float(self.data.std())      
+         if not (numpy.isfinite(rms) and numpy.isfinite(mean)):
+            mask = numpy.isfinite(self.data)
+            if numpy.any(mask):                 # At least one must be a valid number
+               mean = float(self.data[mask].mean())
+               rms  = float(self.data[mask].std())
+
+      
+      flushprint("Calculated min, max=%f %f"%(datmin, datmax))
+      flushprint("Calculated std, mean=%f %f"%(rms, mean))
+                  
+      return datmin, datmax, mean, rms
 
 
       
@@ -2911,7 +3263,7 @@ this class.
       self.pixoffset[1] = yoff
       
 
-   def set_norm(self, clipmin, clipmax):
+   def set_norm(self, clipmin=None, clipmax=None):
       #-----------------------------------------------------------------
       """
       Matplotlib scales image values between 0 and 1 for its distribution
@@ -2926,10 +3278,12 @@ this class.
 
       :param clipmin:
          Image data below this threshold will get the same color
+         Value None will be replaced by 'clipmin'.
       :type clipmin:
          Float
       :param clipmax:
          Image data above this threshold will get the same color
+         Value None will be replaced by 'clipmax'.
       :type clipmax:
          Float
 
@@ -2956,9 +3310,17 @@ this class.
          environment. With GUI's it will be different.
       """
       #-----------------------------------------------------------------
-      # Here we need maintenance. The image is updated but the colorbar is not
+      #if clipmin is None and clipmax is None:
+      #   # Nothing to do
+      #   return
+      if clipmin is None:
+         clipmin = self.clipmin
+      if clipmax is None:
+         clipmax = self.clipmax
+      if clipmin > clipmax:
+         clipmin, clipmax = clipmax, clipmin  # Swap, to prevent ValueError
       self.norm = Normalize(vmin=clipmin, vmax=clipmax, clip=True)
-      self.clipmin = clipmin; self.clipmax = clipmax
+      #self.clipmin = clipmin; self.clipmax = clipmax
       if self.cmap != None:
          self.cmap.update()
       if self.image != None:
@@ -3008,7 +3370,7 @@ this class.
          >>> annim = fitsobj.Annotatedimage(frame, cmap="spectral", clipmin=10000, clipmax=15500)
 
          Get extra lookup tables from Kapteyn Package (by default, these
-         luts are appended at creation tome of cmlist)
+         luts are appended at creation time of cmlist)
       
          >>> extralist = mplutil.VariableColormap.luts()
          >>> maputils.cmlist.add(extralist)
@@ -3016,7 +3378,7 @@ this class.
       """
       #-----------------------------------------------------------------
       if cmap is None:
-         cmap = 'jet'
+         cmap = cmlist.cmap_default
       if isinstance(cmap, Colormap):
          self.cmap = cmap                           # Either a string or a Colormap instance
          # What to do with the index. This is not a string from the list.
@@ -3024,19 +3386,20 @@ this class.
       elif type(cmap) == types_StringType:
          try:
             # Is this colormap registered in our colormap list?
-            self.cmindx = colormaps.index(cmap)
+            self.cmindx = cmlist.colormaps.index(cmap)
          except:
             # then register it now
             cmlist.add(cmap)
-            self.cmindx = colormaps.index(cmap)
+            self.cmindx = cmlist.colormaps.index(cmap)
          self.cmap = VariableColormap(cmap)
       else:
          raise Exception, "Color map is not of type Colormap or string"
       if self.image != None:
          self.cmap.set_source(cmap)
-
+      
       self.startcmap = self.cmap         # This could be one that is not in the list with color maps
-      self.startcmindx = self.cmindx     # Use the start color map if a reset is requested
+      #self.startcmindx = self.cmindx     # Use the start color map if a reset is requested
+      self.startcmindx = cmlist.colormaps.index(cmlist.cmap_default)
       self.cmapinverse = False
       if blankcolor != None:
          self.set_blankcolor(blankcolor)
@@ -3114,17 +3477,17 @@ this class.
       if aspect <= 0.0:
          raise ValueError("Only aspect ratios > 0 are allowed")
       self.aspect = abs(aspect)
-      self.frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
+      self.frame.set_aspect(aspect=self.aspect, adjustable=self.adjustable, anchor=self.anchor)
 
 
-   def adjustframe(self, frame):
+   def adjustframe(self, frame, adjustable='box'):
       #-----------------------------------------------------------------
       """
       Method to change the frame for the right aspect ratio and
       how to react on a resize of the plot window.
       """
       #-----------------------------------------------------------------
-      frame.set_aspect(aspect=self.aspect, adjustable='box', anchor='C')
+      frame.set_aspect(aspect=self.aspect, adjustable=adjustable, anchor=self.anchor)
       frame.set_autoscale_on(False)
       frame.xaxis.set_visible(False)
       frame.yaxis.set_visible(False)
@@ -3509,7 +3872,7 @@ this class.
       return colorbar
 
 
-   def Graticule(self, visible=True, **kwargs):
+   def Graticule(self, visible=True, pxlim=None, pylim=None, **kwargs):
       #-----------------------------------------------------------------
       """
       This method is a call to the constructor of class :class:`wcsgrat.Graticule`
@@ -3563,6 +3926,7 @@ this class.
       """
       #-----------------------------------------------------------------
       class Gratdata(object):
+         
          def __init__(self, hdr, axperm, wcstypes, pxlim, pylim, mixpix, skyout, spectrans, alter):
             self.hdr = hdr
             self.axperm = axperm
@@ -3574,7 +3938,13 @@ this class.
             self.alter = alter
             self.wcstypes = wcstypes
 
-      gratdata = Gratdata(self.hdr, self.axperm, self.wcstypes, self.pxlim, self.pylim,
+      # One can overrule the pixel limits of the Annotatedimage object
+      if pxlim is None:
+         pxlim = self.pxlim
+      if pylim is None:
+         pylim = self.pylim
+       
+      gratdata = Gratdata(self.hdr, self.axperm, self.wcstypes, pxlim, pylim,
                           self.mixpix, self.skyout, self.spectrans, self.alter)
       graticule = wcsgrat.Graticule(graticuledata=gratdata, **kwargs)
       graticule.visible = visible     # A new attribute only for this context
@@ -3860,7 +4230,7 @@ this class.
    def Skypolygon(self, prescription=None, xc=None, yc=None,
                   cpos=None, major=None, minor=None,
                   nangles=6, pa=0.0,
-                  units=None, lons=None, lats=None, **kwargs):
+                  units=None, lons=None, lats=None, stepsize=1.0, **kwargs):
    #-----------------------------------------------------------------
       """
       Construct an object that represents an area in the sky.
@@ -3949,6 +4319,14 @@ this class.
          See description at *lons*.
       :type lats:
          Sequence of floating point numbers.
+      :param stepsize:
+         Step in degrees to calculate samples (applies to ellipse only)
+      :type stepsize:
+         Floating point number
+      :param kwargs:
+         Plot parameters
+      :type kwargs:
+         Matplotlib keyword arguments
       """
    #-----------------------------------------------------------------
       if cpos != None:
@@ -3969,7 +4347,7 @@ this class.
                          major=major, minor=minor,
                          nangles=nangles, pa=pa,
                          units=units, 
-                         lons=lons, lats=lats,
+                         lons=lons, lats=lats, stepsize=stepsize,
                          **kwargs)
 
       self.objlist.append(spoly)
@@ -4160,19 +4538,20 @@ this class.
          # A frame is created for the colorbar. The original frame has been changed too.
          # Make sure that it gets the same properties as before the change.
          self.frame = self.adjustframe(self.frame)
-      self.cmap.add_frame(self.frame)
+      
 
       for obj in self.objlist:
          try:
             pt = obj.ptype
          except:
             raise Exception, "Unknown object. Cannot plot this!"
-         if pt in ["Image", "Contour", "Graticule", "Pixellabels", "Beam",
+         if pt in ["Image", "Contour", "Graticule", "Insidelabels", "Pixellabels", "Beam",
                    "Marker", "Ruler", "Skypolygon"]:
             try:
                visible = obj.visible
             except:
                visible = True
+            flushprint("Graticule plot nu object %s"%(str(obj.ptype)))            
             obj.plot(self.frame)
             # If we want to plot derived objects (e.g. ruler) and not the graticule
             # then set visible to False in the constructor.
@@ -4185,7 +4564,10 @@ this class.
             elif not self.contourset is None:
                obj.plot(self.cbframe, self.contourset.CS)
             else:
-               raise Exception, "A color bar could not find an image or contourset!"
+               raise Exception, "A color bar could not find an image or contour set!"
+
+      self.cmap.add_frame(self.frame)   # Add to list in mplutil
+
 
 
    def toworld(self, xp, yp, matchspatial=False):
@@ -4529,7 +4911,7 @@ this class.
       return b
          
 
-   def positionmessage(self, x, y, posobj):
+   def positionmessage(self, x, y, posobj, parts=False):
       #--------------------------------------------------------------------
       """
       Display cursor position in pixels and world coordinates together
@@ -4567,13 +4949,16 @@ this class.
       #--------------------------------------------------------------------
       s = ''
       if self.pxlim[0]-0.5 < x < self.pxlim[1]+0.5 and self.pylim[0]-0.5 < y < self.pylim[1]+0.5:
-         if 1: #try:
+         if 1: #try:            
             xw, yw, missingspatial = self.toworld(x, y, matchspatial=True)
-            xi = numpy.round(x) - (self.pxlim[0]-1)
-            yi = numpy.round(y) - (self.pylim[0]-1)
+            #xi = numpy.round(x) - (self.pxlim[0]-1)
+            #yi = numpy.round(y) - (self.pylim[0]-1)
+            xi = numpy.round(x - (self.pxlim[0]-1))
+            yi = numpy.round(y - (self.pylim[0]-1))
             x -= self.pixoffset[0]; y -= self.pixoffset[1];
             spix = posobj.pix2str(x, y)
             swcs = posobj.wcs2str(xw, yw, missingspatial)
+            swcsuf = posobj.wcs2str(xw, yw, missingspatial, unformatted=True)
             if self.rgbs is None:
                if self.data is None:
                   z = numpy.nan
@@ -4586,13 +4971,17 @@ this class.
                s = "x,y=%s" % spix
             if not swcs is None:
                s += "  wcs=%s" % swcs
+            sz = None
             if not (self.rgbs is None and self.data is None):
                sz   = posobj.z2str(z)
                s += "  z=%s" % sz
          else: #except:
-            spix = self.posmes.pix2str(x,y)
+            spix = self.posobj.pix2str(x,y)
             s = "pix:%s" % spix
-      return s.strip()
+      if parts:
+         return(spix, swcs, swcsuf, sz)
+      else:
+         return s.strip()
 
 
    def mouse_toolbarinfo(self, axesevent):
@@ -4600,15 +4989,22 @@ this class.
       """
       *Display position information:*
 
+      Note that the events (motion_notify_event) are blocked from the
+      moment you changed mode in the toolbar to zoom or pan mode.
+      So we display a message in our modified Matplotlib routines
+      that deal with callbacks for zoom- and pan actions.
       """
       #--------------------------------------------------------------------
-      s = ''
+      s = ''      
       x, y = axesevent.xdata, axesevent.ydata
-      if 1 : #self.figmanager.toolbar.mode == '':
-         s = self.positionmessage(x, y, axesevent.posobj)
+      self.X_lastvisited = x
+      self.Y_lastvisited = y
+      mode = self.figmanager.toolbar.mode
+
+      s = self.positionmessage(x, y, axesevent.posobj)
       if s != '':
-         if self.externalmessenger is None:
-            # For a window with width 19.5 cm, there is a fixed widht for
+         if self.externalmessenger is None and not backend.startswith('QT'):
+            # For a non QT canvas with width 19.5 cm, there is a fixed width for
             # toolbar buttons (7.5 cm = 2.95 inch). For the rest (12 cm) we have
             # space to set a message. Unfortunately we don't have any information
             # about the real width of the string with information.
@@ -4622,8 +5018,6 @@ this class.
                s = s[:l]
          self.messenger(s)
          
-         #self.figmanager.toolbar.set_message(s)
-
 
    def interact_toolbarinfo(self, pixfmt="%.1f", wcsfmt="%.3e", zfmt="%+.3e",
                             hmsdms=True, dmsprec=1):
@@ -4701,25 +5095,32 @@ this class.
       """
       #--------------------------------------------------------------------
       posobj = Positionmessage(self.projection.skysys, self.skyout, self.projection.types)
+      flushprint("Ik maak hier een positionmessge object met skyout=%s"%(str(self.skyout)))
       posobj.pixfmt = pixfmt
       posobj.wcsfmt = wcsfmt
       posobj.zfmt = zfmt
       posobj.hmsdms = hmsdms
-      posobj.dmsprec = dmsprec
+      posobj.dmsprec = dmsprec      
       self.toolbarkey = AxesCallback(self.mouse_toolbarinfo, self.frame,
                                      'motion_notify_event', posobj=posobj)
-      self.callbackids.append(self.toolbarkey)
+      flushprint("Add mouse toolbar callback %d for object %d"%(id(self.toolbarkey), id(self)))                                     
+      self.AxesCallback_ids.append(self.toolbarkey)
 
 
    def disconnectCallbacks(self):
       #--------------------------------------------------------------------
       """
       Disconnect callbacks made with AxecCallback()
-      The id's are stored in a list 'callbackids'
+      The id's are stored in a list 'AxesCallback_ids'
       """
       #--------------------------------------------------------------------
-      for acid in self.callbackids:
+      flushprint("\n\n-------------------------------------\nRemoving Axescallbacks from %d"%(id(self)))
+      for acid in self.AxesCallback_ids:
          acid.deschedule()
+         flushprint("Removing Axescallback %d"%(id(acid)))
+         del acid
+      self.AxesCallback_ids = []   # Reset the list
+      flushprint("-----------------------------------------")
 
 
    def mouse_imagecolors(self, axesevent):
@@ -4745,8 +5146,9 @@ this class.
       :Notes:
          See *interact_imagecolors()* for more info.
       """
-      #--------------------------------------------------------------------      
-      if axesevent.event.button == 3:
+      #--------------------------------------------------------------------
+      # Keys are often used as modifiers. So require an empty key
+      if axesevent.event.button == 3 and axesevent.event.key in ['', None]:
          x, y = axesevent.xdata, axesevent.ydata
          if self.image is None or self.image.im is None:               # There is no image to adjust
             return
@@ -4758,11 +5160,15 @@ this class.
          xy = self.frame.transData.transform((x,y))
          self.image.xyn_mouse = self.frame.transAxes.inverted().transform(xy)
          x , y = self.image.xyn_mouse
-         slope = 2.0 * x; offset = y - 0.5       # i.e. at center: slope=1, offset=0
+         slope = Annotatedimage.slopetrans * x   # i.e. at center: slope=0.5*slopetrans
+         offset = y - Annotatedimage.shifttrans  # i.e. at center: offset=0-shifttrans
          self.cmap.modify(slope, offset)
+         self.callback('slope', slope)
+         self.callback('offset', offset)
 
 
-   def key_imagecolors(self, axesevent):
+
+   def key_imagecolors(self, axesevent, externalkey=None):
    #--------------------------------------------------------------------
       """
    This method catches keys which change the color setting of an image.
@@ -4780,37 +5186,49 @@ this class.
       >>> annim = f.Annotatedimage(frame)
       >>> annim.interact_imagecolors()
       """
-   #--------------------------------------------------------------------
-      scales = {'1': 'linear', '2': 'log', '3': 'exp', '4': 'sqrt', '5': 'square'}
+   #--------------------------------------------------------------------      
+      if externalkey is not None:
+         eventkey = externalkey
+      else:
+         eventkey = axesevent.event.key
 
-      if axesevent.event.key is None:
+      if eventkey is None:
          # This can happen when the caps lock is on.
          return
+
+      # Use the class variables !
+      scales = Annotatedimage.lutscales
+      scalekeys = Annotatedimage.scalekeys
+      scales_default = Annotatedimage.scales_default
+               
       # Request for another color map with page up/down keys
-      if axesevent.event.key in ['pageup', 'pagedown']:
-         lm = len(colormaps)
-         if axesevent.event.key == 'pagedown':
+      if eventkey in ['pageup', 'pagedown']:
+         lm = len(cmlist.colormaps)
+         if eventkey == 'pagedown':
             self.cmindx += 1
             if self.cmindx >= lm:
                self.cmindx = 0
-         if axesevent.event.key == 'pageup':
+         if eventkey == 'pageup':
             self.cmindx -= 1
             if self.cmindx < 0:
                self.cmindx = lm - 1
-         newcolormapstr = colormaps[self.cmindx]
+         newcolormapstr = cmlist.colormaps[self.cmindx]
          self.messenger(newcolormapstr)
          self.cmap.set_source(newcolormapstr)     # Keep original object, just change the lut
+         self.callback('lut', self.cmindx)
          #self.cmap.update()
       # Request for another scale, linear, logarithmic etc.
-      elif axesevent.event.key in scales:
-         key = axesevent.event.key 
-         self.messenger(scales[key])
-         self.cmap.set_scale(scales[key])
-         mes = "Color map scale set to '%s'" % scales[key]
+      elif eventkey in scalekeys:
+         key = eventkey 
+         #self.messenger(scales[key])
+         s_indx = scalekeys[key]
+         self.cmap.set_scale(scales[s_indx])
+         mes = "Color map scale set to '%s'" % scales[s_indx]
          self.messenger(mes)
+         self.callback('scale', s_indx)
       # Invert the color map colors
-      #elif axesevent.event.key.upper() == 'I':
-      elif axesevent.event.key == '9':
+      #elif eventkey.upper() == 'I':
+      elif eventkey == '9':
          if self.cmapinverse:
             self.cmap.set_inverse(False)
             self.cmapinverse = False
@@ -4820,53 +5238,63 @@ this class.
             self.cmapinverse = True
             mes = "Color map inverted!"
          self.messenger(mes)
+         self.callback('inverse', self.cmapinverse)
       # Reset all color map parameters
-      #elif axesevent.event.key.upper() == 'R':
-      elif axesevent.event.key == '0':
+      #elif eventkey.upper() == 'R':
+      elif eventkey == '0':          # Reset all at once
          self.cmap.auto = False      # Postpone updates of the canvas.
          self.messenger('Reset color map to default')
          #self.cmap.set_source(self.startcmap)
-         self.cmap.set_source(colormaps[self.startcmindx])
+         self.cmap.set_source(cmlist.colormaps[self.startcmindx])
          self.cmap.modify(1.0, 0.0)
          if self.cmapinverse:
             self.cmap.set_inverse(False)
             self.cmapinverse = False
-         #colmap_start = colormaps[self.image.startcmap]
+         #colmap_start = cmlist.colormaps[self.image.startcmap]
          self.cmindx = self.startcmindx
-         self.cmap.set_scale(scales['1'])
+         self.cmap.set_scale(scales[0])
+         self.blankcol = Annotatedimage.blankcols[0]
+         self.cmap.set_bad(self.blankcol)
          self.cmap.auto = True
          self.cmap.update()          # Update all
+         self.callback('lut', self.cmindx)
+         self.callback('inverse', False)
+         self.callback('scale', scales_default)
+         self.callback('slope', 1.0)
+         self.callback('offset', 0.0)
+         self.callback('blankcol', 0)
          """
          # Template for user interaction to set clip levels in existing image
-         elif axesevent.event.key.upper() == 'C':
+         elif eventkey.upper() == 'C':
                cmin = self.clipmin + 200.0
                cmax = self.clipmax - 200.0
                print "cmin, max voor norm:", cmin, cmax
                self.set_norm(cmin, cmax)
          """
          
-      elif axesevent.event.key.upper() == 'B':
+      elif eventkey.upper() == 'B':
          # Toggle colors for bad pixels (blanks) 
-         blankcols = ['w', 'k', 'y', 'm', 'c', 'r', 'g', 'b']
+         blankcols = Annotatedimage.blankcols
          try:
             indx = blankcols.index(self.blankcol)
          except:
             indx = 0
-         if indx + 1 == len(blankcols):
+         if indx + 1 == len(blankcols):  # Start at the beginning again
             indx = 0
          else:
             indx += 1
          self.blankcol = blankcols[indx]
          self.cmap.set_bad(self.blankcol)
-         mes = "Color of bad pixels changed to '%s'" % self.blankcol
+         mes = "Color of bad pixels changed to '%s'" % (Annotatedimage.blanknames[indx])
          self.messenger(mes)
-      elif axesevent.event.key.upper() == 'M':
+         self.callback('blankcol', indx)
+      elif eventkey.upper() == 'M':
          stamp = datetime.now().strftime("%d%m%Y_%H%M%S")
          filename = self.basename + "_" + stamp + ".lut"
          self.write_colormap(filename)
          mes = "Save color map to file [%s]" % filename
          self.messenger(mes)
-      elif axesevent.event.key.upper() == 'H':
+      elif eventkey.upper() == 'H':
          # Set data to histogram equalized version
          if self.histogram:
             # Back to normal
@@ -4877,8 +5305,8 @@ this class.
                self.messenger('Calculating histogram')
             self.set_histogrameq()
             self.messenger('Histogram eq. image displayed')
-      elif axesevent.event.key.upper() == 'X':
-         # Change the smooting factor and go to blur mode.
+      elif eventkey.upper() == 'X':
+         # Change the smoothing factor and go to blur mode.
          self.blurindx += 1
          if self.blurindx >= 10:
             self.blurindx = 1
@@ -4886,7 +5314,7 @@ this class.
          mes = "Blur index: %d blur sigma: %g" % (self.blurindx, self.blurfac)
          self.messenger(mes)
          self.set_blur(nx=self.blurfac, new=True)
-      elif axesevent.event.key.upper() == 'Z':
+      elif eventkey.upper() == 'Z':
          # Set data to blurred version
          if self.blurred:
             # Back to normal
@@ -4919,7 +5347,7 @@ this class.
       self.cmap.update()
 
 
-   def set_blur(self, on=True, nx=10, ny=None, new=False):
+   def set_blur(self, on=True, nx=10, ny=None, new=False):      
       if not on:
          # Back to normal
          self.data = self.data_orig
@@ -4930,12 +5358,14 @@ this class.
          self.data = self.data_blur
          self.blurred = True
       #self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax)
-      if self.image.im != None:
+      if not self.image.im is None:
          self.image.im.set_data(self.data)
+         #self.image.im.changed()
       else:
          # An image was not yet 'plotted'. Then we adjust some
          # parameters first to prepare for the new image.
          self.image.data = self.data
+      #print "In blur id image, image.im, self.data", id(self.image), id(self.image.im), id(self.data)
       self.cmap.update()
 
 
@@ -5009,8 +5439,10 @@ this class.
       >>> annim.plot()
       """
       #--------------------------------------------------------------------
-      self.imagecolorskey = AxesCallback(self.key_imagecolors, self.frame, 'key_press_event')
       self.imagecolorsmouse = AxesCallback(self.mouse_imagecolors, self.frame, 'motion_notify_event')
+      self.imagecolorskey = AxesCallback(self.key_imagecolors, self.frame, 'key_press_event')
+      #self.imagecolorskey = AxesCallback(self.key_imagecolors, self.frame, 'motion_notify_event')
+      #self.imagecolorsmouse = AxesCallback(self.mouse_imagecolors, self.frame, 'motion_notify_event')
       # Set interaction with colormap on. We postponed this until now because
       # setting it before plot operations ruins your graticule frames with versions
       # of Matplotlib >= 0.99. This seems to be caused by an unvoluntary canvas.draw()
@@ -5019,15 +5451,19 @@ this class.
       # sets auto to False. Here we set it to True because only here we require
       # interaction.
       self.cmap.auto = True
-      self.callbackids.append(self.imagecolorskey)
-      self.callbackids.append(self.imagecolorsmouse)
+      flushprint("Add imagecolors mouse and key callbacks %d %d for object %d"%(id(self.imagecolorskey),
+      id(self.imagecolorsmouse), id(self)))
+      self.AxesCallback_ids.append(self.imagecolorskey)
+      self.AxesCallback_ids.append(self.imagecolorsmouse)
 
 
    def mouse_writepos(self, axesevent):
       #--------------------------------------------------------------------
       """
       Print position information of the position where
-      you clicked with the mouse. Print the info on the command line.
+      you clicked with the right mouse button while pressing
+      the SHIFT key. Print the info on the command line or
+      GIPSY command line cq. Log file.
       Register this function with an event handler,
       see example.
    
@@ -5045,26 +5481,43 @@ this class.
       condition = axesevent.event.button == 1 and axesevent.event.key == 'shift'
       if not condition:
          return
-      s = ''
+
       if self.figmanager.toolbar.mode == '':
          x, y = axesevent.xdata, axesevent.ydata
-         if axesevent.gipsy and gipsymod and axesevent.typecli:
-            x -= self.pixoffset[0]; y -= self.pixoffset[1]
-            s = "%g %g "%(x,y)
-         else:
-            s = self.positionmessage(x, y, axesevent.posobj)
-      if s != '':
+         spix, swcs, swcsuf, sz = self.positionmessage(x, y, axesevent.posobj, parts=True)
+         s = ' '   # One space to separate multiple entries on one line
+         if spix:
+            s += spix
+         if swcs:
+            if s:
+               s += ' '
+            s += swcs
+         if swcsuf:            # The unformatted world coordinate
+            if s:
+               s += ' '
+            s += swcsuf            
+         if sz:
+            if s:
+               s += ' '
+            s += sz
+        
+         if s == ' ':
+            return
          if axesevent.gipsy and gipsymod:
-            if axesevent.typecli:
-               typecli(s) # Write to Hermes command line
-            else:
-               anyout(s)  # Write to Hermes log file and screen
+            if axesevent.g_appendcr:
+               s += '\r'   # Add carriage return
+            if axesevent.g_typecli:
+               typecli(s)  # Write to Hermes command line
+            if axesevent.g_tolog:
+               anyout(s)   # Write to Hermes log file and screen
          else:
-            print s       # Write to terminal
+            print s
 
 
-   def interact_writepos(self, pixfmt="%.1f", wcsfmt="%.3g", zfmt="%.3e",
-                         hmsdms=True, dmsprec=1, gipsy=False, typecli=False):
+   def interact_writepos(self, pixfmt="%.1f", dmsprec=1, wcsfmt="%.3g", zfmt="%.3e",
+                         hmsdms=True, grids=True, world=True, worlduf=False, imval=True,
+                         gipsy=False, g_typecli=False,
+                         g_tolog=False, g_appendcr=False ):                            
       #--------------------------------------------------------------------
       """
       Add mouse interaction (left mouse button) to write the position
@@ -5127,16 +5580,27 @@ this class.
       """
       #--------------------------------------------------------------------
       posobj = Positionmessage(self.projection.skysys, self.skyout, self.projection.types)
-      posobj.pixfmt = pixfmt
-      posobj.wcsfmt = wcsfmt
-      posobj.zfmt = zfmt
+      posobj.pixfmt = posobj.wcsfmt = posobj.wcsuffmt = posobj.zfmt = None
+      if grids:
+         posobj.pixfmt = pixfmt
+      if world:
+         posobj.wcsfmt = wcsfmt
+      if worlduf:               # User wants world coordinates in decimal degrees
+         if wcsfmt:
+            posobj.wcsuffmt = wcsfmt
+      if imval:         
+         posobj.zfmt = zfmt
       posobj.hmsdms = hmsdms
       posobj.dmsprec = dmsprec
       if not gipsy:
-         typecli = False
+         g_typecli = False      
       self.writeposmouse = AxesCallback(self.mouse_writepos, self.frame,
-                           'button_press_event', gipsy=gipsy, typecli=typecli, posobj=posobj)
-      self.callbackids.append(self.writeposmouse)
+                           'button_press_event',
+                            gipsy=gipsy, g_typecli=g_typecli,
+                            g_tolog=g_tolog, g_appendcr=g_appendcr,
+                            posobj=posobj)
+      self.AxesCallback_ids.append(self.writeposmouse)
+      flushprint("Add mouse writeposmouse callback %d for object %d"%(id(self.writeposmouse), id(self)))
 
 
    def motion_events(self):
@@ -5148,9 +5612,9 @@ this class.
       and world coordinates is displayed on the toolbar.
       """
       #--------------------------------------------------------------------
-      #self.cidmove = self.fig.canvas.mpl_connect('motion_notify_event', self.on_move)
+      #      
       self.cidmove = AxesCallback(self.on_move, self.frame, 'motion_notify_event')
-      self.callbackids.append(self.cidmove)
+      self.AxesCallback_ids.append(self.cidmove)
 
 
 
@@ -5158,14 +5622,12 @@ this class.
       #--------------------------------------------------------------------
       """
       Allow this :class:`Annotatedimage` object to interact with the user.
-      It reacts on keyboard key presses. With *pageup* and *pagedown*
-      one scrolls to a list with color maps. Key 'r' (or 'R') resets
-      the current image to its original color map and color limits.
+      using keys.
       """
       #--------------------------------------------------------------------
       #self.cidkey = self.fig.canvas.mpl_connect('key_press_event', self.key_pressed)
       self.cidkey = AxesCallback(self.key_pressed, self.frame, 'key_press_event')
-      self.callbackids.append(self.cidkey)
+      self.AxesCallback_ids.append(self.cidkey)
 
 
    def click_events(self):
@@ -5179,7 +5641,7 @@ this class.
       #--------------------------------------------------------------------
       # self.cidclick = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
       self.cidclick = AxesCallback(self.on_click, self.frame, 'button_press_event')
-      self.callbackids.append(self.cidclick)
+      self.AxesCallback_ids.append(self.cidclick)
       
 
    def positionsfromfile(self, filename, comment, skyout=None, **kwargs):
@@ -5239,11 +5701,12 @@ this class.
       return xp, yp
 
 
-   def getflux(self, xy):
+   def getflux(self, xy, pixelstep=None):
       # Return Area in pixels and sum of image values in
       # polygon defined by xy
 
-      pixelstep = self.pixelstep
+      if pixelstep is None:
+         pixelstep = self.pixelstep
       poly = numpy.asarray(xy)
       mm = poly.min(0)
       xmin = mm[0]; ymin = mm[1]
@@ -5339,9 +5802,45 @@ in a FITS keyword.
       ax = makekey("CTYPE")
       self.ctype = 'Unknown'
       self.axname = 'Unknown'
+      self.axext = ''
       if hdr.has_key(ax):
          self.ctype = hdr[ax].upper()
-         self.axname = string_upper(hdr[ax].split('-')[0])
+         info = hdr[ax].split('-')
+         self.axname = info[0].upper()
+         if len(info) > 1:
+            ext = info[-1].upper()  # Last splitted string must be extension. Skip the hyphens
+            extlist = {    'ARC':'Zenithal equidistant projection',
+                           'AIR':'Airy projection',
+                           'AZP':'Slant zenithal (azimuthal) perspective projection',
+                           'AIT':"Hammer Aitoff projection",
+                           'BON':"Bonne's equal area projection",
+                           'CAR':'Plate Carree',
+                           'CEA':"Lambert's equal area projection",
+                           'COD':"Conic equidistant projection",
+                           'COE':"Conic equal area projection",
+                           'COO':"Conic orthomorfic projection",
+                           'COP':"Conic perspective projection",
+                           'CSC':"COBE quadrilateralized spherical cube projection",
+                           'CYP':"Gall's stereographic projection",
+                           'MER':"Mercator's projection",
+                           'MOL':"Mollweide's projection",
+                           'NCP':"Northern celestial pole projection",
+                           'PAR':'Parabolic projection',
+                           'PCO':"Polyconic",
+                           'POL':"Polyconic projection",
+                           'QSC':"Quadrilateralized spherical cube projection",
+                           'SIN':'Slant orthograpic projection',
+                           'SFL':'Sanson-Flamsteed projection',
+                           'STG':'Stereographic projection',
+                           'SZP':'Slant zenithal perspective',
+                           'TAN':'Gnomonic projection',
+                           'TSC':"Tangential spherical cube projection",
+                           'ZEA':'Zenith equal area projection',
+                           'ZPN':'Zenithal polynomial projection'}
+            self.axext = ext
+            flushprint("ext, haskey=%s %s"%(ext, str(extlist.has_key(ext))))
+            if extlist.has_key(ext):
+               self.axext += ' (' + extlist[ext] +')'
       else:
          self.ctype = "X%d"%axisnr
          self.axname = self.ctype
@@ -5426,6 +5925,7 @@ in a FITS keyword.
         + "axend      - Last pixel coordinate: %s\n" % self.axend \
         + "ctype      - Type of axis (CTYPE): %s\n" % self.ctype \
         + "axname     - Short axis name: %s\n" % self.axname \
+        + "axext      - Axis extension: : %s\n" % self.axext \
         + "cdelt      - Pixel size: %s\n" % self.cdelt \
         + "crpix      - Reference pixel: %s\n" % self.crpix \
         + "crval      - World coordinate at reference pixel: %s\n" % self.crval \
@@ -5705,11 +6205,20 @@ to know the properties of the FITS data beforehand.
       # header and data from an external source. Then these
       # must be processed instead of other keyword parameters
       #-----------------------------------------------------
-      if externalheader != None:
+      if externalheader is not None:
          self.hdr = externalheader
          self.bitpix, self.bzero, self.bscale, self.blank = getscale(self.hdr)
          self.filename = externalname
-         self.dat = externaldata
+         if externaldata is not None:
+            if 'int' in externaldata.dtype.name:
+               # So this is integer data without bscale, bzero or blank
+               self.dat = externaldata.astype(numpy.float32)
+               flushprint("I just converted data to float for externaldata")
+            else:
+               self.dat = externaldata
+         else:
+            self.dat = None
+         #self.dat = externaldata
       else:
          # Not an external header, so a file is given or user wants to be prompted.
          if promptfie:
@@ -5755,22 +6264,23 @@ to know the properties of the FITS data beforehand.
             else:
                self.dat = hdu.data
          else:
-            # Do not check type
+            #Do not check type
             self.dat = externaldata
          hdulist.close()             # Close the FITS file
 
       # IMPORTANT
       # Some FITS writers write their -32 bitpix blanks as -inf,
       # but there can also be other sources that insert +inf or -inf
-      # values in an data set. Most methods in Matplotlib (e.g. to 
+      # values in a data set. Most methods in Matplotlib (e.g. to
       # create images or contours) cannot cope with these -inf and inf
       # values. So to be save, we treat those as NaN and therefore 
       # replace +/-inf's by NaN's
+      """
       try:
          self.dat[-numpy.isfinite(self.dat)] = numpy.nan
       except:
          pass
-
+      """
       # An alternate header can also be specified for an external header
       self.alter = alter.upper()
 
@@ -5791,12 +6301,13 @@ to know the properties of the FITS data beforehand.
          # Note that here we define the relation between index (i) and
          # the axis number (i+1)
          # The axinf dictionary has this axis number as key values 
-         axisnr = i + 1
+         axisnr = i + 1         
          axinf[axisnr] = FITSaxis(axisnr, self.hdr, self.alter)
       self.axisinfo = axinf
 
       slicepos = []                  # Set default positions (CRPIXn) on axes outside image for slicing data
       sliceaxnames = []
+      sliceaxnums = []
       n = self.naxis
       if (n > 2):
          for i in range(n):
@@ -5811,14 +6322,15 @@ to know the properties of the FITS data beforehand.
                   crpix = 1
                slicepos.append(crpix)
                sliceaxnames.append(self.axisinfo[axnr].axname)
+               sliceaxnums.append(axnr)
       self.slicepos = slicepos
       self.sliceaxnames = sliceaxnames
+      self.sliceaxnums = sliceaxnums
 
       n1 = self.axisinfo[self.axperm[0]].axlen
       n2 = self.axisinfo[self.axperm[1]].axlen
       self.pxlim = [1, n1]
       self.pylim = [1, n2]
-
       self.proj = wcs.Projection(self.hdr, alter=self.alter)
       # Attribute 'gridmode' is False by default
       for i in range(n):
@@ -5938,6 +6450,8 @@ to know the properties of the FITS data beforehand.
             pix.append(self.slicepos[j])
             j += 1
             # Note that we assumed the axis order in slicepos is the same as in the Projection object
+      s = "TEST set 1dim tuple pix=%s"%str(tuple(pix))
+      flushprint(s)
       wor = newproj.toworld(tuple(pix))
       for i in range(self.naxis):
          if not (i+1) in self.axperm:
@@ -6010,11 +6524,17 @@ to know the properties of the FITS data beforehand.
       if box:
          if self.boxdat is None:
             return 0, 1
-         mi = numpy.nanmin(self.boxdat)
-         ma = numpy.nanmax(self.boxdat)
+         #mi = numpy.nanmin(self.boxdat)
+         #ma = numpy.nanmax(self.boxdat)
+         mask = numpy.isfinite(self.boxdat)
+         mi = numpy.min(self.boxdat[mask])
+         ma = numpy.max(self.boxdat[mask])
       else:
-         mi = numpy.nanmin(self.dat)
-         ma = numpy.nanmax(self.dat)
+         #mi = numpy.nanmin(self.dat)
+         #ma = numpy.nanmax(self.dat)
+         mask = numpy.isfinite(self.dat)
+         mi = numpy.min(self.dat[mask])
+         ma = numpy.max(self.dat[mask])
       return mi, ma
 
 
@@ -6452,17 +6972,14 @@ to know the properties of the FITS data beforehand.
                sl.append(slice(g-1, g))             # Slice indices start with 0, pixels with 1
 
          # Reshape the array, assuming that the other axes have length 1
-         # You can reshape with the shape attribute or with NumPy's squeeze method.
-         # With shape: boxdat.shape = (n1,n2)
+         # You can reshape with the shape attribute or with NumPy's squeeze method. With
+         # squeeze there is no way to find images axis which have also length 1 so we use
+         # the reshape() method.
          if self.dat != None:
-            self.boxdat = self.dat[sl].squeeze()
-            # Squeeze gets rid of the axes that have length 1.
-            # If one of the other axes of the map also has length 1
-            # then this axis should not be squeezed. So we restore
-            # to the right shape, which must always be two-dimensional.
-            if len(self.boxdat.shape) == 1:
-               newshape = (1, self.boxdat.shape[0])
-               self.boxdat.shape = newshape
+            if axperm[0] != wcsaxperm[0]:
+               self.boxdat = self.dat[sl].reshape((self.axisinfo[axnr1].axlen,self.axisinfo[axnr2].axlen))
+            else:
+               self.boxdat = self.dat[sl].reshape((self.axisinfo[axnr2].axlen,self.axisinfo[axnr1].axlen))
       else:
          self.boxdat = self.dat
 
@@ -6526,9 +7043,15 @@ to know the properties of the FITS data beforehand.
             raise Exception, "Cannot find a matching axis for the spatial axis!"
       else:
           ap = (axperm[0], axperm[1])
-      self.convproj = self.proj.sub(ap)  # Projection object for selected image only
+      # If a spectral translation is needed, then we must apply the spectra()
+      # method on the original projection object, which contains the spectral axis
+      # The method does not work if the projection object is restricted to
+      # two non spectral axes.
       if self.spectrans != None:
-         self.convproj = self.convproj.spectra(self.spectrans)
+         self.proj.spectra(self.spectrans)
+      self.convproj = self.proj.sub(ap)  # Projection object for selected image only
+      #if self.spectrans != None:
+      #   self.convproj = self.convproj.spectra(self.spectrans)
       if self.skyout != None:
          self.convproj.skyout = self.skyout
       self.axperm = wcsaxperm        # We need only the numbers of the first two axes
@@ -6569,12 +7092,11 @@ to know the properties of the FITS data beforehand.
       """
    #--------------------------------------------------------------
       isspectral = False
-      for ax in self.axperm:
+      for ax in range(1,self.naxis+1):
          if self.axisinfo[ax].wcstype == 'spectral':
             isspectral = True
       if not isspectral:
          return         # Silently
-   
       if promptfie is None:
          #if spectrans is None:
          #   raise Exception, "No spectral translation given!"
@@ -6585,7 +7107,7 @@ to know the properties of the FITS data beforehand.
          self.spectrans = promptfie(self)
       if self.spectrans != None:
          self.convproj = self.convproj.spectra(self.spectrans)
-
+      
          
    def set_skyout(self, skyout=None, promptfie=None):
    #--------------------------------------------------------------
@@ -8256,7 +8778,7 @@ to know the properties of the FITS data beforehand.
       # Note the use of self.boxdat  instead of self.dat !!
       if frame is None:
          fig = figure()
-         frame = fig.add_subplot(1,1,1)
+         frame = fig.add_subplot(1,1,1, frameon=False)
       # Give the axis types in the order of the axes in the Annotatedimage.
       wcstypes = [self.wcstypes[self.axperm[0]-1], self.wcstypes[self.axperm[1]-1]]
       mplimage = Annotatedimage(frame, self.hdr, self.pxlim, self.pylim, self.boxdat,
@@ -8289,18 +8811,27 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
 * '+' : Increase the speed of the loop. The speed is limited by the size of the image and
         the hardware in use.
 * '-' : Decrease the speed of the movie loop
-   
+
+One can also control the movie with method :meth:`MovieContainer.controlpanel`
+
+Usually one creates a movie container with class class:`Cubes`
+
 :param helptext:
    Allow or disallow methods to set an informative text about the keys in use.
 :type helptext:
    Boolean
-:param imagenumbers:
+:param imageinfo:
    Allow or disallow methods to set an informative text about which image
    is displayed and, if available, it prints information about the pixel
    coordinate(s) of the slice if the image was extracted from a data cube.
-:type imagenumbers:
+:type imageinfo:
    Boolean
-   
+:param slicemessages:
+   A list with messages, associated with the frames in your movie.
+   Usually one uses this option to gain some efficiency because there
+   is no need to construct a message each time a frame is changed.
+:type slicemessages:
+   List with strings.
 
 :Attributes:
    
@@ -8317,39 +8848,122 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
        A value in seconds, representing the interval of refreshing an image
        in the movie loop.
 
+    .. attribute:: info
 
+       An object of class infoObject which has an attribute for the index
+       of the current frame ('indx') and an attribute with an informative message
+       about the current displayed slice.
+
+
+    
 :Examples:
    Use of this class as a container for images in a movie loop:
 
    .. literalinclude:: EXAMPLES/mu_movie.py
 
 
-   Skip informative text:
+   Skip informative text on the display:
    
-   >>> movieimages = maputils.MovieContainer(helptext=False, imagenumbers=False)
+   >>> movieimages = maputils.MovieContainer(helptext=False, imageinfo=False)
 
 
 :Methods:
 
 .. automethod:: append
+.. automethod:: regcallback
 .. automethod:: movie_events
 .. automethod:: controlpanel
+.. automethod:: setmessages
+.. automethod:: setimage
 .. automethod:: imageloop
 .. automethod:: toggle_images
-.. 
    """
 #--------------------------------------------------------------------
-   def __init__(self, helptext=True, imagenumbers=True):
+   class infoObject(object):
+      #---------------------------------------------------------------------
+      """
+      Object which is a parameter of a registered callback function
+      It returns the index of the current frame in attribute 'indx' and
+      a message with physical coordinates of the slice position in attribute
+      'mes'
+      """
+      #---------------------------------------------------------------------
+      def __init__(self):
+         self.indx = 0
+         self.mes = ""
+         self.cubenr = None
+         self.slicemessage = ''
+
+
+   def __init__(self, fig, helptext=True, imageinfo=True, slicemessages=[],
+                toolbarinfo=False, sliceinfoobj=None, callbackslist={}):
       self.annimagelist = []                     # The list with Annotatedimage objects
       self.indx = 0                              # Sets the current image in the list
-      self.fig = None                            # Current Matplotlib figure instance
+      self.fig = fig                             # Current Matplotlib figure instance
       self.textid = None                         # Plot and erase text on canvas using this id.
       self.helptext = helptext
-      self.imagenumbers = imagenumbers
+      self.imageinfo = imageinfo                 # Flag. When on, display image number
+      self.slicemessages = slicemessages         # Pre defined messages 
+      self.numimages = 0
+      self.callbackinfo = self.infoObject()      # Object that returns info to calling environment
+      self.pause = True
+      self.forward = True
+      self.toolbarinfo = toolbarinfo
+      self.sliceinfoobj = None
+      self.currentcubenr = None
+      self.movieframelist = []
+      self.movielistindx = 0       # First element in movieframelist
+      self.oldim = None            # Administration for cleaning up images
+      self.compareim = None        # Background image for transparency actions
+      self.callbackslist = callbackslist
+      self.framespersec = 20
+      self.flushcounter = 0
+
+      if self.helptext:
+         delta = 0.01
+         self.helptextbase = "Use keys 'p' to Pause/Resume. '+','-' to increase/decrease movie speed.  '<', '>' to step in Pause mode."
+         speedtext = " Speed=%d im/s"% (self.framespersec)
+         self.helptext_id = self.fig.text(0.5, delta, self.helptextbase+speedtext, color='g', fontsize=8, ha='center')
+      else:
+         self.helptextbase = ''
+         speedtext = ''
+         self.helptext_id = None
+
+      self.canvas = self.fig.canvas
+
+      # Setup of the movieloop timer
+      #self.pause = False
+      self.framespersec = 20
+      self.movieloop = TimeCallback(self.imageloop, 1.0/self.framespersec)
+      # Do not start automatically, but wait for start signal
+      #self.pause = True
+      self.movieloop.deschedule()
 
 
-   def append(self, annimage, visible=True):
-   #---------------------------------------------------------------------
+
+   def addcallbacks(self, cbs):
+      #-----------------------------------------------------------------
+      """
+      Helper function for to add one or more callbacks to
+      the dictionary with registered callbacks. Parameter cbs should
+      also be a dictionary.
+      """
+      #-----------------------------------------------------------------
+      self.callbackslist.update(cbs)
+
+
+   def callback(self, cbid, *arg):
+      #-----------------------------------------------------------------
+      """
+      Helper function for registered callbacks
+      """
+      #-----------------------------------------------------------------
+      if self.callbackslist.has_key(cbid):
+         self.callbackslist[cbid](*arg)
+
+
+   def append(self, annimage, visible=True, cubenr=0, slicemessage=None):
+      #---------------------------------------------------------------------
       """
       Append object from class :class:`Annotatedimage`.
       First there is a check for the class
@@ -8370,56 +8984,115 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
          An object was not recognized as a valid object to append.
 
       """
-   #---------------------------------------------------------------------
+      #---------------------------------------------------------------------
       if not isinstance(annimage, Annotatedimage):
          raise TypeError, "Container object not of class maputils.Annotatedimage!" 
-      if len(self.annimagelist) == 0:            # This must be the first object in the container
-         self.fig = annimage.frame.figure
+
+      annimage.origdata = None
       annimage.image.im.set_visible(visible)
       self.annimagelist.append(annimage)
+      self.numimages = len(self.annimagelist)
+
+      if slicemessage is None:
+         s = "im #%d=slice:%s"%(self.numimages-1, annimage.slicepos)
+         annimage.slicemessage = s
+      else:
+         annimage.slicemessage = slicemessage
+      annimage.cubenr = cubenr
 
 
-   def movie_events(self):
-   #---------------------------------------------------------------------
+   def setmessages(self, slicemessages):
+      #---------------------------------------------------------------------
+      """
+      Set a list with messages that will be used to display information
+      when a frame is changed. This message is either printed on the image
+      or returned, using a callback function, to the calling environment.
+      List may be smaller than the number of images in the movie.
+      A message should correspond to the movie index number.
+      """
+      #---------------------------------------------------------------------
+      self.slicemessages = slicemessages
+
+
+   def set_movieframes(self, framelist):
+      #---------------------------------------------------------------------
+      """
+      For INTERACTIVE use.
+      Set the movie frame numbers that you want to display
+      in a movie loop. If the list is None or empty, all images are
+      part of the movieloop. The order of the numbers is arbitrary so
+      many seetings are possible (e.g. reverse order (100:0:-1) or skip
+      images (0:100:2).
+
+      Note:
+      We don't perfrom any checking here. The only check is in the toggle_image
+      method where we check whether the frame number in this list is a valid
+      index.
+      The entered list is associated to the movie container not
+      to specific cubes. If we add a new cube with images and their index
+      is already in 
+      """
+      #---------------------------------------------------------------------
+      self.movieframelist = framelist
+
+
+   def movie_events(self, allow=True):
+      #---------------------------------------------------------------------
       """
       Connect keys for movie control and start the movie.
-
-      :Raises:
-         'No objects in container!'
-         The movie container is empty. Use method :meth:`MovieContainer.append`
-         to fill it.
+      Note that we defined the callbacks to trigger on the entire canvas.
+      We don't need to connect it to a frame (AxesCallback). We have to
+      disconnect the callbacks explicitly.
 
       """
-   #---------------------------------------------------------------------
-      if self.fig is None:
-         raise Exception, "No matplotlib.figure instance available!"
+      #---------------------------------------------------------------------
       if len(self.annimagelist) == 0:
-         raise Exception, "No objects in container!"
-      self.cidkey = self.fig.canvas.mpl_connect('key_press_event', self.controlpanel)
-      self.pause = False
-      self.framespersec = 30
-      self.movieloop = TimeCallback(self.imageloop, 1.0/self.framespersec)
-      if self.helptext:
-         self.helptextbase = "Use keys 'p' to Pause/Resume. '+','-' to increase/decrease movie speed.  '<', '>' to step in Pause mode."
-         speedtext = " Speed=%d im/s"% (self.framespersec)
-         self.helptext_id = self.fig.text(0.5, 0.005, self.helptextbase+speedtext, color='g', fontsize=8, ha='center')
+         return
+
+      # For the interaction with the movie, we want key and mouse
+      # to work on the entire canvas, not just a frame.
+      if allow:
+         # Then disconnect first if the callbacks still exists
+         if self.cidkey:
+            self.fig.canvas.mpl_disconnect(self.cidkey)
+         if self.cidscroll:
+            self.fig.canvas.mpl_disconnect(self.cidscroll)
+         # and create new ones
+         self.cidkey = self.fig.canvas.mpl_connect('key_press_event', self.controlpanel)
+         self.cidscroll = self.fig.canvas.mpl_connect('scroll_event', self.controlpanel)
       else:
-         self.helptextbase = ''
-         speedtext = ''
-         self.helptext_id = None
-      if self.imagenumbers:
-         # Initialize info text (which shows where we are in the movie loop).
-         self.imagenumberstext_id = self.fig.text(0.01, 0.95, '', color='g', fontsize=8)
+         if self.cidkey:
+            self.fig.canvas.mpl_disconnect(self.cidkey)
+         if self.cidscroll:
+            self.fig.canvas.mpl_disconnect(self.cidscroll)
+         self.cidkey = self.cidscroll = None
+         
 
+   def controlpanel(self, event, externalkey=''):
+      #---------------------------------------------------------------------
+      """
+      Process the key and scroll events for the movie container.
+      An external process (i.e. not the Matplotlib canvas) can access
+      the control panel. It uses parameter 'externalkey'.
+      In the calling environment one needs to set 'event' to None.
+      """
+      #---------------------------------------------------------------------
+      if event is None and externalkey == '':
+         return
+      if event is not None:
+         try:
+            key = event.key.upper()      # Intercept keys like 'escape'
+         except AttributeError:          # It could be a scroll event
+            if event.button=='up':       # 'up' is previous image. Seems more suitable using scroll wheel
+               key = '.'
+            if event.button=='down':
+               key = ','
+         except:
+            return                       # Do nothing for unknown events or keys
+      else:
+         key = externalkey.upper()
 
-   def controlpanel(self, event):
-   #---------------------------------------------------------------------
-      """
-      Process the key events.
-      """
-   #---------------------------------------------------------------------
-      delta = 0.005
-      key = event.key.upper()
+   
       # Pause button is toggle
       if key == 'P':
          if self.pause:
@@ -8427,11 +9100,40 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
             self.pause = False
          else:
             self.movieloop.deschedule()
+            self.fig.canvas.draw()                # Restore also graticules etc.
             self.pause = True
+      elif key == 'START':
+         if not self.pause:
+            self.movieloop.deschedule()
+            if not self.forward:
+               self.forward = True
+               self.movieloop.schedule()
+            else:
+               self.pause = True
+         else:
+            self.forward = True
+            self.movieloop.schedule()
+            self.pause = False
+      elif key == 'STARTBACK':
+         if not self.pause:
+            self.movieloop.deschedule()
+            if self.forward:                     # Change direction without stopping
+               self.forward = False
+               self.movieloop.schedule()
+            else:
+               self.pause = True
+         else:
+            self.forward = False
+            self.movieloop.schedule()            
+            self.pause = False
+      elif key == 'STOP' and not self.pause:
+         self.movieloop.deschedule()
+         self.fig.canvas.draw()                   # Restore also graticules etc.
+         self.pause = True
 
       # Increase speed of movie
       elif key in ['+', '=']:
-         self.framespersec = min(self.framespersec+1, 100)   # Just to be save
+         self.framespersec = min(self.framespersec+1, 200)     # Just to be save
          self.movieloop.set_interval(1.0/self.framespersec)
          if self.helptext:
             speedtxt = " Speed=%d im/s"% (self.framespersec)
@@ -8444,16 +9146,23 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
             speedtxt = " Speed=%d im/s"% (self.framespersec)
             self.helptext_id.set_text(self.helptextbase+speedtxt)
 
-      elif key in [',','<']:
+      elif key in [',','<', 'PREV']:
+         if not self.pause:
+            self.movieloop.deschedule()
+            self.pause = True
          self.toggle_images(next=False)
 
-      elif key in ['.','>']:
-         self.toggle_images()
+      elif key in ['.','>', 'NEXT']:
+         if not self.pause:
+            self.movieloop.deschedule()
+            self.pause = True
+         self.toggle_images(next=True)
 
+      #self.fig.canvas.flush_events()
 
          
    def imageloop(self, cb):
-   #---------------------------------------------------------------------
+      #---------------------------------------------------------------------
       """
       Helper method to get movie loop
 
@@ -8462,50 +9171,2675 @@ and keys 'P', '<', '>', '+' and '-' are available to control the movie.
       :type cb:
           Callback object based on matplotlib.backend_bases.MouseEvent instance
       """
-   #---------------------------------------------------------------------
-      self.toggle_images()
+      #---------------------------------------------------------------------
+      self.toggle_images(self.forward)
       
 
-   def toggle_images(self, next=True):
-   #---------------------------------------------------------------------
-       """
-       Toggle the visible state of images either by a timed callback
-       function or by keys.
-       This toggle works if one stacks multiple image in one frame
-       with method :meth:`MovieContainer.append`.
-       Only one image gets status visible=True. The others
-       are set to visible=False. This toggle changes this visibility
-       for images and the effect, is a movie.
+   def setspeed(self, framespersec):
+      #---------------------------------------------------------------------
+      """
+      Change movie speed by changing timer interval.
+      Note that speed can be < 1.0
+      """
+      #---------------------------------------------------------------------
+      self.framespersec = max(framespersec, 0)  #max(framespersec-1, 1)
+      self.framespersec = min(self.framespersec, 200)
+      self.movieloop.set_interval(1.0/self.framespersec)
+      flushprint("interval in sec=%f"%(1.0/self.framespersec))
+      if self.helptext:
+         speedtxt = " Speed=%d im/s"% (self.framespersec)
+         self.helptext_id.set_text(self.helptextbase+speedtxt)
+
+
+
+   def setimage(self, i, force_redraw=False):
+      #---------------------------------------------------------------------
+      """
+      Set a movie frame by index number. If the index is invalid, then do
+      nothing.
+
+      :param i:
+          Index of movie frame which is any number between 0 and the
+          number of loaded images.
+      """
+      #---------------------------------------------------------------------
+      # If the index is invalid, then do nothing (also no warning)
+      if i is None:
+         return
+      flushprint("MAPUTILS setimage imnr, numimages=%d %d"%(i,self.numimages))
+      if 0 <= i < self.numimages:         
+         self.toggle_images(indx=i, force_redraw=force_redraw)
+
+
+
+   def toggle_images(self, next=True, indx=None, force_redraw=False):
+      #---------------------------------------------------------------------
+      """
+      Toggle the visible state of images either by a timed callback
+      function or by keys.
+      This toggle works if one stacks multiple images in one frame
+      with method :meth:`MovieContainer.append`.
+      Only one image gets status visible=True. The others
+      are set to visible=False. This toggle changes this visibility
+      for images and the effect, is a movie.
+      
+      :param next:
+         Step forward through list if next=True. Else step backwards.
+      :type next:
+         Boolean
+      :param indx:
+         Set image with this index
+      :type indx:
+         Integer
+      :param force_redraw:
+         Boolean flag to force everything to be repainted, which would
+         otherwise only occur if there is a change of cubes
+      """
+      #---------------------------------------------------------------------
+      xd = None                              # A position in the previous image
+      yd = None
+      if indx is not None:
+         # User/programmer required an explicit image, not a next or
+         # previous one
+         newmovieframeindx = indx
+         self.indx = newmovieframeindx
+      else:
+         # We get a request to show a next or a previous image
+         fromlist = self.movieframelist      
+         if fromlist:
+            # This was not a requested image (with given indx) but a request
+            # to show the next image, the next in a user defined 
+            # sequence ('movieframelist'). Note that if we have a user defined
+            # list with movie frames, then we have another index. This index
+            # 'movielistindx' is related to the list with movie frames.
+            movielistindx = self.movielistindx    # Retrieve
+            if next:
+               if movielistindx + 1 >= len(self.movieframelist):
+                  movielistindx = 0
+               else:
+                  movielistindx += 1
+            else:
+               if movielistindx - 1 < 0:
+                  movielistindx = len(self.movieframelist) - 1
+               else:
+                  movielistindx -= 1
+            newmovieframeindx = self.movieframelist[movielistindx]
+            # What if the index from the movie frame list is not valid?
+            # Then there is nothing to do because there is no associated image.
+            if newmovieframeindx  >= len(self.annimagelist) or newmovieframeindx < 0:
+               return
+            self.movielistindx = movielistindx    # Store for next
+         else:
+            currindx = self.indx                  # Retrieve
+            if next:
+               if currindx + 1 >= len(self.annimagelist):
+                  currindx = 0
+               else:
+                  currindx += 1
+            else:
+               if currindx - 1 < 0:
+                  currindx = len(self.annimagelist) - 1
+               else:
+                  currindx -= 1                  
+            newmovieframeindx = currindx
+            self.indx = newmovieframeindx         # Store for next
+
+      oldim = self.oldim
+
+      # TODO: Resetten van images na transparantie acties. Moet nog verder uitgewerkt
+      # worden.
+      
+      # Make sure that the image used to compare to the current is reset to invisible
+      if self.compareim:   
+          self.compareim.image.im.set_alpha(1.0)
+          self.compareim.image.im.set_visible(False)
+          self.compareim = None
+          if oldim:
+             oldim.image.im.set_alpha(1.0)
+      
+      
+      if oldim is not None:
+        # If the old image was splitted, it does not contain the original data
+        if oldim.origdata is not None:
+           oldim.data[:] = oldim.origdata[:]
+           oldim.origdata = None
+           oldim.image.im.set_data(oldim.data)  # Necessary!
+           # Note that we need to restore the blank color and transparancy
+           # both in one time. We are sure that the attribute old_blankcolor
+           # exists because we have splitted the image (it has a non empty
+           # 'origdata' attribute.
+           oldim.set_blankcolor(oldim.old_blankcolor[0], oldim.old_blankcolor[1])
+           splitimage = self.annimagelist[oldim.splitmovieframe]
+           splitimage.image.im.set_visible(False)           
+        # Make the old image invisible and disconnect existing callbacks
+        oldim.image.im.set_visible(False)
+        flushprint("Toggle images: Made oldim (%d) invisible"%(id(oldim)))
+        oldim.disconnectCallbacks()
+        if self.toolbarinfo:
+           # Deschedule the old toolbarinfo method, but first, store
+           # the mouse position in display coordinates, so that we can
+           # re-use them for another frame. Note that the movie can consist of
+           # frames from different cubes and each cube is associated with
+           # a separate frame (i.e. mpl axes object)
+           x = oldim.X_lastvisited
+           y = oldim.Y_lastvisited
+           if not None in [x,y]:
+              xd, yd = oldim.frame.transData.transform((x,y))           
+           flushprint("Toolbarinfo voor oldim %s DISCONnected"%(str(id(oldim))))
+           if None in [x,y]:
+              flushprint("Toolbarinfo ziet None in x,y")
+           else:
+              flushprint("Toolbarinfo ziet valide x,y")
+
+      #self.indx = currindx   #newindx
+      newim = self.annimagelist[newmovieframeindx]      
+      newim.image.im.set_visible(True)
+      flushprint("Setimage movie index=%d"%(newmovieframeindx))      
+      
+      info = newim.infoobj
+      if info:
+         info.set_text(newim.slicemessage)
+
+      # Handle lines and text if one changes cubes.
+      #print "newim.cubenr", newim.cubenr, self.currentcubenr
+      if (newim.cubenr != self.currentcubenr) or force_redraw:
+          #print "Make onzichtbaar ", oldim
+          flushprint("KUBUS WISSELING?? Current cube nr, newcubenr=%s %d"%(str(self.currentcubenr),newim.cubenr))
+          # Depending on unknown factors, sometimes a remnant of the previous
+          # image remains on the screen. This is only visible if the new image
+          # is smaller than the old one. In any case, if cubes change, clear their
+          # contents of the old axes object.
+          if newim.cubenr != self.currentcubenr and oldim:
+             #self.canvas.figure.clf()
+             #newim.frame.draw_artist(newim.image.im)
+             pass
+             #
+             #newim.image.im.set_visible(True)
+             #oldim.frame.clear()
+             #oldim.image.im.set_visible(False)
+          self.currentcubenr = newim.cubenr  # currentcubenr is None for the first image
+          if oldim is not None:
+            for li in oldim.linepieces:
+               li.set_visible(False)
+            for tl in oldim.textlabels:
+               tl.set_visible(False)
+            if oldim.infoobj:
+               oldim.infoobj.set_visible(False)
+            if oldim.hascolbar and oldim.cbframe:
+               oldim.cbframe.set_visible(False)
+            oldim.splitcb.deschedule()
+
+          for li in newim.linepieces:
+             li.set_visible(True)
+          for tl in newim.textlabels:
+             tl.set_visible(True)
+             flushprint("Ik zet in toggle_images textlabel %d %s op True"%(id(tl), str(tl)))
+          if newim.infoobj:
+             newim.infoobj.set_visible(True)
+          newim.splitcb.schedule()
+          flushprint("force_redraw=%s"%(str(force_redraw)))
+          if newim.cbframe:
+             flushprint("Nieuw image heeft colorbar frame")
+             if newim.hascolbar:
+                flushprint("Nieuw image heeft colorbar op YES")
+                newim.cbframe.set_visible(True)
+             else:
+                flushprint("Nieuw image heeft colorbar op NO")
+                newim.cbframe.set_visible(False)
+          #newim.frame.draw_artist(newim.image.im)
+          #print "Maak zichtbaar voor indx", newmovieframeindx
+          self.canvas.draw()                                          # Draw all
+          #self.canvas.blit(newim.frame.bbox)
+          self.canvas.flush_events()
+      else:
+          flushprint("Current cube nr, newcubenr=%d %d"%(self.currentcubenr,newim.cubenr))
+          flushprint("They are equal so blit now")
+          newim.frame.draw_artist(newim.image.im)
+          if info:
+             newim.frame.draw_artist(info)
+          # Restore the graticule grid! Note that zorder could not help us
+          # because blitting the image always puts the image on top.
+          for li in newim.linepieces:  
+             flushprint("newim li=%d"%(id(li)))
+             newim.grat.frame.draw_artist(li)
+          for tl in newim.textlabels:
+             flushprint("newim tl=%d %s"%(id(tl), str(tl.get_text())))
+             newim.frame.draw_artist(tl)
+          #for tl in newim.textlabels:  # Can be skipped if placed outside frame
+          #   tl.set_visible(True)
+          #   newim.frame.draw_artist(tl)
+          #   flushprint("newim drawartist (hier teveel??) Text id=%d"%(id(tl)))
+          self.canvas.blit(newim.frame.bbox)
+          #self.canvas.draw()
+
+      # We need to keep track of the last image viewed in a cube because
+      # if we jump (in the calling environment) to another cube and back,
+      # there should be a way to restore the last displayed image for this
+      # cube.
+      #C = self.cubelist[newim.cubenr]
+      #C.lastimagenr = self.indx - C.movieframeoffset
+
+      newim.interact_imagecolors()
+      if self.toolbarinfo:
+         newim.interact_toolbarinfo()
+         newim.interact_writepos(pixfmt=newim.coord_pixfmt,
+                                 dmsprec=newim.coord_dmsprec,
+                                 wcsfmt=newim.coord_wcsfmt,
+                                 zfmt=newim.coord_zfmt,
+                                 gipsy=True,
+                                 grids=newim.coord_grids,
+                                 world=newim.coord_world,
+                                 worlduf=newim.coord_worlduf,
+                                 imval=newim.coord_imval,
+                                 g_typecli=newim.coord_tocli,
+                                 g_tolog=newim.coord_tolog,
+                                 g_appendcr=newim.coord_appendcr)
+         
+         flushprint("Toolbarinfo voor newim %s CONnected"%(str(id(newim))))
+         cb = newim.toolbarkey
+         if not None in [xd, yd]:
+            cb.xdata, cb.ydata = newim.frame.transData.inverted().transform((xd,yd))
+            # Trigger the toolbarinfo method to get the right image data value (z)
+            # for this new image. Note that events from the panels come always from
+            # outside the image frame. In the eventpanel methods, the values
+            # for the last position of the current image are reset to None. Then
+            # skip the update of the toolbar message.
+            newim.mouse_toolbarinfo(cb)
+
+      self.oldim = newim
+      self.callbackinfo.mes = newim.slicemessage
+      self.callbackinfo.indx = newmovieframeindx
+      self.callbackinfo.cubenr = newim.cubenr
+      self.callbackinfo.slicemessage = newim.composed_slicemessage
+      self.callback('movchanged', self.callbackinfo)
+
+      # After setting a (new) image, we want to be sure that
+      # all events are flushed, because otherwise, it seems
+      # that Maplotlob skips redrawing the canvas and a change
+      # of cubes will not result in a change of the colorbar
+      # The flush method below, solves this problem.
+      # It also seems necessary to put this method after setting
+      # the new toolbar and image interactions.
+      """if self.flushcounter > 10:
+         self.canvas.flush_events()
+         flushprint("********* FLUSH **********")
+         self.flushcounter = 0
+      else:
+         self.flushcounter += 1
+      """
+      flushprint("------ Einde setimage----------")
+
+#------------------------------------------------------------------------
+"""Background
+
+We developed some methods that enable a user to inspect slices of a data cube.
+One of these methods displays an image which is part of a movie.
+A position in such an image
+sets the data in two slices which are shown as two panels. For each panel,
+one axis is shared with the movie frame image.
+The other is the third axis in the cube.
+What we try to do is to copy the functionality of the display program
+GIDS (Groningen Image Display Server). In that application one enters a number
+of images. For example in a simple case: one has a RA-DEC-VELO cube. The
+interesting parts of the data are in slices RA-VELO and DEC-VELO. These
+slices need an extra position which is derived from the mouse position in a
+movieframe.
+In GIDS a series of movie frames create a cube. It doesn't matter if these
+images have their origin in different files. It also doesn't matter if
+there is an n-th axis (n>3). The second axis of a slice is always the third
+axis of the movie cube. For the slices one enters movie frame numbers which
+sets the values along the new slice axis.
+
+Example: With GIDS and a big data cube with many spectral observations one can
+enter images at each second velocity to speed up a movie. If the number of
+spectral images are too many to display in an XV slice, one can enter a
+selection of movie images which contribute to the spectral axis in your
+XV slices.
+
+Example: In GIDS one can upload 2-dim subsets of a 4 dimensional data set.
+The order of the slices are set by grids on the repeat axes (e.g. FREQ, STOKES)
+and this will also be the order in the movie cube. This will also be the default
+order along the V axis in you slice, which is strictly speaking not a V axis
+anymore.
+
+In the XV slices there are also mouse interactions. The position in V
+sets a movie frame. A position in X in one panel updates the other XV panel.
+
+We try to achieve the same functionality as in GIDS but in the
+context of module maputils. That is, we don't use X-memory to store the
+movie data (the movie cube). With maputils we build a sequence of movieframes
+and from this list with 2-dim data arrays we retrieve the slice data.
+So one of the slice axes is the index axis of the movie frames and the other
+is one of the movie frame axes.
+
+For a sequence of data sources (data sets), we extend the movie loop with
+new frames and add slice panels (instead of extending the previous panels).
+
+
+TODO: Server functionality in the new viewer by adding communication via
+wkey()'s
+-Verbeteren positie informatie
+"""
+#------------------------------------------------------------------------
+
+
+class Cubeatts(object):
+   #----------------------------------------------------------------------------
+   """
+   Class that sets cube attributes
+   """
+   #----------------------------------------------------------------------------
+   def __init__(self, frame, fitsobj, axnums, slicepos=[], pxlim=None, pylim=None,
+                vmin=None, vmax=None, xpanel=[], ypanel=[], hasgraticule=False,
+                gridmode=False, hascolbar=True, pixelaspectratio=None,
+                clipmode=0, clipmn=(4,5), callbackslist={}):
+      self.frame = frame
+      self.pxlim = pxlim
+      self.pylim = pylim
+      # If there are no limits given, then calculate some defaults
+      if pxlim is None:
+         self.pxlim = (1, fitsobj.axisinfo[axnums[0]].axlen)
+      if pylim is None:
+         self.pylim = (1, fitsobj.axisinfo[axnums[1]].axlen)
+      # 'slicepos' is a list with tuples. Each tuple sets positions
+      # on repeat axes. For 2-dim images, the list is empty
+      self.slicepos = slicepos
+      self.fitsobj = fitsobj                    # The source from which the data is extracted
+      self.pixelaspectratio = pixelaspectratio
+      if slicepos:
+         self.nummovieframes = len(slicepos)
+      else:
+         self.nummovieframes = 1
+      self.hasgraticule = hasgraticule
+      self.gridmode = gridmode                  # If True then positions are displayed in grids
+      self.xold = None                          # Remember last visited position
+      self.yold = None
+      self.framep1 = None                       # Initialize the panel frames
+      self.framep2 = None
+      self.annimp1 = None                       # Annotated image object for panels 1 and 2
+      self.annimp2 = None
+      self.linepieces = set()
+      self.textlabels = set()
+      self.grat = None
+      self.divider = None                       # To make axes locatable
+      # Axis numbers for images and extra axis which
+      # is one of the repeat axes (usually velocity is axnum 3)
+
+      # A FITSimage object has two attributes that could have been useful
+      # to find names and positions of the slice (repeat) axes.
+      # However these are just default values if method set_imageaxes() has not
+      # been called. This call is postponed until we create Annotatedimage
+      # objects. So for now we need to build our own axis numbers array.
+      # The first two numbers are the axis numbers of the image (one or a
+      # sequence that belongs to this cube).
+      anums = [axnums[0], axnums[1]]
+      n = fitsobj.naxis
+      if (n > 2):
+         # Note that we have our slice axes always in the same order as in the header
+         for i in range(n):
+            axnr = i + 1
+            if axnr not in anums:
+               anums.append(axnr)         
+      self.axnums = anums                       # To extract slices we need to know the axis order
+      self.movieframeoffset = None              # Gets a value after loading a cube
+      # What are the movieframes from which we want to extract the data?
+      # Set these frames in a list. One list per data cube
+      # Show all slices by default
+      # TODO: Het is netter om set_panelframes() te gebruiken maar
+      # dan crasht het programma omdat er nog geen cubelist is.
+      #self.set_panelframes(xpanel, panel='X')
+      #self.set_panelframes(xpanel, panel='Y')
+      #self.set_panelXframes(xpanel)
+      #self.set_panelYframes(ypanel)
+      self.panelXframes = []    # Initialize the slice panels
+      self.panelYframes = []
+      self.cmap = None
+      """
+      if vmin is None or vmax is None:
+         vmi, vma = fitsobj.get_dataminmax(box=False)
+      if vmin is None:
+         self.vmin = vmi
+      if vmax is None:
+         self.vmax = vma
+      """
+      self.panelscb = None
+      self.splitcb = None
+      self.origdata = None
+      # Set the properties for the slice panel images
+      self.set_xvprojections()
+      self.preparefirst = True
+      self.cnr = None                           # Cube number in container
+
+      #self.lastimagenr = 0
+      self.hascolbar = hascolbar
+      #if hascolbar and self.cbframe is None:
+      self.cbframe = None
+      self.imagesinthiscube = []
+      self.shortfilename = os_basename(self.fitsobj.filename)
+      self.callbackslist = callbackslist
+      # Crosshair lines
+      lineprops = {'animated': True}
+      self.lineh = self.frame.axhline(self.frame.get_ybound()[0], visible=False, **lineprops)
+      self.linev = self.frame.axvline(self.frame.get_xbound()[0], visible=False, **lineprops)
+      self.needclear = False
+      self.background = None
+
+      # Clip level related attributes
+      self.vmin = vmin
+      self.vmax = vmax
+      self.datmin = None
+      self.datmax = None
+      self.mean = None
+      self.rms = None      
+      self.clipmode = clipmode
+      self.clipmn = clipmn
+      self.scalefac = None
+
+
+
+   def callback(self, cbid, *arg):
+      #-----------------------------------------------------------------
+      """
+      Helper function for registered callbacks
+      """
+      #-----------------------------------------------------------------
+      if self.callbackslist.has_key(cbid):
+         self.callbackslist[cbid](*arg)
+
+
+   def cubestats(self):
+      #-------------------------------------------------------------------------
+      """
+      Given the datmin, datmax, mean and rms attributes of all the images in
+      this cube, calculate the same attributes for the entire cube
+
+      Formulas are explained in article on:
+      http://en.wikipedia.org/wiki/Standard_deviation
+      Section: Population-based statistics
+      """
+      #-------------------------------------------------------------------------
+      if not self.imagesinthiscube:      # To be save. Here is nothing to do
+         return
+      alldatmin = []
+      alldatmax = []
+      allmean = []
+      allrms  = []
+      for aim in self.imagesinthiscube:
+         if aim.datmin and numpy.isfinite(aim.datmin):  # Not None, Nan or +-inf
+            alldatmin.append(aim.datmin)
+         if aim.datmax and numpy.isfinite(aim.datmax):
+            alldatmax.append(aim.datmax)
+         if aim.mean and numpy.isfinite(aim.mean):
+            allmean.append(aim.mean)
+         if aim.rms and numpy.isfinite(aim.rms):
+            allrms.append(aim.rms)
+      if len(alldatmin):
+         self.datmin = min(list(alldatmin))  # Could be one value
+      if len(alldatmax):
+         self.datmax = max(list(alldatmax))
+      # To calculate the mean and rms of all the data we use a formula
+      # to get mean and rms as a result of a list with means and rms's
+      # for data sets with an equal number of data points
+      n = 0; mean_t = 0.0; rms_t = 0.0
+      for mean, rms in zip(allmean, allrms):
+         flushprint("mean, rms=%f %f"%(mean, rms))
+         if rms and mean:
+            flushprint("n=%d"% n)
+            n += 1
+            mean_t += mean
+            rms_t += rms*rms + mean*mean
+      if n:
+         self.mean = mean_t/n
+         self.rms = numpy.sqrt(rms_t/n - (self.mean*self.mean))
+      else:
+         self.mean = self.rms = None
+
+
+   def imagestats(self):
+      #-------------------------------------------------------------------------
+      """
+      For each image in this cube, calculate the values for the
+      data min., data max., mean and rms.
+      """
+      #-------------------------------------------------------------------------
+      if not self.imagesinthiscube:      # To be save. Here is nothing to do
+         return
+      for aim in self.imagesinthiscube:
+         aim.datmin, aim.datmax, aim.mean, aim.rms = aim.get_stats()
+      # Get same attributes applied to all cube images
+      self.cubestats()
+
+
+   def setcubeclips(self, clipmin=None, clipmax=None, clipmode=0, clipmn=(4,5)):
+   #----------------------------------------------------------------------------
+   # Purpose: Set the norm limits for image scaling to all images in this cube
+   #
+   # Use this method if you want to use the same clip levels for all the
+   # images in this cube. Each image has attributes clipmin and clipmax that
+   # are finite numbers (forced by the constructor of Annotatedimage.
+   # Use the min and max of all these clip values to set the norm for all
+   # images in the list.
+   #----------------------------------------------------------------------------
+      if not self.imagesinthiscube:      # To be save. Here is nothing to do
+         return
+      flushprint("setcubeclips: clipmin, max=%s %s"%(str(clipmin), str(clipmax)))
+      if None in (clipmin, clipmax) or clipmode in [1,2]:
+         # Set values for cube.datmin, cube.datmax etc.
+         if None in [self.datmin, self.datmax, self.mean, self.rms]:
+            self.cubestats()
+      flushprint("setcubeclips: clipmode=%d"%clipmode)
+      if clipmode == 0:
+         if clipmin is None:
+            clipmin = self.datmin
+         if clipmax is None:
+            clipmax = self.datmax
+
+      if clipmode == 1:
+         clipmin = self.datmin
+         clipmax = self.datmax
+         flushprint("setcubeclips: MODE=1  clipmin, max=%s %s"%(str(clipmin), str(clipmax)))
+
+      if clipmode == 2:
+         if self.mean and self.rms:         
+            clipmin = self.mean - clipmn[0]*self.rms
+            clipmax = self.mean + clipmn[1]*self.rms
+            flushprint("setcubeclips: MODE=2  mean, rms=%s %s"%(str(self.mean), str(self.rms)))
+            flushprint("setcubeclips: MODE=2  clipmin, max=%s %s"%(str(clipmin), str(clipmax)))
+
+      if clipmin is None:
+         if clipmax is not None:
+            clipmin = clipmax - 1.0
+         else:
+            clipmin = 0.0
+      if clipmax is None:
+         if clipmin is not None:
+            clipmax = clipmin + 1.0
+         else:
+            clipmax = 1.0
+
+      self.vmin = clipmin
+      self.vmax = clipmax
+      for aim in self.imagesinthiscube:
+         # Prevent exception if min > max
+         aim.image.im.set_clim(min(clipmin,clipmax), max(clipmin,clipmax))
+
+      canvas = aim.frame.figure.canvas
+      canvas.draw()
+
+
+   def set_slicemessages(self, spectrans):
+      #-------------------------------------------------------------------------
+      """
+      Change slice messages to comply with this spectral translation.
+      Apply message change to all Annotatedimage objects in this cube.
+
+      :param spectrans:
+         A coded spectral translation e.g. FREQ, WAVE or VRAD
+         with translation code (e.g. V2F) or questionmarks as
+         wildcard (e.g. VRAD-???)
+      :type spectrans:
+         String
+
+      :Notes:
+
+         After the slice messages are set, we have to refresh the image
+         if a message was required on the image. After loading this is done
+         by setting the image to the first loaded image (for this cube).
+         If this method is called externally, the caller is responsible for
+         refreshing the current image.
+      """
+      #-------------------------------------------------------------------------
+      flushprint("set_sliceimages = %s"%(str(self.slicepos)))
+      if not self.imagesinthiscube:      # To be save. Here is nothing to do
+         return
+
+      axnames = []
+      crpix = []
+      # Note: these are the axis numbers with sorted repeat axes!
+      for an in self.axnums[2:]:
+         axi = self.fitsobj.axisinfo[an]
+         if axi.wcstype == 'spectral' and spectrans:
+            axnames.append(spectrans.split('-')[0])
+         else:
+            axnames.append(axi.axname)
+         # If we work in grid mode, we need to translate the slice positions
+         # to grids. For this we need the CRPIX header values.
+         crpix.append(axi.crpix)
+         
+      for i, aim in enumerate(self.imagesinthiscube):         
+         j = i + self.movieframeoffset
+         # This message should contain only the information about
+         # the slice. It will be reused for the mouse position
+         # in physical coordinates. The non image axes of the slice
+         # panels, could be composed of multiple axes (e.g. FREQ, STOKES)
+         # and cannot be represented by module wcsgrat.
+         # We compose a more informative string (sc) to be used in the calling
+         # environment using the 'slicemes' callback.
+         s = ""
+         sc = "im%3d: %s "%(j, os_basename(self.fitsobj.filename))
+         if self.slicepos:
+            # Note that each fitsobj has one 'slicepos'. This value
+            # can be a tuple if there is more than one repeat axis
+            self.fitsobj.slicepos = self.slicepos[i]
+            vlist, ulist = self.fitsobj.slice2world(skyout=None,
+                                                    spectra=spectrans,
+                                                    userunits=None)
+            #print "SLICEPOS=", self.slicepos[i], vlist, ulist,self.axnums            
+            if not issequence(self.slicepos[i]):
+               splist = [self.slicepos[i]]
+            else:
+               splist = self.slicepos[i]
+
+            # If the slice position is required in grids, convert using CRPIX values
+            if self.gridmode:
+               #flushprint("len(splist=%d, %s %s"%(len(splist),str(splist), str(aim.projection.crpix)))
+               splist = [splist[k]-crpix[k] for k in range(len(splist))]
+
+            for v, u, aname, sp in zip(vlist, ulist, axnames, splist):
+               #s += "%s(%*d)=%+-*g"%(aname, 4, sp, 10, v)
+               s += "%s(%d)=%+-g"%(aname, sp, v)
+               if u:
+                  s += " (%s)"%u
+               s += "  "
+            s = s.strip()
+         aim.slicemessage = s
+         aim.composed_slicemessage = sc + ' '  + s
+         aim.imnr = j
+         aim.spectrans = spectrans
+
+
+
+   def set_panelXframes(self, framelist):
+      #-------------------------------------------------------------------------
+      """
+      For the current cube, build a list with indices which all represent a
+      slice in the panel that is parallel to the X axis.
+      Prepare a data array for this slice panel.
+      Remember that you have set up a 'movie cube' (which can be composed out
+      of more than one data source). In this movie cube one can imagine a third
+      axis perpendicular to the image axes. Along this axis, one can take a
+      slice through the data. The sliced data can be represented in an image
+      (e.g. a position-velocity diagram). The positions on the third axis
+      are indices of the movie frame array and need not to be contiguous or
+      ordered.
+      """
+      #-------------------------------------------------------------------------
+      self.panelXframes = framelist   # Should be filtered and corrected for cube offset in movie frames
+      if self.panelXframes:
+         lx = self.pxlim[1] - self.pxlim[0] + 1# Length of x axis of movie image
+         ly = len(self.panelXframes) # Length of new axis is equal to the number
+                                                      # of selected movie frames
+         self.Mx = numpy.zeros((ly,lx))             # Image for horizontal panel
+
+
+
+   def set_panelYframes(self, framelist):
+      #-------------------------------------------------------------------------
+      """
+      For the current cube, build a list with indices which all represent a
+      slice in the panel that is parallel to the Y axis.
+      Prepare a data array for this slice panel.
+      See also text at set_panelXframes().
+      """
+      #-------------------------------------------------------------------------
+      self.panelYframes = framelist
+      if self.panelYframes:
+         ly = self.pylim[1] - self.pylim[0] + 1
+         lx = len(self.panelYframes)
+         self.My = numpy.zeros((ly,lx))               # Image for vertical panel
+
+
+
+   def set_xvprojections(self):
+      #----------------------------------------------------------------------------
+      """
+      Is there an axis in the set that is not part of the image?
+      We may need this axis later if we need a 'missing' spatial axis
+      """
+      #----------------------------------------------------------------------------
+      ap = set(range(1,self.fitsobj.naxis+1))
+      apsub = set(self.axnums[:2])
+      apdiff = list(ap.difference(apsub))
+      if apdiff:
+         dummyax = apdiff[0]
+      else:
+         dummyax = None
+
+      # Find a suitable axis to represent the movieframe index axis
+      # For the panel that shares the x axis, this will be the y axis.
+      fo = self.fitsobj
+      if dummyax:
+         spatials = [fo.proj.lataxnum, fo.proj.lonaxnum]
+         if self.axnums[0] in spatials and dummyax in spatials:
+            convproj = fo.proj.sub((self.axnums[0], dummyax))
+         else:
+            if not (self.axnums[0] in spatials or dummyax in spatials):
+               axperm = (self.axnums[0], dummyax)
+               convproj = fo.proj.sub(axperm)
+            else:
+               if fo.proj.lonaxnum in [dummyax,self.axnums[0]]:
+                  axperm = (self.axnums[0], dummyax, fo.proj.lataxnum)
+                  convproj = fo.proj.sub(axperm)
+               else:
+                  axperm = (self.axnums[0], dummyax, fo.proj.lonaxnum)
+                  convproj = fo.proj.sub(axperm)
+         self.panelx_axperm = (self.axnums[0], dummyax)
+      else:
+         convproj = fo.convproj
+         self.panelx_axperm = (self.axnums[0], self.axnums[1])
+      self.panelx_proj = convproj
+      
+      # Now for the slice panel that shares the y axis
+      if dummyax:
+
+         spatials = [fo.proj.lataxnum, fo.proj.lonaxnum]
+         if self.axnums[1] in spatials and dummyax in spatials:
+            convproj = fo.proj.sub((dummyax, self.axnums[1]))
+         else:
+            if not (self.axnums[1] in spatials or dummyax in spatials):
+               axperm = (self.axnums[1], dummyax)
+               convproj = fo.proj.sub(axperm)
+            else:
+               if fo.proj.lonaxnum in [dummyax,self.axnums[1]] :
+                  axperm = (dummyax, self.axnums[1],  fo.proj.lataxnum)
+                  convproj = fo.proj.sub(axperm)
+               else:
+                  axperm = (dummyax, self.axnums[1], fo.proj.lonaxnum)
+                  convproj = fo.proj.sub(axperm)
+         self.panely_axperm = (dummyax, self.axnums[1])
+      else:
+         convproj = fo.convproj
+         self.panely_axperm = (self.axnums[0], self.axnums[1])
+      self.panely_proj = convproj
+      
        
-       :param next:
-          Step forward through list if next=True. Else step backwards.
-       :type next:
-          Boolean
 
-       """
-    #---------------------------------------------------------------------
-       oldim = self.annimagelist[self.indx]
-       oldim.image.im.set_visible(False)
+class Cubes(object):
+   #----------------------------------------------------------------------------
+   """
+A container with Cubeatts objects. With this class we build the movie container
+which can store images from different data cubes.
 
-       numimages = len(self.annimagelist) 
-       if next:
-          if self.indx + 1 >= numimages:
-             self.indx = 0
-          else:
-             self.indx += 1
-       else:
-          if self.indx - 1 < 0:
-             self.indx = numimages - 1
-          else:
-             self.indx -= 1
-    
-       newindx = self.indx
-       newim = self.annimagelist[newindx]
-       slicepos = str(newim.slicepos)
-       newim.image.im.set_visible(True)
+:param toolbarinfo:
+   This flag sets an informative message in the toolbar. For the QT backend
+   the message is printed on a separate line at the bottom of the plot.
+   The message contains information about the position of the cursor and
+   when possible, it will show the corresponding world coordinates. Also the
+   pixel value is printed.
+   #TODO: Afkappen voor andere backends verbeteren
+   #TODO: Info voor panels is nog niet volledig. Hier nog image waarde aan toevoegen
+          indien dit niet al te ingewikkeld is.
+   #TODO: Colorbar toevoegen
+   If you display a slice panel, then the information about the mouse position
+   is different. For example the y direction of the horizontal slice panel is
+   not a function of a world coordinate, but a function of movie frame number.
+   This number can be used to find a world coordinate.
+:type toolbarinfo:
+   Boolean
 
-       if self.imagenumbers:
-          self.imagenumberstext_id.set_text("im #%d slice:%s"%(newindx, slicepos))
 
-       self.fig.canvas.draw()
 
+:param callbacklist:
+      Possible callbacks:
+
+      progressbar:
+      An (external) object that displays the progress. It should have at
+      least four methods: setMinimum(), setMaximum(), setValue() and reset()
+      For example in a QT gui we can define a progressbar with
+      'QProgressBar()'. This routine provides the necessary methods.
+      The QT progressbar displays percentages. We set its range between
+      zero and the number of frames contained in the new cube.
+      Usually, loading 1 image is to fast to use a progressbar, but
+      with numerous images, this can be useful.
+
+
+:type callbacklist:
+      Python dictionary with function names and function pointers
+
+
+
+:Example:
+
+   myCubes = maputils.Cubes(toolbarinfo=True, printload=True)
+   fitsobject = maputils.FITSimage('rense.fits')
+   slicepos = []
+   for i in range (1,100):
+      slicepos.append(i)
+   axnums = (1,2,3)
+   fr1 = fig.add_axes(box, label=fitsobject.filename, frameon=False)
+   myCubes.append(fr1, fitsobject, slicepos, axnums=axnums)
+   myCubes.splitmovieframe = 30
+   plt.show()
+   TODO: make van attribute splitmovieframe een methode waarin je de validiteit test
+
+   # Changelog:
+   -18 aug 2011: Changed toolbar message for QT backends, i.e. do not cut off
+   """
+   #----------------------------------------------------------------------------
+   # Class variables:
+   # Define the required colorbar width. We take a fixed part of the
+   # frame, so that it scales up when the screen becomes larger
+   colbwidth = 0.06
+
+   # The timerlist must be accessible by all objects of this class.
+   timerlist = []    # One list with timer callbacks to load all cubes
+   
+   def __init__(self, fig, toolbarinfo=False, imageinfo=True,
+                printload=False, helptext=True,
+                callbackslist={}):
+
+
+      self.numcubes = 0
+      self.movieimages = MovieContainer(fig, helptext=helptext,
+                                        toolbarinfo=toolbarinfo,
+                                        imageinfo=imageinfo)
+      # Initialize two callback id's for reacting to keys and scroll wheel
+      # for movie actions in the figure. These are not of type AxexCallbacks
+      # because the actions are not restricted to a frame.
+      self.fig = fig
+      self.movieimages.cidkey = None
+      self.movieimages.cidscroll = None
+      self.imageinfo = imageinfo
+      self.imageloadnr = 0                   # A counter for images in all cubes
+      self.movieframecounter = 0
+      self.currentcube = 0
+      self.cubelist = []
+      self.maxframe = [None]*4               # Corner positions of biggest frame
+      # Every cube represents an number of movie frames
+      # If there is more than one cube, you need an offset to find the
+      # correspondence between a position in a slice panel, the cube and the
+      # index of the movie frame.
+      self.movieframeoffset = 0
+      self.cubeindx = 0
+      self.loadcb = None                # The callback for the image load method
+      self.cmap = None
+      self.printload = printload
+      self.splitmovieframe = 0
+      self.panelmode = 0
+      self.infoobj = None
+      # Usually one loads images in Matplotlib, selects one image to
+      # be visible and the call show() to display this image. By setting images
+      # to visible/invisible, we create a movie effect.
+      # In our load process, we want to show each loaded image immediately.
+      # so not only the movie loop software, but also the load procedure
+      # should know how to make an image visible or invisible. For the load
+      # procedure we use attribute 'lastimage' to keep track of which image
+      # was the last one that was on display.
+      self.lastimage = None
+      # We want to start to display the images as big as possible, given the
+      # size of the mpl canvas. We do this only one time, because appended
+      # cubes will follow this adjustment. So we need a flag to inspect
+      # if this figure adjustment has ben done or not.
+      self.figadjust = False
+      #self.resizecb = CanvasCallback(self.reposition, fig.canvas, 'draw_event')
+      self.resizecb = CanvasCallback(self.reposition, fig.canvas, 'resize_event')
+      NavigationToolbar2.ext_callback = self.reposition
+      NavigationToolbar2.ext_callback2 = self.set_graticules
+      Figure.ext_callback = self.reposition    # From the subplot configurator
+      
+      # If we want to redraw after a draw_event, we must prevent that this draw
+      # action also executes method 'reposition'. So we need a flag to prevent this.
+      #self.resizecb.update = True                    
+      flushprint("I CONNECT DRAW_EVENT to REPOSITION()")
+      self.callbackslist = callbackslist
+      if self.callbackslist.has_key('progressbar'):
+         self.progressbar = self.callbackslist['progressbar']
+      else:
+         self.progressbar = None
+      if self.callbackslist.has_key('memory'):
+         self.memorystatus = self.callbackslist['memory']
+      else:
+         self.memorystatus = None
+      # We need administration to keep track of the number of cubes that
+      # define side panels. Then it is possible to use maximum space for these
+      # panels to plot.
+      self.numXpanels = 0
+      self.numYpanels = 0
+      # Needed to take re-position action of side panels when h/wspace changes
+      self.previous_subpars = (fig.subplotpars.hspace, fig.subplotpars.wspace)
+      self.crosshair = False
+      
+
+   def callback(self, cbid, *arg):
+      #-----------------------------------------------------------------
+      """
+      Helper function for registered callbacks
+      """
+      #-----------------------------------------------------------------
+      if self.callbackslist.has_key(cbid):
+         self.callbackslist[cbid](*arg)
+
+      
+   def cleanupall(self):
+      #-------------------------------------------------------------------------
+      """
+      Cleanup the contents of this object (destructor). We need a separate function
+      to cleanup because our class contains circular references so it will not
+      be touched by Python's garbage collector. Implementing a __del__ method
+      also does not work because that decreases the reference counter with one,
+      but it was bigger than 1 to begin with. See also:
+      http://www.electricmonk.nl/log/2008/07/07/python-destructor-and-garbage-collection-notes/
+      
+      """
+      #-------------------------------------------------------------------------
+      cidkey= self.movieimages.cidkey
+      if cidkey:
+         self.canvas.mpl_disconnect(cidkey)  # Prevent problems while loading
+      cidscroll = self.movieimages.cidscroll
+      if cidscroll:
+         self.canvas.mpl_disconnect(cidscroll)  # Prevent problems while loading
+
+
+
+
+   def append(self, frame, fitsobj, axnums, slicepos=[],
+              pxlim=None, pylim=None, vmin=None, vmax=None,
+              xpanel=[], ypanel=[], hasgraticule=False,
+              gridmode=False, hascolbar=True, pixelaspectratio=None,
+              clipmode=0, clipmn=(4,5),
+              callbackslist={}):
+      #-------------------------------------------------------------------------
+      """
+      Add a new cube to the container. A cube can be a two dimensional data set.
+      Then we imagine a third axis of length 1 without any meaning. But
+      usually a cube is a set of two dimensional data structures. The axes of
+      these 'images' are arbitrary. For instance, one can also display
+      images with one spatial axis and one spectral axis (e.g. position
+      velocity diagrams).
+
+      :param frame:
+          Each series of movie images that is appended needs its own frame.
+      :type frame:
+          Matplotlib Axes object.
+
+      :param finished:
+            An external method that is called after the images are loaded
+      :type finished:
+            A function that will be executed after the loading of a series of images
+            has been completed (per cube)
+      """
+      #-------------------------------------------------------------------------
+      C = Cubeatts(frame, fitsobj,  axnums, slicepos, pxlim, pylim, vmin, vmax,
+                   xpanel, ypanel, hasgraticule, gridmode, hascolbar, pixelaspectratio,
+                   clipmode, clipmn,
+                   callbackslist)
+      C.movieframeoffset = self.movieframeoffset       # First cube has offset 0
+      C.cnr = self.cubeindx
+      self.cubelist.append(C)
+      self.numcubes += 1      
+      # Prepare movie frame offset for the next cube.
+      self.movieframeoffset += C.nummovieframes
+      # We do not want the initial frame and default labeling on screen:
+      frame.axis('off')
+      # Before starting loading images in a timer callback, we disable
+      # all registred callbacks in 'end_interactionMovieToPanels'.
+      # In the loadimages() method, the callbacks are activated again
+      if self.cubelist[0].panelscb is not None:
+         self.end_interactionMovieToPanels()
+      #if self.resizecb:
+      #   self.resizecb.deschedule()
+      self.cubeindx += 1                       # Prepare index for the next cube 
+      # Start loading the images. We do this with a timer callback so that
+      # we don't have to wait for the last image before a window appears.
+      timer = TimeCallback(self.loadimages, 0.00001, False, count=0, cube=C)
+      # The timer list keeps track of the timers. The first that is registered
+      # is the first that will be processed entirely before the next callback is
+      # scheduled.
+      self.timerlist.append(timer)
+      if len(self.timerlist) == 1:
+         # There are no previous load sessions in progress. Start this one
+         self.timerlist[0].schedule()
+      C.previous_bbox = None
+     
+      return C
+      
+
+   def set_aspectratio(self, cube, aspectratio):
+      #-------------------------------------------------------------------------
+      """
+      Change aspect ratio of frame of 'cube'
+      """
+      #-------------------------------------------------------------------------      
+      if aspectratio is None or aspectratio == 0.0:
+         aspectratio = cube.fitsobj.get_pixelaspectratio()  # Set default from header
+      else:
+         aspectratio = abs(aspectratio)
+      cube.pixelaspectratio = abs(aspectratio)
+      cube.frame.set_aspect(aspectratio)
+      currentindx = self.movieimages.indx
+      flushprint("MAPUTILS setimage in set_aspectratio")
+      self.movieimages.setimage(currentindx, force_redraw=True)     
+      
+      
+
+   def compose_movieframelist(self):
+      #-------------------------------------------------------------------------
+      """
+      Each cube can have a series of images set as images for the movie loop.
+      This method composes a list for all cubes.
+      """
+      #-------------------------------------------------------------------------
+      newlist = []
+      for C in self.cubelist:
+         newlist += [j + C.movieframeoffset for j in C.movieframelist]
+      self.movieimages.set_movieframes(newlist)
+
+
+   def set_movieframes(self, framelist):
+      #-------------------------------------------------------------------------
+      """
+      For INTERACTIVE use.
+      Set the images that you want to include in a movieloop. The numbers are
+      indices of the array with all the collected images in the moviecontainer.
+      The index numbers are not related to a cube.
+      """
+      #-------------------------------------------------------------------------
+      self.movieimages.set_movieframes(framelist)
+
+
+   def set_panelframes(self, framelist, panel='X'):
+      #-------------------------------------------------------------------------
+      """
+      Set a list with movie frame index numbers to show up in one of the
+      side panels. The panels appear when the list is not empty.
+      """
+      #-------------------------------------------------------------------------
+      self.numXpanels = self.numYpanels = 0
+      for C in self.cubelist:
+         frlo = C.movieframeoffset; frhi = C.movieframeoffset + C.nummovieframes
+         panelframes = [d-frlo for d in framelist if frlo <= d < frhi]
+
+         if panel.upper() == 'X':
+            flushprint("SET_XPANELS.................")
+            C.set_panelXframes(panelframes)
+            #self.create_panel('x', C)
+         else:
+            flushprint("SET_YPANELS.................")
+            C.set_panelYframes(panelframes)
+            #self.create_panel('y', C)
+         if C.panelXframes:     # Just set by set_panel(X)Yframes
+            self.numXpanels += 1
+         if C.panelYframes:     # Just set by set_panel(X)Yframes
+            self.numYpanels += 1
+
+      for C in self.cubelist:
+         if panel.upper() == 'X':
+            # Call method even when there are no panelXframes. Then we can clean up.
+            self.create_panel('x', C)
+         else:
+            self.create_panel('y', C)
+       
+      
+   def create_panel(self, panid, cube):
+      #----------------------------------------------------------------------------
+      """
+      Plot (or clean up) one of the panels or both. This method is invoked either
+      at the start of the program after loading all images, or when there are 
+      triggers for the side panels.
+      """
+      #----------------------------------------------------------------------------
+      panx = pany = False
+      if panid == 'x':
+         panx = True
+      elif panid == 'y':
+         pany = True
+      # The request to update the 
+      elif panid == 'r':   # A redo request # TODO: nog nodig??
+         pany = True
+         panx = True
+      else:
+         return
+      flushprint("panx=%s pany=%s"%(str(panx), str(pany)))
+      cubeindx = cube.cnr
+      xold = cube.xold
+      yold = cube.yold
+      frame = cube.frame
+      fig = frame.figure
+      framep1 = cube.framep1
+      framep2 = cube.framep2
+      flushprint("Frames in create_panel: fr p1 p2=%d %d %d"%(id(frame), id(framep1), id(framep2)))
+      cmap = cube.cmap
+      mplimp1 = cube.annimp1
+      mplimp2 = cube.annimp2
+      slicepos = cube.slicepos
+      fitsobject = cube.fitsobj
+      pxlim = cube.pxlim
+      pylim = cube.pylim
+      vmin = cube.vmin
+      vmax = cube.vmax
+      offset = cube.movieframeoffset
+      # The horizontal panel has an vertical range that should directly
+      # convert mouse positions into array indices. I.e. if pylim is
+      # 1,3, the range in the plot is -0.5, 2.5. Only the exact position
+      # 2.5 will be rounded to 3, which is not a valid array index for this
+      # range. Therefore we lower the upper value with a small number to
+      # avoid this problem.
+      delta = 0.000001
+
+      #   !!!!!!!!!!!!!!!!!!!
+      # Dit gaat alleen werken als van te voren bekend is wat de inhoud is van
+      # panelXframes en panelYframes in de eventfrompanel routines.
+      j = 0
+      panelindx = j
+      for C in self.cubelist:
+         if C.cnr == cubeindx:
+            panelindx = j
+            flushprint("panelindx=%d, C.cnr, cubeindx=%d %d"%(panelindx,C.cnr, cubeindx ))
+         if (C.panelXframes or C.panelYframes):
+            j += 1
+
+      cube.frame = frame         # Store it as attribute after it got new values
+
+      # Important note: In this method we add slice panels. These get an initial
+      # box with dummy sizes. That is because the actual drawing is postponed
+      # and the reposition method (usually triggered after resize events)
+      # calculated the correct values for all the panels.
+      # Equal boxes in Matplotlib are considered to belong to the same
+      # Axes object (frame). We force a unique frame by giving
+      # the Axes contructor a unique label.
+      panbox = [0,0,0.01,0.01]   # Dummy
+      
+      # If there is already a panel, then we need to remove its contents etc.
+      if panx or pany:
+         if panx and framep1:
+            flushprint("Removing frame1")
+         #if framep1:
+            if mplimp1:
+               mplimp1.disconnectCallbacks()
+               mplimp1.regcb.deschedule()
+               flushprint("Remove panel1 callback met id=%d"%(id(mplimp1.regcb)))
+            framep1.clear()
+            fig.delaxes(framep1)
+            if mplimp1.grat:
+               fig.delaxes(mplimp1.grat.frame)
+               fig.delaxes(mplimp1.grat.frame2)
+            framep1 = cube.framep1 = None
+            mplimp1 = None
+            #if framep2:
+            #   pany = True
+         if pany and framep2:
+         #if framep2:
+            flushprint("Removing frame2")
+            if mplimp2:
+               mplimp2.disconnectCallbacks()
+               mplimp2.regcb.deschedule()
+               flushprint("Remove panel2 callback met id=%d"%(id(mplimp2.regcb)))
+            framep2.clear()
+            fig.delaxes(framep2)
+            if mplimp2.grat:
+               fig.delaxes(mplimp2.grat.frame)
+               fig.delaxes(mplimp2.grat.frame2)
+            framep2 = cube.framep2 = None
+            mplimp2 = None
+            #if framep1:
+            #   panx = True
+      #if not (cube.panelXframes or cube.panelYframes):
+      #   self.reposition(force=True)
+      #   return              # Nothing to do
+      
+
+      xi = xold; yi = yold
+      if None in [xi,yi]:  # If the first time is a resize event, then xold
+         xi = pxlim[0]     # and yold are None.
+         yi = pylim[0]
+
+
+      # Create new frame. If a user did reset the panels with an empty list,
+      # one must skip this part
+      if panx and cube.panelXframes:
+         label = 'x_'+str(id(cube))      # For a unique Axes object we need a unique label!!
+         framep1 = fig.add_axes(panbox, sharex=frame, label=label)
+         framep1.set_aspect('auto')
+         framep1.set_adjustable('box-forced')
+         framep1.axis('off')
+
+         M = cube.Mx
+         ly = M.shape[0]
+         j = 0
+         for indx in cube.panelXframes:
+            # yi should be in range of pylim. To make it an array index,
+            # subtract the limit pylim[0]
+            I = self.movieimages.annimagelist[offset+indx]
+            if I.origdata is not None:
+               N = I.origdata
+            else:
+               N = I.data
+            M[ly-j-1] = N[yi-pylim[0]]
+            j += 1
+
+         mixpix = pylim[0]
+         fo = cube.fitsobj
+         wcstypes = [fo.wcstypes[cube.panelx_axperm[0]-1],
+                     fo.wcstypes[cube.panelx_axperm[1]-1]]
+         #wcstypes = [fo.wcstypes[fo.axperm[0]-1], fo.wcstypes[fo.axperm[1]-1]]
+         mplimp1 = Annotatedimage(framep1,
+                                 header=fo.hdr,
+                                 # Invert the limits in y
+                                 # because the image is also build
+                                 # with highest y below
+                                 pxlim=pxlim, pylim=[ly-1-delta,0],   #[ly-1-delta,0],
+                                 imdata=M,
+                                 projection=cube.panelx_proj, #fo.convproj,
+                                 axperm=cube.panelx_axperm, #fo.axperm
+                                 wcstypes=wcstypes,
+                                 skyout=fo.skyout,
+                                 spectrans=fo.spectrans,
+                                 alter=fo.alter,
+                                 mixpix=fo.mixpix,
+                                 aspect='auto',
+                                 slicepos=mixpix, #fo.slicepos,
+                                 sliceaxnames=fo.sliceaxnames,
+                                 sourcename=fo.filename,
+                                 cmap=cmap,
+                                 adjustable='box-forced',
+                                 clipmin=vmin, clipmax=vmax)
+
+         #framep1.set_xlim(pxlim)
+         #framep1.set_ylim([ly-1-delta,0])
+         posobj1 = Positionmessage(cube.panelx_proj.skysys, fo.skyout, cube.panelx_proj.types)
+         # Add a callback for this panel. A move with button 1 on, will change
+         # the cube image to the one where the index corresponds to the (mouse) position
+         mplimp1.regcb = AxesCallback(self.eventfrompanel1, framep1,
+                                     'motion_notify_event',
+                                      cubenr=cubeindx, posobj=posobj1)
+         flushprint("Add motion notify for panel 1 callback %d for object %d"%(id(mplimp1.regcb), id(self)))
+         mplimp1.AxesCallback_ids.append(mplimp1.regcb)
+         #mplimp1.data = bo dat
+         mplimp1.Image(animated=True)
+         #mplimp1.Image()
+         mplimp1.plot()
+         mplimp1.grat = None
+         cube.annimp1 = mplimp1
+         cube.framep1 = framep1
+
+
+      if pany and cube.panelYframes:
+         label = 'y_'+str(id(cube))
+         framep2 = fig.add_axes(panbox, sharey=frame, label=label)
+         framep2.set_aspect('auto')
+         framep2.set_adjustable('box-forced')
+         framep2.axis('off')
+
+         M = cube.My
+         lx = M.shape[1]
+         j = 0
+         for indx in cube.panelYframes:
+            I = self.movieimages.annimagelist[offset+indx]
+            if I.origdata is not None:
+               N = I.origdata
+            else:
+               N = I.data
+            M[:,j] = N[:,xi-pxlim[0]]   # self.movieimages.annimagelist[offset+indx].data[:,xi-pxlim[0]]
+            j += 1
+
+         fo = cube.fitsobj
+         mixpix = pxlim[0]
+         wcstypes = [fo.wcstypes[cube.panely_axperm[0]-1],
+                     fo.wcstypes[cube.panely_axperm[1]-1]]
+         mplimp2 = Annotatedimage(framep2,
+                                    header=fo.hdr,
+                                    pxlim=[0,lx-1-delta], pylim=pylim,
+                                    imdata=M,
+                                    projection=cube.panely_proj,
+                                    axperm=cube.panely_axperm, #fo.axperm,
+                                    wcstypes=wcstypes,
+                                    skyout=fo.skyout,
+                                    spectrans=fo.spectrans,
+                                    alter=fo.alter,
+                                    mixpix=mixpix,
+                                    aspect='auto',
+                                    slicepos=fo.slicepos,
+                                    sliceaxnames=fo.sliceaxnames,
+                                    sourcename=fo.filename,
+                                    cmap=cmap,
+                                    adjustable='box-forced',
+                                    clipmin=vmin, clipmax=vmax)
+
+         #framep2.set_xlim([0,lx-1-delta])
+         #framep2.set_ylim(pylim)
+         posobj2 = Positionmessage(cube.panely_proj.skysys, fo.skyout, cube.panely_proj.types)
+         mplimp2.regcb = AxesCallback(self.eventfrompanel2, framep2,
+                                     'motion_notify_event',
+                                      cubenr=cubeindx, posobj=posobj2)
+
+         mplimp2.AxesCallback_ids.append(mplimp2.regcb)
+         flushprint("Add motion notify for panel 1 callback %d for object %d"%(id(mplimp2.regcb), id(self)))
+         #mplimp2.data = boxdat
+         mplimp2.Image(animated=True)
+         mplimp2.plot()
+         """      grat = mplimp2.Graticule(offsety=True, skipx=True)
+               grat.set_tickmode(mode="na")
+               grat.setp_gratline(wcsaxis=1, visible=False)
+               grat.setp_axislabel(plotaxis=("left"), visible=False)
+               grat.setp_axislabel(plotaxis=("bottom"), visible=False)
+               grat.setp_axislabel(plotaxis=("right"), visible=True)
+               grat.setp_ticklabel(plotaxis=("right"), visible=True)
+               grat.setp_ticklabel(plotaxis=("bottom"), visible=False)
+               grat.setp_ticklabel(plotaxis=("left"), visible=False)
+               grat.setp_tickmark(plotaxis=("bottom"), visible=False)
+               grat.setp_tickmark(plotaxis=("left"), visible=False)
+               grat.setp_tickmark(plotaxis=("right"), visible=True)
+               mplimp2.plot()
+               b = mplimp2.box
+               xb = (b[0], b[1], b[1], b[0], b[0])
+               yb = (b[2], b[2], b[3], b[3], b[2])
+               grat.frame2.plot(xb, yb, lw=1, c='k', alpha=0.5)
+               mplimp2.linepieces = set()
+               mplimp2.linepieces.update(grat.frame2.findobj(Line2D))
+               mplimp2.grat = grat
+               # mplimp2.interact_toolbarinfo()
+            else:
+            """
+         cube.annimp2 = mplimp2
+         mplimp2.grat = None
+         cube.framep2 = framep2
+
+      flushprint("Frames net Na create_panel: fr p1 p2=%d %d %d"%(id(frame), id(cube.framep1), id(cube.framep2)))
+      # Instead of a draw, we trigger a re-position so that all frames
+      # will be adjusted to the new image frame. This saves an extra
+      # call to canvas.draw().
+      self.reposition(force=True)
+         
+
+   def updatemovieframe(self, cb, frompanel1=False, frompanel2=False):
+      #-------------------------------------------------------------------------
+      """
+      This method changes an image in the movie container. It is called
+      after a mouse move in one of the slice panels. That's why either
+      'frompanel1' or 'frompanel2' must be true.
+      But this mouse move can also imply a move in a (e.g. spatial) direction
+      in a panel comparable to a move in the main window.
+      This updates the other panel(s).
+      """
+      
+      #-------------------------------------------------------------------------
+      cbx = cb.xdata; cby = cb.ydata   # Temp. store current mouse position
+      cubenr = cb.cubenr
+      currentcube = self.cubelist[cubenr]
+      if frompanel1:
+         yi = int(numpy.round(cb.ydata))
+         framenr = currentcube.panelXframes[yi] + currentcube.movieframeoffset
+         if framenr >= 0 and framenr < self.movieimages.numimages and\
+                             framenr != self.movieimages.indx:
+            flushprint("MAPUTILS setimage in updatemovieframe")
+            self.movieimages.setimage(framenr)
+
+         # After we set the right movie image, we also have to update the
+         # opposite panel, because, for example, a move to the right
+         # in the x panel (along x axis) will change the slice along the y axis.
+         self.updatepanels(None, frompanel1, frompanel2, cubenr=cubenr,
+                           xpos=cb.xdata, ypos=cb.ydata)
+
+      if frompanel2:
+         xi = int(numpy.round(cb.xdata))
+         framenr = currentcube.panelYframes[xi] + currentcube.movieframeoffset
+         if framenr >= 0 and framenr < self.movieimages.numimages and\
+                             framenr != self.movieimages.indx:
+            flushprint("MAPUTILS setimage in updatemovieframe")
+            self.movieimages.setimage(framenr)
+         self.updatepanels(None, frompanel1, frompanel2, cubenr=cubenr,
+                           xpos=cb.xdata, ypos=cb.ydata)         
+         
+      # Are there any other panels (from other cubes) to update?
+      if frompanel1 or frompanel2:
+         xd, yd = currentcube.frame.transData.transform((cbx,cby))
+         for i in range(0, self.numcubes):
+            if i != cubenr:
+               # We need only an updated x or an updated y, not both
+               # Method updatepanels() deals with this fact.
+               xpos, ypos = self.cubelist[i].frame.transData.inverted().transform((xd,yd))
+               cb.cubenr = i
+               self.updatepanels(None, frompanel1, frompanel2, cubenr=i,
+                                 xpos=xpos, ypos=ypos)
+         cb.cubenr = cubenr
+
+
+
+   def eventfrompanel1(self, cb):
+      #------------------------------------------------------------------
+      # Change the movie frame. The new frame number is
+      # derived from the x position in the vertical panel (usually along
+      # the latitude of the image). The function is registered as a
+      # callback in the updatepanels() method.
+      # The callback object 'cb' should have an attribute 'cubenr'
+      # to identify the current cube to find the offset in the list
+      # with movie frames.
+      #------------------------------------------------------------------
+      # Try to compose a message with position information.
+      # We know the value of y. This is an index.
+      yi = int(numpy.round(cb.ydata))
+
+      # Each cube has a so called panelXframes and panelXframes list.
+      # This is a list with all the
+      # user supplied frame index numbers that are part of the movie. The default
+      # is all movie frames in a cube, but a user could have changed this.
+      # To find the index of the corresponding image we need to add the
+      # offset of movieframes for the current cube.
+      cubenr = cb.cubenr
+      currentcube = self.cubelist[cubenr]
+      if yi < 0 or yi >= len(currentcube.panelXframes):
+         return
+      framenr = currentcube.panelXframes[yi] + currentcube.movieframeoffset
+      #print "yi, panelXframes[yi[, offset,framenr", yi, currentcube.panelXframes[yi], currentcube.movieframeoffset,framenr 
+      currentim = self.movieimages.annimagelist[framenr]
+      # The mouse is outside the current image. This is a trigger to
+      # reset the last mouse position
+      oim = self.movieimages.annimagelist[self.movieimages.indx]
+      oim.X_lastvisited = oim.Y_lastvisited = None
+      yinfo = currentim.slicemessage
+      ypos = currentcube.pylim[0] # As a dummy
+      xw, yw, missingspatial = currentim.toworld(cb.xdata, ypos, matchspatial=True)
+      sl = cb.posobj.wcs2str(xw, yw, missingspatial, returnlist=True)
+      s = sl[0] + ' ' + yinfo
+      currentim.messenger(s)
+      if cb.event.button == 1:      # Only action when the left m.button is pressed
+         self.updatemovieframe(cb, frompanel1=True)
+
+
+   def eventfrompanel2(self, cb):
+      #------------------------------------------------------------------
+      # Update the movie with a new frame. The new frame number is
+      # derived from the y position in the horizontal panel (usually along
+      # the longitude). The function is registered as a callback.
+      # The callback object 'cb' should have an attribure 'cubenr'
+      # to identify the current cube to find the offset in the list
+      # with movie frames.
+      #------------------------------------------------------------------
+      xi = int(numpy.round(cb.xdata))
+      # Each cube has a so called 'framesindxlist'. This is a list with all the
+      # user supplied frame index numbers that are part of the movie. The default
+      # is all movie frames in a cube, but a user could have changed this.
+      # To find the index of the corresponding image we need to add the
+      # offset of movieframes for the current cube.
+      cubenr = cb.cubenr
+      currentcube = self.cubelist[cubenr]
+      # TODO: documenteer dit. Voorheen kon je in het witte gebied na pannen niet
+      # navigeren want xi was buiten range.
+      if xi < 0 or xi >= len(currentcube.panelYframes):
+         return
+      #framenr = currentcube.framesindxlist[xi] + currentcube.movieframeoffset
+      framenr = currentcube.panelYframes[xi] + currentcube.movieframeoffset
+      currentim = self.movieimages.annimagelist[framenr]
+      # The mouse is outside the current image. This is a trigger to
+      # reset the last mouse position
+      oim = self.movieimages.annimagelist[self.movieimages.indx]
+      oim.X_lastvisited = oim.Y_lastvisited = None
+      xinfo = currentim.slicemessage
+      xpos = currentcube.pxlim[0] # As a dummy
+      xw, yw, missingspatial = currentim.toworld(xpos, cb.ydata, matchspatial=True)
+      sl = cb.posobj.wcs2str(xw, yw, missingspatial, returnlist=True)
+      s = sl[1] + ' ' + xinfo
+      currentim.messenger(s)    
+      if cb.event.button == 1:
+         self.updatemovieframe(cb, frompanel2=True)
+
+
+
+   def getpanelboxes(self, frame, numXpanels, numYpanels, Xpanelindx=None, Ypanelindx=None):
+      #-----------------------------------------------------------------------------
+      """
+      This method calculates the positions of the side panels. It locates these
+      panels to the bottom and right of an existing frame. The width of the gaps
+      is fixed in pixels. The entire space between 
+      """
+      #-----------------------------------------------------------------------------
+      
+      # We want gaps between panels of a fixed number of pixels. So transform this
+      # number to figure coordinates
+      fig = frame.figure
+      xf0, yf0 = fig.transFigure.inverted().transform((0, 0))
+      xf1, yf1 = fig.transFigure.inverted().transform((4, 4))
+      dx = xf1 - xf0
+      dy = yf1 - yf0
+
+      # Get the box in figure coordinates. It seems that we need to apply
+      # the aspect ratio first.
+      frame.apply_aspect()
+
+      # Get the current box in figure coordinates
+      bbox = frame.get_position()
+      xlo, ylo, xhi, yhi = bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax
+
+      # Get the boundaries of all frames and calculate the min, max
+      # of those in figure coordinates           
+      xmin, ymin, xmax, ymax = self.getbiggestbox()
+      boxX = boxY = None
+      
+      if Xpanelindx is not None:
+         # First box for x panel, i.e. connected to lower x axis
+         H = ymin
+         n = max(1.0,numXpanels)
+         bxmin = xlo; bxmax = xhi
+         h = (H-(n+1)*dy)/n
+         if h <= 0.0:    # If there is no space, then create some. This gives overlap
+            h = 0.1
+         i = Xpanelindx
+         bymin = ymin - (i+1)*(h+dy)
+         bymax = bymin + h
+         #flushprint("ymin=%f, bymin=%f, bymax=%f, h=%f, dy=%f n=%d"%(ymin,bymin, bymax, h, dy,n ))
+         w = bxmax - bxmin
+         boxX = (bxmin, bymin, w, h)
+
+      if Ypanelindx is not None:
+         # Second box for y panel, i.e. connected to right y axis
+         W = 1.0 - xmax
+         m = max(1.0,numYpanels)
+         w = (W-(m+1)*dx)/m
+         if w <= 0.0:
+            w = 0.1
+         i = Ypanelindx
+         bxmin = xmax + dx + i*(w+dx)
+         bxmax = bxmin + w
+         #flushprint("xmax=%f, bxmin=%f, bxmax=%f, w=%f, dx=%f, HW=%f"%(xmax,bxmin, bxmax, w, dx, HW))
+         bymin = ylo; bymax = yhi
+         h = bymax - bymin
+         boxY = (bxmin, bymin, w, h)
+
+      flushprint("In getpanelboxes boxX, boxY=%s %s"%(str(boxX), str(boxY)))
+      return boxX, boxY
+
+
+   def set_crosshair(self, status):
+   #----------------------------------------------------------------------------
+      """
+      This method
+      """
+   #----------------------------------------------------------------------------
+      self.crosshair = status
+      currentindx = self.movieimages.indx
+      flushprint("MAPUTILS setimage in set_crosshair")
+      self.movieimages.setimage(currentindx, force_redraw=True)
+
+
+   def set_colbar_on(self, cube, mode):
+    #----------------------------------------------------------------------------
+      """
+      This method
+      """
+   #----------------------------------------------------------------------------
+      if not cube or not len(cube.imagesinthiscube):
+         return                               # Nothing to do
+      cube.hascolbar = mode
+      currentindx = self.movieimages.indx
+      for im in cube.imagesinthiscube:
+         im.hascolbar = cube.hascolbar
+      flushprint("MAPUTILS setimage in set_colbar_on")
+      self.movieimages.setimage(currentindx, force_redraw=True)
+       
+
+
+   def new_colorbar(self, cube):
+   #----------------------------------------------------------------------------
+      """
+      This method
+      """
+   #----------------------------------------------------------------------------
+      label = 'CB_' + str(id(cube))    # We need a unique label
+      cube.cbframe = self.fig.add_axes((0.0, 0.0,self.colbwidth,1.0),
+                                        label=label,
+                                        frameon=False,  # transparency needed
+                                        autoscale_on=False)
+
+      
+      # We need one image from this cube as a dummy
+      dummyim = cube.imagesinthiscube[0]      
+      cube.colorbar = dummyim.Colorbar(frame=cube.cbframe, orientation='vertical')
+
+      if cube.fitsobj.hdr.has_key('BUNIT'):
+         dataunits = cube.fitsobj.hdr['BUNIT']
+      else:
+         dataunits = 'units unknown'
+
+      cube.colorbar.plot(cube.cbframe, dummyim.image.im)  # Postponed draw
+      #dummyim.cmap.add_frame(cube.cbframe)
+
+
+      # We want the labels inside the colorbar. We need also a transparent background
+      # for each label so that the labels are visible under all circumstances.
+      bbox=dict(edgecolor='w', facecolor='w', alpha=0.4, boxstyle="square,pad=0.1")
+      #cube.cbframe.yaxis.set_major_formatter(y_formatter)
+      for tick in cube.cbframe.yaxis.get_major_ticks():
+         tick.set_pad(-5.0) # Matplotlib 1.1 does it correctly. Matplotlib 1.01 not
+         #tick.tick2line.set_markersize(6)
+         tick.tick2line.set_color('w')
+         tick.tick2line.set_markeredgewidth(2)         
+         tick.label2.set_horizontalalignment('right')
+         tick.label2.set_bbox(bbox)
+         #flushprint("label=%s"%(tick.label2))
+         
+
+      for t in cube.cbframe.get_yticklabels():  # Must be 'plotted' before we can change properties
+         t.set_fontsize(8)
+         t.set_rotation(90)
+
+      cube.cbframe.text(0.2, 0.98, dataunits,
+                        fontsize=7, fontweight='bold', color='w', rotation=90,
+                        horizontalalignment='left', verticalalignment='top',
+                        bbox=dict(color='w', facecolor='red', alpha=0.5))
+
+      # Copy pointer to all images in this cube
+      for im in cube.imagesinthiscube:
+         im.cbframe = cube.cbframe
+         im.hascolbar = cube.hascolbar
+
+
+   def set_skyout(self, cube, skyout):
+   #----------------------------------------------------------------------------
+      """ This method
+      """
+   #----------------------------------------------------------------------------    
+      if not cube or not len(cube.imagesinthiscube):
+         return
+      for im in cube.imagesinthiscube:
+         im.skyout = im.projection.skyout = skyout
+         flushprint("Set skyout to %s"%(str(skyout)))
+      if cube.hasgraticule:
+         self.new_graticule(cube, visible=True)
+
+      currentindx = self.movieimages.indx
+      # Reset current image to change toolbarinfo and possibly graticule
+      flushprint("MAPUTILS setimage in set_skyout")
+      self.movieimages.setimage(currentindx, force_redraw=True) 
+
+
+
+   def set_graticule_on(self, cube, mode):
+    #----------------------------------------------------------------------------
+      """
+      This method 
+      """
+   #----------------------------------------------------------------------------   
+      if not cube or not len(cube.imagesinthiscube):
+         return
+      cube.hasgraticule = mode
+      currentindx = self.movieimages.indx
+      if not mode:
+         # No graticule should be visible
+         if cube.grat:
+            # There exists a graticule. Empty contents, leave frames unaltered
+            for li in cube.linepieces:
+               li.set_visible(False)
+            for tl in cube.textlabels:
+               tl.set_visible(False)
+            cube.grat.frame.lines = []
+            cube.grat.frame2.lines = []
+            cube.grat.frame.texts = []
+            cube.grat.frame2.texts = []                     
+            cube.linepieces = []
+            cube.textlabels  = []
+            for im in cube.imagesinthiscube:
+               im.grat = cube.grat
+               im.linepieces = cube.linepieces
+               im.textlabels = cube.textlabels            
+      else:
+         self.new_graticule(cube, visible=True)
+      flushprint("MAPUTILS setimage in set_graticuleon")
+      self.movieimages.setimage(currentindx, force_redraw=True)
+         
+
+
+
+   def set_graticules(self):
+   #----------------------------------------------------------------------------
+      """
+      This method should be called after zoom/pan actions where we want to
+      update the graticule on an image. Then one should update this for
+      all cubes because a zoom is a zoom in all images in the movie
+      container because each frame is zoomed to the same area on display.
+      This is a feature of Matplotlib.
+      """
+   #----------------------------------------------------------------------------
+      
+      if not len(self.movieimages.annimagelist):
+         return     # No images yet, nothing to do
+
+      currentindx = self.movieimages.indx
+      currentimage = self.movieimages.annimagelist[currentindx]
+      cnr = currentimage.cubenr
+      cube = self.cubelist[cnr]
+
+      for cnr, cube in enumerate(self.cubelist):
+         if cnr == currentimage.cubenr:
+            visible = True
+         else:
+            visible = False
+         self.new_graticule(cube, visible)
+         
+      #self.movieimages.setimage(currentindx)
+      # This method is always triggered in combination with a reposition event
+      # The reposition() method does the re-draw of the canvas.
+      
+      
+
+   def new_graticule(self, cube, visible):
+   #----------------------------------------------------------------------------
+      """
+      Note:
+      For images with one spatial axis and one axis that is not spatial (
+      for instance spectral or Stokes axis), the spatial
+      axis is labeled with offsets. These offsets are a function of the missing
+      spatial axis. This implies that in fact, each image in a movie of the same
+      cube, could have a different labeling. We chose the alternative, which is
+      that for each image the offsets are calculated at the same position on
+      the missing axis. This position is the associated value of CRPIX.
+      """
+   #----------------------------------------------------------------------------
+      """
+      if not len(self.movieimages.annimagelist):
+         return
+      currentindx = self.movieimages.indx
+      currentimage = self.movieimages.annimagelist[currentindx]
+      cnr = currentimage.cubenr      
+      cube = self.cubelist[cnr]
+      """
+      if not cube.hasgraticule:
+         return
+
+      if not len(cube.imagesinthiscube):
+         return
+      else:
+         # We need just one image to attach the graticule to
+         #currentindx = self.movieimages.indx
+         #currentimage = self.movieimages.annimagelist[currentindx]
+         currentimage = cube.imagesinthiscube[0]
+      flushprint("ID cube, visible, id currentim= %d %s %d"%(id(cube), visible, id(currentimage)))
+      # This seems the only way to clean up the line Line2D and Text objects
+      # that belong to these frames (Axes objects).
+      # However, the lines and text lists do not store all the relevant lines
+      # and text objects (should it?)
+      if cube.grat:      # Then reset what is necessary
+         cube.grat.frame.lines = []
+         cube.grat.frame2.lines = []
+         cube.grat.frame.texts = []
+         cube.grat.frame2.texts = []
+         cube.frame.texts = []
+
+         # Store the Axes objects associated with the graticule before
+         # creating a new one. We need these frames to tell the Graticule's plot
+         # method that it can reuse them.
+         frame1 = cube.grat.frame
+         frame2 = cube.grat.frame2
+      else:
+         frame1 = frame2 = None
+      # If we arrive in this method, then our imagenew or is just interactively
+      # zoomed in our out. This implies that its graticule system is changed.
+      # We want the graticule also to be changed using the new limits of
+      # the image in pixels. If we use the get_x/ylim methods then the
+      # pixel boundaries are usually not integer. In module wcsgrat, we
+      # Add 0.5 to the pixel positions to extend the boundary pixels so
+      # that an image shows the entire boundary pixel.
+      # But in this situation we don't want this, because the zoom action
+      # determined exactly what the boundary is.
+      pxlim = cube.frame.get_xlim(); pxlim = (pxlim[0]+0.5, pxlim[1]-0.5)
+      pylim = cube.frame.get_ylim(); pylim = (pylim[0]+0.5, pylim[1]-0.5)
+      flushprint("px/ylim na zoom: %s %s"%(str(pxlim), str(pylim)))
+
+      # The setup for the graticule
+      cube.grat = currentimage.Graticule(pxlim=pxlim, pylim=pylim)
+      #cube.grat.setp_ticklabel(wcsaxis=0, rotation=0)
+      cube.grat.setp_ticklabel(wcsaxis=1, rotation=90)  # Y axis labels along the axis not perpendicular
+      
+      #cube.grat.setp_ticklabel(wcsaxis=(0,1), color='r')
+      #cube.grat.setp_ticklabel(wcsaxis=(0,1), visible=False)
+      cube.grat.setp_tick(wcsaxis=(0,1), visible=False)
+      cube.grat.set_tickmode(plotaxis=("left","bottom"), mode="NO_TICKS")
+      #cube.grat.setp_axislabel(plotaxis=("left","bottom"), color='g', fontsize=10, fontweight='normal')
+      cube.grat.setp_axislabel(plotaxis="left", visible=False)
+      cube.grat.setp_axislabel(plotaxis="bottom",  visible=False)
+      cube.grat.setp_gratline(wcsaxis=(0,1), lw=0.5, color='k')
+      bbox=dict(edgecolor='w', facecolor='w', alpha=0.4, boxstyle="square,pad=0.")
+      cube.insideX = cube.grat.Insidelabels(wcsaxis=0, fontsize=10, ha='right', va='bottom',
+                             rotation_mode='anchor', bbox=bbox)
+      bbox=dict(edgecolor='w', facecolor='w', alpha=0.4, boxstyle="square,pad=0.")
+      cube.insideY = cube.grat.Insidelabels(wcsaxis=1, fontsize=10,
+                             ha='right', va='bottom',
+                             rotation_mode='anchor', bbox=bbox)
+      cube.grat.plot(cube.frame, frame1, frame2)
+      # In the documentation of wcsgrat we read that insidelabels are plotted on frame2
+      #cube.insideX.plot(cube.frame)
+      #cube.insideY.plot(cube.frame)
+      
+      flushprint("cube.frame position=%s"%(str(cube.frame.get_position())))
+      flushprint("cube.grat.frame position=%s"%(str(cube.grat.frame.get_position())))
+      #cube.grat.frame.set_position(cube.frame.get_position())
+      #cube.grat.frame2.set_position(cube.frame.get_position())
+      
+      # Default, ticks are copied to the top and right axis. However we did
+      # set those tick lines (Line2D objects) to invisible. We don't want
+      # to include thse in the list of objects that need to be restored
+      # after we change an image.
+      cube.linepieces = set(l for l in cube.grat.frame.findobj(Line2D) if l.get_visible())
+      cube.textlabels = set(t for t in cube.grat.frame2.findobj(Text) if (t.get_text() != '' and t.get_visible()))
+
+      for tl in cube.textlabels:
+         flushprint("         set_graticule: textlabel %d %s op True"%(id(tl), str(tl)))
+
+
+      # Only the current image should show its graticule      
+      if not visible:
+         for l in cube.linepieces:
+            l.set_visible(False)
+         for t in cube.textlabels:
+            t.set_visible(False)
+      
+      # A new graticule has been made, so the images should get some
+      # knowledge of that. They are all updated with new line pieces and text
+      # labels (i.e. they point to the same object). We need them if we
+      # change images and want to keep the graticule overlay visible.
+      for im in cube.imagesinthiscube:
+         im.grat = cube.grat
+         im.linepieces = cube.linepieces
+         im.textlabels = cube.textlabels
+         flushprint("cube.textlabels = %d"%(len(im.textlabels)))
+
+
+   def set_coordinate_mode(self, grids=True, world=False, worlduf=False, imval=False,
+                           pixfmt="%.1f", dmsprec=1, wcsfmt="%.7f", zfmt='%.3e',
+                           appendcr=False, tocli=False, tolog=True, resetim=True):
+   #----------------------------------------------------------------------------
+      """
+      Set modes for the formatting of coordinate information
+      """
+   #----------------------------------------------------------------------------
+      flushprint("len container=%d"%(len(self.movieimages.annimagelist)))
+      for im in self.movieimages.annimagelist:
+         im.coord_grids = grids
+         im.coord_world = world
+         im.coord_worlduf = worlduf
+         im.coord_imval = imval
+         im.coord_appendcr = appendcr
+         im.coord_tocli = tocli
+         im.coord_tolog = tolog
+         im.coord_pixfmt = pixfmt
+         im.coord_wcsfmt = wcsfmt
+         im.coord_zfmt = zfmt
+         im.coord_dmsprec = dmsprec
+      currentindx = self.movieimages.indx
+      #currentimage = self.movieimages.annimagelist[currentindx]
+      if resetim:
+         flushprint("MAPUTILS setimage in set_coordinate_mode")
+         self.movieimages.setimage(currentindx, force_redraw=True)
+         
+
+
+   def reposition(self, cb=None, force=False):
+      #------------------------------------------------------------------
+      # After zoom/pan/resize events a draw_event is generated.
+      # We use this event to re-position the panels.
+      #------------------------------------------------------------------
+      action = True #(self.numXpanels or self.numYpanels) or force
+      flushprint("\nThis is a RESIZE event. My action is %s !!!!!!!!!!!!!\n"%(str(action)))
+
+      for cube in self.cubelist:
+         if cube.scalefac:
+            # If a scale factor is set, then re calculate the frame borders first
+            self.scaleframe(cube, cube.scalefac, reposition=False)
+         else:
+            self.scaleframe(cube, cube.scalefac, tofit=True, reposition=False)
+  
+      if (self.numXpanels or self.numYpanels):
+         pnrX = pnrY = 0
+         for cube in self.cubelist:       
+            frame = cube.frame
+            framep1 = cube.framep1
+            framep2 = cube.framep2
+            if framep1:
+               flushprint("Voor: cube=%s framep1=%s %s"%(str(cube), str(id(framep1)), str(framep1)))
+               # The importance of this method is that it re-calculates all
+               # slice panel frames after a resize (usually triggered by a
+               # canvas.draw() call.)
+               boxX, boxY = self.getpanelboxes(frame, self.numXpanels, self.numYpanels, pnrX, None)
+               framep1.set_position(boxX)
+               framep1.set_aspect('auto')
+               pnrX += 1
+               cube.framep1 = framep1
+               flushprint("Na: framep1=%s"%(str(framep1)))
+            if framep2:
+               flushprint("VOOR: cube=%s framep2=%s %s"%(str(cube),  str(id(framep2)), str(framep2)))
+               boxX, boxY = self.getpanelboxes(frame, self.numXpanels, self.numYpanels, None, pnrY)
+               framep2.set_position(boxY)
+               framep2.set_aspect('auto')
+               pnrY += 1
+               cube.framep2 = framep2
+               flushprint("NA: framep2=%s"%(str(framep2)))
+
+      
+      for cube in self.cubelist:
+         if cube.hasgraticule:
+            if hasattr(cube, 'grat'):
+               action = True
+               #cube.frame.apply_aspect()
+               gratframe = cube.grat.frame
+               #gratframe.apply_aspect()
+               gratframe.set_position(cube.frame.get_position())
+               #gratframe.set_aspect(cube.frame.get_aspect())
+               #flushprint("cube.frame position=%s"%(str(cube.frame.get_position())))
+               #flushprint("cube.grat.frame position=%s"%(str(cube.grat.frame.get_position())))
+               #gratframe.apply_aspect()
+               gratframe = cube.grat.frame2
+               #gratframe.set_aspect(cube.frame.get_aspect())
+               #gratframe.apply_aspect()
+               gratframe.set_position(cube.frame.get_position())
+               
+               #gratframe.set_aspect(cube.frame.get_aspect())
+
+      """
+      for cube in self.cubelist:
+         if cube.cbframe:
+            flushprint("Ireset the colorbar position")
+            cube.cbframe.set_position([0.,0.,self.colbwidth,1.0])
+            cube.cbframe.set_autoscale_on(False)
+            #cube.colorbar.cb.set_mappable(cube.imagesinthiscube[0])
+         # TODO: Er gaat wat mis als je voor het eerst de blankkleur wijzigt.
+         # Dan wordt de image overschreven mat data van het nulde image.
+         """
+
+      #self.set_graticule() 
+      if action:
+         #currentindx = self.movieimages.indx
+         #self.movieimages.setimage(currentindx, force_redraw=True)
+         # TODO: Als je deze redraw weglaat, is interactie sneller maar je
+         # komt (net) niet in de goede eindtoestand terecht met je graticulen
+         # Ik denk dat het voor de panels nog erger is.
+         self.fig.canvas.draw()
+
+      """
+      x0, x1 = cube.frame.get_xlim()
+      y0, y1 = cube.frame.get_ylim()
+      xd0, yd0 = cube.frame.transData.transform((x0,y0))
+      xd1, yd1 = cube.frame.transData.transform((x1,y1))
+      #X = cube.frame.get_position().get_points()
+      #flushprint("Coords na resize: %s"%(str(X)))
+      flushprint("Display Coords na resize: %f %f %f %f"%(xd0, yd0, xd1, yd1))
+      sx = xd1 - xd0; sy = yd1 - yd0
+      flushprint("new Frame = %f x %f"%(sx, sy))
+      #xd, yd = self.frame.transData.transform((x,y))
+      #x2, y2 = self.frame.transData.inverted().transform((xd,yd))
+      #flushprint("Display coordinates data=%f %f display=%f %f inverse=%f %f"%(x, y, xd, yd, x2, y2))
+      """
+
+   def redopanels(self):
+      #------------------------------------------------------------------
+      """
+      Draw the slice panels for the first time or update them
+      (the create_panel() method
+      checks whether something needs to be plotted). The check is done for
+      every cube in the cube list.
+      """
+      #------------------------------------------------------------------
+      return
+      for cnr in range(0, self.numcubes):
+         self.create_panel('r', self.cubelist[cnr])
+
+
+   def set_splitimagenr(self, nr):
+      #-------------------------------------------------------------------------
+      """
+      Set image (by its number) which is used to split the current
+      """
+      #-------------------------------------------------------------------------
+      num = len(self.movieimages.annimagelist)
+      if nr < 0 or nr >= len:
+         raise ValueError, "This image does not exist"
+      else:
+         # First reset a possible earlier image that was used to compare
+         # to the current.
+         if self.movieimages.compareim:
+            currentimage = self.movieimages.annimagelist[self.movieimages.indx]
+            currentimage.image.im.set_alpha(1.0)
+            self.movieimages.compareim.image.im.set_alpha(1.0)
+            self.movieimages.compareim.image.im.set_visible(False)
+            self.movieimages.compareim = None
+         self.splitmovieframe = nr
+
+
+   def show_transparent(self, cube, alpha):
+      """-----------------------------------------------------------------------
+      Make current image transparent with alpha factor
+      -----------------------------------------------------------------------"""
+      splitmovieframe = self.splitmovieframe                 # A Cubes attribute
+      # If the current image is the same as the second image then do nothing.
+      currentindx = self.movieimages.indx
+      if splitmovieframe == currentindx:
+         return
+
+      currentimage = self.movieimages.annimagelist[currentindx]
+      # The current image is already visible. But we need to make
+      # the second image visible too.
+      secondimage = self.movieimages.annimagelist[splitmovieframe]
+      secondimage.image.im.set_visible(True)
+
+      if splitmovieframe > currentindx:
+         # The second image is on top (because it was loaded later and the
+         # zorder is derived from the loading order). So make this image
+         # transparent. But if the alpha is close to 1, we want the current
+         # image to be visible, so the second image should be very transparent
+         # then. This behaviour can be obtained by setting the transparency
+         # to 1-alpha
+         secondimage.image.im.set_alpha(1.0-alpha)
+         currentimage.image.im.set_alpha(1.0)
+      else:
+         currentimage.image.im.set_alpha(alpha)
+         secondimage.image.im.set_alpha(1.0)
+
+      self.fig.canvas.draw()
+      # Note that we need some reset actions. For example, we don't want
+      # to keep the second image visible if we change images or select
+      # another image as compare image.
+      # But if we do this at this point, then it will not be possible to
+      # save a plot to disk because it does a re-draw and sees different
+      # settings then. So resetting must be done elsewhere e.g. in
+      # toggle_images(). Then store the images used to compare.
+      self.movieimages.compareim = secondimage
+
+
+      
+
+   def splitscreen(self, cb):
+      """-----------------------------------------------------------------------
+      With Shift and the mouse buttons 1, 2 or 3 while moving the mouse,
+      one can split the screen to make another image visible.
+      It makes the upper (=current image) transparent and shows the image
+      which has index 'splitmovieframe'. 
+      -----------------------------------------------------------------------"""
+      if cb is None or cb.event is None:
+         return
+      if cb.event.button is None or cb.event.key is None:
+         return
+      if cb.event.key != 'control':
+         return
+      # Which mousebutton is pressed (together with key 'shift')?      
+      mb = cb.event.button
+      if not mb in [1,2,3]:       # Sometimes mb = 'up' which we don't want here
+         return
+      # Which movie are we in?
+      try:
+         currentindx = self.movieimages.indx
+      except:
+         return
+      # What is the movie frame number with which we want to split the screen?
+      splitmovieframe = self.splitmovieframe                 # A Cubes attribute
+      # If the current image is the same as the splitimage (i.e. the
+      # image below the current image) then do nothing.
+      if splitmovieframe == currentindx:
+         return
+      cube = self.cubelist[cb.cubenr]
+      # We need a copy of the original data and make part of it transparent
+      currentimage = self.movieimages.annimagelist[currentindx]
+      if currentimage.cubenr != cb.cubenr:
+         # This came from an event in another frame than the frame
+         # of the current image
+         return
+      splitimage = self.movieimages.annimagelist[splitmovieframe]
+      if currentimage.origdata is None:
+         # Make copy first and reset variables
+         cube.origdata = currentimage.data.copy()
+         currentimage.origdata = cube.origdata
+         currentimage.splitmovieframe = splitmovieframe
+         currentimage.split_xold = currentimage.split_yold = 0
+         currentimage.split_mb = mb
+      # Get the mouse position in integer pixel coordinates and
+      # convert to array indices
+      flushprint("px/pylim=%s %s"%(str(cube.pxlim), str(cube.pylim)))
+      # If an image has a box that is different compared to the default,
+      # we have to correct for the limits to have the array indices started at
+      # 0. For a default box, the indices start at 1 (first pixel).
+      # For another box, this number is the pixel number of the first
+      # pixel in the box.  and is always > 1.
+      # Note that we change index at the center of a pixel (which explains the
+      # addition 0f 0.5)
+      xi = nint(cb.xdata+0.5) - cube.pxlim[0]
+      yi = nint(cb.ydata+0.5) - cube.pylim[0]
+      xo = currentimage.split_xold; yo = currentimage.split_yold
+      # If the mouse button has switched, then restore entire image first
+      if mb != currentimage.split_mb:
+         currentimage.data[:] = cube.origdata[:]
+         currentimage.split_xold = currentimage.split_yold = 0
+      if mb == 1:                        # Left mouse button & 's' is split in y
+         if yi > currentimage.split_yold:
+            currentimage.data[0:yi] = numpy.nan
+         elif yi < currentimage.split_yold:
+            currentimage.data[yi:yo] = cube.origdata[yi:yo]
+      elif mb == 2:                    # Middle mouse button & 's' is split in x
+         if xi > currentimage.split_xold:
+            currentimage.data[:,0:xi] = numpy.nan
+         elif xi < currentimage.split_xold:
+            currentimage.data[:, xi:xo] = cube.origdata[:, xi:xo]
+      elif mb == 3:                 # Right mouse button & 's' is split in x & y
+         if xi > currentimage.split_xold:
+            currentimage.data[0:yo:,0:xi] = numpy.nan
+         elif xi < xo:
+            currentimage.data[0:yo:, xi:xo] = cube.origdata[0:yo, xi:xo]
+         if yi > yo:
+            currentimage.data[yo:yi, 0:xi] = numpy.nan
+         elif yi < yo:
+            currentimage.data[yi:yo, 0:xi] = cube.origdata[yi:yo, 0:xi]
+      currentimage.split_xold = xi
+      currentimage.split_yold = yi
+      currentimage.split_mb = mb
+      splitimage.image.im.set_visible(True)
+      #for v in splitimage.data:
+      #   if numpy.isnan(v).any():
+      #      print v, " is NaN"
+      currentimage.image.im.set_visible(True)
+      
+      # This is the trick. We set all the new NaN numbers to transparent.
+      # But first we need to store the current colormap settings
+      currentimage.old_blankcolor = currentimage.cmap.bad_val
+      currentimage.set_blankcolor('w', alpha=0.0)        # Transparent
+      # The blank color is reset to its old value if we change images
+      # in toggle_images()
+      #currentimage.image.im.changed()
+     
+      currentimage.frame.draw_artist(currentimage.image.im)
+      if self.imageinfo:
+         currentimage.frame.draw_artist(currentimage.info)
+      for li in currentimage.linepieces:
+             #li.set_visible(True)
+         currentimage.frame.draw_artist(li)
+      for tl in currentimage.textlabels:
+             #li.set_visible(True)
+         currentimage.frame.draw_artist(tl)
+
+      
+      #currentimage.set_blankcolor('w', alpha=0.0)        # Transparent
+      #currentimage.frame.figure.canvas.blit(currentimage.frame.bbox)
+
+
+
+   def updatepanels(self, cb, frompanel1=False, frompanel2=False,
+                    cubenr=None, xpos=None, ypos=None):
+      #------------------------------------------------------------------
+      # One moved the mouse while pressing button 1 in the main window.
+      # Then one extracts slices at different positions in the data cube.
+      # This is reflected in an update of the data in the corresponding
+      # panels.
+      # Note that if you stacked more than
+      # one cube, you will have more than one Axescallback. Each one
+      # will update its corresponding slice panels. This behaviour is
+      # copied from GIPSY's GIDS program.
+      #
+      # This method expects a callback object 'cb' which should have an
+      # attribute 'cubenr' so that we can know which cube gets updated
+      # slice panels.
+      # If the callback cb is None, then we expect the cube number and
+      # the mouse position for the cube that corresponds to the cube number
+      #------------------------------------------------------------------
+      skipupdatep1 = skipupdatep2 = False
+      if frompanel1:
+         # Event came from panel 1 so do not update panel 1
+         skipupdatep1 = True
+      if frompanel2:
+         skipupdatep2 = True
+
+      if cb is None:
+         x = xpos; y = ypos
+         cubeindx = cubenr
+      else:
+         # Left mouse button must be pressed!
+         if not hasattr(cb, 'cubenr') or cb.event.button != 1:
+            return
+         x = cb.xdata; y = cb.ydata
+         cubeindx = cb.cubenr
+      
+      cube = self.cubelist[cubeindx]
+      canvas = cube.frame.figure.canvas
+      
+      xold = cube.xold
+      yold = cube.yold
+      #frame = cube.frame
+      #fig = frame.figure
+      framep1 = cube.framep1
+      framep2 = cube.framep2
+      mplimp1 = cube.annimp1
+      mplimp2 = cube.annimp2
+      pxlim = cube.pxlim
+      pylim = cube.pylim
+      offset = cube.movieframeoffset
+      
+      # The limits of the movie frame axes are pxlim, pylim.
+      # We are interested in the pixel position and this is stored by
+      # the callback object 'cb'.
+      xi = int(numpy.round(x))
+      yi = int(numpy.round(y))
+      if skipupdatep1 and xi == xold:
+         # Skip this position
+         return
+      if skipupdatep2 and yi == yold:
+         return
+      # Check the limits
+      if skipupdatep1 and (xi > pxlim[1] or xi < pxlim[0]):
+         return
+      elif skipupdatep2 and (yi > pylim[1] or yi < pylim[0]):
+         return
+      if not (skipupdatep1 or skipupdatep2):
+         if xi > pxlim[1] or xi < pxlim[0] or yi > pylim[1] or yi < pylim[0]:
+            return
+
+      # EXPERIMENTEEL!  Implementatie van crosshair cursor
+      """
+      # Draw a crosshair
+      if self.crosshair:
+         if not cube.background:
+            cube.background = self.fig.canvas.copy_from_bbox(cube.frame.bbox)
+         #cube.linev.set_visible(False)
+         #cube.lineh.set_visible(False)
+         #if cube.needclear:
+         #      self.fig.canvas.draw()
+         #      cube.needclear = False
+         #      flushprint("Crosshair clean  at %f %f"%(x, y))
+         #else:
+         if 1:
+         #      cube.needclear = True
+               flushprint("Crosshair set at %f %f"%(x, y))
+               cube.linev.set_xdata((x,x))
+               cube.lineh.set_ydata((y,y))
+               cube.linev.set_visible(True)   #self.visible and self.vertOn)
+               cube.lineh.set_visible(True)   #self.visible and self.horizOn)
+
+               self.fig.canvas.restore_region(cube.background)
+               cube.frame.draw_artist(cube.linev)
+               cube.frame.draw_artist(cube.lineh)
+               self.fig.canvas.blit(cube.frame.bbox)
+      else:
+         cube.linev.set_visible(False)
+         cube.lineh.set_visible(False)
+      """
+            
+
+      if cube.panelXframes and yi != yold and not skipupdatep1:
+         M = cube.Mx
+         ly = M.shape[0]
+         j = 0
+         for indx in cube.panelXframes:
+            # yi should be in range of pylim. To make it an array index,
+            # subtract the limit pylim[0]
+            I = self.movieimages.annimagelist[offset+indx]
+            if I.origdata is not None:
+               N = I.origdata
+            else:
+               N = I.data
+            M[ly-j-1] = N[yi-pylim[0]]
+            j += 1
+
+         mplimp1.image.im.set_data(M)
+         #mplimp1.image.im.changed()         
+         framep1.draw_artist(mplimp1.image.im)
+         #for li in mplimp1.linepieces:
+         #   framep1.draw_artist(li)
+         framep1.figure.canvas.blit(framep1.bbox)
+
+
+      # Second frame which shares an y axis
+      if cube.panelYframes and xi != xold and not skipupdatep2:
+         M = cube.My
+         lx = M.shape[1]
+         j = 0
+         for indx in cube.panelYframes:
+            I = self.movieimages.annimagelist[offset+indx]
+            if I.origdata is not None:
+               N = I.origdata
+            else:
+               N = I.data
+            M[:,j] = N[:,xi-pxlim[0]]   # self.movieimages.annimagelist[offset+indx].data[:,xi-pxlim[0]]
+            j += 1
+
+         mplimp2.image.im.set_data(M)
+         #mplimp2.image.im.changed()
+         framep2.draw_artist(mplimp2.image.im)
+         #for li in mplimp2.linepieces:
+         #   framep2.draw_artist(li)
+         framep2.figure.canvas.blit(framep2.bbox)
+      #fig.canvas.draw()
+      if skipupdatep1:   # Event from panel2: Only x has been changed
+         cube.xold = xi
+      elif skipupdatep2: # Event from panel1: Only y has been changed
+         cube.yold = yi
+      else:              # Event in main window. Both x and y are changed
+         cube.xold = xi
+         cube.yold = yi
+
+
+
+
+   def getbiggestbox(self):
+      #---------------------------------------------------------------
+      """
+      This method finds (e.g. after a resize action) the biggest frame
+      in the list of cubes. That frame sets the positions of the
+      slice panels (usually the position velocity slices).
+      """
+      #---------------------------------------------------------------
+      self.biggestbox = None
+      for c in self.cubelist:               # Get the position of all the frames
+         # With this if statement we assume that the x&Y panelframes are known for each cube
+         if c.panelXframes or c.panelYframes:
+            c.frame.apply_aspect()
+            # TODO: alweer een frame_aspect? Nodig of niet?
+            bbox = c.frame.get_position()
+            # The bounds attribute represents x0,y0,w,h, but we want
+            # x0,y0,x1,y1:
+            box = [bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax]
+            if self.biggestbox is None:
+               self.biggestbox = box
+            else:
+               if box[0] < self.biggestbox[0]:
+                  self.biggestbox[0] = box[0]
+               if box[1] < self.biggestbox[1]:
+                  self.biggestbox[1] = box[1]
+               if box[2] > self.biggestbox[2]:
+                  self.biggestbox[2] = box[2]
+               if box[3] > self.biggestbox[3]:
+                  self.biggestbox[3] = box[3]
+
+      return self.biggestbox
+
+
+   def clearimage(self, im):
+      for li in im.linepieces:
+            li.set_visible(False)
+      for tl in im.textlabels:
+            tl.set_visible(False)
+      if im.infoobj:
+         im.infoobj.set_visible(False)
+      im.image.im.set_visible(False)
+      if im.cbframe is not None:
+         im.cbframe.set_visible(False)
+
+
+   def scaleframe(self, cube, scalefac, tofit=False, reposition=True):
+   #----------------------------------------------------------------------------
+      """
+      Scale the current frame
+      """
+   #----------------------------------------------------------------------------
+      if tofit:
+         if cube.hascolbar:
+            left = self.colbwidth
+         else:
+            left = 0.0
+         if self.numXpanels or self.numYpanels:
+            fig = cube.frame.figure
+            figaspect = fig.get_figwidth()/fig.get_figheight()
+            H_vert = 0.2
+            H_horz = H_vert/figaspect
+            right = 1.0-0.2/figaspect
+            bottom = 0.0+H_vert
+            top=1.0
+         else:
+            right = 1.0
+            bottom = 0.0
+            top = 1.0
+         cube.scalefac = None
+      else:
+         cube.scalefac = scalefac
+         x0, x1 = cube.pxlim
+         y0, y1 = cube.pylim
+         lx = x1 - x0 + 1; ly = y1 - y0 + 1
+         flushprint("pxylim x0, y0=%f %f"%(x0, y0))
+         flushprint("pxylim x1, y1=%f %f"%(x1, y1))
+         flushprint("scalefac = %s"%(str(scalefac)))
+         flushprint("in data lx, ly=%f %f"%(lx, ly))
+
+         fig = cube.frame.figure
+         xf0, yf0 = fig.transFigure.inverted().transform((0, 0))
+         xf1, yf1 = fig.transFigure.inverted().transform((lx*scalefac, ly*scalefac))
+         xf = xf1 - xf0; yf = yf1 - yf0
+         # Next coordinates are all in figure units
+         if cube.hascolbar:
+            xc = 0.5 + self.colbwidth/2.0
+         else:
+            xc = 0.5
+         left = xc - xf/2.0; right = xc + xf/2.0
+         bottom = 0.5 - yf/2.0; top = 0.5 + yf/2.0
+         if cube.hascolbar:
+            dx = self.colbwidth - left
+            if dx > 0.0:
+               left  += dx
+               right += dx
+
+      # Note that we cannot use subplots_adjust, because the zooming
+      # factor applies to individual cubes and we don't want to adjust
+      # all the cubes at the same time.
+      cube.frame.set_position([left, bottom, right-left, top-bottom])
+      # The call to this method could come from method reposition()
+      # If not so, you need to request re-positioning explicitely.
+      if reposition:
+         self.reposition(force=True)
+
+            
+
+   def loadimages(self, cb):
+      #----------------------------------------------------------------------------
+      """
+      Loading image(s) into a movie cube is done with a timer callback. This
+      callback makes it possible to show the images that you load immediately,
+      which is more user friendly then when you have to wait until all images
+      are loaded to see something happening on screen.
+      Also it makes the gui more responsive.
+      """
+      #----------------------------------------------------------------------------      
+      cube = cb.cube
+      cnr = cube.cnr
+      fig = cube.frame.figure
+
+      oldim = self.lastimage  # We need to remove the last displayed image
+      
+      self.movieimages.movie_events(allow=False)
+      # Re-position frame to fill the available space. Do not use method
+      # frame.set_position() because that will not update the subplot
+      # configuration values like 'left', 'right', etc.
+      
+      i = cb.count
+      if i == 0:
+         if self.progressbar:
+            self.progressbar.setMinimum(0)
+            self.progressbar.setMaximum(cube.nummovieframes)
+         cube.callback('waitcursor')
+         # Remove image and other attributes
+         if oldim:            
+            self.clearimage(oldim)
+         # We want image to fill as much space as possible. Set this only
+         # once (i==0, cnr==0)
+         if cnr == 0:
+            # Re-position frame to fill the available space. Do not use method
+            # frame.set_position() because that will not update the subplot
+            # configuration values like 'left', 'right', etc.
+            fig.subplots_adjust(left=self.colbwidth, right=1.0, bottom=0.0, top=1.0)
+            
+      
+      # A message for the terminal
+      if self.printload and cube.slicepos:
+         s = "\nLoading image at slice position (in pixels)=%s"% str(cube.slicepos[i])
+         flushprint(s)
+
+      # We need different axes in this cube.
+      if cube.slicepos:
+         cube.fitsobj.set_imageaxes(cube.axnums[0], cube.axnums[1],
+                                    slicepos=cube.slicepos[i])
+      # Set the box
+      cube.fitsobj.set_limits(cube.pxlim, cube.pylim)
+
+      mplim = cube.fitsobj.Annotatedimage(cube.frame, cmap=cube.cmap,
+                                          clipmin=cube.vmin, clipmax=cube.vmax,
+                                          gridmode=cube.gridmode, adjustable='box-forced',
+                                          newaspect=cube.pixelaspectratio,
+                                          clipmode=cube.clipmode, clipmn=cube.clipmn,
+                                          callbackslist=cube.callbackslist)
+      # Prepare for blitting
+      # 
+      mplim.Image(animated=True, alpha=1.0)                
+      mplim.plot()
+
+      # We add two attributes that are necessary to restore graticules
+      mplim.linepieces = []
+      mplim.textlabels = []
+      mplim.cubenr = cnr                        # Essential
+      if cube.cmap is None:
+         cube.cmap = mplim.cmap
+
+      
+      if not (i == 0 and cnr == 0):
+         # Make the previous image (that is on the display now) invisible
+         oldim.image.im.set_visible(False)
+
+      # The text for the info object is first set to a dummy. This is the
+      # text we see while loading the images. After the loading, the
+      # text changes to a more informative message.
+      s = "image number %d: "%self.movieframecounter
+      mplim.info = None
+      if self.imageinfo:
+         mplim.info = mplim.frame.text(0.01, 0.99, s,
+                                       horizontalalignment='left',
+                                       verticalalignment='top',
+                                       transform=mplim.frame.transAxes,
+                                       fontsize=8, color='w', animated=True,
+                                       family='monospace',
+                                       bbox=dict(facecolor='red', alpha=0.5))
+
+         if i == 0:
+            mplim.infoobj = mplim.info
+            mplim.infoobj.set_animated(False)  # Otherwise nothing will be displayed
+         else:
+            mplim.infoobj = oldim.infoobj
+            mplim.infoobj.set_text(str(i))     # Dummy
+      else:
+         mplim.infoobj = None
+
+      # Note that in the next method, each movie gets its own informative
+      # text about its slice. The attribute is called 'slicemessage'
+      self.lastimage = mplim
+      self.movieimages.append(mplim, visible=True, cubenr=cnr, slicemessage=s)
+      self.movieframecounter += 1
+      cube.imagesinthiscube.append(mplim)
+
+      if cb.count+1 == cube.nummovieframes:
+         if cube.hasgraticule:
+            self.new_graticule(cube, visible=False)
+         # Alwas create a colorbar. Use set_visible to make it (in)visible.
+         self.new_colorbar(cube)
+         # Set a message for the current spectral translation
+         cube.set_slicemessages(cube.fitsobj.spectrans)  # spectrans is the same for all mplim's
+         # Set the color normalization to equal for all in this cube.
+         # We gathered all the images and know for each image the minimum
+         # and maximum value in the Annoteded image object (attributes clipmin, clipmax)
+         # These attributes are always finite numbers. If a vmin and vmax
+         # were given, then the clips for all the images are set to these values.
+         flushprint("Voor 1e maal naar setcubeclips is clipmode: %d"%(cube.clipmode))
+         cube.setcubeclips(cube.vmin, cube.vmax, cube.clipmode, cube.clipmn)
+      
+      # Note that if we use the Cubes class from a gui program, then the gui
+      # will be in an endless loop and we don't need to give a show() command.
+      # If however, the class is used from a simple script, then the script
+      # should execute Matplotlib's show() command.
+      fig.canvas.draw()  # Do not blit yet because movie container is not filled
+      
+      cb.count += 1      
+      if self.progressbar:
+         self.progressbar.setValue(cb.count)
+      if cb.count == cube.nummovieframes:  # We already added 1 to cb.count
+         # Deschedule this callback. Perhaps more loads are scheduled.
+         cb.deschedule()
+         # The use of the timerlist is to support loading multiple cubes
+         # The loading process is appended to the previous and will not
+         # interfere with the current loading process. Here we check whether
+         # 
+         self.timerlist.pop(0)    # Get next element until there is nothing more
+         if self.timerlist:
+            self.timerlist[0].schedule()
+         else:
+            # The last image must be set to invisible
+            # This cannot be done by the setimage() method because this
+            # method does not know yet what the previous image is.
+            self.lastimage.image.im.set_visible(False)
+            # Interesting point to show memory use to calling environment
+            self.callback('memory', getmemory())
+            self.set_coordinate_mode(resetim=False)           # Configure output of coordinates for all images
+            # At this point there is nothing to load anymore, so we start
+            # to define some callbacks for mouse interaction
+            if self.cubelist[0].panelscb is None:             # First time
+               self.set_interactionMovieToPanels()
+               #self.drawpanels()                             # Draw the slice panels for the first time
+            else:
+               self.update_interactionMovieToPanels()
+            # Panels can get new sizes e.g after adding a cube while the
+            # input fields already had slices defined for the new cube
+            #self.redopanels()
+            flushprint("MAPUTILS SETS IMAGE nr %d"%(cube.movieframeoffset))
+            self.movieimages.setimage(cube.movieframeoffset)
+            self.movieimages.movie_events(allow=True)
+            cube.callback('finished')            # Callback from calling environment to finish up
+         if self.progressbar:
+            self.progressbar.reset()                          # Reset bar
+         
+         cube.callback('resetcursor')
+
+     
+   def set_interactionMovieToPanels(self):
+      #-------------------------------------------------------------------------
+      """
+      The movie frames for the current cube are all stored in the movie.
+      Register a callback for interaction in the movie. Each cube is
+      associated with a matplotlib frame (Axes object). So a change in
+      mouse position will update the slice panels that belong to each cube
+      """
+      #-------------------------------------------------------------------------
+      for cube in self.cubelist:
+         if cube.nummovieframes > 1:
+            cube.panelscb = AxesCallback(self.updatepanels,
+                                         cube.frame,
+                                        'motion_notify_event',
+                                         cubenr=cube.cnr)
+         # We need a separate callback for splitscreen actions.
+         # These actions need the control key to be pressed
+         # and the mouse to be moved.
+         cube.splitcb = AxesCallback(self.splitscreen,
+                                     cube.frame,
+                                    'motion_notify_event',
+                                     cubenr=cube.cnr)
+         cube.splitcb.deschedule()
+         for aim in cube.imagesinthiscube:
+            aim.splitcb = cube.splitcb
+
+
+
+   def update_interactionMovieToPanels(self):
+      """-----------------------------------------------------------------------
+      Update interaction in movie container. This implies that we add a new
+      callback, because this method is called only when we added a new cube.
+      -----------------------------------------------------------------------"""      
+      for cube in self.cubelist:
+         if cube.panelscb is not None:
+            cube.panelscb.schedule()         
+         else:
+            if cube.nummovieframes > 1:
+               cube.panelscb = AxesCallback(self.updatepanels,
+                                            cube.frame,
+                                           'motion_notify_event',
+                                            cubenr=cube.cnr)
+
+         if cube.splitcb is None:
+            cube.splitcb = AxesCallback(self.splitscreen,
+                                        cube.frame,
+                                       'motion_notify_event',
+                                        cubenr=cube.cnr)
+            for aim in cube.imagesinthiscube:
+               aim.splitcb = cube.splitcb
+
+         cube.splitcb.deschedule()
+
+
+   def end_interactionMovieToPanels(self):
+      """-----------------------------------------------------------------------
+      End interaction in side panels.
+      Note that this method is called in the append() method where the
+      timer is scheduled for the loadimages() method. There we append
+      a cube which does not have any callbacks set, but in a loop
+      over all the cubes we check whether attribute 'panelscb' is set.
+      -----------------------------------------------------------------------"""
+      for cube in self.cubelist:
+         if cube.panelscb is not None:
+            cube.panelscb.deschedule()
+         if cube.splitcb is not None:
+            cube.splitcb.deschedule()
+# -- End of this source --
