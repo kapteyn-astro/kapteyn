@@ -45,7 +45,7 @@ NumPy arrays and matrices will always be returned as type 'f8' (64 bit).
 
 Class Projection
 ----------------
-.. autoclass:: Projection(source[, rowvec=False, skyout=None, usedate=False, gridmode=False, alter=''])
+.. autoclass:: Projection(source[, rowvec=False, skyout=None, usedate=False, gridmode=False, alter='', minimal=False])
 
 Class Transformation
 --------------------
@@ -727,10 +727,15 @@ class Projection(object):
       of pixel coordinates. Grid coordinates are CRPIX-relative pixel
       coordinates, e.g. used in GIPSY. If CRPIX is not integer, the
       nearest integer is used as reference.
-      
 :param alter:
       an optional letter from 'A' through 'Z', indicating an alternative
       WCS axis description.
+:param minimal:
+      True or False. If True, the object will be constructed from only
+      the NAXIS and NAXISi items in the source. All other items are ignored.
+      In this way world- and pixel coordinates will have the same values.
+      This can be useful when it is impossible to build an object from all
+      items in the source, e.g., when there is an error in a FITS header.
 
 **Methods:**
 
@@ -969,6 +974,11 @@ The others are read-only.
    If the object was created with a call to :meth:`spectra`, the argument
    `ctype` as specified in that call. Otherwise None.
 
+.. attribute:: minimal
+
+   The object was created with the argument ``minimal=True``, using only
+   the NAXIS and NAXISi items.
+
 Example::
 
    #!/bin/env python
@@ -1020,6 +1030,7 @@ Example::
       if alter in [' ', None]:
          alter = ''
       self.alter = alter
+      self.minimal = minimal
       self.__dict__['usedate'] = False
       self.__dict__['epobs'] = None
       self.naxis = ()              # NAXISn - do not confuse with param.naxis!
