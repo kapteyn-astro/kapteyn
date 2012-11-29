@@ -12,7 +12,7 @@ labelx = -0.10           # Fix the  position in x for labels along y
 frame1 = fig.add_subplot(4,1,1)
 mplim1 = fitsobj.Annotatedimage(frame1)
 mplim1.Image()
-graticule1 = mplim1.Graticule()
+graticule1 = mplim1.Graticule(deltax=15*2/60.0)
 
 # fig 2. Velocity - Dec
 frame2 = fig.add_subplot(4,1,2)
@@ -41,7 +41,7 @@ graticule4.setp_ticklabel(plotaxis="left", fmt='HMs')
 graticule4.Insidelabels(wcsaxis=0, constval='20h34m',
                         rotation=90, fontsize=10,
                         color='r', ha='right')
-graticule4.Insidelabels(wcsaxis=1, fontsize=10, fmt="%.2f", color='b')
+graticule4.Insidelabels(wcsaxis=1, fontsize=10, fmt="%.2f", color='y')
 mplim4.Minortickmarks(graticule4)
 
 #Apply new aspect ratio for the XV maps

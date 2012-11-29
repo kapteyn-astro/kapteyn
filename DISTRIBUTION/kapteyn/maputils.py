@@ -8870,7 +8870,6 @@ Usually one creates a movie container with class class:`Cubes`
 :Methods:
 
 .. automethod:: append
-.. automethod:: regcallback
 .. automethod:: movie_events
 .. automethod:: controlpanel
 .. automethod:: setmessages

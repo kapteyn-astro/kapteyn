@@ -151,6 +151,6 @@ for i in [0,1]:
       frame.set_xlim(-0.9,-0.3)
       frame.set_ylim(6,6.38)
    else:
-      frame.set_title("$\mathrm{Pearson^'s\ data\ and\ model:\ } y = a+b*x$")
+      frame.set_title("$\mathrm{Pearson's\ data\ and\ model:\ } y = a+b*x$")
    leg = frame.legend(loc=1)
 show()

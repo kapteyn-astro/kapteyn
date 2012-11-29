@@ -529,6 +529,8 @@ def createlabels(Tlist):
    first = True
    for t in Tlist:
       # There are some conditions for plotting labels in hms/dms:
+      print "WCSGRAT t.axtype, t.offset=",t.axtype, t.offset
+      stdout.flush()
       if t.axtype in ['longitude', 'latitude'] and t.offset == False and t.fun == None and\
          (t.fmt == None or t.fmt.find('%') == -1):
 
@@ -539,7 +541,7 @@ def createlabels(Tlist):
                tweakhms = t.kwargs['fontsize']
             
          if t.axtype == 'longitude' and t.fmt != None and 'D' in t.fmt.upper():
-            # This is a equatorial longitude axis for which one wants
+            # This is an equatorial longitude axis for which one wants
             # DMS formatting not HMS formatting. Useful for "all sky" plots
             eqlon = False
          else:
@@ -2358,10 +2360,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          st2 = spectrans.split('-')
          if len(st2) == 1:
             spectrans += '-???'
-         try:
-            self.gmap = gmap.spectra(spectrans)
-         except:
-           raise Exception, "Cannot create object with current spectral translation" 
+         self.gmap = gmap.spectra(spectrans)
       else:
          self.gmap = gmap
       self.gmap.allow_invalid = True
@@ -2484,7 +2483,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.fmtx = self.fmty = None
       self.radoffsetx = self.radoffsety = False
       #if spatialx and not spatialy and self.offsetx:
-      if (spatialx and not spatialy) or (self.offsetx and (spatialx and spatialy)):
+      if self.offsetx: #if (spatialx and not spatialy) or (self.offsetx and (spatialx and spatialy)):
          # Then the offsets are distances on a sphere
          xmax = self.pxlim[1] + 0.5
          xmin = self.pxlim[0] - 0.5
@@ -2516,7 +2515,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                                         axtype=self.gmap.types[0], 
                                                         skysys=self.__skysys)
 
-      if (spatialy and not spatialx) or (self.offsety and (spatialx and spatialy)):
+      if self.offsety: #if (spatialy and not spatialx) or (self.offsety and (spatialx and spatialy)):
+         print "WCSGRAT spatialx,spatialy", spatialx,spatialy
+         stdout.flush()
          # Then the offsets are distances on a sphere
          ymax = self.pylim[1] + 0.5
          xmin = self.pxlim[0] - 0.5
