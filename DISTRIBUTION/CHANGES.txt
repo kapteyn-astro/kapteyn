@@ -5,6 +5,12 @@ Version 2.2.1 (being developed)
 
   * changed to version 4.15
 
+* Module wcs:
+
+  * added option to create a 'minimal' Projection object when a full
+    object cannot be created due to errors in the FITS header.
+
+
 * Module mplutil:
 
   * added sunbow color maps.
