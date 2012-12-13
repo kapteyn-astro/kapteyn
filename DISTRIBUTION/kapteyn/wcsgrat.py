@@ -8,6 +8,7 @@
 # UPDATES: Version 0.2, September 09, 2008
 #          Version 0.3, October 17, 2008
 #          Version 1.0, June 17, 2009
+#          Version 1.1, December 05, 2012 (bug fixes only)
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -529,7 +530,6 @@ def createlabels(Tlist):
    first = True
    for t in Tlist:
       # There are some conditions for plotting labels in hms/dms:
-      print "WCSGRAT t.axtype, t.offset=",t.axtype, t.offset
       stdout.flush()
       if t.axtype in ['longitude', 'latitude'] and t.offset == False and t.fun == None and\
          (t.fmt == None or t.fmt.find('%') == -1):
@@ -2482,8 +2482,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.funx = self.funy = None
       self.fmtx = self.fmty = None
       self.radoffsetx = self.radoffsety = False
-      #if spatialx and not spatialy and self.offsetx:
-      if self.offsetx: #if (spatialx and not spatialy) or (self.offsetx and (spatialx and spatialy)):
+      if self.offsetx and spatialx:
          # Then the offsets are distances on a sphere
          xmax = self.pxlim[1] + 0.5
          xmin = self.pxlim[0] - 0.5
@@ -2515,8 +2514,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                                         axtype=self.gmap.types[0], 
                                                         skysys=self.__skysys)
 
-      if self.offsety: #if (spatialy and not spatialx) or (self.offsety and (spatialx and spatialy)):
-         print "WCSGRAT spatialx,spatialy", spatialx,spatialy
+      if self.offsety and spatialy:
          stdout.flush()
          # Then the offsets are distances on a sphere
          ymax = self.pylim[1] + 0.5
@@ -2580,14 +2578,14 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   olab = 'Radial offset lon.'
                else:
                   olab = 'Radial offset lat.'
-               if (self.radoffsetx or self.offsetx) and unitsx:
-                  olab += '('+unitsx+')'
-               if (self.radoffsety or self.offsety) and unitsy:
+               if (aa == 0):
+                  if unitsx:
+                     olab += '('+unitsx+')'
+                  annot[aa] = olab
+               else:
+                  if unitsy:
                      olab += '('+unitsy+')'
-               if (aa == 0 and (self.radoffsetx or self.offsetx)):
-                     annot[aa] = olab
-               elif (aa == 1 and (self.radoffsety or self.offsety)):
-                     annot[aa] = olab
+                  annot[aa] = olab
             else:
                if self.gmap.types[aa] == 'longitude':
                   if self.__skysys == wcs.equatorial:
@@ -3904,7 +3902,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
    def Insidelabels(self, wcsaxis=0, world=None, constval=None,
                     deltapx=0.0, deltapy=0.0, angle=None, addangle=0.0,
-                    fun=None, fmt=None, tex=True, **kwargs):
+                    fun=None, fmt=None, tex=True, aspect=1.0, **kwargs):
       #-----------------------------------------------------------------
       """
       Annotate positions in world coordinates
@@ -3963,6 +3961,17 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                          parameter is set to True (which is the default).
       :type param:       Boolean
       
+      :param aspect:     The aspect ratio of the frame. This number is needed to
+                         plot labels at the right angle. It cannot be derived from
+                         the aspect ratio of the frame, because at the moment of
+                         creation, the frame is not known (only after a call to
+                         the plot() method, a frame is known). If the aspect ratio
+                         is known in the calling environment, we should use it
+                         there to get the angles right.
+ 
+      :type aspect:      Floating point number
+
+
       :param `**kwargs`: Keywords for (plot) attributes.
       :type  `**kwargs`: Matplotlib keyword argument(s)
       
@@ -4043,6 +4052,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                            xp1, yp1 = self.gmap.topixel((xw, constval-d))
                            xp2, yp2 = self.gmap.topixel((xw, constval+d))
                            if not (numpy.isnan(xp1) or numpy.isnan(xp2)):
+                              yp1 *= aspect; yp2 *= aspect
                               phi = numpy.arctan2(yp2-yp1, xp2-xp1)*180.0/numpy.pi
                               if self.gmap.cdelt[1] < 0.0:
                                  phi -= 180.0
@@ -4093,6 +4103,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                            xp1, yp1 = self.gmap.topixel((constval-d, yw))
                            xp2, yp2 = self.gmap.topixel((constval+d, yw))
                            if not (numpy.isnan(xp1) or numpy.isnan(xp2)):
+                              yp1 *= aspect; yp2 *= aspect
                               phi = numpy.arctan2(yp2-yp1, xp2-xp1)*180.0/numpy.pi
                               if self.gmap.cdelt[0] < 0.0:
                                  phi -= 180.0

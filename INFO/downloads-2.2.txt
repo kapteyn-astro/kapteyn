@@ -153,6 +153,11 @@ Observatoire Astronomique de Marseille-Provence @ 195.221.212.242
 Department fuer Physik der FAU Erlangen Nuernberg @ 131.188.163.41
 ESO @ 134.171.35.36
 Fermilab @ 131.225.23.168
+Fisheries and Oceans Canada @ 134.190.3.121
+Faculty of Integrated Arts and Sciences, The Univ. of Tokushima @ 150.59.56.23 
+Landessternwarte Koenigstuhl Heidelberg @ 147.142.111.72
+Massachusetts Institute of Technology, MIT @ 18.75.3.65
+Center for High Performance Computing, University of Utah @ 155.101.16.206
 
-tot: Tue Nov 13 13:46:43 CET 2012
-Wed Oct 24 14:31:18 CEST 2012
+tot: Sat Dec  1 18:37:46 CET 2012
+Tue Nov 13 13:46:43 CET 2012
