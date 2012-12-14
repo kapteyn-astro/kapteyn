@@ -535,6 +535,7 @@ Values should be between 0.0 and 1.0.
       self.invrt = 1.0
       self.scale = 'LINEAR'
       self.auto  = True
+      self.callback = None
 
    def __call__(self, X, alpha=1.0, bytes=False):
       if self.bad_set:
@@ -740,7 +741,8 @@ Values should be between 0.0 and 1.0.
             image.changed()
       for canvas in self.canvases:
          canvas.draw()
-
+      if self.callback is not None:
+         self.callback()
 
 # ==========================================================================
 #                        function KeyPressFilter
