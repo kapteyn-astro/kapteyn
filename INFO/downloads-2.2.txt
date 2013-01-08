@@ -167,5 +167,5 @@ ESTEC (ESA) @ 195.169.141.54
 Stanford University (XOC) @ 171.64.108.185
 IAAT Tuebingen @ 134.2.205.65
 
-tot: Thu Dec 27 11:13:52 CET 2012
-Sat Dec  1 18:37:46 CET 2012
+tot: Tue Jan  8 11:26:21 CET 2013
+Thu Dec 27 11:13:52 CET 2012
