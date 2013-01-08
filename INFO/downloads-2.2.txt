@@ -158,6 +158,14 @@ Faculty of Integrated Arts and Sciences, The Univ. of Tokushima @ 150.59.56.23
 Landessternwarte Koenigstuhl Heidelberg @ 147.142.111.72
 Massachusetts Institute of Technology, MIT @ 18.75.3.65
 Center for High Performance Computing, University of Utah @ 155.101.16.206
+College of Engineering, Purdue University @ 128.46.217.106
+Astrophysikalisches Institut und Universitaets-sternwarte Jena  @ 141.35
+Universitat de Valencia @ 147.156.53.13
+West Virginia University @ 157.182.25.227
+University of Canterbury, Christchurch NZ @ 132.181.42.80
+ESTEC (ESA) @ 195.169.141.54
+Stanford University (XOC) @ 171.64.108.185
+IAAT Tuebingen @ 134.2.205.65
 
-tot: Sat Dec  1 18:37:46 CET 2012
-Tue Nov 13 13:46:43 CET 2012
+tot: Thu Dec 27 11:13:52 CET 2012
+Sat Dec  1 18:37:46 CET 2012
