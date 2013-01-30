@@ -166,6 +166,18 @@ University of Canterbury, Christchurch NZ @ 132.181.42.80
 ESTEC (ESA) @ 195.169.141.54
 Stanford University (XOC) @ 171.64.108.185
 IAAT Tuebingen @ 134.2.205.65
+University of Sussex @ 139.184.30.133
+SRON Netherlands Institute for Space Research @ 131.211.40.2
+Chulalongkorn University, Thailand @ 202.28.41.6
+Department of Physics, University of Illinois at Chicago @ 131.193.192.14
+Universitat Autonoma de Barcelona @ 158.109.57.60
+LOFAR @ 195.169.3.100
+Aabo Akademi (Finland) @ 130.232.81.29
+Institute for High Energy Physics at the U.A. de Barcelona @ 192.101.162.126
+NASA Jet Propulsion Laboratory @ 137.78.191.140
+Koninklijke Sterrenwacht van Belgie @ 193.190.144.11
+Southwest Research Institute @ 65.241.78.2
+University of California, Los Angeles @ 169.232.156.165
 
-tot: Tue Jan  8 11:26:21 CET 2013
-Thu Dec 27 11:13:52 CET 2012
+tot: Wed Jan 30 14:02:09 CET 2013
+Wed Jan 16 15:04:39 CET 2013

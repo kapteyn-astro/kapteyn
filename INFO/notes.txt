@@ -1,18 +1,1 @@
-Test met matplotlib 1.1.0
--------------------------
-
-- de eigen plot_directive functie clear_state() is niet compatibel met
-  matplotlib 1.1.0. Kan in de Sphinx conf.py worden uitgeschakeld of
-  aangepast.
-
-- veel exceptions bij het bouwen van voorbeeldplotjes:
-  "'module' object has no attribute 'nextafter'"
-  Gebruikte numpy versie 1.3.0. Volgens matplotlib's website is 1.1 of later
-  vereist. Deze exceptions verdwenen nadat numpy versie 1.6.1 was
-  geinstalleerd. (De functie nextafter is pas beschikbaar vanaf numpy 1.4)
-
-- De links naar de voorbeeld scripts wijzen nu naar ./EXAMPLES i.p.v. naar
-  ./plot_directive/EXAMPLES/mu_simple.py, maar daar staan de scripts niet.
-  Sphinx-matplotlib mismatch?
-  Update: ook door andere gebruiker gemeld:
-  https://github.com/matplotlib/matplotlib/issues/954
+(geen actuele problemen)
