@@ -178,6 +178,9 @@ NASA Jet Propulsion Laboratory @ 137.78.191.140
 Koninklijke Sterrenwacht van Belgie @ 193.190.144.11
 Southwest Research Institute @ 65.241.78.2
 University of California, Los Angeles @ 169.232.156.165
+The University of Sheffield @ 143.167.209.148
+Instituto de Fisica - Universidade de Sao Paulo @ 143.107.128.42
+Universidad de Granada @ 150.214.36.111
 
-tot: Wed Jan 30 14:02:09 CET 2013
-Wed Jan 16 15:04:39 CET 2013
+tot: Thu Feb 07 00:00:00 CET 2013
+Wed Jan 30 14:02:09 CET 2013
