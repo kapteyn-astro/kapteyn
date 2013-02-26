@@ -271,8 +271,7 @@ from matplotlib.lines import Line2D
 from matplotlib.text import Text
 from matplotlib.image import AxesImage
 from matplotlib.cbook import report_memory
-import matplotlib.axes as axesclass  
-from mpl_toolkits.axes_grid1 import make_axes_locatable # VOGNEW
+import matplotlib.axes as axesclass
 import matplotlib.nxutils as nxutils
 import pyfits
 import numpy
@@ -280,7 +279,7 @@ from kapteyn import wcs, wcsgrat
 from kapteyn.celestial import skyrefsystems, epochs, skyparser, lon2hms, lat2dms, lon2dms
 from kapteyn.tabarray import tabarray, readColumns
 #from kapteyn.mplutil import AxesCallback, CanvasCallback, VariableColormap, TimeCallback, KeyPressFilter
-from mplutil import AxesCallback, CanvasCallback, VariableColormap, TimeCallback, KeyPressFilter
+from kapteyn.mplutil import AxesCallback, CanvasCallback, VariableColormap, TimeCallback, KeyPressFilter
 from kapteyn.positions import str2pos, mysplit, unitfactor
 from kapteyn.interpolation import map_coordinates  # original from scipy.ndimage.interpolation
 from kapteyn.filters import gaussian_filter
@@ -429,7 +428,7 @@ def getmemory():
                  stdout=PIPE).stdout.readlines()
       mem = int(a[1].split()[1])                     # Res. memory in kB
       mem /= 1024                                    # in mB
-      mem = "Resident mem.: <b>" + str(mem) + "</b> mB "
+      mem = "Resident mem.: <b>" + str(mem) + "</b> MB "
    else:
       mem = report_memory()
       mem = "Mem. pages: " + str(mem)
@@ -2799,8 +2798,30 @@ this class.
    positions which are described as **pixel** positions.
 :type gridmode:
    Boolean
-
-
+:param adjustable:
+   todo
+:type adjustable:
+   todo
+:param anchor:
+   todo
+:type anchor:
+   todo
+:param newaspect:
+   todo
+:type newaspect:
+   todo
+:param clipmode:
+   todo
+:type clipmode:
+   Integer
+:param clipmn:
+   todo
+:type clipmn:
+   tuple with 2 integers
+:param callbackslist:
+   todo
+:type callbackslist:
+   Python dictionary
    
 :Attributes:
 
@@ -3118,7 +3139,7 @@ this class.
          needstats = True
       if needstats:
          datmin, datmax, mean, rms = self.get_stats()
-      
+
       if clipmin is None:
          if clipmode in [0, 1]:
             clipmin = datmin
@@ -3137,7 +3158,7 @@ this class.
                # Clipmode 2 uses mean and rms
             else:
                clipmax = mean + rms*clipmn[1]
-      #flushprint("I calculated clip min max=%s %s %d"%(str(clipmin), str(clipmax), clipmode))
+      # flushprint("I calculated clip min max=%s %s %d"%(str(clipmin), str(clipmax), clipmode))
       self.clipmin = clipmin
       self.clipmax = clipmax
       self.datmin = datmin
@@ -3145,11 +3166,13 @@ this class.
       self.mean = mean
       self.rms = rms
 
-      # Give defaults if clips are still None:
-      if self.clipmin is None:
+      # Give defaults if clips are still None or +-inf:
+      if self.clipmin is None or not numpy.isfinite(self.clipmin):
          self.clipmin = 0.0
-      if self.clipmax is None:
+      if self.clipmax is None or not numpy.isfinite(self.clipmax):
          self.clipmax = self.clipmin + 1.0
+      if self.clipmin > self.clipmax:
+         self.clipmin, self.clipmax = self.clipmax , self.clipmin
 
       self.AxesCallback_ids = []                 # A list with 'mpl connect id's. Used for disconnecting
       self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax, clip=True)
@@ -3187,7 +3210,13 @@ this class.
       #if regcallback:
       #   self.regcb = AxesCallback(regcallback, self.frame, 'motion_notify_event')
       #   self.AxesCallback_ids.append(self.regcb)
-
+      self.infoobj = None   # Some object with information. Can be displayed in plot.
+      self.linepieces = []  # Store graticule line pieces for blitting
+      self.textlabels = []
+      self.splitcb  = None  # Callback id of split method
+      self.cbframe = None   # Frame of associated color bar
+      self.composed_slicemessage = '' # Each im. can have its own info about its slice
+      
 
    def callback(self, cbid, *arg):
       #-----------------------------------------------------------------
@@ -3224,7 +3253,7 @@ this class.
          if validmask:                      
             datmin = float(self.data[mask].min())
          else:
-            datmin = None         
+            datmin = None   
       if validmask:                          # We are sure that there are inf's
          if numpy.any(mask):                 # At least one must be a valid number
             datmax = float(self.data[mask].max())
@@ -3232,6 +3261,8 @@ this class.
             datmax = None
       else:      
          datmax = numpy.nanmax(self.data)    # The fast method
+         if not numpy.isfinite(datmax):
+            datmax = None                    # For example a map with all values == -inf
 
       if validmask:
          mean = float(self.data[mask].mean())
@@ -3247,7 +3278,7 @@ this class.
                rms  = float(self.data[mask].std())
 
       
-      #flushprint("Calculated min, max=%f %f"%(datmin, datmax))
+      #flushprint("Calculated min, max=%s %s"%(str(datmin), str(datmax)))
       #flushprint("Calculated std, mean=%f %f"%(rms, mean))
                   
       return datmin, datmax, mean, rms
@@ -4384,11 +4415,14 @@ this class.
          expects numbers in parameters *x* and *y*
       :type y:
          Float or a sequence of floating point numbers
-      :param world:
-         Flag to set the conversion mode. If True then the numbers
-         in *x* and *y* are world coordinates. Else, they are
-         processed as pixel coordinates.
-
+      :param mode:
+         Flag to set the conversion mode. If the input string starts
+         with 'w'  od 'W' then the numbers
+         in *x* and *y* are world coordinates. Else, if the string starts
+         with 'p' or 'P', they are processed as pixel coordinates.
+      :type mode:
+         String
+                  
       :Returns:
 
          Object from class :class:`Marker`
@@ -5102,7 +5136,7 @@ this class.
       posobj.dmsprec = dmsprec      
       self.toolbarkey = AxesCallback(self.mouse_toolbarinfo, self.frame,
                                      'motion_notify_event', posobj=posobj)
-      #flushprint("Add mouse toolbar callback %d for object %d"%(id(self.toolbarkey), id(self)))                                     
+      #t("Add mouse toolbar callback %d for object %d"%(id(self.toolbarkey), id(self)))
       self.AxesCallback_ids.append(self.toolbarkey)
 
 
@@ -8931,6 +8965,8 @@ Usually one creates a movie container with class class:`Cubes`
       # Setup of the movieloop timer
       #self.pause = False
       self.framespersec = 20
+      self.cidkey = None
+      self.cidscroll = None
       self.movieloop = TimeCallback(self.imageloop, 1.0/self.framespersec)
       # Do not start automatically, but wait for start signal
       #self.pause = True
@@ -9354,8 +9390,9 @@ Usually one creates a movie container with class class:`Cubes`
             if oldim.infoobj:
                oldim.infoobj.set_visible(False)
             if oldim.hascolbar and oldim.cbframe:
-               oldim.cbframe.set_visible(False)               
-            oldim.splitcb.deschedule()            
+               oldim.cbframe.set_visible(False)
+            if oldim.splitcb:
+               oldim.splitcb.deschedule()            
           for li in newim.linepieces:
              li.set_visible(True)
           for tl in newim.textlabels:
@@ -9363,7 +9400,8 @@ Usually one creates a movie container with class class:`Cubes`
              #flushprint("Ik zet in toggle_images textlabel %d %s op True"%(id(tl), str(tl)))
           if newim.infoobj:
              newim.infoobj.set_visible(True)
-          newim.splitcb.schedule()
+          if newim.splitcb:
+             newim.splitcb.schedule()
           #flushprint("force_redraw=%s"%(str(force_redraw)))
           if newim.cbframe:             
              if newim.hascolbar:
@@ -9372,6 +9410,7 @@ Usually one creates a movie container with class class:`Cubes`
                 newim.cbframe.set_visible(False)                
           self.canvas.draw()                                          # Draw all
           doflush = True
+          self.callback('cubechanged', newim)
       else:
           doflush = False
           #flushprint("Current cube nr, newcubenr=%d %d"%(self.currentcubenr,newim.cubenr))
@@ -9646,13 +9685,13 @@ class Cubeatts(object):
       allmean = []
       allrms  = []
       for aim in self.imagesinthiscube:
-         if aim.datmin and numpy.isfinite(aim.datmin):  # Not None, Nan or +-inf
+         if not (aim.datmin is None) and numpy.isfinite(aim.datmin):  # Not None, Nan or +-inf
             alldatmin.append(aim.datmin)
-         if aim.datmax and numpy.isfinite(aim.datmax):
+         if not (aim.datmax is None) and numpy.isfinite(aim.datmax):
             alldatmax.append(aim.datmax)
-         if aim.mean and numpy.isfinite(aim.mean):
+         if not (aim.mean is None) and numpy.isfinite(aim.mean):
             allmean.append(aim.mean)
-         if aim.rms and numpy.isfinite(aim.rms):
+         if not (aim.rms is None) and numpy.isfinite(aim.rms):
             allrms.append(aim.rms)
       if len(alldatmin):
          self.datmin = min(list(alldatmin))  # Could be one value
@@ -10258,6 +10297,16 @@ which can store images from different data cubes.
 
       
    def cmapcallback(self):
+      #-------------------------------------------------------------------------
+      """
+      Module mplutil has an update() method which is triggered after a color map
+      change. A callback can be added. This callback is executed at the end of the
+      update() method. The callback is added as an attribute as in:
+      cube.cmap.callback = self.cmapcallback. We need the callback to register
+      when a background has been changed and a crosshair cursore needs to be
+      redrawn (background is blitted).
+      """
+      #-------------------------------------------------------------------------  
       global backgroundchanged
       backgroundchanged = True
       #flushprint("Color map has been changed (callback) !!!!!!!!! self=%d"%(id(self)))
@@ -11839,8 +11888,7 @@ which can store images from different data cubes.
                                           newaspect=cube.pixelaspectratio,
                                           clipmode=cube.clipmode, clipmn=cube.clipmn,
                                           callbackslist=cube.callbackslist)
-      # Prepare for blitting
-      # 
+      # Prepare for blitting 
       mplim.Image(animated=True, alpha=1.0)                
       mplim.plot()
 
