@@ -39,7 +39,6 @@ Istituto Nazionale di Fisica Nucleare sezione di Bari @ 192.135.20.31
 United States Naval Research Laboratory @ 132.250.22.6
 Johns Hopkins University Applied Physics Laboratory @ 128.244.9.9
 Carnegie Institution for Science - The Observatories @ 192.91.178.59
-Max-Planck-Institut fuer Radioastronomie @ 134.104.20.240
 Meteo France @ 137.129.13.90
 Commissariat a l'Energie Atomique @ 192.54.209.32
 CSIRO @ 202.8.37.218
@@ -181,6 +180,11 @@ University of California, Los Angeles @ 169.232.156.165
 The University of Sheffield @ 143.167.209.148
 Instituto de Fisica - Universidade de Sao Paulo @ 143.107.128.42
 Universidad de Granada @ 150.214.36.111
+SRON Netherlands Institute for Space Research @ 129.125.20.3
+Texas A&M University @ 165.91.221.55
+University College Dublin @ 137.43.99.33
+University of Illinois at Urbana-Champaign (Astronomy) @ 128.174.51.193
+Radboud Universiteit, Astrofysica @ 131.174.139.92
 
-tot: Thu Feb 07 00:00:00 CET 2013
-Wed Jan 30 14:02:09 CET 2013
+tot: Wed Feb 27 15:06:18 CET 2013
+Thu Feb 07 00:00:00 CET 2013
