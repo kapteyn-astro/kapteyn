@@ -25,7 +25,7 @@ National Optical Astronomy Observatory @ 139.229.3.231
 Astronomisches Institut Ruhr-Universitaet Bochum @ 134.147.158.41
 Divisao de Astrofisica (Brasil) @ 150.163.28.232
 University of Hertfordshire @ 147.197.230.41
-Korea Astronomy Observatoy @ 210.219.33[B.212
+Korea Astronomy Observatoy @ 210.219.33.212
 National University of Singapore @ 137.132.250.13
 Institut d'Astrophysique Spatiale (IAS) @ 129.175.67.67
 Universitaet Wien, Institut fuer Astronomie @ 131.130.51.17
@@ -185,6 +185,13 @@ Texas A&M University @ 165.91.221.55
 University College Dublin @ 137.43.99.33
 University of Illinois at Urbana-Champaign (Astronomy) @ 128.174.51.193
 Radboud Universiteit, Astrofysica @ 131.174.139.92
+Dominion Radio Astrophysical Observatory @ 192.139.21.90
+O.V. Lounasmaa Laboratory, Aalto University @ 130.233.174.46
+Centre d'Etude Spatiale des Rayonnements @ 193.48.8.121
+SLAC National Accelerator Laboratory @ 134.79.222.201
+Laboratorio Nacional de Astrofisica, Brazil @ 200.131.64.69
+Kiepenheuer-Institut fuer Sonnenphysik @ 132.230.90.222
+National Centre for Radio Astrophysics TIFR @ 158.144.16.1
 
-tot: Wed Feb 27 15:06:18 CET 2013
-Thu Feb 07 00:00:00 CET 2013
+tot: Thu Mar 14 11:00:00 CET 2013
+Wed Feb 27 15:06:18 CET 2013
