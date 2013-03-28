@@ -17,6 +17,8 @@ Version 2.2.1 (being developed)
 
   * in class AxesCallback use weak references to Axes objects.
 
+* Bug fixes.
+
 Version 2.2 (Apr 19, 2012)
 ==========================
 

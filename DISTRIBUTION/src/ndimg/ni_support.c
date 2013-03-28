@@ -338,6 +338,14 @@ int NI_ArrayToLineBuffer(NI_LineBuffer *buffer,
             int i;
             volatile double v;
             double p=0.0;
+             
+            for (i=0; i<length; i++) {
+               v = pb[i];
+               if (v==v) {
+                  p = v;
+                  break;
+               }
+            }
            
             for (i=0; i<length; i++) {
                 v = pb[i];
