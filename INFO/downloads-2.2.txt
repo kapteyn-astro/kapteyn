@@ -192,6 +192,16 @@ SLAC National Accelerator Laboratory @ 134.79.222.201
 Laboratorio Nacional de Astrofisica, Brazil @ 200.131.64.69
 Kiepenheuer-Institut fuer Sonnenphysik @ 132.230.90.222
 National Centre for Radio Astrophysics TIFR @ 158.144.16.1
+University of Crete, Department of Physics @ 147.52.186.116
+University of Massachusetts Amherst, School of Computer Science @ 128.119.241.10
+Instytut Astronomiczny Uniwersytetu Wroclawskiego @ 156.17.59.30
+Australian Government, Bureau of Meteorology @ 134.178.63.3
+Institute of Nuclear Physics PAN, Polish Academy of Sciences @ 149.156.44.187
+Harvard University (Faculty of Arts and Sciences) @ 140.247.231.87
+University of Nevada, Las Vegas @ 131.216.14.38
+RWTH Aachen University @ 134.130.13.112
+Keldysh Institute of Applied Mathematics, Moscow @ 194.226.59.214
 
-tot: Thu Mar 14 11:00:00 CET 2013
-Wed Feb 27 15:06:18 CET 2013
+tot: Tue Apr  9 16:32:23 CEST 2013
+Thu Mar 14 11:00:00 CET 2013
+
