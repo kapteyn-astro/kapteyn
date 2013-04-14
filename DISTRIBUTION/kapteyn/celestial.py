@@ -56,8 +56,7 @@ contexts:
    
 .. seealso:: Tutorial material:
    
-     * Background `Celestial Transformations <http://www.astro.rug.nl/software/kapteyn/celestial.php>`_
-       which contains many examples with source code.
+     * :doc:`celestialbackground` which contains many examples with source code.
 
 
 .. _celestial-skydefinitions:
@@ -3082,12 +3081,8 @@ a suffix '_' which may be follwed by arbitrary characters.
       skyin = parseskydef(skyin)
       if skyin is None:   # e.g. input was '{}' then parseskydef returns None
          return None, None, None, None
-   #if type(skyin) != types.TupleType:
-      # Promote to tuple:
-   #   skyin = tuple([skyin])
    if len(skyin) > 4:
       raise ValueError, "Too many elements in sky definition (max. 4)!"
-
 
    # Parse the tuple into a sky system, a reference system, equinox and obs epoch
    for element in skyin:
@@ -3515,3 +3510,4 @@ Utility function to facilitate command line use of skymatrix.
    xyz2 = dotrans(skymatrix(skyin, skyout), xyz)
    newlonlats = xyz2longlat(xyz2)
    return newlonlats
+

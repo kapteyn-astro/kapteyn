@@ -265,12 +265,13 @@ from matplotlib.pyplot import figure, show
 from matplotlib import cm
 from matplotlib.colors import Colormap, Normalize          #, LogNorm, NoNorm
 from matplotlib.colorbar import make_axes, Colorbar, ColorbarBase
-from matplotlib.patches import Polygon
+from matplotlib.patches import Polygon, Rectangle
 from matplotlib.ticker import MultipleLocator, ScalarFormatter, FormatStrFormatter
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 from matplotlib.image import AxesImage
 from matplotlib.cbook import report_memory
+from matplotlib.widgets import Cursor
 import matplotlib.axes as axesclass
 import matplotlib.nxutils as nxutils
 import pyfits
@@ -299,8 +300,9 @@ import warnings
 import time
 from sys import stdout
 from os import getpid as os_getpid
+from os import remove
 from os.path import basename as os_basename
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_call, CalledProcessError 
 from platform import system as os_system
 
 try:
@@ -327,7 +329,8 @@ annotatedimage_list = []
 globalfigmanager = None
 globalmessenger = None
 backgroundchanged = False
-
+MINBOUND = 0.005
+MAXBOUND = 0.995
 
 # Redefine some methods to intercept actions which causes a canvas.draw() call
 # and a change in the Axes bbox.
@@ -343,13 +346,16 @@ def _update_view(self):
     if lims is None:  return
     pos = self._positions()
     if pos is None: return
-    for i, a in enumerate(self.canvas.figure.get_axes()):
-        xmin, xmax, ymin, ymax = lims[i]
-        a.set_xlim((xmin, xmax))
-        a.set_ylim((ymin, ymax))
-        # Restore both the original and modified positions
-        a.set_position( pos[i][0], 'original' )
-        a.set_position( pos[i][1], 'active' )
+    try:      # Added by VOG. Not in original MPL routine
+      for i, a in enumerate(self.canvas.figure.get_axes()):
+         xmin, xmax, ymin, ymax = lims[i]
+         a.set_xlim((xmin, xmax))
+         a.set_ylim((ymin, ymax))
+         # Restore both the original and modified positions
+         a.set_position( pos[i][0], 'original' )
+         a.set_position( pos[i][1], 'active' )
+    except:
+       pass
     
     self.draw()
     if self.ext_callback2:
@@ -1017,7 +1023,7 @@ cmlist.cmap_default = 'jet'
 def fitsheader2dict(header, comment=True, history=True):
 #-----------------------------------------------------------
    """
-Transform a FITS header, read with PyFITS into a Python
+Transform a FITS header (read with PyFITS) into a Python
 dictionary.
 This is useful if one wants to iterate over all keys in the
 header. The PyFITS header is not iterable.
@@ -2347,7 +2353,7 @@ class Gridframe(object):
    when pixel coordinates need to be plotted.
    -------------------------------------------------------------------------------
    """
-   def __init__(self, pxlim, pylim, plotaxis, gridlines, major, minor, **kwargs):
+   def __init__(self, pxlim, pylim, plotaxis, gridlines, major, minor, inside=False, **kwargs):
       self.ptype = "Gridframe"
       self.pxlim = pxlim
       self.pylim = pylim
@@ -2357,6 +2363,7 @@ class Gridframe(object):
       self.gridlines = gridlines
       self.major = major
       self.minor = minor
+      self.inside = inside
 
 
 class Pixellabels(object):
@@ -2437,7 +2444,7 @@ class Pixellabels(object):
    .. automethod:: setp_label
    """
    def __init__(self, pxlim, pylim, plotaxis=None, markersize=None,
-                gridlines=False, ticks=None, major=None, minor=None, offset=None, **kwargs):
+                gridlines=False, ticks=None, major=None, minor=None, offset=None, inside=False, **kwargs):
 
       def nint(x):
          return numpy.floor(x+0.5)
@@ -2457,7 +2464,7 @@ class Pixellabels(object):
          px[0] -= offX; px[1] -= offX;
          py[0] -= offY; py[1] -= offY;
    
-      gridlabs = Gridframe(px, py, plotaxis, gridlines, major, minor, **defkwargs)
+      gridlabs = Gridframe(px, py, plotaxis, gridlines, major, minor, inside, **defkwargs)
       self.gridlabs = gridlabs
       self.frame = None
 
@@ -2629,7 +2636,29 @@ class Pixellabels(object):
                tick.tick1line.set(**markerkwargs)
             tick.tick2line.set_visible(False)
             tick.gridOn = pixellabels.gridlines
-               
+
+      # Plot labels inside Axes
+      if self.gridlabs.inside:
+         if 0 in plotaxes:
+            for tick in gframe.yaxis.get_major_ticks():
+               tick.set_pad(-10.0)
+               tick.label1.set_horizontalalignment('left')
+
+         if 2 in plotaxes:
+            for tick in gframe.yaxis.get_major_ticks():
+               tick.set_pad(-10.0)
+               tick.label2.set_horizontalalignment('right')
+
+         if 1 in plotaxes:
+            for tick in gframe.xaxis.get_major_ticks():
+               tick.set_pad(-10.0)
+               tick.label1.set_verticalalignment('top')
+
+         if 3 in plotaxes:
+            for tick in gframe.xaxis.get_major_ticks():
+               tick.set_pad(-10.0)
+               tick.label2.set_verticalalignment('bottom')
+         
       # gframe.grid(pixellabels.gridlines)
       fig.sca(frame)    # back to frame from calling environment
 
@@ -3554,8 +3583,11 @@ this class.
          raise Exception, "Cannot plot image because image data is not available!"
       if self.data_blur is None:  # Blurred data
          self.data_blur = numpy.zeros(self.data.shape) # Prevent byte order problems
-      gaussian_filter(self.data_orig, sigma=(nx,ny), order=0, output=self.data_blur, mode='reflect', cval=0.0)
-
+      gaussian_filter(self.data_orig, sigma=(nx,ny), order=0, output=self.data_blur, mode='reflect', cval=numpy.nan)
+      # Put NaN's back in map
+      self.data_blur = (self.data_orig-self.data_orig)+self.data_blur
+      # Slower: self.data_blur = numpy.where(numpy.isfinite(self.data_orig),self.data_blur, numpy.nan)
+      
        
    def histeq(self, nbr_bins=256):
       #-----------------------------------------------------------------
@@ -3581,7 +3613,9 @@ this class.
       # Rescale between clip levels of original data
       m = (self.clipmax-self.clipmin) / (cdf[-1]-cdf[0])
       im2 = m * (im2-cdf[0]) + self.clipmin
-      self.data_hist = im2.reshape(im.shape)
+      # Ensure that NaN's in the original map are restored in the equalized map
+      # Note that adding a number to a not finite number ends up in a not finite number
+      self.data_hist = (im-im)+im2.reshape(im.shape)
 
 
    def Image(self, **kwargs):
@@ -3743,7 +3777,7 @@ this class.
       return image
 
 
-   def Contours(self, levels=None, **kwargs):
+   def Contours(self, levels=None, cmap=None, colors=None, **kwargs):
       #-----------------------------------------------------------------
       """
       Setup of contour lines.
@@ -3759,6 +3793,16 @@ this class.
          by the Contour constructor.
       :type levels:
          None or a list with floating point numbers
+      :param cmap:
+         A colormap from class :class:`mplutil.VariableColormap` or a string
+         that represents a colormap (e.g. 'jet', 'spectral' etc.).
+         It sets the contour colours.
+      :type cmap:
+         mplutil.VariableColormap instance or string
+      :param colors:
+         A sequence with Matplotlib colors, e.g. ['r','g','y']
+      :type colors:
+         Sequence with strings
       :param kwargs:
          There are a number of keyword arguments that
          are useful:
@@ -3826,7 +3870,13 @@ this class.
          >>> cont2.setp_label(fontsize=10, fmt="$%g \lambda$")
       """
       #-----------------------------------------------------------------
-      contourset = Contours(self.data, self.box, levels, cmap=self.cmap, norm=self.norm, **kwargs)
+      # No colormap is given and no contour colors. Then choose one color for all.
+      # It is not useful to set cmap to self.cmap here because the contours
+      # are not visible if the colormaps are the same.
+      if cmap is None and colors is None:
+         colors=['r']
+      
+      contourset = Contours(self.data, self.box, levels, cmap=cmap, norm=self.norm, colors=colors, **kwargs)
       self.objlist.append(contourset)
       self.contourset = contourset
       return contourset
@@ -4106,7 +4156,7 @@ this class.
       #-----------------------------------------------------------------
       """
       This method is a call to the constructor of class
-      :class:`wcsgrat.Pixellabels`
+      :class:`Pixellabels`
       with a number of default parameters.
       It sets the annotation along a plot axis to pixel coordinates.
 
@@ -4535,7 +4585,7 @@ this class.
                            x1=x1, y1=y1, x2=x2, y2=y2, lambda0=lambda0, step=step,
                            world=world, angle=angle, addangle=addangle,
                            fmt=fmt, fun=fun, fliplabelside=fliplabelside, mscale=mscale,
-                           labelsintex=labelsintex, **kwargs)
+                           labelsintex=labelsintex, gridmode=self.gridmode, **kwargs)
       self.objlist.append(ruler)
       return ruler
 
@@ -4989,7 +5039,7 @@ this class.
             #yi = numpy.round(y) - (self.pylim[0]-1)
             xi = numpy.round(x - (self.pxlim[0]-1))
             yi = numpy.round(y - (self.pylim[0]-1))
-            x -= self.pixoffset[0]; y -= self.pixoffset[1];
+            x -= self.pixoffset[0]; y -= self.pixoffset[1]
             spix = posobj.pix2str(x, y)
             swcs = posobj.wcs2str(xw, yw, missingspatial)
             swcsuf = posobj.wcs2str(xw, yw, missingspatial, unformatted=True)
@@ -5333,11 +5383,13 @@ this class.
             # Back to normal
             self.set_histogrameq(False)
             self.messenger('Original image displayed')
+            self.callback('histeq', False)
          else:
             if self.data_hist is None:
                self.messenger('Calculating histogram')
             self.set_histogrameq()
             self.messenger('Histogram eq. image displayed')
+            self.callback('histeq', True)
       elif eventkey.upper() == 'X':
          # Change the smoothing factor and go to blur mode.
          self.blurindx += 1
@@ -6122,7 +6174,7 @@ to know the properties of the FITS data beforehand.
        
     .. attribute:: slicepos
 
-       A list with position on axes in the FITS file which do not belong to
+       A list with positions on axes in the FITS file which do not belong to
        the required image.
        
     .. attribute:: pxlim
@@ -8117,7 +8169,7 @@ to know the properties of the FITS data beforehand.
       # location
       # Return the result. 
 
-      # What are the axis numbers of the spatial axis in order of their axis numbers?
+      # What are the axis numbers of the spatial axes in order of their axis numbers?
       def flatten(seq):
          res = []
          for item in seq:
@@ -8129,7 +8181,9 @@ to know the properties of the FITS data beforehand.
 
       plimLO = plimHI = None
       fromheader = True         # We need to distinguish header and FITSimage objects
+      
       if isinstance(reprojobj, FITSimage):
+         #flushprint("reproject_to slicepos=%s"%(str(self.slicepos)))
          # It's a FITSimage object
          # Copy its attributes that are relevant in this context
          pxlim_dst = reprojobj.pxlim
@@ -8178,15 +8232,18 @@ to know the properties of the FITS data beforehand.
          change_header(repheader, **fitskeys)
 
       p1 = wcs.Projection(self.hdr)
+      #flushprint(str(self.hdr))
       
       naxis = len(p1.naxis)
       axnum = []
       axnum_out = []
       for i in range(1, naxis+1):
+         #flushprint("i, p1.lon/lataxnum=%d %d %d"%(i, p1.lonaxnum, p1.lataxnum))
          if i in [p1.lonaxnum, p1.lataxnum]:
             axnum.append(i)
          else:
             axnum_out.append(i)
+      #flushprint("reproject+to  axnum_out =%s"%(str(axnum_out)))
       if len(axnum) != 2:
          raise Exception, "No spatial maps to reproject in this data structure!"
       naxisout = len(axnum_out)
@@ -8234,13 +8291,16 @@ to know the properties of the FITS data beforehand.
       # Next we process the ranges on the repeat axes (i.e. axes
       # outside the spatial map). See the documentation for what
       # is allowed to enter
+      #flushprint("reproject+to naxisout=%d"%(naxisout))
       if naxisout > 0:
+         #flushprint("reproject+to voor de tijdpxlimHI/LO=%s %s"%(str(plimLO), str(plimHI)))
          if plimLO is None or plimHI is None:
             plimLO = [0]*(naxis-2)
             plimHI = [0]*(naxis-2)
             for i, axnr in enumerate(axnum_out):
                plimLO[i] = 1
                plimHI[i] = p1.naxis[axnr-1]
+               #flushprint("Reproject_to pxlimLO/HI=%d %d"%(plimLO[i],plimHI[i]))
             # Make sure user given limits are list or tuple
             if plimlo != None:
                if not issequence(plimlo):
@@ -8249,6 +8309,7 @@ to know the properties of the FITS data beforehand.
                   raise ValueError("To many values in plimlo, max=%d"%naxisout)
                for i, p in enumerate(plimlo):
                   plimLO[i] = p
+                  #flushprint("reproject+to p lo=%d"%(d))
             if plimhi != None:
                if not issequence(plimhi):
                   plimhi = [plimhi]
@@ -8256,7 +8317,9 @@ to know the properties of the FITS data beforehand.
                   raise ValueError("To many values in plimhi, max=%d"%naxisout)
                for i, p in enumerate(plimhi):
                   plimHI[i] = p
+                  #flushprint("reproject+to p hi=%d"%(d))
 
+         #flushprint("reproject+to pxlimHI/LO=%s %s"%(str(plimLO), str(plimHI)))
          # Use the sizes of the original/current non spatial axes
          # to calculate size and shape of the new data array
          for axnr, lo , hi  in zip(axnum_out, plimLO, plimHI):
@@ -8276,6 +8339,7 @@ to know the properties of the FITS data beforehand.
       # current header are replaced by the spatial axes in the input header
       # both in order of their axis number.
       if insertspatial:
+         #flushprint("Type repheader=%s"%(type(repheader)))
          newheader = self.insertspatialfrom(repheader, axnum, axnum2)   #lonaxnum2, lataxnum2)
       else:
          newheader = repheader
@@ -8372,12 +8436,15 @@ to know the properties of the FITS data beforehand.
                   g2 = g - plimLO[nout] + 1
                   slnew.append(slice(g2-1, g2))
                   nout -= 1
+            print "slice=", sl
+            print self.dat.min(), self.dat.max()
             boxdat = self.dat[sl].squeeze()
             boxdatnew = newdata[slnew].squeeze()
             # Find (interpolate) the data in the source map at the positions
             # given by the destination map and 'insert' it in the
-            # data structure as a copy.
+            # data structure as a copy.            
             reprojecteddata = map_coordinates(boxdat, coords, **interpol_dict)
+            
             boxdatnew[:] = reprojecteddata
 
       fi = FITSimage(externalheader=newheader, externaldata=newdata)
@@ -8436,7 +8503,10 @@ to know the properties of the FITS data beforehand.
       #---------------------------------------------------------------------
       #newheader = self.hdr.copy()
       comment = True; history = True
-      newheader = fitsheader2dict(self.hdr, comment, history)
+
+      #flushprint("Type self.hdr in insertspatial=%s"%(type(self.hdr)))
+      newheader = fitsheader2dict(self.hdr, comment, history)      
+      #flushprint("Type header in insertspatial=%s"%(type(header)))
       repheader = fitsheader2dict(header, comment, history)
       lon1 = axnum1[0]   # Could also be a lat. from a lat-lon map
       lat1 = axnum1[1]
@@ -8838,8 +8908,8 @@ With method :meth:`MovieContainer.movie_events` the movie is started
 and keys 'P', '<', '>', '+' and '-' are available to control the movie.
 
 * 'P' : Pause/resume movie loop
-* '<' : Step 1 image back in the sequence of images. Key ',' has the same effect.
-* '>' : Step 1 image forward in the sequence of images. Key '.' has the same effect.
+* '<' : Step 1 image back in the sequence of images. Key ',' and arrow down has the same effect.
+* '>' : Step 1 image forward in the sequence of images. Key '.' and arrow up has the same effect.
 * '+' : Increase the speed of the loop. The speed is limited by the size of the image and
         the hardware in use.
 * '-' : Decrease the speed of the movie loop
@@ -8925,7 +8995,21 @@ Usually one creates a movie container with class class:`Cubes`
          self.cubenr = None
          self.slicemessage = ''
 
+   # Class variables
+   record_fps = 15
+   record_frameformat = 'png'
+   record_bitrate = 1800
+   record_outfile = "visionsmovie.mp4"
+   record_fnameformatstr = '%s%%07d.%s'
+   record_basename = "_tmp_visions"
+   record_removetmpfiles = True
+   # The calling environment could request for the defaults of the parameters
+   # for ffmpeg before any object is created
+   recdefs = dict(outfile=record_outfile, bitrate=record_bitrate,
+                  tmpprefix=record_basename, removetmp=record_removetmpfiles,
+                  fps=record_fps)
 
+         
    def __init__(self, fig, helptext=True, imageinfo=True, slicemessages=[],
                 toolbarinfo=False, sliceinfoobj=None, callbackslist={}):
       self.annimagelist = []                     # The list with Annotatedimage objects
@@ -8949,7 +9033,12 @@ Usually one creates a movie container with class class:`Cubes`
       self.callbackslist = callbackslist
       self.framespersec = 20
       self.flushcounter = 0
+      # Attributes for creating a movie on disk
+      self.recording = False
+      self.record_counter = 0
+      self.set_recorddefaults()
 
+      
       if self.helptext:
          delta = 0.01
          self.helptextbase = "Use keys 'p' to Pause/Resume. '+','-' to increase/decrease movie speed.  '<', '>' to step in Pause mode."
@@ -8967,10 +9056,11 @@ Usually one creates a movie container with class class:`Cubes`
       self.framespersec = 20
       self.cidkey = None
       self.cidscroll = None
-      self.movieloop = TimeCallback(self.imageloop, 1.0/self.framespersec)
+      self.movieloop = TimeCallback(self.imageloop, 1.0/self.framespersec)      
       # Do not start automatically, but wait for start signal
       #self.pause = True
       self.movieloop.deschedule()
+      self.movieloop.once = False
 
 
 
@@ -9054,7 +9144,7 @@ Usually one creates a movie container with class class:`Cubes`
       Set the movie frame numbers that you want to display
       in a movie loop. If the list is None or empty, all images are
       part of the movieloop. The order of the numbers is arbitrary so
-      many seetings are possible (e.g. reverse order (100:0:-1) or skip
+      many settings are possible (e.g. reverse order (100:0:-1) or skip
       images (0:100:2).
 
       Note:
@@ -9063,7 +9153,7 @@ Usually one creates a movie container with class class:`Cubes`
       index.
       The entered list is associated to the movie container not
       to specific cubes. If we add a new cube with images and their index
-      is already in 
+      is already in .... #TODO
       """
       #---------------------------------------------------------------------
       self.movieframelist = framelist
@@ -9110,11 +9200,16 @@ Usually one creates a movie container with class class:`Cubes`
       In the calling environment one needs to set 'event' to None.
       """
       #---------------------------------------------------------------------
+      self.movieloop.once = False        # Extra attribute (not in constructor (yet)
       if event is None and externalkey == '':
          return
       if event is not None:
          try:
             key = event.key.upper()      # Intercept keys like 'escape'
+            if key=='UP':                # Translate keyboard arrow keys 'up' and 'down'
+               key = '.'
+            if key=='DOWN':
+               key = ','
          except AttributeError:          # It could be a scroll event
             if event.button=='up':       # 'up' is previous image. Seems more suitable using scroll wheel
                key = '.'
@@ -9163,6 +9258,16 @@ Usually one creates a movie container with class class:`Cubes`
          self.movieloop.deschedule()
          self.fig.canvas.draw()                   # Restore also graticules etc.
          self.pause = True
+      elif key == 'ONCE':
+         self.forward = True
+         self.movieloop.once = True
+         self.movieloop.counter = 0
+         if self.movieframelist:
+            self.movieloop.maxcount = len(self.movieframelist)
+         else:
+            self.movieloop.maxcount = len(self.annimagelist)
+         self.movieloop.schedule()
+         self.pause = False
 
       # Increase speed of movie
       elif key in ['+', '=']:
@@ -9191,9 +9296,154 @@ Usually one creates a movie container with class class:`Cubes`
             self.pause = True
          self.toggle_images(next=True)
 
+
       #self.fig.canvas.flush_events()
 
+      
+   def set_recorddefaults(self, outfile=None, fps=None, bitrate=None,
+                          removetmpfiles=None):
+      #---------------------------------------------------------------------------
+      """
+      This method sets or overwrites the default parameters used to make a
+      movie on disk of the recorded images (saved with savefig())
+      Notes: The values cannot be expressions
+      """
+      #---------------------------------------------------------------------------
+      if fps is None:
+         self.record_fps = MovieContainer.record_fps
+      else:
+         mes = ""
+         try:
+            fps = int(fps)
+            if fps < 0:
+               mes = "Frames per second must be positive"
+               raise 
+            else:
+               self.record_fps = fps
+         except:
+            if not mes:   
+               mes = "Invalid expression for frames per second"
+            raise Exception, mes
+
+      self.record_frameformat = MovieContainer.record_frameformat
+
+      if bitrate is None:         
+         self.record_bitrate = MovieContainer.record_bitrate
+      else:
+         mes = ""
+         try:
+            bitrate = int(bitrate)
+            if bitrate < 0:
+               mes = "Bitrate must be a positive integer"
+               raise
+            else:
+               self.record_bitrate = bitrate
+         except:
+            if not mes:               
+               mes = "Invalid expression for bitrate in kbit/s"
+            raise Exception, mes
+
+      if outfile is None:
+         self.record_outfile = MovieContainer.record_outfile
+      else:
+         try:
+            self.record_outfile = str(outfile)
+            f = file(self.record_outfile, "w+")
+            f.close()         
+         except:
+            raise Exception, "Cannot write this movie on disk (invalid directory?)"
          
+      self.record_fnameformatstr = MovieContainer.record_fnameformatstr
+      self.record_basename = MovieContainer.record_basename
+
+      if removetmpfiles is None:
+         self.record_removetmpfiles = MovieContainer.record_removetmpfiles
+      else:
+         try:
+            self.record_removetmpfiles = bool(removetmpfiles)
+         except:
+            raise Exception, "Invalid value for remove tmp file option"
+
+
+   @staticmethod      
+   def get_recorddefaults():
+      #---------------------------------------------------------------------------
+      """
+      Return a dictionary with defaults for recording a movue on disk. The method
+      is a static method so that the calling environment is able to obtain these
+      defaults before any MovieContainer object is created i.e. in a GUI where
+      we present the defaults before any image is recorded.
+      """
+      #---------------------------------------------------------------------------
+      return MovieContainer.recdefs
+    
+      
+   def set_recording(self, recording):
+      #---------------------------------------------------------------------------
+      """
+      Method to set a flag to start or stop recording what is on screen using
+      savefig(). Currently figures are recorded only if images are toggled.
+      """
+      #---------------------------------------------------------------------------
+      if recording:
+         self.recording = True
+      else:
+         self.recording = False
+         
+
+   def create_recording(self):
+      #---------------------------------------------------------------------
+      """
+      Method creates a movie from screendumps on disk. The utility needed to
+      create a movie is 'ffmpeg'.
+      NOTE: ffmpeg is deprecated. Use 'avconv' in the near future
+      ffmpeg:   -f fmt -> Force format
+                -vcodec -> Force video codec to codec
+                -s -> '-s', '%dx%d' % self.frame_size # Frame seize. Default is same as source
+                -pix_fmt -> Set pixel format
+                -r fps-> Set frame rate (Hz value, fraction or abbreviation), (default = 25)
+                -b brt -> Video bitrate of the output file
+                -y -> Overwrite existing filenam
+      """
+      #---------------------------------------------------------------------      
+      from glob import glob
+
+      if self.record_counter == 0:
+         raise Exception, "No images available to create a movie!<br> Start recording first."
+      
+      cmd = "ffmpeg"
+      basename = self.record_fnameformatstr % (self.record_basename, self.record_frameformat)
+      args = [cmd, '-vframes', str(self.record_counter),
+              '-r', str(self.record_fps), '-i', basename]
+
+      if self.record_bitrate > 0:
+          args.extend(['-b', '%dk' % self.record_bitrate])
+      
+      args.extend(['-y', self.record_outfile])
+
+      try:
+         #proc = Popen(args, shell=False, stdout=PIPE, stderr=PIPE)
+         proc = check_call(args, shell=False, stdout=PIPE, stderr=PIPE)
+         #proc.wait()
+      except OSError:
+         raise Exception, "Cannot find ffmpeg to create movie"
+      except CalledProcessError, message:
+         raise Exception, "Something wrong in parameters for command ffmpeg"
+      except:
+         raise Exception, "Unknown error creating a movie with ffmpeg"      
+
+      # Remove all tmp files used to build the movie. One needs the glob module
+      # to parse the asterisk. An alternative could be to maintain a list with
+      # the file names of the screen dumps.
+      if self.record_removetmpfiles:
+         files = glob("%s*.%s"%(self.record_basename, self.record_frameformat))         
+         for f in files:
+            remove(f)
+      pics = self.record_counter
+      self.record_counter = 0   # Reset to be able to create a new movie
+      return pics, join(args)   # The calling environment could need the number of images in a movie
+
+      
    def imageloop(self, cb):
       #---------------------------------------------------------------------
       """
@@ -9269,6 +9519,17 @@ Usually one creates a movie container with class class:`Cubes`
          otherwise only occur if there is a change of cubes
       """
       #---------------------------------------------------------------------
+      if self.movieloop.once:         # Was part of a single loop of which the first image was marked.
+         if self.movieloop.counter == self.movieloop.maxcount:         
+            self.oldim.once = False
+            self.movieloop.once = False
+            self.movieloop.deschedule()
+            self.fig.canvas.draw()                  # Restore also graticules etc.
+            self.pause = True
+            return
+         self.movieloop.counter += 1
+         
+      cubechanged = False
       xd = None                                  # A position in the previous image
       yd = None
       if indx is not None:
@@ -9300,11 +9561,11 @@ Usually one creates a movie container with class class:`Cubes`
                else:
                   movielistindx -= 1
             newmovieframeindx = self.movieframelist[movielistindx]
+            self.movielistindx = movielistindx    # Store for next            
             # What if the index from the movie frame list is not valid?
             # Then there is nothing to do because there is no associated image.
             if newmovieframeindx  >= len(self.annimagelist) or newmovieframeindx < 0:
                return
-            self.movielistindx = movielistindx    # Store for next
          else:
             currindx = self.indx                  # Retrieve
             if next:
@@ -9326,16 +9587,17 @@ Usually one creates a movie container with class class:`Cubes`
       # worden.
       
       # Make sure that the image used to compare to the current is reset to invisible
+      resets = 0
       if self.compareim:   
           self.compareim.image.im.set_alpha(1.0)
           self.compareim.image.im.set_visible(False)
           self.compareim = None
           if oldim:
              oldim.image.im.set_alpha(1.0)
-      
+             resets += 1      
       
       if oldim is not None:
-        # If the old image was splitted, it does not contain the original data
+        # If the old image was splitted (or transparent), it does not contain the original data
         if oldim.origdata is not None:
            oldim.data[:] = oldim.origdata[:]
            oldim.origdata = None
@@ -9346,8 +9608,23 @@ Usually one creates a movie container with class class:`Cubes`
            # 'origdata' attribute.
            oldim.set_blankcolor(oldim.old_blankcolor[0], oldim.old_blankcolor[1])
            splitimage = self.annimagelist[oldim.splitmovieframe]
-           splitimage.image.im.set_visible(False)           
-        # Make the old image invisible and disconnect existing callbacks
+           splitimage.image.im.set_visible(False)
+           resets += 1                
+        if oldim.blurred:
+           oldim.set_blur(False)
+           resets += 1
+        if oldim.histogram:
+           oldim.set_histogrameq(False)
+           resets += 1
+
+        if resets:
+           # If the calling environment needs to know if we did reset
+           # an (e.g. blurred) image to its original data.
+           # The calling environment (e.g. a GUI) can reset its
+           # sliders etc.
+           self.callback('imagereset')
+                                
+        # Make the old image invisible and disconnect existing callbacks   
         oldim.image.im.set_visible(False)
         oldim.disconnectCallbacks()        
         #flushprint("Toggle images: Made oldim (%d) invisible and no callbacks"%(id(oldim)))
@@ -9379,7 +9656,10 @@ Usually one creates a movie container with class class:`Cubes`
          info.set_text(newim.slicemessage)
 
       # Handle lines and text if one changes cubes.
+      oldcubenr = -1
       if (newim.cubenr != self.currentcubenr) or force_redraw:
+          oldcubenr = self.currentcubenr
+          cubechanged = True
           #flushprint("KUBUS WISSELING?? Current cube nr, newcubenr=%s %d"%(str(self.currentcubenr),newim.cubenr))
           self.currentcubenr = newim.cubenr  # currentcubenr is None for the first image
           if oldim is not None:
@@ -9410,6 +9690,7 @@ Usually one creates a movie container with class class:`Cubes`
                 newim.cbframe.set_visible(False)                
           self.canvas.draw()                                          # Draw all
           doflush = True
+          #doflush = False  # TODO: Flushen is tot nu toe alleen storend geweest
           self.callback('cubechanged', newim)
       else:
           doflush = False
@@ -9435,7 +9716,8 @@ Usually one creates a movie container with class class:`Cubes`
       #C = self.cubelist[newim.cubenr]
       #C.lastimagenr = self.indx - C.movieframeoffset
 
-      
+
+      newX = newY = None
       newim.interact_imagecolors()
       if self.toolbarinfo:
          newim.interact_toolbarinfo()
@@ -9462,7 +9744,8 @@ Usually one creates a movie container with class class:`Cubes`
             # for the last position of the current image are reset to None. Then
             # skip the update of the toolbar message.
             newim.mouse_toolbarinfo(cb)
-      
+            newX , newY = cb.xdata, cb.ydata
+
 
       self.oldim = newim
       self.callbackinfo.mes = newim.slicemessage
@@ -9479,7 +9762,14 @@ Usually one creates a movie container with class class:`Cubes`
       if doflush:
          self.canvas.flush_events()
       #flushprint("------ Einde setimage. id new image=%d----------"%(id(newim)))
-      self.callback('crosshair', self.indx)
+      self.callback('crosshair', self.indx, cubechanged, oldcubenr)
+      if cubechanged:
+         self.callback('zprofile', None, newX, newY, newim.cubenr)
+      if self.recording:
+         filenam = "%s%07d.%s"%(self.record_basename, self.record_counter, self.record_frameformat)
+         #flushprint(filenam)
+         self.record_counter += 1
+         self.fig.savefig(filenam)
          
 #------------------------------------------------------------------------
 """Background
@@ -9594,6 +9884,12 @@ class Cubeatts(object):
                anums.append(axnr)         
       self.axnums = anums                       # To extract slices we need to know the axis order
       self.movieframeoffset = None              # Gets a value after loading a cube
+      # For GUI's where one stores multiple cubes etc. we want to know what the
+      # last image is if we change cubes. So we need an attribute that stores an image number.
+      # Initially it is set to the offset (number of images in previous cubes)
+      # It is not changed in maputils if images are changed in a cube, but the
+      # calling environment can keep track of  it and update this attribute
+      self.lastimagenr = 0                      # Gets the value of movieframeoffset after loading
       # What are the movieframes from which we want to extract the data?
       # Set these frames in a list. One list per data cube
       # Show all slices by default
@@ -9630,9 +9926,10 @@ class Cubeatts(object):
       self.shortfilename = os_basename(self.fitsobj.filename)
       self.callbackslist = callbackslist
       # Crosshair lines
-      lineprops = {'animated': True}
-      self.lineh = self.frame.axhline(self.frame.get_ybound()[0], visible=False, **lineprops)
-      self.linev = self.frame.axvline(self.frame.get_xbound()[0], visible=False, **lineprops)
+      lineprops = {'animated': False,'linewidth':1}
+      self.lineh = self.frame.axhline(xmin=MINBOUND, xmax=MAXBOUND, visible=False, **lineprops)
+      #self.lineh = self.frame.axhline(self.frame.get_ybound()[0], visible=False, **lineprops)
+      self.linev = self.frame.axvline(ymin=MINBOUND, ymax=MAXBOUND, visible=False, **lineprops)
       # Every cube has an xpanel and a y panel which also can have a crosshair
       # These line pieces are created when we create the frames
       self.panelxline = None
@@ -9645,6 +9942,8 @@ class Cubeatts(object):
       # Clip level related attributes
       self.vmin = vmin
       self.vmax = vmax
+      self.zmin = vmin
+      self.zmax = vmax
       self.vmin_def = None
       self.vmax_def = None
       self.datmin = None
@@ -9654,6 +9953,7 @@ class Cubeatts(object):
       self.clipmode = clipmode
       self.clipmn = clipmn
       self.scalefac = None
+      self.limitsinfo = None              # String that show the max. limits of the axes
 
 
 
@@ -10040,7 +10340,8 @@ which can store images from different data cubes.
    # Define the required colorbar width. We take a fixed part of the
    # frame, so that it scales up when the screen becomes larger
    colbwidth = 0.06
-
+   zprofileheight = 0.1
+   
    # The timerlist must be accessible by all objects of this class.
    timerlist = []    # One list with timer callbacks to load all cubes
    
@@ -10053,7 +10354,7 @@ which can store images from different data cubes.
       self.movieimages = MovieContainer(fig, helptext=helptext,
                                         toolbarinfo=toolbarinfo,
                                         imageinfo=imageinfo,
-                                        callbackslist={'crosshair':self.drawCrosshair})
+                                        callbackslist={'crosshair':self.drawCrosshair, 'zprofile':self.plotZprofile})
       # Initialize two callback id's for reacting to keys and scroll wheel
       # for movie actions in the figure. These are not of type AxexCallbacks
       # because the actions are not restricted to a frame.
@@ -10119,6 +10420,11 @@ which can store images from different data cubes.
       # Needed to take re-position action of side panels when h/wspace changes
       self.previous_subpars = (fig.subplotpars.hspace, fig.subplotpars.wspace)
       self.crosshair = False
+      self.zprofileOn = False
+      self.zprofileframe = None
+      self.zprofileXdata = None
+      self.zprofileYdata = None
+      
       
 
    def callback(self, cbid, *arg):
@@ -10131,41 +10437,216 @@ which can store images from different data cubes.
          self.callbackslist[cbid](*arg)
 
          
+         
+   def plotZprofile(self, cube, x, y, cubenr=None, pos=None):
+      #-----------------------------------------------------------------
+      """
+      Purpose: This method plots a Z-profile for the current cube at the
+               current position.
 
-   def drawCrosshair(self, framenr):
+               The method can be called either with the current cube or
+               with the (index) number of the current cube. For the
+               cursor position in x and y, the image value is extracted
+               from all the images in the cube. This way we build a so
+               called Z-profile. The profile is updated
+               if you move the mouse (event causes execution of method
+               self.updatepanels). But it is also triggered with a callback
+               in toggle_images if the cube changed.
+               We use blitting to speed up the plotting of the profile.
+      """
+      #-----------------------------------------------------------------
+      if not self.zprofileOn:
+         return
+
+      if cube is None:                             # Select cube either by id or index number
+         if cubenr is None:
+            return
+         else:
+            cube = self.cubelist[cubenr]
+
+      # Position could be a string
+      if pos is not None:
+         im = cube.imagesinthiscube[0]             # There is always one image, so take first
+         world, pixels, units, errmes = str2pos(pos,
+                                                im.projection,
+                                                mixpix=im.mixpix,
+                                                gridmode=im.gridmode)
+         if errmes != '':
+            return errmes
+         else:
+            x = float(pixels[:,0])                 # Otherwise the value is an array
+            y = float(pixels[:,1])            
+            #s = "Plot profile at %f %f"%(x,y)
+            #flushprint(s)
+            
+      if x is None:
+         x = cube.xold
+
+      if y is None:         
+         y = cube.yold
+
+      if None in [x, y]:                            # Not a valid position in this cube
+         return
+            
+      if self.zprofileframe.changed:
+         framechanged = True
+         self.zprofileframe.changed = False
+      else:
+         framechanged = False
+
+      if cube.zmin is None:
+         cube.zmin = cube.vmin
+      if cube.zmax is None:
+         cube.zmax = cube.vmax
+         
+      clipchanged = False
+      if cube.zmin != self.zprofileframe.clipmin:
+         clipchanged = True
+      if cube.zmax != self.zprofileframe.clipmax:
+         clipchanged = True
+
+      # Build the Z-profile
+      yyy = []
+      xi = numpy.round(x - (cube.pxlim[0]-1))
+      yi = numpy.round(y - (cube.pylim[0]-1))
+      if  xi < 1 or xi > (cube.pxlim[1] - cube.pxlim[0] + 1):
+         return
+      if  yi < 1 or yi > (cube.pylim[1] - cube.pylim[0] + 1):
+         return
+      #flushprint("zprofile x,y=%f %f"%(x,y))
+      yyy = [aim.data[yi-1, xi-1] for aim in cube.imagesinthiscube]
+      #for aim in cube.imagesinthiscube:
+      #   z = aim.data[yi-1, xi-1]
+      #   yyy.append(z)
+      start = cube.movieframeoffset
+      xxx = numpy.arange(start, start+len(yyy))
+      xxx1 = numpy.zeros(2*len(xxx))
+      yyy1 = numpy.zeros(2*len(xxx))
+      j = 0
+      for i in range(len(xxx)):
+         xxx1[j] = xxx[i] - 0.5
+         xxx1[j+1] = xxx[i] + 0.5
+         yyy1[j] = yyy[i]
+         yyy1[j+1] = yyy[i]
+         j += 2
+      xxx = xxx1
+      yyy = yyy1
+      offset = cube.imagesinthiscube[0].pixoffset      
+      v = "%+3d %+3d"%(round(x-int(offset[0])),round(y-int(offset[1])))
+      s = "Z-profile at: x,y=".ljust(22) + v.rjust(10)      
+      self.zprofileframe.XYinfo.set_text(s)
+      # Restore the frame and re-draw the profile lines
+      canvas = self.zprofileframe.figure.canvas
+      if not self.zprofileYdata or self.zprofileframe.cubeindx != cube.cnr or framechanged or clipchanged:
+         # A Line2D object does not yet exists or the cube changed
+         self.zprofileframe.XYinfo.set_text("")
+         self.zprofileframe.set_xlim(xxx.min(),xxx.max())
+         self.zprofileframe.set_ylim(cube.zmin,cube.zmax)
+         if self.zprofileYdata:
+            self.zprofileYdata.set_xdata([])
+            self.zprofileYdata.set_ydata([])         
+         canvas.draw()
+         self.zprofileframe.background = canvas.copy_from_bbox(self.zprofileframe.bbox)
+         self.zprofileYdata, = self.zprofileframe.plot(xxx, yyy, 'g', animated=False)
+         self.zprofileframe.cubeindx = cube.cnr # Add new attribute
+      else:
+         canvas.restore_region(self.zprofileframe.background)
+         self.zprofileYdata.set_ydata(yyy)
+         self.zprofileframe.draw_artist(self.zprofileYdata)
+         self.zprofileframe.draw_artist(self.zprofileframe.XYinfo)
+         canvas.blit(self.zprofileframe.bbox)
+
+      self.zprofileframe.clipmin = cube.zmin
+      self.zprofileframe.clipmax = cube.zmax
+      cube.ZprofileXold = x
+      cube.ZprofileYold = y
+
+
+   def zprofileLimits(self, cubenr, zmin=None, zmax=None):
+      #-----------------------------------------------------------------
+      """
+      Purpose: Set limits of plot with Z_profile for the current cube
+      """
+      #-----------------------------------------------------------------
+      cube = self.cubelist[cubenr]
+      
+      if not self.zprofileOn:
+         return
+      if zmin is None:
+         zmin = cube.vmin
+      if zmax is None:
+         zmax = cube.vmax
+      self.zprofileframe.set_ylim(zmin, zmax)
+      #flushprint("I redraw with zmin,zmax=%f %f"%(zmin, zmax))
+      self.zprofileframe.figure.canvas.draw()
+      cube.zmin = zmin
+      cube.zmax = zmax
+      
+      
+      
+   def drawCrosshair(self, framenr, cubechanged=False, oldcubenr=-1):
       #-----------------------------------------------------------------
       """
       Another image appeared on screen. If there are panels and you have
-      a crosshair cursor, then the should be re-drawn. In the panels, the
+      a crosshair cursor, then they should be re-drawn. In the panels, the
       positions of the cursor line should change because another image in
       the cube is displayed.
       """
       #-----------------------------------------------------------------
-      # What is the corresponding cube of the new image?
-      if not self.crosshair:   
+      if not self.crosshair:
          return
-      
+      # What is the corresponding cube of the new image?         
       currentimage = self.movieimages.annimagelist[framenr]
       cnr = currentimage.cubenr
       cube = self.cubelist[cnr]
+
+
+      # A cube changed. We need to remove the crosshair in the old cube
+      if cubechanged:
+         #flushprint("Cube changed remove old lines")
+         oldcube = self.cubelist[oldcubenr]
+         oldcube.linev.set_visible(False)
+         oldcube.lineh.set_visible(False)
+         oldcube.frame.draw_artist(oldcube.linev)
+         oldcube.frame.draw_artist(oldcube.linev)
+         if oldcube.panelXframes:
+            oldcube.panelxline.set_visible(False)
+            oldcube.framep1.draw_artist(oldcube.panelxline)
+         if oldcube.panelYframes:
+            oldcube.panelyline.set_visible(False)
+            oldcube.framep2.draw_artist(oldcube.panelyline)
+         #flushprint("Ik ga lijnen verwijderen uit oude kubus")
+         self.fig.canvas.draw()
+         self.fig.canvas.flush_events()
+
+
+
       # We are sure that the background changed, so we need to make a new copy.
       #cube.linev.set_visible(False)
       #cube.lineh.set_visible(False)
+      #flushprint("Ik ga hier de achtergrond kopieren")
       cube.background = self.fig.canvas.copy_from_bbox(cube.frame.bbox)
       if not cube.panelXback and cube.panelXframes:
          cube.panelXback = self.fig.canvas.copy_from_bbox(cube.framep1.bbox)
       if not cube.panelYback and cube.panelYframes:
          cube.panelYback = self.fig.canvas.copy_from_bbox(cube.framep2.bbox)
+      # If there is no previous position, then take the middle of the box
+      # This way you can plot a crosshair at the start
+      if cube.xold is None:
+         cube.xold = (currentimage.box[1]+currentimage.box[0])/2.0
+      if cube.yold is None:
+         cube.yold = (currentimage.box[3]+currentimage.box[2])/2.0
+      #flushprint("xold, yold=%f %f %s"%(cube.xold, cube.yold, str(currentimage.box)))
       x = cube.xold
       y = cube.yold
-      if not x or not y:
-         return
+      
+      
       #flushprint("Crosshair in drawCrosshair after setimage set at %f %f"%(x, y))
       cube.linev.set_xdata((x,x))
       cube.lineh.set_ydata((y,y))
-      #cube.linev.set_visible(True)
-      #cube.lineh.set_visible(True)
-      
+      cube.linev.set_visible(True)   # Then also a cursor is drawn when crosshair is set on
+      cube.lineh.set_visible(True)
+      #flushprint("Ik ga lijnen tekenen in nieuwe kubus")
       
       cube.frame.draw_artist(cube.linev)
       cube.frame.draw_artist(cube.lineh)
@@ -10173,7 +10654,7 @@ which can store images from different data cubes.
       # But there is also something to do in its panels:
       currentindx = framenr
       offset = cube.movieframeoffset
-      if cube.panelXframes:       
+      if cube.panelXframes: 
          yp = currentindx - offset
          #flushprint("crosshair in xpanel at yp=%d"%yp)
          try:
@@ -10284,7 +10765,7 @@ which can store images from different data cubes.
       self.cubeindx += 1                       # Prepare index for the next cube 
       # Start loading the images. We do this with a timer callback so that
       # we don't have to wait for the last image before a window appears.
-      timer = TimeCallback(self.loadimages, 0.00001, False, count=0, cube=C)
+      timer = TimeCallback(self.loadimages, 0.00001, False, count=0, cube=C, zprofileOn=self.zprofileOn)
       # The timer list keeps track of the timers. The first that is registered
       # is the first that will be processed entirely before the next callback is
       # scheduled.
@@ -10303,12 +10784,13 @@ which can store images from different data cubes.
       change. A callback can be added. This callback is executed at the end of the
       update() method. The callback is added as an attribute as in:
       cube.cmap.callback = self.cmapcallback. We need the callback to register
-      when a background has been changed and a crosshair cursore needs to be
+      when a background has been changed and a crosshair cursor needs to be
       redrawn (background is blitted).
       """
       #-------------------------------------------------------------------------  
       global backgroundchanged
       backgroundchanged = True
+      #self.fig.canvas.flush_events()
       #flushprint("Color map has been changed (callback) !!!!!!!!! self=%d"%(id(self)))
 
       
@@ -10438,6 +10920,7 @@ which can store images from different data cubes.
       # avoid this problem.
       delta = 0.000001
 
+      
       #   !!!!!!!!!!!!!!!!!!!
       # Dit gaat alleen werken als van te voren bekend is wat de inhoud is van
       # panelXframes en panelYframes in de eventfrompanel routines.
@@ -10556,7 +11039,7 @@ which can store images from different data cubes.
                                  cmap=cmap,
                                  adjustable='box-forced',
                                  clipmin=vmin, clipmax=vmax)
-
+         
          #framep1.set_xlim(pxlim)
          #framep1.set_ylim([ly-1-delta,0])
          posobj1 = Positionmessage(cube.panelx_proj.skysys, fo.skyout, cube.panelx_proj.types)
@@ -10568,16 +11051,21 @@ which can store images from different data cubes.
          #flushprint("Add motion notify for panel 1 callback %d for object %d"%(id(mplimp1.regcb), id(self)))
          mplimp1.AxesCallback_ids.append(mplimp1.regcb)
          #mplimp1.data = bo dat
-         mplimp1.Image(animated=True)
+         mplimp1.Image(animated=False)
+         #mplimp1.Graticule()#pxlim=pxlim, pylim=[ly-1-delta,0])
+         
+
          #mplimp1.Image()
-         mplimp1.plot()
-         mplimp1.grat = None
+         mplimp1.plot()         
+         #mplimp1.grat = None
+         
          cube.annimp1 = mplimp1
          cube.framep1 = framep1
          if cube.panelxline:
             del cube.panelxline
-         lineprops = {'animated': True}
-         cube.panelxline = framep1.axhline(framep1.get_ybound()[0], visible=False, **lineprops)
+         lineprops = {'animated': False,'linewidth':1}
+         #cube.panelxline = framep1.axhline(framep1.get_ybound()[0], visible=False, **lineprops)
+         cube.panelxline = framep1.axhline(xmin=MINBOUND, xmax=MAXBOUND, visible=False, **lineprops)
 
 
       makeYline = False
@@ -10633,7 +11121,7 @@ which can store images from different data cubes.
          mplimp2.AxesCallback_ids.append(mplimp2.regcb)
          #flushprint("Add motion notify for panel 1 callback %d for object %d"%(id(mplimp2.regcb), id(self)))
          #mplimp2.data = boxdat
-         mplimp2.Image(animated=True)
+         mplimp2.Image(animated=False)
          mplimp2.plot()
          """      grat = mplimp2.Graticule(offsety=True, skipx=True)
                grat.set_tickmode(mode="na")
@@ -10663,14 +11151,24 @@ which can store images from different data cubes.
          cube.framep2 = framep2
          if cube.panelyline:
             del cube.panelyline
-         lineprops = {'animated': True}
-         cube.panelyline = framep2.axvline(framep1.get_xbound()[0], visible=False, **lineprops)
-
+         lineprops = {'animated': False,'linewidth':1}
+         #cube.panelyline = framep2.axvline(framep1.get_xbound()[0], visible=False, **lineprops)
+         cube.panelyline = framep2.axvline(ymin=MINBOUND, ymax=MAXBOUND, visible=False, **lineprops)
+         
       #flushprint("Frames net Na create_panel: fr p1 p2=%d %d %d"%(id(frame), id(cube.framep1), id(cube.framep2)))
       # Instead of a draw, we trigger a re-position so that all frames
       # will be adjusted to the new image frame. This saves an extra
       # call to canvas.draw().
       self.reposition(force=True)
+
+      # If there are requests to draw graticule lines in side panels
+      # then this must processed in the reposition() mode because otherwise
+      # its frame will have the wrong size.
+      """
+      grat = mplimp1.Graticule(offsetx=True, skipx=True) #, pxlim=pxlim, pylim=[ly-1-delta,0])      
+      mplimp1.grat = grat
+      grat.plot(cube.framep1)
+      """
                     
          
    def updatemovieframe(self, cb, frompanel1=False, frompanel2=False):
@@ -10874,15 +11372,104 @@ which can store images from different data cubes.
    def set_crosshair(self, status):
    #----------------------------------------------------------------------------
       """
-      This method
+      This method prepares a crosshair cursor. Note that the situation
+      with blitted images and multiple frames (Axes objects) prevents the use
+      of matplolib.widgets.Cursor
       """
    #----------------------------------------------------------------------------
       self.crosshair = status
       currentindx = self.movieimages.indx
-      #flushprint("MAPUTILS setimage in set_crosshair")
-      self.movieimages.setimage(currentindx, force_redraw=True)
+            
+      if self.crosshair:
+         #flushprint("MAPUTILS setimage in set_crosshair")
+         self.movieimages.setimage(currentindx, force_redraw=True)
+         # In setimage() there is a callback to draw the crosshair
+      else:
+         currentimage = self.movieimages.annimagelist[currentindx]
+         cnr = currentimage.cubenr
+         cube = self.cubelist[cnr]         
+         #flushprint("Not crosshair-> remove it cube.backfround=%s"%(str(cube.background)))
+         cube.linev.set_visible(False)
+         cube.lineh.set_visible(False)
+         if cube.panelXframes:
+            cube.panelxline.set_visible(False)
+            cube.framep1.draw_artist(cube.panelxline)
+         if cube.panelYframes:
+            cube.panelyline.set_visible(False)
+            cube.framep2.draw_artist(cube.panelyline)
+         self.fig.canvas.draw()      # Redraw all to be sure to get rid of the cursor lines
+         
 
 
+   def set_zprofile(self, status):
+   #----------------------------------------------------------------------------
+      """
+      This method is called from an external source
+      """
+   #----------------------------------------------------------------------------
+      self.zprofileOn = status
+      # In resposition() the frames are recalculated with a new value for
+      # the top. A top smaller than 1.0 creates space for a plot at the top.
+      
+      if self.zprofileOn:
+         left = 0  #self.colbwidth
+         width = 1.0 # 1.0 - left
+         bottom = 1.0 - self.zprofileheight
+         height = self.zprofileheight
+         # TODO: de waarde 0.9 komt terug in reposition(). Maar daar parameter van
+         self.zprofileframe = self.fig.add_axes([left, bottom, width, height], label="zprofile",
+                                        #frameon=False,  # transparency needed
+                                        autoscale_on=False,
+                                        axisbg='#D2D2D2')
+         #self.zprofileframe.set_axis_bgcolor("#D9D9D9")
+         bbox=dict(edgecolor='w', facecolor='w', alpha=0.4, boxstyle="square,pad=0.1")
+         ml = MultipleLocator(5)
+         self.zprofileframe.xaxis.set_minor_locator(ml)
+         for tick in self.zprofileframe.xaxis.get_major_ticks():
+            tick.set_pad(-10.0)
+            tick.tick1line.set_color('r')
+            #tick.tick2line.set_markeredgewidth(2)            
+            #tick.label1.set_bbox(bbox)
+         for tick in self.zprofileframe.yaxis.get_major_ticks():
+            tick.set_pad(-10.0)
+            tick.tick1line.set_color('r')
+            tick.label1.set_horizontalalignment('left')
+            #tick.label1.set_bbox(bbox)
+         #self.zprofileframe.spines['bottom'].set_color('green')
+         for t in self.zprofileframe.get_xticklabels():  # Must be 'plotted' before we can change properties
+            t.set_fontsize(8)
+         for t in self.zprofileframe.get_yticklabels():  # Must be 'plotted' before we can change properties
+            t.set_fontsize(8)
+         self.zprofileframe.grid(True)
+         #for loc, spine in self.zprofileframe.spines.items():
+             #if loc in ['left','bottom']:
+             #spine.set_position(('outward',-10)) # outward by 10 points_inside_poly
+         self.zprofileframe.clipmin = None
+         self.zprofileframe.clipmax = None
+         self.zprofileframe.cubeindx = -1
+         self.zprofileframe.changed = False
+
+         info = self.zprofileframe.text(0.99, 0.96, "Z-profile at: x,y=",
+                                       horizontalalignment='right',
+                                       verticalalignment='top',
+                                       transform=self.zprofileframe.transAxes,
+                                       fontsize=8, color='w', animated=False,
+                                       family='monospace',
+                                       bbox=dict(facecolor='red', alpha=0.5))
+         self.zprofileframe.XYinfo = info
+      else:
+         fr = self.zprofileframe
+         if fr:
+            fr.clear()
+            self.fig.delaxes(fr)
+            del fr
+         self.zprofileframe = None
+         self.zprofileXdata = None
+         self.zprofileYdata = None
+         
+      self.reposition(force=True)
+
+      
    def set_colbar_on(self, cube, mode):
     #----------------------------------------------------------------------------
       """
@@ -10900,6 +11487,21 @@ which can store images from different data cubes.
       self.reposition()                       # Rescale
        
 
+   def get_colbar_position(self):
+   #----------------------------------------------------------------------------
+      """
+      Purpose: Get position of the colorbar. This position can change if a line
+               graph is added. It will be adjusted then in method reposition()
+      """
+   #----------------------------------------------------------------------------
+      left = bottom = 0.0
+      width = self.colbwidth
+      if self.zprofileOn:
+         height = 1.0 - self.zprofileheight
+      else:
+         height = 1.0
+      return (left, bottom, width, height)
+       
 
    def new_colorbar(self, cube):
    #----------------------------------------------------------------------------
@@ -10908,7 +11510,15 @@ which can store images from different data cubes.
       """
    #----------------------------------------------------------------------------
       label = 'CB_' + str(id(cube))    # We need a unique label
-      cube.cbframe = self.fig.add_axes((0.0, 0.0,self.colbwidth,1.0),
+
+      left = bottom = 0.0
+      width = self.colbwidth
+      if self.zprofileOn:
+         height = 1.0 - self.zprofileheight
+      else:
+         height = 1.0
+     
+      cube.cbframe = self.fig.add_axes( self.get_colbar_position(),
                                         label=label,
                                         frameon=False,  # transparency needed
                                         autoscale_on=False)
@@ -11238,6 +11848,10 @@ which can store images from different data cubes.
       #------------------------------------------------------------------
       global backgroundchanged
       backgroundchanged = True
+      
+      if self.zprofileOn:
+         self.zprofileframe.changed = True
+         
       action = True #(self.numXpanels or self.numYpanels) or force
       #flushprint("\nThis is a RESIZE event. My action is %s !!!!!!!!!!!!!\n"%(str(action)))
 
@@ -11294,6 +11908,11 @@ which can store images from different data cubes.
                   gratframe.set_position(cube.frame.get_position())
                   #gratframe.set_aspect(cube.frame.get_aspect())
 
+      # Adjust colorbar (Zprofile could have been added/removed
+      for cube in self.cubelist:
+         if cube.cbframe:
+            cube.cbframe.set_position(self.get_colbar_position())
+
       """
       for cube in self.cubelist:
          if cube.cbframe:
@@ -11346,12 +11965,12 @@ which can store images from different data cubes.
    def set_splitimagenr(self, nr):
       #-------------------------------------------------------------------------
       """
-      Set image (by its number) which is used to split the current
+      Set image (by its number) which is used to split the current scrren
       """
       #-------------------------------------------------------------------------
       num = len(self.movieimages.annimagelist)
-      if nr < 0 or nr >= len:
-         raise ValueError, "This image does not exist"
+      if nr < 0 or nr >= num:
+         raise ValueError, "Image nr %d does not exist (%d<nr<%d). Reset to 0!"%(nr, 0, num)
       else:
          # First reset a possible earlier image that was used to compare
          # to the current.
@@ -11577,14 +12196,23 @@ which can store images from different data cubes.
          cubeindx = cubenr
       else:
          # Left mouse button must be pressed!
-         if not hasattr(cb, 'cubenr') or cb.event.button != 1:
+         if not hasattr(cb, 'cubenr'): #or cb.event.button != 1:
             return
          x = cb.xdata; y = cb.ydata
          cubeindx = cb.cubenr
       
       cube = self.cubelist[cubeindx]
       canvas = cube.frame.figure.canvas
+
+      currentimage = self.movieimages.annimagelist[self.movieimages.indx]
+      cnr = currentimage.cubenr
+      currentcube = self.cubelist[cnr]
       
+      if cb and cb.event.button != 1:
+         return    # Because te get panel interaction, we need to press the left button
+       
+
+                     
       xold = cube.xold
       yold = cube.yold
       #frame = cube.frame
@@ -11616,14 +12244,32 @@ which can store images from different data cubes.
          if xi > pxlim[1] or xi < pxlim[0] or yi > pylim[1] or yi < pylim[0]:
             return
 
-      currentimage = self.movieimages.annimagelist[self.movieimages.indx]
-      cnr = currentimage.cubenr
-      currentcube = self.cubelist[cnr]
+      if cube is currentcube and self.zprofileOn:
+         if not (frompanel1 or frompanel2):
+            self.plotZprofile(cube, x, y)
+         else:
+            if frompanel1:
+               self.plotZprofile(cube, x, None)
+            if frompanel2:
+               self.plotZprofile(cube, None, y)
+               
+      #currentimage = self.movieimages.annimagelist[self.movieimages.indx]
+      #cnr = currentimage.cubenr
+      #currentcube = self.cubelist[cnr]
       # Draw a crosshair
       if self.crosshair:
          # If the window is resized, we need to create new pixel buffers for the backgrounds
          for C in self.cubelist:
-            if not C.background or backgroundchanged:               
+            if not C.background or backgroundchanged:
+               if C is currentcube:
+                  if C.background:
+                     C.linev.set_visible(False)   #self.visible and self.vertOn)
+                     C.lineh.set_visible(False)
+                     C.frame.draw_artist(C.linev)
+                     C.frame.draw_artist(C.lineh)
+                     self.fig.canvas.draw() #self.fig.canvas.blit(C.frame.bbox)
+                     #flushprint("Zet background terug")
+                     #self.fig.canvas.restore_region(C.background)
                C.background = self.fig.canvas.copy_from_bbox(C.frame.bbox)
             """
             if C.panelXframes:
@@ -11637,7 +12283,8 @@ which can store images from different data cubes.
 
          # Draw new crosshair only for image/frame on display
          if cube is currentcube:
-               #flushprint("Crosshair in updatepoanels set at %f %f"%(x, y))
+               #flushprint("Cube is currnt cube")
+               #flushprint("Crosshair in updatepanels set at %f %f"%(x, y))
                if not (frompanel1 or frompanel2):
                   cube.linev.set_xdata((x,x))
                   cube.lineh.set_ydata((y,y))
@@ -11646,12 +12293,14 @@ which can store images from different data cubes.
                      cube.linev.set_xdata((x,x))
                   if frompanel2:
                      cube.lineh.set_ydata((y,y))
+                     
                cube.linev.set_visible(True)   #self.visible and self.vertOn)
                cube.lineh.set_visible(True)   #self.visible and self.horizOn)
 
                self.fig.canvas.restore_region(cube.background)
                cube.frame.draw_artist(cube.linev)
                cube.frame.draw_artist(cube.lineh)
+               #flushprint("I blit for new crosshair")
                self.fig.canvas.blit(cube.frame.bbox)               
       else:
          cube.linev.set_visible(False)
@@ -11736,7 +12385,7 @@ which can store images from different data cubes.
       #---------------------------------------------------------------
       self.biggestbox = None
       for c in self.cubelist:               # Get the position of all the frames
-         # With this if statement we assume that the x&Y panelframes are known for each cube
+         # With this if statement we assume that the X&Y panelframes are known for each cube
          if c.panelXframes or c.panelYframes:
             c.frame.apply_aspect()
             # TODO: alweer een frame_aspect? Nodig of niet?
@@ -11782,6 +12431,10 @@ which can store images from different data cubes.
             left = self.colbwidth
          else:
             left = 0.0
+         if self.zprofileOn:
+            top = 0.9
+         else:
+            top = 1.0
          if self.numXpanels or self.numYpanels:
             fig = cube.frame.figure
             figaspect = fig.get_figwidth()/fig.get_figheight()
@@ -11789,11 +12442,11 @@ which can store images from different data cubes.
             H_horz = H_vert/figaspect
             right = 1.0-0.2/figaspect
             bottom = 0.0+H_vert
-            top=1.0
+            #top=1.0
          else:
             right = 1.0
             bottom = 0.0
-            top = 1.0
+            #top = 1.0
          cube.scalefac = None
       else:
          cube.scalefac = scalefac
@@ -11846,7 +12499,8 @@ which can store images from different data cubes.
       cube = cb.cube
       cnr = cube.cnr
       fig = cube.frame.figure
-
+      zprofileOn = cb.zprofileOn
+      
       oldim = self.lastimage  # We need to remove the last displayed image
       
       #self.movieimages.movie_events(allow=False)
@@ -11863,11 +12517,15 @@ which can store images from different data cubes.
             self.clearimage(oldim)
          # We want image to fill as much space as possible. Set this only
          # once (i==0, cnr==0)
-         if cnr == 0:
+         if 1: # TODO: Moet dit? : cnr == 0:
             # Re-position frame to fill the available space. Do not use method
             # frame.set_position() because that will not update the subplot
             # configuration values like 'left', 'right', etc.
-            fig.subplots_adjust(left=self.colbwidth, right=1.0, bottom=0.0, top=1.0)
+            if zprofileOn:
+               top = 0.9
+            else:
+               top = 1.0
+            fig.subplots_adjust(left=self.colbwidth, right=1.0, bottom=0.0, top=top)
             
       
       # A message for the terminal
@@ -11889,7 +12547,7 @@ which can store images from different data cubes.
                                           clipmode=cube.clipmode, clipmn=cube.clipmn,
                                           callbackslist=cube.callbackslist)
       # Prepare for blitting 
-      mplim.Image(animated=True, alpha=1.0)                
+      mplim.Image(animated=False, alpha=1.0)
       mplim.plot()
 
       # We add two attributes that are necessary to restore graticules
@@ -11965,7 +12623,7 @@ which can store images from different data cubes.
          cb.deschedule()
          # The use of the timerlist is to support loading multiple cubes
          # The loading process is appended to the previous and will not
-         # interfere with the current loading process. Here we check whether
+         # interfere with the current loading process.
          # 
          self.timerlist.pop(0)    # Get next element until there is nothing more
          if self.timerlist:
@@ -11992,6 +12650,7 @@ which can store images from different data cubes.
             self.movieimages.setimage(cube.movieframeoffset)
             self.movieimages.movie_events(allow=True)
             cube.callback('finished')            # Callback from calling environment to finish up
+            
          if self.progressbar:
             self.progressbar.reset()                          # Reset bar
          
@@ -12012,7 +12671,7 @@ which can store images from different data cubes.
       """
       #-------------------------------------------------------------------------
       for cube in self.cubelist:
-         if cube.nummovieframes > 1:
+         if cube.nummovieframes >= 1:
             cube.panelscb = AxesCallback(self.updatepanels,
                                          cube.frame,
                                         'motion_notify_event',
@@ -12039,7 +12698,7 @@ which can store images from different data cubes.
          if cube.panelscb is not None:
             cube.panelscb.schedule()         
          else:
-            if cube.nummovieframes > 1:
+            if cube.nummovieframes >= 1:
                cube.panelscb = AxesCallback(self.updatepanels,
                                             cube.frame,
                                            'motion_notify_event',

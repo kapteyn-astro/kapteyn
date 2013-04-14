@@ -30,6 +30,21 @@ This module defines a class for drawing rulers.
 import numpy
 from kapteyn.positions import str2pos, unitfactor
 
+def isinside(x, y, pxlim, pylim):
+   if pxlim[0] <= pxlim[1]:
+      if x < pxlim[0]-0.5 or x > pxlim[1]+0.5:
+         return False
+   else:
+      if x < pxlim[1]-0.5 or x > pxlim[0]+0.5:
+         return False
+   if pylim[0] <= pylim[1]:
+      if y < pylim[0]-0.5 or y > pylim[1]+0.5:
+         return False
+   else:
+      if y < pylim[1]-0.5 or y > pylim[0]+0.5:
+         return False
+   return True
+
 
 def dispcoord(longitude, latitude, disp, direction, angle):
    #--------------------------------------------------------------------
@@ -219,6 +234,10 @@ class Ruler(object):
 
    :type mscale:         Floating point number
 
+   :param gridmode:      If True, correct pixel position for CRPIX to
+                         get grid coordinates where the pixel at CRPIX is 0
+   :type gridmode:       Boolean
+
    :param `**kwargs`:    Set keyword arguments for the labels.
                          The attributes for the ruler labels are set with these keyword arguments.
    :type `**kwargs`:     Matplotlib keyword argument(s)
@@ -284,7 +303,7 @@ class Ruler(object):
                 x1=None, y1=None, x2=None, y2=None, lambda0=0.5, step=None,
                 world=False, angle=None, addangle=0.0,
                 fmt=None, fun=None, units=None, fliplabelside=False, mscale=None,
-                labelsintex=True, **kwargs):
+                labelsintex=True, gridmode=False, **kwargs):
       self.ptype = "Ruler"
       self.x1 = None
       self.y1 = None
@@ -308,6 +327,7 @@ class Ruler(object):
       self.kwargs.update(kwargs)    # These are the kwargs for the labels
       self.aspectratio = aspectratio
       self.rulertitle = None
+      self.gridmode = gridmode
       
       # Recipe:
       # Are the start and endpoint in world coordinates or pixels?
@@ -476,7 +496,7 @@ class Ruler(object):
          
    
       if not pos1 is None:
-         poswp = str2pos(pos1, projection, mixpix=mixpix)
+         poswp = str2pos(pos1, projection, mixpix=mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
             raise Exception, poswp[3]
          # The result of the position parsing of str2pos is stored in 'poswp'
@@ -496,7 +516,7 @@ class Ruler(object):
             x1, y1 = topixel2(x1, y1)
    
       if not pos2 is None:
-         poswp = str2pos(pos2, projection, mixpix=mixpix)
+         poswp = str2pos(pos2, projection, mixpix=mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
             raise Exception, poswp[3]
          pix =  poswp[1][0]
@@ -595,10 +615,13 @@ class Ruler(object):
       elif fmt is None:          # A function but not a format. Then a default format
          fmt = '%g'
       # Check whether the start- and end point of the ruler are inside the frame
-      start_in = (pxlim[0]-0.5 <= x1 <= pxlim[1]+0.5) and (pylim[0]-0.5 <= y1 <= pylim[1]+0.5)
+      start_in = isinside(x1, y1, pxlim, pylim)
+      #start_in = (pxlim[0]-0.5 <= x1 <= pxlim[1]+0.5) and (pylim[0]-0.5 <= y1 <= pylim[1]+0.5)
       if not start_in:
          raise Exception, "Start point of ruler not in pixel limits!"
-      end_in = (pxlim[0]-0.5 <= x2 <= pxlim[1]+0.5) and (pylim[0]-0.5 <= y2 <= pylim[1]+0.5)
+
+      end_in = isinside(x2, y2, pxlim, pylim)
+      #end_in = (pxlim[0]-0.5 <= x2 <= pxlim[1]+0.5) and (pylim[0]-0.5 <= y2 <= pylim[1]+0.5)
       if not end_in:
          raise Exception, "End point of ruler not in pixel limits!"
    

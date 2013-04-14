@@ -2084,7 +2084,10 @@ def str2pos(postxt, subproj, mixpix=None, gridmode=False):
                     spatial axis to be able to convert between
                     world- and pixel coordinates.
    :type mixpix:    Float
-
+   :param gridmode: If True, correct pixel position for CRPIX to
+                    get grid coordinates where the pixel at CRPIX is 0
+   :type gridmode:  Boolean
+   
    
    :Returns:
 
