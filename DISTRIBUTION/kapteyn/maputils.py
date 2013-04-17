@@ -3049,7 +3049,7 @@ this class.
    blankcols_default = 0
 
    # Class variables for scaling the colormap
-   slopetrans = 4.0   # Scale mouse value between 0 and 1 to colormap slope
+   slopetrans = 89.0  # Scale mouse value to value between 0 and 89 degrees and to colormap slope
    shifttrans = 0.5   # Translate mouse value between 0 and 1 to -0.5, 0.5
    
    def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, wcstypes,
@@ -5244,8 +5244,9 @@ this class.
          self.image.xyn_mouse = self.frame.transAxes.inverted().transform(xy)
          x , y = self.image.xyn_mouse
          slope = Annotatedimage.slopetrans * x   # i.e. at center: slope=0.5*slopetrans
+         sloperads = numpy.tan(numpy.radians(slope))
          offset = y - Annotatedimage.shifttrans  # i.e. at center: offset=0-shifttrans
-         self.cmap.modify(slope, offset)
+         self.cmap.modify(sloperads, offset)
          self.callback('slope', slope)
          self.callback('offset', offset)
 
@@ -5343,7 +5344,7 @@ this class.
          self.callback('lut', self.cmindx)
          self.callback('inverse', False)
          self.callback('scale', scales_default)
-         self.callback('slope', 1.0)
+         self.callback('slope', 45.0)   # i.e. 45 degrees
          self.callback('offset', 0.0)
          self.callback('blankcol', 0)
          """
@@ -5472,7 +5473,7 @@ this class.
       (i.e. between 0 and 1) called (xn, yn).
       These values are used to set the slope and offset for a function that
       sets an color for an image value according to the relations:
-      ``slope = 2.0 * xn; offset = yn - 0.5``.
+      ``slope = tan(89 * xn); offset = yn - 0.5``.
       The minimum and maximum values of the image are set by parameters
       *clipmin* and *clipmax*. For a mouse position exactly in the center
       (xn,yn) = (0.5,0.5) the slope is 1.0 and the offset is 0.0 and the
