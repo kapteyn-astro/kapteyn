@@ -201,7 +201,18 @@ Harvard University (Faculty of Arts and Sciences) @ 140.247.231.87
 University of Nevada, Las Vegas @ 131.216.14.38
 RWTH Aachen University @ 134.130.13.112
 Keldysh Institute of Applied Mathematics, Moscow @ 194.226.59.214
+Kernfysisch Versneller Instituut (KVI) @ 129.125.37.110
+Taiwan Academic Network @ 140.114.94.105
+Nan Jing University @ 114.212.245.205
+MIT Plasma Science and Fusion Center @ 198.125.181.195
+LFK-Lenkflugkoerpersysteme GmbH @ 193.106.140.10
+Universita' degli Studi di Padova - Dipartimento di Astronomia @ 147.162.106.221
+Peking University @ 162.105.198.233
+Lawrence Livermore National Laboratory @ 128.15.244.188
+Sykehuspartner @ 91.186.70.229
+Korea Astronomy Observatory @ 203.253.237.203
 
-tot: Tue Apr  9 16:32:23 CEST 2013
-Thu Mar 14 11:00:00 CET 2013
+tot: Wed May  1 13:16:24 CEST 2013
+Tue Apr  9 16:32:23 CEST 2013
+
 
