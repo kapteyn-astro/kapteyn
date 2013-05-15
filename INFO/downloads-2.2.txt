@@ -211,8 +211,11 @@ Peking University @ 162.105.198.233
 Lawrence Livermore National Laboratory @ 128.15.244.188
 Sykehuspartner @ 91.186.70.229
 Korea Astronomy Observatory @ 203.253.237.203
+Institute of Physics, Academy of Sciences of the Czech Republic @ 147.231.26.31
+University of Washington - Astronomy Department @ 128.208.190.80
+North Carolina State University (Engineering) @ 152.1.56.78
 
-tot: Wed May  1 13:16:24 CEST 2013
-Tue Apr  9 16:32:23 CEST 2013
+tot: Wed May 15 12:40:00 CEST 2013
+Wed May  1 13:16:24 CEST 2013
 
 
