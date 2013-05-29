@@ -510,7 +510,7 @@ are available to the user:
    property params:
       def __get__(self):
          cdef npy_intp* shape = [self.npar]
-         value = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, self.xall)
+         value = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, self.xall).copy()
          if self.params_t is not None:
             return self.params_t(value)
          else:
@@ -658,21 +658,21 @@ are available to the user:
       def __get__(self):
          cdef npy_intp* shape = [self.npar, self.npar]
          value = PyArray_SimpleNewFromData(2, shape, NPY_DOUBLE,
-                                           self.result.covar)
+                                           self.result.covar).copy()
          return numpy.matrix(value)
 
    property resid:
       def __get__(self):
          cdef npy_intp* shape = [self.m]
          value = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE,
-                                           self.result.resid)
+                                           self.result.resid).copy()
          return value
  
    property xerror:
       def __get__(self):
          cdef npy_intp* shape = [self.npar]
          value = PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE,
-                                           self.result.xerror)
+                                           self.result.xerror).copy()
          return value
 
    property dof:
