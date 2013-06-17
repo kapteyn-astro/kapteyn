@@ -214,8 +214,22 @@ Korea Astronomy Observatory @ 203.253.237.203
 Institute of Physics, Academy of Sciences of the Czech Republic @ 147.231.26.31
 University of Washington - Astronomy Department @ 128.208.190.80
 North Carolina State University (Engineering) @ 152.1.56.78
+Katholieke Universiteit Leuven @ 134.58.253.57
+Jozef Stefan Institute, Slovenia @ 212.235.211.53
+Yonsei University, Korea @ 165.132.36.104
+INAF - Istituto Nazionale di Astrofisica @ 192.167.166.56
+University of Waterloo @ 129.97.73.229
+High Energy Physics Group GAE, Universidad Complutense de Madrid @ 147.96.10.40
+The Indiana University Astronomy Department @ 129.79.160.91
+Swinburne University of Technology @ 136.186.6.229
+Universidad Autonoma del Estado de Hidalgo (Mexico) @ 200.57.56.183
+NIKHEF @ 192.16.199.203
+Fundacio Institut Catala de Ciencies del Clima (IC3) (Spain) @ 84.88.65.192
+University of British Columbia @ 128.189.83.164
+Hamburger Sternwarte (Universitaet Hamburg) @ 134.100.120.166
+L'Istituto Nazionale Assistenza Trasporti (Italy) @ 194.119.212.3
 
-tot: Wed May 15 12:40:00 CEST 2013
-Wed May  1 13:16:24 CEST 2013
+tot: Mon Jun 17 12:10:00 CEST 2013
+Fri May 31 11:25:00 CEST 2013
 
 
