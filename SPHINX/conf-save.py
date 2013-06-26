@@ -30,36 +30,13 @@ from kapteyn import __version__ as kapteynversion
 print 'Kapteyn Package version', kapteynversion
 
 # =============================================================================
-# -- Options to choose from ---------------------------------------------------
-# =============================================================================
-
-# -- renderer for mathematical formulas:
-#
-math_ext = 'sphinx.ext.mathjax'          # MathJax (JavaCript-based)
-   # explicit Kapteyn webserver
-#   mathjax_path = 'http://www.astro.rug.nl/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
-   # CDN server:
-#   mathjax_path = 'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
-if math_ext=='sphinx.ext.mathjax':
-   # same server:
-   mathjax_path = '/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
-
-#math_ext = 'sphinx.ext.pngmath'         # PNG images
-
-# -- plot directive script:
-#
-#plot_ext = 'matplotlib.sphinxext.plot_directive'  # 'official'
-plot_ext = 'plot_directive'                       # local
-
-
-# =============================================================================
 # -- General configuration ----------------------------------------------------
 # =============================================================================
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', math_ext, 'sphinx.ext.ifconfig',
-              plot_ext, 'only_directives']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.pngmath', 'sphinx.ext.ifconfig',
+              'matplotlib.sphinxext.plot_directive', 'only_directives']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -286,9 +263,9 @@ plot_formats = [('png', 80), ('hires.png', 200), ('pdf', 50)]
 #   it is better to change settings in this configuration file.
 #
 from docutils.parsers.rst import directives
-###from docutils.parsers.rst.directives.images import Image
-###from matplotlib.sphinxext import plot_directive
-###import matplotlib
+from docutils.parsers.rst.directives.images import Image
+from matplotlib.sphinxext import plot_directive
+import matplotlib
 def my_align(arg):
    return directives.choice(arg,Image.align_values)
 def my_clear_state(plot_rcparams):
@@ -296,8 +273,8 @@ def my_clear_state(plot_rcparams):
    matplotlib.rcdefaults()
    # Set a figure size that doesn't overflow typical browser windows:
    matplotlib.rcParams['figure.figsize'] = (5.5, 4.5)
-###plot_directive.align = my_align
-###plot_directive.clear_state = my_clear_state
+plot_directive.align = my_align
+plot_directive.clear_state = my_clear_state
 
 # Introduce 'author' directive
 #
