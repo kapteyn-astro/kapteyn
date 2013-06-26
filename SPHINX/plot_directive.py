@@ -528,10 +528,12 @@ def run_code(code, code_path, ns=None, function_name=None):
         sys.stdout = stdout
     return ns
 
+# clear_state() modified to explicit figsize
+#
 def clear_state(plot_rcparams):
     plt.close('all')
-    matplotlib.rc_file_defaults()
-    matplotlib.rcParams.update(plot_rcparams)
+    matplotlib.rcdefaults()
+    matplotlib.rcParams['figure.figsize'] = (5.5, 4.5)
 
 def render_figures(code, code_path, output_dir, output_base, context,
                    function_name, config):
