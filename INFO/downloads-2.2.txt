@@ -228,8 +228,17 @@ Fundacio Institut Catala de Ciencies del Clima (IC3) (Spain) @ 84.88.65.192
 University of British Columbia @ 128.189.83.164
 Hamburger Sternwarte (Universitaet Hamburg) @ 134.100.120.166
 L'Istituto Nazionale Assistenza Trasporti (Italy) @ 194.119.212.3
+RIKEN, Japan @ 134.160.35.138
+Macalester College @ 141.140.82.89
+Natural Environment Research Council (UK) @ 192.171.144.126
+Michelin Manufacture Francaise @ 141.194.8.62
+University of Copenhagen / Koebenhavns Universitet @ 130.225.238.2
+St.Petersburg State University @ 195.19.250.180
+Universite de Strasbourg @ 130.79.129.35
+Macquarie University @ 137.111.13.46
+Comision Nacional de Actividades Espaciales (Argentina) @ 200.16.81.218
 
-tot: Mon Jun 17 12:10:00 CEST 2013
-Fri May 31 11:25:00 CEST 2013
+tot: Thu Jul  4 20:00:00 CEST 2013
+Mon Jun 17 12:10:00 CEST 2013
 
 
