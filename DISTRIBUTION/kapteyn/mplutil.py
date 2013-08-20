@@ -844,7 +844,7 @@ These steps take place at 0.1 second intervals.
    def __new__(cls, *args, **kwds):
       backend = rcParams['backend'].upper()
       if backend in TimeCallback.supported:
-         return object.__new__(TimeCallback.supported[backend], *args, **kwds)
+         return object.__new__(TimeCallback.supported[backend])
       else:
          raise Exception, 'TimeCallback not supported for backend %s' % backend
 
