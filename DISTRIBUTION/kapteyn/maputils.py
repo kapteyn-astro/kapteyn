@@ -9,7 +9,9 @@
 # DATE:    April 17, 2008
 # UPDATE:  May 17, 2008
 #          June 30, 2009; Docstrings converted to Sphinx format
-# VERSION: 1.11
+#          August 19, 2013; version 1.12. support for Visions interactive
+#                           image display.
+# VERSION: 1.12
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -260,6 +262,12 @@ backend = rcParams['backend'].upper()
 #rcParams['savefig.format'] = 'pdf'
 
 
+# Check version of Matplotlib because from version 1.2.0 the nxutils
+# module is no longer available.
+# TODO: Check new functionality with 'path' 
+from matplotlib import __version__ as mplversion
+mploldversion = mplversion < '1.2.0'
+
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
 from matplotlib.pyplot import figure, show
 from matplotlib import cm
@@ -273,7 +281,10 @@ from matplotlib.image import AxesImage
 from matplotlib.cbook import report_memory
 from matplotlib.widgets import Cursor
 import matplotlib.axes as axesclass
-import matplotlib.nxutils as nxutils
+if mploldversion:
+   import matplotlib.nxutils as nxutils
+else:
+   import matplotlib.path as path
 import pyfits
 import numpy
 from kapteyn import wcs, wcsgrat
@@ -561,13 +572,13 @@ def getscale(hdr):
    bzero = None
    blank = None
    bitpix = None
-   if hdr.has_key('BITPIX'):
+   if 'BITPIX' in hdr:
       bitpix = hdr['BITPIX']   # Exist always for PyFITS header, but not for dict.
-   if hdr.has_key('BSCALE'):
+   if 'BSCALE' in hdr:
       bscale = hdr['BSCALE'] 
-   if hdr.has_key('BZERO'):
+   if 'BZERO' in hdr:
       bzero = hdr['BZERO']
-   if hdr.has_key('BLANK'):
+   if 'BLANK' in hdr:
       blank = hdr['BLANK']
    return bitpix, bzero, bscale, blank
 
@@ -992,7 +1003,7 @@ class Colmaplist(object):
    def add(self, clist):
       if not issequence(clist):
          clist = [clist]
-      # Just ad and sort afterwards:
+      # Just add and sort afterwards:
       self.colormaps += clist
       #for c in clist[::-1]:
       #   self.colormaps.insert(0,c)
@@ -1293,7 +1304,7 @@ the alternate header.
       hdr = hdulist[hnr].header
       for a in letters[:26]:
          k = "CRPIX1%c" % a.upper()  # To be sure that it is uppercase
-         if hdr.has_key(k):
+         if k in hdr:
             print "Found alternate header:", a.upper()
             alternates.append(a)
    
@@ -1815,8 +1826,9 @@ class Contours(object):
       self.labs = None                           # Label objects from method clabel() 
       self.filled = filled                       # Do we require filled contours?
       # Prevent exception for the contour colors
-      if self.kwargs.has_key('colors'):          # One of them (colors or cmap) must be None!
-         self.cmap = None                        # Given colors overrule the colormap
+      if 'colors' in self.kwargs:                # One of them (colors or cmap) must be None!
+         if self.kwargs['colors'] is not None:
+            self.cmap = None                     # Given colors overrule the colormap
       self.negative = negative
 
 
@@ -1933,7 +1945,7 @@ class Contours(object):
       >>> cont2.setp_label(fontsize=10, fmt="%g \lambda")
       """
       #--------------------------------------------------------------------
-      if tex and kwargs.has_key('fmt'):
+      if tex and ('fmt' in kwargs):
          kwargs['fmt'] = r'$'+kwargs['fmt']+'$'
       if levels is None:
          self.commonlabelkwargs = kwargs
@@ -2054,7 +2066,7 @@ class Colorbar(object):
 
       if self.plotcontourlines and self.contourset != None:
          CS = self.contourset.CS
-         if not self.kwargs.has_key("ticks"):
+         if not ('ticks' in self.kwargs):
             self.kwargs["ticks"] = CS.levels
          # Copy the line widhts. Note that this is a piece of code
          # that assumes certain behaviour from the attributes in a
@@ -3044,8 +3056,8 @@ this class.
    lutscales = ['linear', 'log', 'exp', 'sqrt', 'square']
    scalekeys = {'1': 0, '2': 1, '3': 2, '4': 3, '5': 4}
    scales_default = 0
-   blankcols = ['w', 'k', 'y', 'm', 'c', 'r', 'g', 'b']
-   blanknames = ['White', 'Black', 'Yellow', 'Magenta', 'Cyan', 'Red', 'Green', 'Blue']
+   blankcols = ['c', 'w', 'k', 'y', 'm', 'r', 'g', 'b']
+   blanknames = ['Cyan', 'White', 'Black', 'Yellow', 'Magenta', 'Red', 'Green', 'Blue']
    blankcols_default = 0
 
    # Class variables for scaling the colormap
@@ -3055,7 +3067,8 @@ this class.
    def __init__(self, frame, header, pxlim, pylim, imdata, projection, axperm, wcstypes,
                 skyout, spectrans, alter='',
                 mixpix=None,  aspect=1, slicepos=None, sliceaxnames=None, basename=None,
-                cmap=None, blankcolor='w', clipmin=None, clipmax=None, boxdat=None,
+                cmap=None, blankcolor=blankcols[blankcols_default],
+                clipmin=None, clipmax=None, boxdat=None,
                 sourcename='unknownsource', gridmode=False, 
                 adjustable='box', anchor='C', newaspect=None, clipmode=0, clipmn=(4,5),
                 callbackslist={}):
@@ -3114,7 +3127,7 @@ this class.
       self.toolbarkey = None
       # Keys of class dictionary with callbacks are: slope, offset, ...
       self.callbackslist = callbackslist
-      if callbackslist.has_key('exmes'):
+      if 'exmes' in callbackslist:
          self.externalmessenger = callbackslist['exmes']
       else:
          self.externalmessenger = None
@@ -3129,7 +3142,7 @@ this class.
       # stores the last message function (the messenger).
       global globalfigmanager, globalmessenger
       if not (self.figmanager is globalfigmanager):
-         try: # Sphinx does something with the figure manager, so we need a try
+         try: # Sphinx does something with the figure manager, so we need a try/except
             globalfigmanager = self.figmanager
             if not self.externalmessenger is None:
                globalmessenger = self.externalmessenger
@@ -3245,6 +3258,16 @@ this class.
       self.splitcb  = None  # Callback id of split method
       self.cbframe = None   # Frame of associated color bar
       self.composed_slicemessage = '' # Each im. can have its own info about its slice
+      self.grat = None
+      
+      # Image can be extended with contours
+      self.clevels = []
+      self.contourSet = None
+      self.contours_on = False
+      self.contours_changed = False
+      self.contours_cmap = None
+      self.contours_colours = 'r'
+      self.backgroundImageNr = None
       
 
    def callback(self, cbid, *arg):
@@ -3253,7 +3276,7 @@ this class.
       Helper function for registered callbacks
       """
       #-----------------------------------------------------------------
-      if self.callbackslist.has_key(cbid):
+      if cbid in self.callbackslist:
          self.callbackslist[cbid](*arg)
 
 
@@ -3875,7 +3898,9 @@ this class.
       # are not visible if the colormaps are the same.
       if cmap is None and colors is None:
          colors=['r']
-      
+      if cmap and colors:
+         # Both are defined, we must make a choice
+         cmap = None
       contourset = Contours(self.data, self.box, levels, cmap=cmap, norm=self.norm, colors=colors, **kwargs)
       self.objlist.append(contourset)
       self.contourset = contourset
@@ -4114,7 +4139,7 @@ this class.
       wylim = graticule.wylim
       # Separate the kwargs to be able to set just one of them
       # to invisible (partsx/y is None)
-      if not kwargs.has_key('markersize'):
+      if not ('markersize' in kwargs):
          kwargs.update(markersize=2)
       kwargs1 = kwargs.copy()
       kwargs2 = kwargs.copy()
@@ -5806,7 +5831,11 @@ this class.
       x, y = numpy.meshgrid(X, Y)
       pos = zip(x.flatten(), y.flatten())
       pos = numpy.asarray(pos)
-      mask = nxutils.points_inside_poly(pos, poly)
+      if mploldversion:
+         mask = nxutils.points_inside_poly(pos, poly)
+      else:
+         polypath = path.Path(xy)
+         mask = polypath.contains_points(pos)
 
       # Get indices for positions inside shape using mask
       i = numpy.arange(len(pos), dtype='int')
@@ -5888,7 +5917,7 @@ in a FITS keyword.
       self.ctype = 'Unknown'
       self.axname = 'Unknown'
       self.axext = ''
-      if hdr.has_key(ax):
+      if ax in hdr:
          self.ctype = hdr[ax].upper()
          info = hdr[ax].split('-')
          self.axname = info[0].upper()
@@ -5924,7 +5953,7 @@ in a FITS keyword.
                            'ZPN':'Zenithal polynomial projection'}
             self.axext = ext
             #flushprint("ext, haskey=%s %s"%(ext, str(extlist.has_key(ext))))
-            if extlist.has_key(ext):
+            if ext in extlist:
                self.axext += ' (' + extlist[ext] +')'
       else:
          self.ctype = "X%d"%axisnr
@@ -5937,28 +5966,28 @@ in a FITS keyword.
       self.axend = self.axlen
 
       ai = makekey("CDELT")
-      if hdr.has_key(ai):
+      if ai in hdr:
          self.cdelt = hdr[ai]
       else:
          self.cdelt = 1.0
       ai = makekey("CRVAL")
-      if hdr.has_key(ai):
+      if ai in hdr:
          self.crval = hdr[ai]
       else:
          self.crval = 1.0
       ai = makekey("CUNIT")          # Is sometimes omitted, so check first.
-      if hdr.has_key(ai):
+      if ai in hdr:
          self.cunit = hdr[ai]
       else:
          self.unit = '?'
       ai = makekey("CRPIX")
-      if hdr.has_key(ai):
+      if ai in hdr:
          self.crpix = hdr[ai]
       else:
          self.crpix = self.axlen/2
       ai = makekey("CROTA")          # Not for all axes
       self.crota = 0
-      if hdr.has_key(ai):
+      if ai in hdr:
          self.crota = hdr[ai]
 
       self.wcstype = None
@@ -7668,13 +7697,13 @@ to know the properties of the FITS data beforehand.
          cdeltlat = None
          crota = None
          key = "CDELT%d" % lonaxnum
-         if hdr.has_key(key):
+         if key in hdr:
             cdeltlon = hdr[key]
          key = "CDELT%d" % lataxnum
-         if hdr.has_key(key):
+         if key in hdr:
             cdeltlat = hdr[key]
          key = "CROTA%d" % lataxnum
-         if hdr.has_key(key):
+         if key in hdr:
             crota = hdr[key]
          cd11 = cd12 = cd21 = cd22 = None
          CD = [0.0]*4   # Unspecified elements default to 0.0 G+C paper I 
@@ -7683,7 +7712,7 @@ to know the properties of the FITS data beforehand.
          for i in [lonaxnum, lataxnum]:
             for j in [lonaxnum, lataxnum]:
                key = "CD%d_%d" % (i, j)
-               if hdr.has_key(key):
+               if key in hdr:
                   CD[k] = hdr[key]
                   del hdr[key]
                   hdrchanged.append(key)
@@ -7693,7 +7722,7 @@ to know the properties of the FITS data beforehand.
 
          # Clean up CROTA's, often there are more than one in the same header
          key = "CROTA%d" % (lonaxnum)
-         if hdr.has_key(key):
+         if key in hdr:
             del hdr[key]
 
          pcmatrix = False
@@ -7707,7 +7736,7 @@ to know the properties of the FITS data beforehand.
                else:
                   PC[k] = 0.0
                key = "PC%d_%d" % (i, j)
-               if hdr.has_key(key):
+               if key in hdr:
                   PC[k] = hdr[key]
                   del hdr[key]
                   hdrchanged.append(key)
@@ -7727,7 +7756,7 @@ to know the properties of the FITS data beforehand.
                   else:
                      PCold[k] = 0.0
                   key = "PC%03d%03d" % (i, j)    # Like 001, 002
-                  if hdr.has_key(key):
+                  if key in hdr:
                      PCold[k] = hdr[key]
                      del hdr[key]
                      hdrchanged.append(key)
@@ -7834,9 +7863,9 @@ to know the properties of the FITS data beforehand.
             axnum = k + 1
             key = "CDELT%d" % axnum
             if not spatial or (spatial and axnum != lonaxnum and axnum != lataxnum):
-               if not hdr.has_key(key):
+               if not (key in hdr):
                   key_cd = "CD%d_%d"%(axnum, axnum)  # Diagonal elements only!
-                  if hdr.has_key(key_cd):
+                  if key_cd in hdr:
                      newval = hdr[key_cd] 
                   else:
                      # We have a problem. For this axis there is no CDELT
@@ -7858,7 +7887,7 @@ to know the properties of the FITS data beforehand.
              axi = i + 1; axj = j + 1
              keys = ["CD%d_%d"%(axi, axj), "PC%d_%d"%(axi, axj), "PC%03d%03d"%(axi, axj)]
              for key in keys:
-                if hdr.has_key(key):
+                if key in hdr:
                    del hdr[key]
                    hdrchanged.append(key)
 
@@ -7866,7 +7895,7 @@ to know the properties of the FITS data beforehand.
       ekeys = ["XTENSION", "EXTNAME", "EXTEND"]
       # Possibly EXTEND will be re-inserted when writing the FITS file
       for key in ekeys:
-         if hdr.has_key(key):
+         if key in hdr:
             del hdr[key]
 
       return hdr, skew, hdrchanged
@@ -8215,7 +8244,7 @@ to know the properties of the FITS data beforehand.
          repheader, skew, hdrchanged = self.header2classic()
          # Look for the right CROTA (associated with latitude)
          key = "CROTA%d"%self.proj.lataxnum
-         if repheader.has_key(key):
+         if key in repheader:
             crotanew = repheader[key] + rotation     # Rotation of latitude axis + user rot.
             repheader[key] = crotanew
          else:
@@ -8364,7 +8393,7 @@ to know the properties of the FITS data beforehand.
          # structure but available in the input header.
          key1 = "CD%d_%d" % (p1.lonaxnum, p1.lonaxnum)
          key2 = "CD%d_%d" % (axnum_out[0], axnum_out[0])
-         if newheader.has_key(key1) and not newheader.has_key(key2):
+         if key1 in newheader and not (key2 in newheader):
             # Obviously there is a CD matrix in the input header
             # for the spatial axes, but these elements are not available
             # for the other axes in the current header
@@ -8375,9 +8404,9 @@ to know the properties of the FITS data beforehand.
 
       # Process the dictionary for the interpolation options
       if interpol_dict != None:
-         if not interpol_dict.has_key('order'):
+         if not ('order' in interpol_dict):
             interpol_dict['order'] = 1
-         if not interpol_dict.has_key('cval'):
+         if not ('cval' in interpol_dict):
             interpol_dict['cval'] = numpy.NaN
       else:
          interpol_dict = {}
@@ -8437,8 +8466,8 @@ to know the properties of the FITS data beforehand.
                   g2 = g - plimLO[nout] + 1
                   slnew.append(slice(g2-1, g2))
                   nout -= 1
-            print "slice=", sl
-            print self.dat.min(), self.dat.max()
+            #print "slice=", sl
+            #print self.dat.min(), self.dat.max()
             boxdat = self.dat[sl].squeeze()
             boxdatnew = newdata[slnew].squeeze()
             # Find (interpolate) the data in the source map at the positions
@@ -8523,22 +8552,22 @@ to know the properties of the FITS data beforehand.
       for k in wcskeys:
          for ax in (lon1, lat1):
             key1 = '%s%d'%(k,ax)
-            if newheader.has_key(key1):
+            if key1 in newheader:
                del newheader[key1]
       for k in wcskeys:
          for ax in ((lon1,lon2), (lat1,lat2)):
             key1 = '%s%d'%(k,ax[0])
             key2 = '%s%d'%(k,ax[1])
-            if repheader.has_key(key2):
+            if key2 in repheader:
                newheader[key1] = repheader[key2]
 
       # Process lonpole and latpole keywords
       wcskeys = ['LONPOLE', 'LATPOLE', 'EQUINOX', 'EPOCH', 'RADESYS', 'MJD-OBS', 'DATE-OBS']
       for key in wcskeys:
-         if repheader.has_key(key):
+         if key in repheader:
             newheader[key] = repheader[key]
          else:
-            if newheader.has_key(key):
+            if key in newheader:
                del newheader[key]
 
       # Process PV and other i_j elements in the input header
@@ -8584,12 +8613,12 @@ to know the properties of the FITS data beforehand.
       if cdmatrix:
          for i in axnum_out:
             newkey = "CD%d_%d"%(i,i)
-            if not newheader.has_key(newkey):
+            if not (newkey in newheader):
                # We changed to CD formalism, but the base header
                # does not have a CD element for the non spatial axes.
                # So we contruct one using the CDELT.
                cdeltkey = "CDELT%d"%i
-               if newheader.has_key(cdeltkey):
+               if cdeltkey in newheader:
                   cdelt = newheader[cdeltkey]
                else:
                   cdelt = 1.0
@@ -8597,7 +8626,7 @@ to know the properties of the FITS data beforehand.
       elif pcmatrix:
          for i in axnum_out:
             newkey = "PC%d_%d"%(i,i)
-            if not newheader.has_key(newkey):
+            if not (newkey in newheader):
                # We changed to CD formalism, but the base header
                # does not have a CD element for the non spatial axes.
                # So we contruct one using the CDELT.
@@ -8607,7 +8636,7 @@ to know the properties of the FITS data beforehand.
       for i in [1, naxis]:
          for j in [1, naxis]:
             key = "PC%03d%03d" % (i, j)
-            if newheader.has_key(key):
+            if key in newheader:
                del newheader[key]
 
       # If 'insert header' has pc elements then copy them. If a cd
@@ -8795,7 +8824,7 @@ to know the properties of the FITS data beforehand.
          # corresponds to BITPIX=-32. Then there should be no
          # keyword BLANK in the header, because these numbers
          # are identified by NaN's.
-         if hdu.header.has_key('BLANK'): 
+         if 'BLANK' in hdu.header:
             del hdu.header['BLANK']
 
       if append:
@@ -8873,7 +8902,7 @@ to know the properties of the FITS data beforehand.
       """
    #---------------------------------------------------------------------
       ar = self.get_pixelaspectratio()
-      if not kwargs.has_key('basename'):      
+      if not ('basename' in kwargs):      
          basename = self.filename.rsplit('.')[0]
          kwargs['basename'] = basename      # Append because it must be available
       else:
@@ -9082,7 +9111,7 @@ Usually one creates a movie container with class class:`Cubes`
       Helper function for registered callbacks
       """
       #-----------------------------------------------------------------
-      if self.callbackslist.has_key(cbid):
+      if cbid in self.callbackslist:
          self.callbackslist[cbid](*arg)
 
 
@@ -9648,8 +9677,13 @@ Usually one creates a movie container with class class:`Cubes`
               flushprint("Toolbarinfo ziet valide x,y")
            """
 
-      newim = self.annimagelist[newmovieframeindx]      
-      newim.image.im.set_visible(True)
+      newim = self.annimagelist[newmovieframeindx]
+      if newim.backgroundImageNr:
+          backgroundimage = self.annimagelist[newim.backgroundImageNr]
+          newim.image.im.set_visible(False)
+          backgroundimage.image.im.set_visible(True)
+      else:
+          newim.image.im.set_visible(True)
       #flushprint("Setimage movie index=%d"%(newmovieframeindx))      
       
       info = newim.infoobj
@@ -9673,12 +9707,18 @@ Usually one creates a movie container with class class:`Cubes`
             if oldim.hascolbar and oldim.cbframe:
                oldim.cbframe.set_visible(False)
             if oldim.splitcb:
-               oldim.splitcb.deschedule()            
+               oldim.splitcb.deschedule()
+            if oldim.contourSet:
+                for col in oldim.contourSet.collections:
+                   col.set_visible(False)
           for li in newim.linepieces:
              li.set_visible(True)
           for tl in newim.textlabels:
              tl.set_visible(True)
              #flushprint("Ik zet in toggle_images textlabel %d %s op True"%(id(tl), str(tl)))
+          if newim.contours_on and newim.contourSet:
+                for col in newim.contourSet.collections:
+                   col.set_visible(True)
           if newim.infoobj:
              newim.infoobj.set_visible(True)
           if newim.splitcb:
@@ -9688,16 +9728,25 @@ Usually one creates a movie container with class class:`Cubes`
              if newim.hascolbar:
                 newim.cbframe.set_visible(True)                
              else:
-                newim.cbframe.set_visible(False)                
+                newim.cbframe.set_visible(False)
+
           self.canvas.draw()                                          # Draw all
           doflush = True
           #doflush = False  # TODO: Flushen is tot nu toe alleen storend geweest
           self.callback('cubechanged', newim)
       else:
+          if oldim and oldim.contourSet:
+             # Clean the contours in the previous data by making them invisible
+             for col in oldim.contourSet.collections:
+                col.set_visible(False)
           doflush = False
           #flushprint("Current cube nr, newcubenr=%d %d"%(self.currentcubenr,newim.cubenr))
-          #flushprint("They are equal so blit now")          
-          newim.frame.draw_artist(newim.image.im)
+          #flushprint("They are equal so blit now")
+          
+          if newim.backgroundImageNr:
+             newim.frame.draw_artist(backgroundimage.image.im)
+          else:
+             newim.frame.draw_artist(newim.image.im)
           if info:
              newim.frame.draw_artist(info)
           # Restore the graticule grid! Note that 'zorder' could not help us
@@ -9707,9 +9756,25 @@ Usually one creates a movie container with class class:`Cubes`
              newim.grat.frame.draw_artist(li)
           for tl in newim.textlabels:
              #flushprint("newim tl=%d %s"%(id(tl), str(tl.get_text())))
-             newim.frame.draw_artist(tl)
-          self.canvas.blit(newim.frame.bbox)
+             newim.frame.draw_artist(tl)                       
 
+          if newim.contours_on:
+             if not newim.contourSet or newim.contours_changed:
+                if newim.contours_cmap:
+                   cs = newim.Contours(newim.clevels, cmap=cm.get_cmap(newim.contours_cmap))
+                else:
+                   # Not a color map. Is it a plain colour then?
+                   if not newim.contours_colour:
+                      newim.contours_colour = 'r'             # Then set a default (red)
+                   cs = newim.Contours(newim.clevels, colors=newim.contours_colour)
+                cs.plot(newim.frame)
+                newim.contourSet = cs.CS
+                newim.contours_changed = False                # Flag it for toggle_images()
+             for col in newim.contourSet.collections:
+                   col.set_visible(True)
+                   newim.frame.draw_artist(col)
+             
+          self.canvas.blit(newim.frame.bbox)
       # We need to keep track of the last image viewed in a cube because
       # if we jump (in the calling environment) to another cube and back,
       # there should be a way to restore the last displayed image for this
@@ -9964,7 +10029,7 @@ class Cubeatts(object):
       Helper function for registered callbacks
       """
       #-----------------------------------------------------------------
-      if self.callbackslist.has_key(cbid):
+      if cbid in self.callbackslist:
          self.callbackslist[cbid](*arg)
 
 
@@ -10119,7 +10184,7 @@ class Cubeatts(object):
       # Note: these are the axis numbers with sorted repeat axes!
       for an in self.axnums[2:]:
          axi = self.fitsobj.axisinfo[an]
-         if axi.wcstype == 'spectral' and spectrans:
+         if axi.wcstype == 'spectral' and spectrans:  # Remove the F2W etc. extensions
             axnames.append(spectrans.split('-')[0])
          else:
             axnames.append(axi.axname)
@@ -10364,7 +10429,7 @@ which can store images from different data cubes.
       self.movieimages.cidscroll = None
       self.imageinfo = imageinfo
       self.imageloadnr = 0                   # A counter for images in all cubes
-      self.movieframecounter = 0
+      self.movieframecounter = 0             # Only used in the loading process
       self.currentcube = 0
       self.cubelist = []
       self.maxframe = [None]*4               # Corner positions of biggest frame
@@ -10405,11 +10470,11 @@ which can store images from different data cubes.
       #self.resizecb.update = True                    
       #flushprint("I CONNECT DRAW_EVENT to REPOSITION()")
       self.callbackslist = callbackslist
-      if self.callbackslist.has_key('progressbar'):
+      if 'progressbar' in self.callbackslist:
          self.progressbar = self.callbackslist['progressbar']
       else:
          self.progressbar = None
-      if self.callbackslist.has_key('memory'):
+      if 'memory' in self.callbackslist:
          self.memorystatus = self.callbackslist['memory']
       else:
          self.memorystatus = None
@@ -10434,7 +10499,7 @@ which can store images from different data cubes.
       Helper function for registered callbacks
       """
       #-----------------------------------------------------------------
-      if self.callbackslist.has_key(cbid):
+      if cbid in self.callbackslist:
          self.callbackslist[cbid](*arg)
 
          
@@ -11529,7 +11594,7 @@ which can store images from different data cubes.
       dummyim = cube.imagesinthiscube[0]      
       cube.colorbar = dummyim.Colorbar(frame=cube.cbframe, orientation='vertical')
 
-      if cube.fitsobj.hdr.has_key('BUNIT'):
+      if 'BUNIT' in cube.fitsobj.hdr:
          dataunits = cube.fitsobj.hdr['BUNIT']
       else:
          dataunits = 'units unknown'
@@ -11856,6 +11921,8 @@ which can store images from different data cubes.
       action = True #(self.numXpanels or self.numYpanels) or force
       #flushprint("\nThis is a RESIZE event. My action is %s !!!!!!!!!!!!!\n"%(str(action)))
 
+      has_panels = (self.numXpanels or self.numYpanels)
+       
       for cube in self.cubelist:
          if cube.scalefac:
             # If a scale factor is set, then re calculate the frame borders first
@@ -11863,7 +11930,7 @@ which can store images from different data cubes.
          else:
             self.scaleframe(cube, cube.scalefac, tofit=True, reposition=False)
   
-      if (self.numXpanels or self.numYpanels):
+      if (has_panels):
          pnrX = pnrY = 0
          for cube in self.cubelist:       
             frame = cube.frame
@@ -12424,7 +12491,9 @@ which can store images from different data cubes.
    def scaleframe(self, cube, scalefac, tofit=False, reposition=True):
    #----------------------------------------------------------------------------
       """
-      Scale the current frame
+      Scale the current frame. We position the frame in the upper left corner.
+      This gives the best results if panels are added. A user can resize the window
+      to get an optimal view.
       """
    #----------------------------------------------------------------------------
       if tofit:
@@ -12439,9 +12508,16 @@ which can store images from different data cubes.
          if self.numXpanels or self.numYpanels:
             fig = cube.frame.figure
             figaspect = fig.get_figwidth()/fig.get_figheight()
-            H_vert = 0.2
+            # Make space for panels if there are any frames
+            if self.numXpanels:
+               H_vert = 0.2
+            else:
+               H_vert = 0.0
             H_horz = H_vert/figaspect
-            right = 1.0-0.2/figaspect
+            if self.numYpanels:            
+               right = 1.0-0.2/figaspect
+            else:
+               right = 1.0
             bottom = 0.0+H_vert
             #top=1.0
          else:
@@ -12450,6 +12526,8 @@ which can store images from different data cubes.
             #top = 1.0
          cube.scalefac = None
       else:
+         # This is the option where a user zooms the entire 'current'
+         # cube and corresponding panels.
          cube.scalefac = scalefac
          x0, x1 = cube.pxlim
          y0, y1 = cube.pylim
@@ -12459,23 +12537,21 @@ which can store images from different data cubes.
          #flushprint("scalefac = %s"%(str(scalefac)))
          #flushprint("in data lx, ly=%f %f"%(lx, ly))
 
+         # Calculate the width and height in normalized coordinates of
+         # a zoomed image
          fig = cube.frame.figure
          xf0, yf0 = fig.transFigure.inverted().transform((0, 0))
          xf1, yf1 = fig.transFigure.inverted().transform((lx*scalefac, ly*scalefac))
          xf = xf1 - xf0; yf = yf1 - yf0
-         # Next coordinates are all in figure units
-         if cube.hascolbar:
-            xc = 0.5 + self.colbwidth/2.0
-         else:
-            xc = 0.5
-         left = xc - xf/2.0; right = xc + xf/2.0
-         bottom = 0.5 - yf/2.0; top = 0.5 + yf/2.0
-         if cube.hascolbar:
-            dx = self.colbwidth - left
-            if dx > 0.0:
-               left  += dx
-               right += dx
 
+         if cube.hascolbar:
+            left = self.colbwidth
+         else:
+            left = 0.0
+         right = left + xf
+         top = 1.0
+         bottom = top - yf
+         
       # Note that we cannot use subplots_adjust, because the zooming
       # factor applies to individual cubes and we don't want to adjust
       # all the cubes at the same time.
@@ -12498,14 +12574,13 @@ which can store images from different data cubes.
       """
       #----------------------------------------------------------------------------      
       cube = cb.cube
-      cnr = cube.cnr
+      cnr = cube.cnr     
       fig = cube.frame.figure
       zprofileOn = cb.zprofileOn
       
       oldim = self.lastimage  # We need to remove the last displayed image
       
       #self.movieimages.movie_events(allow=False)
-
       
       i = cb.count
       if i == 0:
@@ -12543,7 +12618,7 @@ which can store images from different data cubes.
 
       mplim = cube.fitsobj.Annotatedimage(cube.frame, cmap=cube.cmap,
                                           clipmin=cube.vmin, clipmax=cube.vmax,
-                                          gridmode=cube.gridmode, adjustable='box-forced',
+                                          gridmode=cube.gridmode, adjustable='box-forced', anchor='NW',
                                           newaspect=cube.pixelaspectratio,
                                           clipmode=cube.clipmode, clipmn=cube.clipmn,
                                           callbackslist=cube.callbackslist)
