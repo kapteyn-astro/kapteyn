@@ -237,8 +237,13 @@ St.Petersburg State University @ 195.19.250.180
 Universite de Strasbourg @ 130.79.129.35
 Macquarie University @ 137.111.13.46
 Comision Nacional de Actividades Espaciales (Argentina) @ 200.16.81.218
+Academic Network of Serbia @ 147.91.1.43
+Apple Inc @ 17.102.94.6
+Physical Research Laboratory, Ahmedabad, India @ 210.212.155.232
+Korea Astronomy and Space Science Institute @ 103.8.230.80
 
-tot: Thu Jul  4 20:00:00 CEST 2013
-Mon Jun 17 12:10:00 CEST 2013
+
+tot: Jul 25 11:33
+Thu Jul  4 20:00:00 CEST 2013
 
 
