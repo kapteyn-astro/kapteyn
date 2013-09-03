@@ -241,9 +241,17 @@ Academic Network of Serbia @ 147.91.1.43
 Apple Inc @ 17.102.94.6
 Physical Research Laboratory, Ahmedabad, India @ 210.212.155.232
 Korea Astronomy and Space Science Institute @ 103.8.230.80
+Centro Brasileiro de Pesquisas Fisicas (Brasil) @ 152.84.199.70
+Indian Institute of Astrophysics @ 124.30.128.132
+Johns Hopkins University @ 128.220.144.48
+University of California, San Diego @ 132.239.69.21
+Universidad Autonoma de Sinaloa (Mexico) @ 148.227.28.99
+INAF - Istituto Nazionale di Astrofisica e Planetologia Spaziali di Roma @ 150.146.135.178
+Centrum Astronomii UMK, Torun @ 158.75.6.56
+ETH Zuerich @ 192.33.102.123
+Leibniz-Institut fuer Festkoerper- und Werkstoffforschung e.V. @ 193.175.202.2
+Russian Space Science Internet @ 193.232.12.53
+Atacama Large Millimeter/submillimeter Array (ALMA) @ 200.2.2.4
 
-
-tot: Jul 25 11:33
-Thu Jul  4 20:00:00 CEST 2013
-
-
+tot: Fri Aug 30 02:35:19 CEST 2013
+Jul 25 11:33 2013
