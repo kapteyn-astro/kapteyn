@@ -8,10 +8,11 @@
 # AUTHOR:  M.G.R. Vogelaar, University of Groningen, The Netherlands
 # DATE:    April 17, 2008
 # UPDATE:  May 17, 2008
-#          June 30, 2009; Docstrings converted to Sphinx format
-#          August 19, 2013; version 1.12. support for Visions interactive
-#                           image display.
-# VERSION: 1.12
+#          June 30,      2009; Docstrings converted to Sphinx format
+#          August 19,    2013; version 1.12. support for Visions interactive
+#                              image display.
+#          September 07, 2013; version 1.14. Contours in panels and panel
+#                              widths now proportional to number of chanels
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -325,7 +326,7 @@ except:
 
 KeyPressFilter.allowed = ['f', 'g']
 
-__version__ = '1.11'
+__version__ = '1.14'
 
 (left,bottom,right,top) = (wcsgrat.left, wcsgrat.bottom, wcsgrat.right, wcsgrat.top)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = (wcsgrat.native, wcsgrat.notnative, wcsgrat.bothticks, wcsgrat.noticks) 
@@ -2923,6 +2924,7 @@ this class.
 
           Function or Lambda expression which can be used to scale the flux found with
           method *getflux()*. There must be two parameters in this function or
+
           expression: *a* for the area and *s* for the sum of the pixel values.
           E.g. ``Annotatedimage.fluxfie = lambda s, a: s/a``
           Note that there is no method to set this attribute.
@@ -3261,12 +3263,13 @@ this class.
       self.grat = None
       
       # Image can be extended with contours
-      self.clevels = []
+      self.clevels = None
+      # TODO: Er bestaat ook een contourset (dus zonder hoofdletter) als attribuut. Overbodig??
       self.contourSet = None
       self.contours_on = False
       self.contours_changed = False
       self.contours_cmap = None
-      self.contours_colours = 'r'
+      self.contours_colour = 'r'
       self.backgroundImageNr = None
       
 
@@ -10403,9 +10406,9 @@ which can store images from different data cubes.
    """
    #----------------------------------------------------------------------------
    # Class variables:
-   # Define the required colorbar width. We take a fixed part of the
-   # frame, so that it scales up when the screen becomes larger
-   colbwidth = 0.06
+   # Define the required colorbar width. The width remains the same after scaling the window
+   colbwidth = 0.06         # A dummy value that stores width of colorbar in device coordinates
+   colbwpixels = 40         # Fixed width of colorbar in pixels
    zprofileheight = 0.1
    
    # The timerlist must be accessible by all objects of this class.
@@ -10874,7 +10877,7 @@ which can store images from different data cubes.
          aspectratio = abs(aspectratio)
       cube.pixelaspectratio = abs(aspectratio)
       cube.frame.set_aspect(aspectratio)
-      currentindx = self.movieimages.indx    
+      currentindx = cube.lastimagenr + cube.movieframeoffset  #self.movieimages.indx
       if cube.hasgraticule:
          self.new_graticule(cube, visible=True)
          self.reposition(force=True)
@@ -11053,7 +11056,8 @@ which can store images from different data cubes.
       if None in [xi,yi]:  # If the first time is a resize event, then xold
          xi = pxlim[0]     # and yold are None.
          yi = pylim[0]
-
+         cube.xold = xi
+         cube.yold = yi
 
       # Create new frame. If a user did reset the panels with an empty list,
       # one must skip this part
@@ -11124,6 +11128,28 @@ which can store images from different data cubes.
          #mplimp1.Image()
          mplimp1.plot()         
          #mplimp1.grat = None
+
+         im = cube.imagesinthiscube[0]
+         if im.contours_on:
+            # Some trickery. First we do not store the contours for panels as we do with images.
+            # This is because we do have only one panel image for which we change the
+            # data when we change images in the main panel. So we calculate contours on the fly.
+            # Note that we hace to remove contours from CS.collections because otherwise
+            # the contours from a previous setting will re-appear when we replot a panel.
+            # The image data is retrieved with method get_array(). We need the extent keyword
+            # for a correct overlay on the panel image. The collection is stored in
+            # attribute contourSet            
+            cmap, colors, norm, levels = (im.contours_cmap, im.contours_colour, im.norm, im.clevels)
+            # There must be either a cmap or a color specification in contour()
+            if cmap is None and colors is None:
+               colors = 'r'
+            if not (cmap is None):
+               cmap = cm.get_cmap(cmap)
+               colors = None
+            mplimp1.contourSet = framep1.contour(mplimp1.image.im.get_array(),
+                                     levels=levels, extent=mplimp1.box,
+                                     cmap=cmap, norm=norm, colors=colors)
+
          
          cube.annimp1 = mplimp1
          cube.framep1 = framep1
@@ -11189,6 +11215,52 @@ which can store images from different data cubes.
          #mplimp2.data = boxdat
          mplimp2.Image(animated=False)
          mplimp2.plot()
+
+         im = cube.imagesinthiscube[0]
+         if im.contours_on:
+            # Some trickery. First we do not store the contours for panels as we do with images.
+            # This is because we do have only one panel image for which we change the
+            # data when we change images in the main panel. So we calculate contours on the fly.
+            # Note that we hace to remove contours from CS.collections because otherwise
+            # the contours from a previous setting will re-appear when we replot a panel.
+            # The image data is retrieved with method get_array(). We need the extent keyword
+            # for a correct overlay on the panel image. The collection is stored in
+            # attribute contourSet            
+            cmap, colors, norm, levels = (im.contours_cmap, im.contours_colour, im.norm, im.clevels)
+            # There must be either a cmap or a color specification in contour()
+            if cmap is None and colors is None:
+               colors = 'r'
+            if not (cmap is None):
+               cmap = cm.get_cmap(cmap)
+               colors = None
+            mplimp2.contourSet = framep2.contour(mplimp2.image.im.get_array(),
+                                     levels=levels, extent=mplimp2.box,
+                                     cmap=cmap, norm=norm, colors=colors)
+            #mplimp2.contourSet = framep2.contour(mplimp2.image.im.get_array(), levels=None, colors='c', extent=mplimp2.box)
+
+      # Properties
+            flushprint("Panel contours after creating image")
+            #for col in CS.collections:
+            #   col.set_visible(True)
+            #   mplimp2.frame.draw_artist(col)
+         
+            """
+             if not mplimp2.contourSet or mplimp2.contours_changed:
+                if mplimp2.contours_cmap:
+                   cs = mplimp2.Contours(mplimp2.clevels, cmap=cm.get_cmap(mplimp2.contours_cmap))
+                else:
+                   # Not a color map. Is it a plain colour then?
+                   if not mplimp2.contours_colour:
+                      mplimp2.contours_colour = 'r'             # Then set a default (red)
+                   #cs = mplimp2.Contours(mplimp2.clevels, colors=mplimp2.contours_colour)
+                   cs = mplimp2.Contours(None, colors=mplimp2.contours_colour)
+                cs.plot(mplimp2.frame)
+                mplimp2.contourSet = cs.CS
+                mplimp2.contours_changed = False
+                """
+         
+         #mplimp2.Contours()
+         
          """      grat = mplimp2.Graticule(offsety=True, skipx=True)
                grat.set_tickmode(mode="na")
                grat.setp_gratline(wcsaxis=1, visible=False)
@@ -11371,12 +11443,21 @@ which can store images from different data cubes.
 
 
 
-   def getpanelboxes(self, frame, numXpanels, numYpanels, Xpanelindx=None, Ypanelindx=None):
+   def getpanelboxes(self, frame, numXpanels, numYpanels, numXframesList, numYframesList,
+                     Xpanelindx=None, Ypanelindx=None):
       #-----------------------------------------------------------------------------
       """
       This method calculates the positions of the side panels. It locates these
-      panels to the bottom and right of an existing frame. The width of the gaps
-      is fixed in pixels. The entire space between 
+      panels to the bottom and right of an existing frame. The images are anchored
+      to the top left corner and are made smaller if there are side panels.
+      The space that is available to the panels is divided in a way that pixels from
+      different panels are equal in size. So the ratios of frames between panels
+      sets the width or height.The width of the gaps between panels
+      is fixed in pixels.
+
+      Note that numXframesList/numYframesList set the number of pixels in a panel
+      for each panel. We need this list because for each panel we need the positions
+      of the previous panels.
       """
       #-----------------------------------------------------------------------------
       
@@ -11400,36 +11481,65 @@ which can store images from different data cubes.
       # of those in figure coordinates           
       xmin, ymin, xmax, ymax = self.getbiggestbox()
       boxX = boxY = None
-      
-      if Xpanelindx is not None:
-         # First box for x panel, i.e. connected to lower x axis
-         H = ymin
-         n = max(1.0,numXpanels)
-         bxmin = xlo; bxmax = xhi
-         h = (H-(n+1)*dy)/n
-         if h <= 0.0:    # If there is no space, then create some. This gives overlap
-            h = 0.1
-         i = Xpanelindx
-         bymin = ymin - (i+1)*(h+dy)
-         bymax = bymin + h
-         #flushprint("ymin=%f, bymin=%f, bymax=%f, h=%f, dy=%f n=%d"%(ymin,bymin, bymax, h, dy,n ))
-         w = bxmax - bxmin
-         boxX = (bxmin, bymin, w, h)
 
-      if Ypanelindx is not None:
+      # Is there something to do for this side?
+      if Xpanelindx is not None and numXframesList is not None:
+         # First box for x panel, i.e. connected to lower x axis
+         totalXframes = 0
+         for nf in numXframesList:   # Contains the number of frames per panel
+            totalXframes += nf
+         if not totalXframes:
+            return boxX, boxY
+            
+         dys = (len(numXframesList)+1) * dy
+         H = ymin - dys   # Total height that is left
+
+         bymin = []; bymax = []
+         for i, nf in enumerate(numXframesList):
+            if i == 0:
+               y = ymin - dy
+            else:
+               y = bymin[i-1] - dy
+            bymax.append(y)
+            h = H*float(nf)/totalXframes
+            # If there is no space, then create some. This gives overlap, but is better than
+            # plotting panel outside figure.
+            if h <= 0.0:    
+               h = 0.1
+            bymin.append(y-h)
+
+         bxmin = xlo; bxmax = xhi   # Positions in x are fixed here
+         w = bxmax - bxmin
+         h = bymax[Xpanelindx] - bymin[Xpanelindx]
+         boxX = (bxmin, bymin[Xpanelindx], w, h)
+
+      if Ypanelindx is not None and numYframesList is not None:
          # Second box for y panel, i.e. connected to right y axis
-         W = 1.0 - xmax
-         m = max(1.0,numYpanels)
-         w = (W-(m+1)*dx)/m
-         if w <= 0.0:
-            w = 0.1
-         i = Ypanelindx
-         bxmin = xmax + dx + i*(w+dx)
-         bxmax = bxmin + w
-         #flushprint("xmax=%f, bxmin=%f, bxmax=%f, w=%f, dx=%f, HW=%f"%(xmax,bxmin, bxmax, w, dx, HW))
-         bymin = ylo; bymax = yhi
+         totalYframes = 0
+         for nf in numYframesList:
+            totalYframes += nf
+         if not totalYframes:
+            return boxX, boxY
+            
+         dxs = (len(numYframesList)+1) * dx
+         W = 1.0 - xmax - dxs        # Total width that is left
+         
+         bxmin = []; bxmax = []
+         for i, nf in enumerate(numYframesList):
+            if i == 0:
+               x = xmax + dx
+            else:
+               x = bxmax[i-1] + dx
+            bxmin.append(x)
+            w = W*float(nf)/totalYframes
+            if w <= 0.0:             # If there is no space, then create some. This gives overlap
+               w = 0.1
+            bxmax.append(x+w)
+
+         bymin = ylo; bymax = yhi    # Positions in y are fixed here
          h = bymax - bymin
-         boxY = (bxmin, bymin, w, h)
+         w = bxmax[Ypanelindx] - bxmin[Ypanelindx]
+         boxY = (bxmin[Ypanelindx], bymin, w, h)
 
       #flushprint("In getpanelboxes boxX, boxY=%s %s"%(str(boxX), str(boxY)))
       return boxX, boxY
@@ -11539,13 +11649,14 @@ which can store images from different data cubes.
    def set_colbar_on(self, cube, mode):
     #----------------------------------------------------------------------------
       """
-      This method
+      Purpose: This method draws or removes a colorbar. Each cube is associated with a
+               colorbar.
       """
    #----------------------------------------------------------------------------
       if not cube or not len(cube.imagesinthiscube):
          return                               # Nothing to do
       cube.hascolbar = mode
-      currentindx = self.movieimages.indx
+      currentindx = cube.lastimagenr + cube.movieframeoffset   # self.movieimages.indx
       for im in cube.imagesinthiscube:
          im.hascolbar = cube.hascolbar
       #flushprint("MAPUTILS setimage in set_colbar_on")
@@ -11572,7 +11683,7 @@ which can store images from different data cubes.
    def new_colorbar(self, cube):
    #----------------------------------------------------------------------------
       """
-      This method
+      Purpose: This method creates a frame for a new colorbar.
       """
    #----------------------------------------------------------------------------
       label = 'CB_' + str(id(cube))    # We need a unique label
@@ -11646,7 +11757,7 @@ which can store images from different data cubes.
       if cube.hasgraticule:
          self.new_graticule(cube, visible=True)
 
-      currentindx = self.movieimages.indx
+      currentindx = cube.lastimagenr + cube.movieframeoffset     #self.movieimages.indx
       # Reset current image to change toolbarinfo and possibly graticule
       #flushprint("MAPUTILS setimage in set_skyout")
       self.movieimages.setimage(currentindx, force_redraw=True) 
@@ -11679,7 +11790,7 @@ which can store images from different data cubes.
       else:                         # Update the image frame information labels only
          cube.set_slicemessages(spectrans)
          
-      currentindx = self.movieimages.indx
+      currentindx = cube.lastimagenr + cube.movieframeoffset    #self.movieimages.indx
       # Reset current image to change toolbarinfo and possibly graticule
       self.movieimages.setimage(currentindx, force_redraw=True)
 
@@ -11689,13 +11800,15 @@ which can store images from different data cubes.
    def set_graticule_on(self, cube, mode):
     #----------------------------------------------------------------------------
       """
-      This method 
+      This method creates the WCS overlay and refreshes the current image or
+      the relevant image if the current image does not belong to the cube
+      for which a graticule is ordered.
       """
    #----------------------------------------------------------------------------   
       if not cube or not len(cube.imagesinthiscube):
          return
       cube.hasgraticule = mode
-      currentindx = self.movieimages.indx
+      currentindx = cube.lastimagenr + cube.movieframeoffset # was: self.movieimages.indx
       if not mode:
          # No graticule should be visible
          if cube.grat:
@@ -11931,31 +12044,40 @@ which can store images from different data cubes.
             self.scaleframe(cube, cube.scalefac, tofit=True, reposition=False)
   
       if (has_panels):
+         numXframesList = []
+         numYframesList = []
+         for cube in self.cubelist:
+            numXframesList.append(len(cube.panelXframes))
+            numYframesList.append(len(cube.panelYframes))
          pnrX = pnrY = 0
-         for cube in self.cubelist:       
+         for cube in self.cubelist:
             frame = cube.frame
             framep1 = cube.framep1
             framep2 = cube.framep2
-            if framep1:
+            # TODO: Als ik na het tekenen van slices, de slices 'remove' dan
+            # crasht visions omdat blijkbaar framep1 nog bestaat. De vraag is
+            # dus of framep1/p2 moet worden weggegooid bij deze remove actie.
+            if framep1 and self.numXpanels:
                #flushprint("Voor: cube=%s framep1=%s %s"%(str(cube), str(id(framep1)), str(framep1)))
                # The importance of this method is that it re-calculates all
                # slice panel frames after a resize (usually triggered by a
                # canvas.draw() call.)
-               boxX, boxY = self.getpanelboxes(frame, self.numXpanels, self.numYpanels, pnrX, None)
+               boxX, boxY = self.getpanelboxes(frame, self.numXpanels, self.numYpanels,
+                                               numXframesList, numYframesList, pnrX, None)
                framep1.set_position(boxX)
                framep1.set_aspect('auto')
                pnrX += 1
                cube.framep1 = framep1
                #flushprint("Na: framep1=%s"%(str(framep1)))
-            if framep2:
+            if framep2 and self.numYpanels:
                #flushprint("VOOR: cube=%s framep2=%s %s"%(str(cube),  str(id(framep2)), str(framep2)))
-               boxX, boxY = self.getpanelboxes(frame, self.numXpanels, self.numYpanels, None, pnrY)
+               boxX, boxY = self.getpanelboxes(frame, self.numXpanels, self.numYpanels,
+                                               numXframesList, numYframesList, None, pnrY)
                framep2.set_position(boxY)
                framep2.set_aspect('auto')
                pnrY += 1
                cube.framep2 = framep2
                #flushprint("NA: framep2=%s"%(str(framep2)))
-
       
       for cube in self.cubelist:
          if cube.hasgraticule:
@@ -12206,7 +12328,7 @@ which can store images from different data cubes.
 
 
    def updatepanels(self, cb, frompanel1=False, frompanel2=False,
-                    cubenr=None, xpos=None, ypos=None):
+                    cubenr=None, xpos=None, ypos=None, force=False):
       #------------------------------------------------------------------
       # One moved the mouse while pressing button 1 in the main window.
       # Then one extracts slices at different positions in the data cube.
@@ -12262,6 +12384,8 @@ which can store images from different data cubes.
       if cb is None:
          x = xpos; y = ypos
          cubeindx = cubenr
+         if x is None or y is None: # !!!!!!!! Testen
+            return
       else:
          # Left mouse button must be pressed!
          if not hasattr(cb, 'cubenr'): #or cb.event.button != 1:
@@ -12278,9 +12402,7 @@ which can store images from different data cubes.
       
       if cb and cb.event.button != 1:
          return    # Because te get panel interaction, we need to press the left button
-       
-
-                     
+                            
       xold = cube.xold
       yold = cube.yold
       #frame = cube.frame
@@ -12298,10 +12420,10 @@ which can store images from different data cubes.
       # the callback object 'cb'.
       xi = int(numpy.round(x))
       yi = int(numpy.round(y))
-      if skipupdatep1 and xi == xold:
+      if skipupdatep1 and xi == xold and not force:
          # Skip this position
          return
-      if skipupdatep2 and yi == yold:
+      if skipupdatep2 and yi == yold and not force:
          return
       # Check the limits
       if skipupdatep1 and (xi > pxlim[1] or xi < pxlim[0]):
@@ -12375,7 +12497,7 @@ which can store images from different data cubes.
          cube.lineh.set_visible(False)
 
 
-      if cube.panelXframes and yi != yold and not skipupdatep1:
+      if cube.panelXframes and ((yi != yold and not skipupdatep1) or force):
          #if backgroundchanged:
          #self.fig.canvas.restore_region(cube.panelXback)
          M = cube.Mx
@@ -12399,13 +12521,37 @@ which can store images from different data cubes.
             framep1.draw_artist(cube.panelxline)
          #mplimp1.image.im.changed()         
 
+         if mplimp1.contourSet:
+            for col in mplimp1.contourSet.collections:
+               framep1.collections.remove(col)
+         mplimp1.contourSet = None
+         
+         # And create a new set of contours
+         im = cube.imagesinthiscube[0]
+         if im.contours_on: # contours in panels set to on            
+            cmap, colors, norm, levels = (im.contours_cmap, im.contours_colour, im.norm, im.clevels)
+            # There must be either a cmap or a color specification in contour()
+            if cmap is None and colors is None:
+               colors = 'r'
+            if not (cmap is None):
+               cmap = cm.get_cmap(cmap)
+               colors = None
+            mplimp1.contourSet = framep1.contour(mplimp1.image.im.get_array(),
+                                     levels=levels, extent=mplimp1.box,
+                                     cmap=cmap, norm=norm, colors=colors)
+            for col in mplimp1.contourSet.collections:
+               # Make elements visible before blit action
+               col.set_visible(True)
+               mplimp1.frame.draw_artist(col)         
+
+
          #for li in mplimp1.linepieces:
          #   framep1.draw_artist(li)
          framep1.figure.canvas.blit(framep1.bbox)
          #self.fig.canvas.flush_events()
 
       # Second frame which shares an y axis
-      if cube.panelYframes and xi != xold and not skipupdatep2:
+      if cube.panelYframes and ((xi != xold and not skipupdatep2) or force):
          M = cube.My
          lx = M.shape[1]
          j = 0
@@ -12423,11 +12569,42 @@ which can store images from different data cubes.
          if self.crosshair and cube is currentcube:
             framep2.draw_artist(cube.panelyline)
          #mplimp2.image.im.changed()
+
+         # We need to draw contours every time the data in a panel has changed.
+         # Take the simple route and use the contour method. Use the
+         # collections object to plot and remove individual contours. The
+         # removal is not automatically. The contour objects must be removed explicitely
+         # from the collections attribute of the current frame.
+         if mplimp2.contourSet:
+            for col in mplimp2.contourSet.collections:               
+               framep2.collections.remove(col)
+         mplimp2.contourSet = None
+         
+         # And create a new set of contours
+         im = cube.imagesinthiscube[0]
+         if im.contours_on: # contours in panels set to on            
+            cmap, colors, norm, levels = (im.contours_cmap, im.contours_colour, im.norm, im.clevels)
+            # There must be either a cmap or a color specification in contour()
+            if cmap is None and colors is None:
+               colors = 'r'
+            if not (cmap is None):
+               cmap = cm.get_cmap(cmap)
+               colors = None
+            mplimp2.contourSet = framep2.contour(mplimp2.image.im.get_array(),
+                                     levels=levels, extent=mplimp2.box,
+                                     cmap=cmap, norm=norm, colors=colors)
+            for col in mplimp2.contourSet.collections:
+               # Make elements visible before blit action
+               col.set_visible(True)
+               mplimp2.frame.draw_artist(col)
          
          #for li in mplimp2.linepieces:
          #   framep2.draw_artist(li)
          framep2.figure.canvas.blit(framep2.bbox)
+         #cs = mplimp2.Contours(None, colors='c')
+         #cs.plot(mplimp2.frame)
          
+
       # If the background was changed (in size or color), then we reset
       # the flag. If this method is called by a second event at the same
       # cursor position, there is no need to resize the pixel buffers again.
@@ -12496,6 +12673,12 @@ which can store images from different data cubes.
       to get an optimal view.
       """
    #----------------------------------------------------------------------------
+      fig = cube.frame.figure
+      xf0, yf0 = fig.transFigure.inverted().transform((0, 0))
+      xf1, yf1 = fig.transFigure.inverted().transform((self.colbwpixels, 0))
+      dx = xf1 - xf0
+      #dy = yf1 - yf0
+      self.colbwidth = dx
       if tofit:
          if cube.hascolbar:
             left = self.colbwidth
@@ -12505,8 +12688,7 @@ which can store images from different data cubes.
             top = 0.9
          else:
             top = 1.0
-         if self.numXpanels or self.numYpanels:
-            fig = cube.frame.figure
+         if self.numXpanels or self.numYpanels:            
             figaspect = fig.get_figwidth()/fig.get_figheight()
             # Make space for panels if there are any frames
             if self.numXpanels:
@@ -12597,6 +12779,11 @@ which can store images from different data cubes.
             # Re-position frame to fill the available space. Do not use method
             # frame.set_position() because that will not update the subplot
             # configuration values like 'left', 'right', etc.
+            xf0, yf0 = fig.transFigure.inverted().transform((0, 0))
+            xf1, yf1 = fig.transFigure.inverted().transform((self.colbwpixels, 0))
+            dx = xf1 - xf0
+            #dy = yf1 - yf0
+            self.colbwidth = dx
             if zprofileOn:
                top = 0.9
             else:
