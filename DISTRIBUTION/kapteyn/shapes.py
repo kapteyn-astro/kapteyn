@@ -12,7 +12,9 @@
 #                  Changed toolbar output to messenger() which is
 #                  a method of the Annotated image object.
 #
-# VERSION: 1.1
+#
+#          Sep 07, 3013  Adapted for Maatplotlib 1.3
+# VERSION: 1.1.1
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -45,11 +47,13 @@ The order of the two axes in a map can be swapped.
 Utility functions
 -----------------
 
-.. index:: Sample points on an allipse
+.. index:: Sample points on an ellipse
 .. autofunction:: ellipsesamples
 """
 
-#!/usr/bin/env python
+from matplotlib import __version__ as mplversion
+mploldversion = mplversion < '1.2.0'
+
 from matplotlib.patches import Polygon
 from matplotlib.lines import Line2D
 from matplotlib.pyplot import show, figure, get_current_fig_manager
@@ -58,7 +62,10 @@ from matplotlib.mlab import dist_point_to_segment
 from matplotlib.widgets import Button, RadioButtons
 from datetime import datetime
 from kapteyn import tabarray
-import matplotlib.nxutils as nxutils
+if mploldversion:
+   import matplotlib.nxutils as nxutils
+else:
+   import matplotlib.path as path
 from kapteyn.maputils import AxesCallback
 from sys import stdout, exit
 from types import TupleType
@@ -344,8 +351,8 @@ class Poly(Polygon):
       self.edgecolor = 'r'
       self.shapetype = type
       self.epsilon = 20                  # A distance in display coordinates
-      Polygon.__init__(self, zip([x0],[y0]), closed=True,
-                       alpha=0.1, edgecolor='r', picker=5, **self.kwargs)
+      Polygon.__init__(self, zip([x0],[y0]), closed=False,
+                       alpha=0.1, edgecolor='r', picker=5, animated=False, **self.kwargs)
       if not spline:
          self.frame.add_patch(self)
       self.markers = Line2D([x0],[y0], marker='o', markerfacecolor='r', color='r', animated=False)
@@ -360,7 +367,7 @@ class Poly(Polygon):
       self.flux = None
       self.spline = None
       if spline:
-         self.spline = Polygon(zip([x0],[y0]), closed=True, alpha=0.3, edgecolor='r')
+         self.spline = Polygon(zip([x0],[y0]), closed=False, alpha=0.3, edgecolor='r')
          self.frame.add_patch(self.spline)
       if self.active:
          self.set_active(markers)
@@ -375,8 +382,9 @@ class Poly(Polygon):
 
 
    def updatexy(self, xy, x0=None, y0=None):
-      self.xy = xy
-      x, y = zip(*self.xy)
+      #self.xy = xy     # Direct access. Not preferred but still possible
+      self.set_xy(xy)   # Just to demonstrate that also the setter and getter can be used
+      x, y = zip(*self.get_xy())
       self.markers.set_data(x, y)
       self.startmarker.set_data(x[0], y[0])
       if not x0 is None:
@@ -411,10 +419,10 @@ class Poly(Polygon):
 
 
    def addvertex(self, x, y, markers=True):
-      xyl = list(self.xy)
+      xyl = list(self.get_xy())
       xyl.append([x,y])    # Append the new position
-      self.xy = xyl
-      self.markers.set_data(zip(*self.xy))
+      self.set_xy(xyl)
+      self.markers.set_data(zip(*self.get_xy()))
       self.markers.set_visible(markers)
 
 
@@ -515,7 +523,13 @@ class Poly(Polygon):
    def inside(self, x, y):
       # Is this (x,y) position within the polygon?
       pos = [(x,y)]
-      mask = nxutils.points_inside_poly(pos, self.xy)
+      #mask = nxutils.points_inside_poly(pos, self.xy)
+
+      if mploldversion:
+         mask = nxutils.points_inside_poly(pos, self.xy)
+      else:
+         polypath = path.Path(self.xy)
+         mask = polypath.contains_points(pos)      
       return mask[0]
 
 
@@ -980,7 +994,7 @@ class Shapecollection(object):
       #radio.on_clicked(self.setshape)
       self.figresult = figure(figsize=(6,5))
       self.frameresult = self.figresult.add_subplot(1,1,1)
-      self.frameresult.set_title("Flux as function of shape and image")
+      self.frameresult.set_title("Flux as function of shape and image", y=1.05)
       self.results = False
       self.xstart = 0.0            # Values used to calculate displacement of a shape
       self.ystart = 0.0
@@ -1547,6 +1561,9 @@ class Shapecollection(object):
                   obj.addvertex(xp, yp, setmarker)
             if self.currenttype == self.spline:
                self.updatesplines()
+            #p = Polygon(self.activeobject.xy, closed=True,
+            #           alpha=0.1, edgecolor='r', picker=5)
+            #self.activeobject.frame.add_patch(p)
             self.canvas.draw()
 
 
