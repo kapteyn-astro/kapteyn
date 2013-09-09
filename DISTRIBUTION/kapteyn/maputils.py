@@ -262,12 +262,23 @@ backend = rcParams['backend'].upper()
 #rcParams['savefig.extension'] = 'pdf'
 #rcParams['savefig.format'] = 'pdf'
 
-
+from sys import stdout
 # Check version of Matplotlib because from version 1.2.0 the nxutils
 # module is no longer available.
-# TODO: Check new functionality with 'path' 
+# Note that the new nxutils functionality with 'path' applies to version 1.3.
+# It does not work for the 1.1 versions.
 from matplotlib import __version__ as mplversion
 mploldversion = mplversion < '1.2.0'
+
+# PyFITS 1.2.x is not compatible with 1.3.x, i.e. if we remove lines which cause
+# the 'deprecated' warnings and replace them by the suggested PyFITS 1.3.x versions
+# then the code is not backwards compatible.
+from pyfits import __version__ as pyfitsversion
+pyfitsoldversion = pyfitsversion < '3.1.0'
+
+#print "Matplotlib version:", mplversion, mploldversion
+#print "PyFITS version:" , pyfitsversion, pyfitsoldversion
+#stdout.flush()
 
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
 from matplotlib.pyplot import figure, show
@@ -285,7 +296,7 @@ import matplotlib.axes as axesclass
 if mploldversion:
    import matplotlib.nxutils as nxutils
 else:
-   import matplotlib.path as path
+   import matplotlib.path as path   
 import pyfits
 import numpy
 from kapteyn import wcs, wcsgrat
@@ -310,7 +321,6 @@ from re import split as re_split
 from datetime import datetime
 import warnings
 import time
-from sys import stdout
 from os import getpid as os_getpid
 from os import remove
 from os.path import basename as os_basename
@@ -1055,9 +1065,17 @@ header. The PyFITS header is not iterable.
          except:
             result.comment[key] = ''
    else:
-      for card in header.ascard:
+      if pyfitsoldversion:
+         # Deprecated from PyFITS >= 3.0
+         cardset = header.ascard
+      else:
+         cardset = header.cards
+      for card in cardset:
          try:
-            key = card.key
+            if pyfitsoldversion:
+               key = card.key
+            else:
+               key = card.keyword
             if (history and key=='HISTORY') or (comment and key=='COMMENT'):
                try:
                   result[key].append(card.value)
@@ -8777,8 +8795,8 @@ to know the properties of the FITS data beforehand.
       """
    #---------------------------------------------------------------------
       # Suppress user warnings for PyFITS actions
-      warnings.resetwarnings()
-      warnings.filterwarnings('ignore', category=UserWarning, append=True)
+      #warnings.resetwarnings()
+      #warnings.filterwarnings('ignore', category=UserWarning, append=True)
       if filename is None:
          filename = getfilename('mu', 'fits')
          append = False      # Cannot append if FITS file does not exists
@@ -8792,7 +8810,7 @@ to know the properties of the FITS data beforehand.
 
       hdu = pyfits.PrimaryHDU(self.dat)
       pythondict = fitsheader2dict(self.hdr, comment, history)
-
+      
       for key, val in pythondict.iteritems():
          if key=='HISTORY' or key=='COMMENT':
             if (history and key=='HISTORY'):
@@ -8805,7 +8823,21 @@ to know the properties of the FITS data beforehand.
             # The Python dictionary is extended with comments that
             # correspond to keywords in a header. The comments are an
             # attribute and identified by the key.
-            hdu.header.update(key, val, pythondict.comment[key])
+            #print "key=", key
+            #print "val=", val
+            #print "comment=", pythondict.comment[key]
+            #flushprint("----")
+            # We added a try/except here because sometimes a first record
+            # seems empty but has a lot of spaces and generates an exception in
+            # the newer PyFITS versions
+            try:
+               if pyfitsoldversion:
+                  # Is deprecated in newer PyFITS versions (from v. 3.0)
+                  hdu.header.update(key, val, pythondict.comment[key])
+               else:
+                  hdu.header[key] = (val, pythondict.comment[key])
+            except:
+               pass
       if bitpix != None:
          # User wants to scale
          code = hdu.NumCode[bitpix]   # Undocumented PyFITS function
@@ -8839,8 +8871,8 @@ to know the properties of the FITS data beforehand.
          hdulist.writeto(filename, clobber=clobber, output_verify='silentfix')
          hdulist.close()
       # Turn warnings on
-      warnings.resetwarnings()
-      warnings.filterwarnings('always', category=UserWarning, append=True)
+      #warnings.resetwarnings()
+      #warnings.filterwarnings('always', category=UserWarning, append=True)
          
 
 
