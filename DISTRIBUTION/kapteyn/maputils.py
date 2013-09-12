@@ -285,7 +285,7 @@ from matplotlib.pyplot import figure, show
 from matplotlib import cm
 from matplotlib.colors import Colormap, Normalize          #, LogNorm, NoNorm
 from matplotlib.colorbar import make_axes, Colorbar, ColorbarBase
-from matplotlib.patches import Polygon, Rectangle
+from matplotlib.patches import Polygon, Rectangle, Ellipse
 from matplotlib.ticker import MultipleLocator, ScalarFormatter, FormatStrFormatter
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
@@ -2141,51 +2141,65 @@ class Beam(object):
    ellipse on a sphere with a correct position angle and with the correct
    sizes.
 
+   Note that a beam can also be specified in 'pixel'/'grid' units.
+   Then the ellipse axes and center are in pixel coordinates, while the
+   position angle is defined with respect to the positive X axis (i.e. not the
+   astronomical position angle).
    """
    #--------------------------------------------------------------------
    def __init__(self, xc, yc, fwhm_major, fwhm_minor, pa, projection=None,
                 units=None, **kwargs):
       self.ptype = "Beam"
 
-      if units != None:
-         uf, errmes = unitfactor('degree', units)
-         if uf is None:
-            raise ValueError(errmes)
-         else:
-            fwhm_major /= uf
-            fwhm_minor /= uf
-
-      semimajor = fwhm_major / 2.0
-      semiminor = fwhm_minor / 2.0
-      Pi = numpy.pi
-      startang, endang, delta = (0.0, 360.0, 1.0)
-      sinP = numpy.sin( pa*Pi/180.0 )
-      cosP = numpy.cos( pa*Pi/180.0 )
-      phi  = numpy.arange( startang, endang+delta, delta, dtype="f" ) 
-      cosA = numpy.cos( phi*Pi/180.0 )
-      sinA = numpy.sin( phi*Pi/180.0 )
-      d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
-      r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
-
-      self.p1 = None
-      self.p2 = None
-      lon_new, lat_new = dispcoord(xc, yc, r, -1, phi+pa)
-      splitlon = get_splitlon(projection)
-      if splitlon is None:
-         lon1, lat1 = lon_new, lat_new
-         lon2 = lat2 = []
+      if units:   # Could be pixels/grids
+         grids = units.upper().startswith('PIX')
       else:
-         lon1, lat1, lon2, lat2 = split_polygons(lon_new, lat_new, splitlon)
+         grids = False
+      if not grids:
+         if units != None:
+            uf, errmes = unitfactor('degree', units)
+            if uf is None:
+               raise ValueError(errmes)
+            else:
+               fwhm_major /= uf
+               fwhm_minor /= uf
 
-      if len(lon1):
-         xp, yp = projection.topixel((lon1, lat1))
-         self.p1 = Polygon(zip(xp, yp), **kwargs)
-      if len(lon2):
-         xp, yp = projection.topixel((lon2, lat2))
-         self.p2 = Polygon(zip(xp, yp), **kwargs)
+         semimajor = fwhm_major / 2.0
+         semiminor = fwhm_minor / 2.0
+         Pi = numpy.pi
+         startang, endang, delta = (0.0, 360.0, 1.0)
+         sinP = numpy.sin( pa*Pi/180.0 )
+         cosP = numpy.cos( pa*Pi/180.0 )
+         phi  = numpy.arange( startang, endang+delta, delta, dtype="f" )
+         cosA = numpy.cos( phi*Pi/180.0 )
+         sinA = numpy.sin( phi*Pi/180.0 )
+         d = (semiminor*cosA) * (semiminor*cosA) + (semimajor*sinA) * (semimajor*sinA)
+         r = numpy.sqrt( (semimajor*semimajor * semiminor*semiminor)/d )
+
+         self.p1 = None
+         self.p2 = None
+         lon_new, lat_new = dispcoord(xc, yc, r, -1, phi+pa)
+         splitlon = get_splitlon(projection)
+         if splitlon is None:
+            lon1, lat1 = lon_new, lat_new
+            lon2 = lat2 = []
+         else:
+            lon1, lat1, lon2, lat2 = split_polygons(lon_new, lat_new, splitlon)
+
+         if len(lon1):
+            xp, yp = projection.topixel((lon1, lat1))
+            self.p1 = Polygon(zip(xp, yp), **kwargs)
+         if len(lon2):
+            xp, yp = projection.topixel((lon2, lat2))
+            self.p2 = Polygon(zip(xp, yp), **kwargs)
+      else:
+         self.p1 = Ellipse((xc, yc), fwhm_major, fwhm_minor, angle=pa, **kwargs)
+         self.p2 = None
+
 
    def plot(self, frame):
       if not self.p1 is None:
+         #flushprint("Patch xy = %s"%str(self.p1.get_path()))
          frame.add_patch(self.p1)
       if not self.p2 is None:
          frame.add_patch(self.p2)
@@ -4323,6 +4337,22 @@ this class.
          pos = '14h03m12.6105s 58' # World coordinate and a pixel coordinate
          beam = annim.Beam(0.04, 0.02, pa=-30, pos=pos, fc='y', fill=True, alpha=0.4)
 
+
+         # Using system of pixels/grids: use units='pixels'
+         # Note that for the use of pos= nothing changes. Only ellipse axes are
+         # in pixels and the position angle is wrt. the X axis.
+         beam(9, 3, pos='10 10', pa=0, units='pixels', fc='y', hatch='/', alpha=0.4)
+
+         # Make hatching more dense:
+         beam(9, 3, pos='10 10', pa=0, units='pixels', fc='y', hatch='////', alpha=0.4)
+
+         # Note the use of an escape character for the hatch symbol
+         beam(9, 3, pos='pc pc', pa=0, units='PIX', fc='m', hatch='\\', alpha=0.4)
+
+         # Note that the center of the ellipse can also be entered with xc and yc
+         # which prevents parsing by str2pos(). 
+         beam(9, 3, xc=10, yc=10, pa=40, units='pix', fc='c', hatch='x', alpha=0.4)
+         
       :Properties:
 
          A selection of keyword arguments for the beam (which is a
@@ -4334,16 +4364,27 @@ this class.
          * facecolor or fc - Matplotlib color spec, or None for default, or 'none' for no color
          * linestyle  or ls - ['solid' | 'dashed' | 'dashdot' | 'dotted']
          * linewidth or lw - float or None for default
+         * hatch - ['/' | '\' | '|' | '-' | '+' | 'x' | 'o' | 'O' | '.' | '*']
 
       """
       #-----------------------------------------------------------------
-      if pos != None:
+      if units:   # Could be pixels/grids
+         grids = units.upper().startswith('PIX')
+      else:
+         grids = False
+         
+      if pos != None:           
          poswp = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
             raise Exception, poswp[3]
-         world = poswp[0][0]      # Only first element is used
+         if grids:
+            world = poswp[1][0]      # Only first element is used of the parsed position is used
+         else:
+            world = poswp[0][0]
       else:
          world = (xc, yc)
+         if grids:
+            world = self.projection.grid2pixel(world)
       spatials = [self.projection.lonaxnum, self.projection.lataxnum]
       spatialmap = self.axperm[0] in spatials and self.axperm[1] in spatials
       if not spatialmap:
