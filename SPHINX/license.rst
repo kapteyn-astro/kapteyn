@@ -14,11 +14,14 @@ The Kapteyn Package is provided under the following license:
 
 .. _citing:
 
-How to cite the package
-.......................
+Please cite the Kapteyn Package
+...............................
 
 If you have used the Kapteyn Package in the preparation of a publication,
-you may cite it as follows (BibTeX format):
+please **cite**. We need these citations to justify time and resources
+spent on the software.
+
+You may cite it as follows (BibTeX format):
 
 .. literalinclude:: ../DISTRIBUTION/kapteyn.bib
 
