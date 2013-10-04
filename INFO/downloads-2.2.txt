@@ -252,6 +252,19 @@ ETH Zuerich @ 192.33.102.123
 Leibniz-Institut fuer Festkoerper- und Werkstoffforschung e.V. @ 193.175.202.2
 Russian Space Science Internet @ 193.232.12.53
 Atacama Large Millimeter/submillimeter Array (ALMA) @ 200.2.2.4
+Noorderpoort @ 145.100.213.156
+The Astronomy and Astrophysics group at Warwick @ 137.205.238.2
+DLR German Aerospace Center @ 129.247.247.240
+Thueringer Landessternwarte Tautenburg @ 194.94.209.38
+European Space Agency (ESA) @ 192.171.2.126
+University of Kwazulu-Natal @ 146.230.128.50
+Empraba Instrumentacao (Brasil) @ 200.19.230.150
+University of Utah @ 155.99.246.207
+Space Telescope Science Institute @ 130.167.236.183
+CERN @ 128.141.110.85
+Tufts University @ 130.64.84.196
+Columbia University Department of Astronomy @ 128.59.170.37
 
-tot: Fri Aug 30 02:35:19 CEST 2013
-Jul 25 11:33 2013
+tot: Fri Oct  4 15:30:50 CEST 2013
+Fri Aug 30 02:35:19 CEST 2013
+
