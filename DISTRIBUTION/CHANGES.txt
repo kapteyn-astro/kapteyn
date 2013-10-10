@@ -12,6 +12,8 @@ Version 2.2.1 (being developed)
 
 * Module maputils:
 
+  * added Astropy support.
+
   * various improvements and extensions.
 
 * Module mplutil:

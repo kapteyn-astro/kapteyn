@@ -64,6 +64,9 @@ For useful references see information below.
    `PyFITS <http://www.stsci.edu/resources/software_hardware/pyfits>`_
       Package for reading and writing FITS files.
       
+   `Astropy <http://www.astropy.org/>`_
+      Newer package for astronomy, also containing the PyFITS functionality. 
+
    Module :mod:`celestial`
       Documentation of sky- and reference systems. Useful if you need
       to define a celestial system.
@@ -105,7 +108,8 @@ A simple utility to analyze a FITS file
 
 With module :mod:`maputils` one can extract image data from a FITS file,
 modify it and write it to another FITS file on disk.
-The methods we use for these purposes are based on package PyFITS, but
+The methods we use for these purposes are based on package PyFITS (or the
+equivalent in Astropy, astropy.io.fits) but
 are adapted to function in the environment of the Kapteyn Package.
 Note that PyFITS is not part of the Kapteyn Package.
 

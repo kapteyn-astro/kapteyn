@@ -88,14 +88,15 @@ The following modules are included:
   :mod:`ascarray`, a binary module containing the base function for
   module :mod:`tabarray`.
 
-.. index:: prerequisites, Python, NumPy, PyFITS, matplotlib
+.. index:: prerequisites, Python, NumPy, PyFITS, Astropy, matplotlib
 
 Prerequisites
 -------------
 
 To install the Kapteyn Package, at least Python_ 2.4
 and NumPy_ (both with header files) are required.
-For using it, the availability of PyFITS_ and matplotlib_ is recommended.
+For using it, the availability of PyFITS_ or Astropy_ and matplotlib_
+is recommended.
 Windows users may also need to install Readline_ or an equivalent package.
 
 Mark Calabretta's WCSLIB_ does not need to be installed separately anymore.
@@ -105,6 +106,7 @@ GNU Lesser General Public License.
 .. _Python: http://www.python.org/
 .. _NumPy: http://numpy.scipy.org/
 .. _PyFITS: http://www.stsci.edu/resources/software_hardware/pyfits
+.. _Astropy: http://www.astropy.org/
 .. _matplotlib: http://matplotlib.sourceforge.net/
 .. _Readline: http://newcenturycomputers.net/projects/readline.html
 .. _WCSLIB: http://www.atnf.csiro.au/people/mcalabre/WCS/

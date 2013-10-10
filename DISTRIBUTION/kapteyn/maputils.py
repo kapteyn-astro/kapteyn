@@ -273,8 +273,11 @@ mploldversion = mplversion < '1.2.0'
 # PyFITS 1.2.x is not compatible with 1.3.x, i.e. if we remove lines which cause
 # the 'deprecated' warnings and replace them by the suggested PyFITS 1.3.x versions
 # then the code is not backwards compatible.
-from pyfits import __version__ as pyfitsversion
-pyfitsoldversion = pyfitsversion < '3.1.0'
+try:
+   from pyfits import __version__ as pyfitsversion
+   pyfitsoldversion = pyfitsversion < '3.1.0'
+except:
+   pyfitsoldversion = False                # no old version in astropy
 
 #print "Matplotlib version:", mplversion, mploldversion
 #print "PyFITS version:" , pyfitsversion, pyfitsoldversion
@@ -296,8 +299,11 @@ import matplotlib.axes as axesclass
 if mploldversion:
    import matplotlib.nxutils as nxutils
 else:
-   import matplotlib.path as path   
-import pyfits
+   import matplotlib.path as path
+try:
+   import pyfits
+except:
+   import astropy.io.fits as pyfits
 import numpy
 from kapteyn import wcs, wcsgrat
 from kapteyn.celestial import skyrefsystems, epochs, skyparser, lon2hms, lat2dms, lon2dms
