@@ -264,7 +264,21 @@ Space Telescope Science Institute @ 130.167.236.183
 CERN @ 128.141.110.85
 Tufts University @ 130.64.84.196
 Columbia University Department of Astronomy @ 128.59.170.37
+Centro Svizzero di Calcolo Scientifico, Lugano @ 148.187.160.85
+MIT Haystack Observatory @ 192.52.61.180
+Department of Astronomy & Astrophysics at Penn State @ 128.118.147.80
+Korea University @ 163.152.45.109
+Pennsylvania State University @ 130.203.71.242
+Reiknistofnun Haskola Islands @ 130.208.190.63
+Argonne National Laboratory @ 146.137.70.71
+Czech Technical Universtity in Prague, Fac. of Electr. Engin. @ 147.32.196.156
+Kyoto University @ 130.54.130.245
+Universite de Limoges @ 164.81.215.156
+Department of Physics at Stockholm University @ 130.237.205.93
+The Yokohama Rubber Co., Ltd @ 210.148.210.130
+National Laboratory for High Energy Physics (KEK), Japan @ 202.13.220.88
 
-tot: Fri Oct  4 15:30:50 CEST 2013
-Fri Aug 30 02:35:19 CEST 2013
+tot: Tue Nov 12 13:17:35 CET 2013
+Fri Oct  4 15:30:50 CEST 2013
 
+(in principe is alleen de eerste download vanuit een organisatie vermeld)
