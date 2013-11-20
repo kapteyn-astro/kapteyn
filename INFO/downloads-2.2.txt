@@ -277,8 +277,11 @@ Universite de Limoges @ 164.81.215.156
 Department of Physics at Stockholm University @ 130.237.205.93
 The Yokohama Rubber Co., Ltd @ 210.148.210.130
 National Laboratory for High Energy Physics (KEK), Japan @ 202.13.220.88
+Dublin Institute for Advanced Studies @ 160.6.202.47
+Princeton University @ 128.112.66.66
+University of Texas at Austin @ 146.6.213.215
 
-tot: Tue Nov 12 13:17:35 CET 2013
-Fri Oct  4 15:30:50 CEST 2013
+tot: Wed Nov 20 13:24:22 CET 2013
+Tue Nov 12 13:17:35 CET 2013
 
 (in principe is alleen de eerste download vanuit een organisatie vermeld)
