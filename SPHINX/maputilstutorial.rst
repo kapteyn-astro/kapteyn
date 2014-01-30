@@ -1568,6 +1568,8 @@ about all sky maps.
 
 
 
+   
+   
 The data from a FITS file is stored in a NumPy array. Then it
 is straightforward to maniplate this data. NumPy has many methods for this.
 We apply a Fourier transform to an image of M101. We show how to use
@@ -1780,6 +1782,71 @@ using transparancy factor**
 
 The base image has scheduled a function to interactively change its colors while
 the second image remains fixed. This enables you do compare the two images.
+
+
+Combining an all-sky image with a user defined projection system
+.................................................................
+
+We like to add an example where we combine an all-sky image with an all-sky graticule.
+If your goal is to plot an all-sky image with a graticules overlay then you
+have to use the method that plots labels inside the image area to get
+the best results.
+This method is from class Annotatedimage and is called Insidelabels(), see description at:
+:meth:`wcsgrat.Graticule.Insidelabels`
+
+But your mission is not always straightforward as it seems.
+For instance, when you want to plot a map in a different sky system and/or
+projection system, you need to re-project the image first. 
+Here we present an example where we start with 
+an all-sky map in galactic coordinates but without a projection system
+defined in its header. We want to show the data in an oblique Aitof projection.
+
+First obtain an all sky map. This is what we have done for our example:
+Go to the `Bonn 408-MHz All-Sky Survey <http://www3.mpifr-bonn.mpg.de/survey.html>`_
+
+You need to enter information on a form.
+First, there is no need to enter coordinates for the center.
+For the map size in x and y take 360 180 (degrees), i.e. the whole sky
+For the tabular interval, take the original values (i.e. enter -1 -1)
+Select Galactic coordinates as the sky system and pixmap (no projection)
+as the projection system.
+In 'Select a survey' we selected 'All sky 408 Mhz'. Submit form and
+wait for the map to appear. Then download the FITS file (one of the buttons
+below the image).
+
+In the script we change this FITS file's CTYPE's to 'GLON-CAR' and
+'GLAT-CAR'. WCS projection CAR is a valid WCSLIB rectangular projection.
+We can do this safely because the values of CRVAL are 0.0 and
+they represent the center of the image (CRPIX=NAXIS/2). So the standard parallel
+is the equator. Now the previously linear projection
+has a WCS equivalent and we can use it for our reprojections.
+If you wonder why we needed to apply this trick, then you should try the example without
+adding the projection type 'CAR'. You will end up with only one half of the entire sky.
+The reason is that we sample the output in pixels. These pixels are converted
+into world coordinates of the output image. But these world coordinates are between 0 and 360 degrees in 
+longitude. If you enter these coordinates in the linear system, you get pixels outside the 
+range of pixels for the input set because there the range in longitude is between 
+-180 and 180 degrees (CRVAL's are in the center) and a linear system does not wrap around.
+
+**Example: mu_allsky_reproj.py - Reproject all-sky map to fit graticules of self defined projection system**
+
+.. plot:: EXAMPLES/mu_allsky_reproj.py
+   :include-source:
+   :align: center
+
+In the plot we marked some positions with a yellow star. The method that we use here
+to read positions from a file is different compared to previous examples. That is because 
+we have a file where the positions are represented by strings. So we implemented some code to read 
+these positions. The positions must follow the syntax for positions as described in:
+:doc:`positions`. 
+The contents of the text file with some marker positions is:
+
+.. literalinclude:: EXAMPLES/positions.txt
+   
+As you can see, the positions are equatorial. But there is no way for the program
+to detect which sky- and reference system is used for the positions. Therefore we iterate over all position
+strings and add the right specification. In our example this is {eq fk4-no-e}.
+
 
 
 Improving the quality of the re-projection
