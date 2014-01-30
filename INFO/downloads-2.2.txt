@@ -281,7 +281,9 @@ Dublin Institute for Advanced Studies @ 160.6.202.47
 Princeton University @ 128.112.66.66
 University of Texas at Austin @ 146.6.213.215
 
+(tot 08/Dec/2013:03:32:06 niet geregistreerd)
 tot: Wed Nov 20 13:24:22 CET 2013
+
 Tue Nov 12 13:17:35 CET 2013
 
 (in principe is alleen de eerste download vanuit een organisatie vermeld)
