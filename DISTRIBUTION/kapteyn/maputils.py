@@ -300,7 +300,7 @@ if mploldversion:
    import matplotlib.nxutils as nxutils
 else:
    import matplotlib.path as path
-try:
+try:   # try to import pyfits. If it is not available, then perhaps it is available in astropy
    import pyfits
 except:
    import astropy.io.fits as pyfits
@@ -3946,6 +3946,73 @@ this class.
       self.objlist.append(contourset)
       self.contourset = contourset
       return contourset
+
+
+   def writecontours_file(self, filename=None):
+      #---------------------------------------------------------------------
+      """
+      Get info about the contours that are plotted
+      and write their vertices to a text file on disk.
+      The contours in the contour set are processed in order of the
+      given contour levels. Per level, all the closed contours are processed
+      in unknown order. For each contour the vertices are written to
+      the file given by keyword parameter filename=
+      There are various situations where it is useful to have this data.
+      For example, it can be used to contruct masks or to analyze
+      the shape of a contour or to calculate the flux if you know the size
+      of a pixel.
+      The contents of the file on disk is something similar to this:
+
+      ! Level: 10000, contour number 0 area=20 sum=234302
+      -132.000000   -72.255098
+      -131.043290   -72.000000
+      ....
+      ! Level: 10000, contour number 1 area=141 sum=1.87093e+06      
+      -142.000000   -68.235209
+      -141.000000   -68.235209
+      ....
+
+      :param filename:
+         Name of file on disk where the vertices of all contours are
+         written. By default the name is set to: contour_info_xxxxx.txt
+         where xxxxx contains data and time of creation.
+      :type filename:
+         String
+      """
+      #---------------------------------------------------------------------
+      if not self.contourSet:
+         return
+
+      # Do we need to create a filename?
+      if not filename:           
+         stamp = datetime.now().strftime("%d%m%Y_%H%M%S")
+         filename = "contour_info" + "_" + stamp + ".txt"
+
+      if not self.contourSet:
+         return
+      contourSet = self.contourSet
+      gridmode = self.gridmode
+      fp = open(filename, 'w')
+      allcollections = contourSet.collections
+      alllevels = contourSet.levels
+      for levnr, collection in enumerate(allcollections):
+         allpaths = collection.get_paths()
+         cnr = 0
+         for path in allpaths:            
+            verts = path.vertices
+            flux = self.getflux(verts)
+            fp.write("! Level: %g, contour number %d area=%g sum=%g\n"%(alllevels[levnr], cnr, flux[0], flux[1]))
+            # Convert to grids only in gridmode
+            if gridmode:
+               xygrid = self.projection.pixel2grid(verts)
+            else:
+               xygrid = verts
+            for xco, yco in xygrid:
+               s = "%12f %12f\n"%(xco, yco)
+               fp.write(s)
+            cnr += 1
+      fp.close()
+
 
 
    def Colorbar(self, frame=None, clines=False, **kwargs):
