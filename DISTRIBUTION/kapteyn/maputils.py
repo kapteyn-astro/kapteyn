@@ -5197,8 +5197,8 @@ this class.
             xw, yw, missingspatial = self.toworld(x, y, matchspatial=True)
             #xi = numpy.round(x) - (self.pxlim[0]-1)
             #yi = numpy.round(y) - (self.pylim[0]-1)
-            xi = numpy.round(x - (self.pxlim[0]-1))
-            yi = numpy.round(y - (self.pylim[0]-1))
+            xi = int(numpy.round(x - (self.pxlim[0]-1)))
+            yi = int(numpy.round(y - (self.pylim[0]-1)))
             x -= self.pixoffset[0]; y -= self.pixoffset[1]
             spix = posobj.pix2str(x, y)
             swcs = posobj.wcs2str(xw, yw, missingspatial)
