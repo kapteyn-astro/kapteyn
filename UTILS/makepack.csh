@@ -1,11 +1,7 @@
 #!/bin/csh
 cd DISTRIBUTION
-if ( ${#argv} >= 1 ) then
-   if (${argv[1]} == "--clean") then
-      echo cleaning build directory
-      \rm -rf build
-   endif
-endif
+\rm -rf build >& /dev/null
+\rm -rf ../PACKAGE >& /dev/null
 python setup.py install --install-lib ../PACKAGE
 setenv PYTHONPATH ../PACKAGE
 python ../UTILS/makebib.py

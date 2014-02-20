@@ -12,10 +12,10 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTILS/make..."
 - makepack.csh  
 
   bouwt het package onder de directory PACKAGE t.b.v. testwerk en het
-  het bouwen van de documentatie. Hiervoor moet de environment variable
+  het bouwen van de documentatie. Voor testwerk moet de environment variable
   PYTHONPATH naar de directory PACKAGE wijzen.
-  Argument --clean : bouw alles opnieuw. Dit is met name van belang als
-  je in dezelfde boom van architectuur overstapt.
+  Argument --clean wordt niet meer gebruikt. Alles wordt nu altijd opnieuw
+  gebouwd.
   N.B. let er bij het testen op, dat dit niet in een directory wordt
   gedaan waarin een directory 'kapteyn' aanwezig is.
 
