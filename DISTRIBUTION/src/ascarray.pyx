@@ -23,6 +23,10 @@ import numpy
  
 ctypedef void FILE
 
+cdef extern from "locale.h":
+   cdef int LC_NUMERIC
+   char *setlocale(int category, char *locale)
+
 cdef extern from "numpy/arrayobject.h":
    cdef enum NPY_TYPES:
       NPY_DOUBLE
@@ -118,6 +122,7 @@ Read an ASCII table file and return its data as a NumPy array.
    cdef int filesize, maxitems=0, badflag
    cdef int *segments=NULL, maxseg=0, nseg=0, segfirst=0, segflag
    cdef double *data=NULL, badvalue=0.0
+   setlocale(LC_NUMERIC, 'C')              # enforce decimal point, not comma
    f = fopen(filename, "r")
    if f==NULL:
       raise IOError, 'cannot open %s' % filename
