@@ -13,6 +13,12 @@
 #                              image display.
 #          September 07, 2013; version 1.14. Contours in panels and panel
 #                              widths now proportional to number of chanels
+#          February 27,  2014; version 1.15. Improved function that writes contour
+#                              information to file. Also enhanced routines for 
+#                              pan and zoom events.
+#
+#__version__ = '1.14'  Do not define it here because the first line in this
+# program must be a Sphinx documentation string!
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -20,6 +26,11 @@
 # E: gipsy@astro.rug.nl
 #
 # TODO:
+# De buttons voor home, prev, next op de navigation toolbar werken wel
+# goed in visions, maar niet in een los script met een show()
+# Bij zoomacties (bv via pan button) crasht het systeem als er 
+# te ver wordt uitgezoomd. De foutmelding is dat er in mathtext geen $$
+# staat. 
 # -Positionmessage offsets laten laten tonen.
 # -Betere melding als header niet valide is
 # -Rulers met 1 (start)punt
@@ -237,6 +248,11 @@ Class MovieContainer
 
 .. autoclass:: MovieContainer
 
+Class Cubes
+-----------
+
+.. autoclass:: Cubes
+
 """
 # ----------------- Use for experiments -----------------
 """
@@ -253,6 +269,15 @@ print "Matplotlib version:", mplversion
 # Use this to find the current backend. We need this parameter to find
 # out whether we work with a QT canvas or not. For a QT canvas we deal with
 # toolbar messages in a different way.
+__version__ = '1.15'
+
+# Local settings of LC_NUMERIC that interpret dots as comma's v.v., area
+# causing problems with reading numbers. We change this variable to a global default
+# a.s.a.p. but we are not sure if it propagates well (e.g. tabarray does not seem
+# to recognize it. TODO: Find better solution
+import locale
+locale.setlocale(locale.LC_NUMERIC,"C")
+
 from matplotlib import rcParams
 backend = rcParams['backend'].upper()
 
@@ -328,7 +353,7 @@ from datetime import datetime
 import warnings
 import time
 from os import getpid as os_getpid
-from os import remove
+from os import remove, getcwd
 from os.path import basename as os_basename
 from subprocess import Popen, PIPE, check_call, CalledProcessError 
 from platform import system as os_system
@@ -341,8 +366,6 @@ except:
 
 
 KeyPressFilter.allowed = ['f', 'g']
-
-__version__ = '1.14'
 
 (left,bottom,right,top) = (wcsgrat.left, wcsgrat.bottom, wcsgrat.right, wcsgrat.top)                 # Names of the four plot axes
 (native, notnative, bothticks, noticks) = (wcsgrat.native, wcsgrat.notnative, wcsgrat.bothticks, wcsgrat.noticks) 
@@ -361,15 +384,40 @@ MINBOUND = 0.005
 MAXBOUND = 0.995
 
 # Redefine some methods to intercept actions which causes a canvas.draw() call
-# and a change in the Axes bbox.
+# and a change in the Axes bbox, caused by a toolbar navigation action.
+# 1) After zooming, the mouse button is released which will trigger a release_zoom event
+#    After this event we want to restore image and graticule
+# 2) After dragging and realeasing the mouse button, a pan_release event is triggered.
+#    After this event we want to restore image and graticule
+#    This also covers for zooming in drag mode, because after releasing the mouse
+#    button in this mode, also a pan_release event will be triggered.
+# 3) The navigation toolbar hosts a home, next and previous button, which stores
+#    a memory of images which are zoomed or panned. After such actions, we want 
+#    to restore image and graticule
+# 4) The navigation toolbar also hosts a button which starts the subplot configuration
+#    tool. We limited its functionality. If a subplots_adjust event is generated, 
+#    we want to restore image and graticule according to the maputils settings
+#    which takes colorbar and slices into account. So effectively the subplot configuration
+#    tool does nothing. We still need to redefine subplots_adjust() because 
+#    if an application starts with a frame created with subplots(1,1,1), then 
+#    the callback to subplots_adjust() is triggered and we need to reposition 
+#    images at startup to avoid copying the settings of subplots_adjust().
+#
+# These effects are realized by redifining the callback functions and adding the 
+# calls to the image and graticule reposition functions.
 
 from matplotlib.backend_bases import NavigationToolbar2
 NavigationToolbar2.ext_callback = None
 NavigationToolbar2.ext_callback2 = None
+
+"""
 def _update_view(self):
+    print "+update_view++++++++++++++++++++"
     '''update the viewlim and position from the view and
     position stack for each axes
     '''
+    # This callback is triggered if a user clicks the home or arrow
+    # buttons to reset a previous view.
     lims = self._views()
     if lims is None:  return
     pos = self._positions()
@@ -391,16 +439,11 @@ def _update_view(self):
     if self.ext_callback:
        self.ext_callback()
 
-def release(self, event):
-    if self.ext_callback2:
-       self.ext_callback2()
-    if self.ext_callback:
-       self.ext_callback()
-
 
 def drag_pan(self, event):
     'the drag callback in pan/zoom mode'
 
+    print "Drag pan"
     for a, ind in self._xypress:
         #safer to use the recorded button at the press than current button:
         #multiple button can get pressed during motion...
@@ -408,25 +451,65 @@ def drag_pan(self, event):
     self.dynamic_update()
 
     if self.ext_callback:
+       print "callback+++"
+       self.ext_callback()
+       
+
+#NavigationToolbar2._update_view = _update_view
+#NavigationToolbar2.release = release
+#NavigationToolbar2.drag_pan = drag_pan
+       
+"""
+
+def resetframe(self, event):
+    # Reset content (image, panels, graticules after toolbar actions
+    # zoom, pan, home, previous, next
+    if self.ext_callback2:
+       self.ext_callback2()
+    if self.ext_callback:
        self.ext_callback()
 
 
-NavigationToolbar2._update_view = _update_view
-NavigationToolbar2.release = release
-NavigationToolbar2.drag_pan = drag_pan
+oldzoom = NavigationToolbar2.release_zoom
+def newzoom(self, event):
+    oldzoom(self, event)
+    resetframe(self, event)
+NavigationToolbar2.release_zoom = newzoom
 
+oldpan = NavigationToolbar2.release_pan
+def newpan(self, event):
+    oldpan(self, event)
+    resetframe(self, event)
+NavigationToolbar2.release_pan = newpan
 
+old_update_view = NavigationToolbar2._update_view
+def new_update_view(self):
+  try:
+    old_update_view(self)
+  except:
+    pass
+  resetframe(self, None)
+NavigationToolbar2._update_view = new_update_view
+    
 from matplotlib.figure import Figure
 Figure.ext_callback = None
+old_subplots_adjust = Figure.subplots_adjust
+def new_subplots_adjust(self, *args, **kwargs):
+    old_subplots_adjust(self, *args, **kwargs)
+    if self.ext_callback:
+       self.ext_callback()       
+Figure.subplots_adjust = new_subplots_adjust
+
+"""
 def subplots_adjust(self, *args, **kwargs):
-    """
-    fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
-        wspace=None, hspace=None)
+    #
+    #fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
+        #wspace=None, hspace=None)
 
-    Update the :class:`SubplotParams` with *kwargs* (defaulting to rc where
-    None) and update the subplot locations
+    #Update the :class:`SubplotParams` with *kwargs* (defaulting to rc where
+    #None) and update the subplot locations
 
-    """
+    #
     self.subplotpars.update(*args, **kwargs)
     import matplotlib.axes
     for ax in self.axes:
@@ -445,6 +528,7 @@ def subplots_adjust(self, *args, **kwargs):
        self.ext_callback()
        
 Figure.subplots_adjust = subplots_adjust
+"""
 
 
 def getmemory():
@@ -3978,6 +4062,10 @@ this class.
          where xxxxx contains data and time of creation.
       :type filename:
          String
+         
+      :returns:
+         None, or a tuple with filename and current directory
+      
       """
       #---------------------------------------------------------------------
       if not self.contourSet:
@@ -3986,10 +4074,8 @@ this class.
       # Do we need to create a filename?
       if not filename:           
          stamp = datetime.now().strftime("%d%m%Y_%H%M%S")
-         filename = "contour_info" + "_" + stamp + ".txt"
+         filename = "visions_contour_info" + "_" + stamp + ".txt"
 
-      if not self.contourSet:
-         return
       contourSet = self.contourSet
       gridmode = self.gridmode
       fp = open(filename, 'w')
@@ -4012,6 +4098,7 @@ this class.
                fp.write(s)
             cnr += 1
       fp.close()
+      return filename, getcwd()
 
 
 
@@ -6696,6 +6783,8 @@ to know the properties of the FITS data beforehand.
          if (i+1) in self.axperm:
             pix.append(self.proj.crpix[i])
          else:
+            # Here we assume that slicepos is always a sequence,
+            # even when there is only one repeat axis
             pix.append(self.slicepos[j])
             j += 1
             # Note that we assumed the axis order in slicepos is the same as in the Projection object
@@ -9222,7 +9311,11 @@ Usually one creates a movie container with class class:`Cubes`
          delta = 0.01
          self.helptextbase = "Use keys 'p' to Pause/Resume. '+','-' to increase/decrease movie speed.  '<', '>' to step in Pause mode."
          speedtext = " Speed=%d im/s"% (self.framespersec)
-         self.helptext_id = self.fig.text(0.5, delta, self.helptextbase+speedtext, color='g', fontsize=8, ha='center')
+         self.helptext_id = self.fig.text(0.5, delta,
+                       self.helptextbase+speedtext+'\n'+colornavigation_info(),
+                       color='g',
+                       fontsize=8,
+                       ha='center')
       else:
          self.helptextbase = ''
          speedtext = ''
@@ -9294,7 +9387,7 @@ Usually one creates a movie container with class class:`Cubes`
       annimage.image.im.set_visible(visible)
       self.annimagelist.append(annimage)
       self.numimages = len(self.annimagelist)
-
+      #flushprint("Loaded %d images in moviecontainer"%self.numimages)
       if slicemessage is None:
          s = "im #%d=slice:%s"%(self.numimages-1, annimage.slicepos)
          annimage.slicemessage = s
@@ -10355,16 +10448,18 @@ class Cubeatts(object):
          if self.slicepos:
             # Note that each fitsobj has one 'slicepos'. This value
             # can be a tuple if there is more than one repeat axis
-            self.fitsobj.slicepos = self.slicepos[i]
-            vlist, ulist = self.fitsobj.slice2world(skyout=None,
-                                                    spectra=spectrans,
-                                                    userunits=None)
-            #print "SLICEPOS=", self.slicepos[i], vlist, ulist,self.axnums            
+            # If not, we have to make it a sequence for slice2world()
+            # slicepos values follow the FITS syntax, i.e. start at 1
             if not issequence(self.slicepos[i]):
                splist = [self.slicepos[i]]
             else:
                splist = self.slicepos[i]
-
+            self.fitsobj.slicepos = splist
+            
+            vlist, ulist = self.fitsobj.slice2world(skyout=None,
+                                                    spectra=spectrans,
+                                                    userunits=None)
+            #print "SLICEPOS=", self.slicepos[i], vlist, ulist,self.axnums
             # If the slice position is required in grids, convert using CRPIX values
             if self.gridmode:
                #flushprint("len(splist=%d, %s %s"%(len(splist),str(splist), str(aim.projection.crpix)))
@@ -10501,10 +10596,6 @@ which can store images from different data cubes.
    The message contains information about the position of the cursor and
    when possible, it will show the corresponding world coordinates. Also the
    pixel value is printed.
-   #TODO: Afkappen voor andere backends verbeteren
-   #TODO: Info voor panels is nog niet volledig. Hier nog image waarde aan toevoegen
-          indien dit niet al te ingewikkeld is.
-   #TODO: Colorbar toevoegen
    If you display a slice panel, then the information about the mouse position
    is different. For example the y direction of the horizontal slice panel is
    not a function of a world coordinate, but a function of movie frame number.
@@ -10512,44 +10603,113 @@ which can store images from different data cubes.
 :type toolbarinfo:
    Boolean
 
+:param imageinfo:
+   If set to True, a label will be plotted in the upper left corner of
+   your plot. The label contains information about the current image, such as
+   the name of the repeat axis and the value on the repeat axis in physical
+   coordinates.
+:type imageinfo:
+   Boolean
+
+:param printload:
+   If True, print a message on the terminal about the image that is loading.
+:type printload:
+   Boolean
+
+:param helptext:
+   Print a message at the bottom of the figure with information about the
+   navigation.
+:type helptext:
+   Boolean
 
 
 :param callbackslist:
-      Possible callbacks:
-
-      progressbar:
-      An (external) object that displays the progress. It should have at
-      least four methods: setMinimum(), setMaximum(), setValue() and reset()
-      For example in a QT gui we can define a progressbar with
-      'QProgressBar()'. This routine provides the necessary methods.
-      The QT progressbar displays percentages. We set its range between
-      zero and the number of frames contained in the new cube.
-      Usually, loading 1 image is to fast to use a progressbar, but
-      with numerous images, this can be useful.
-
-
+   Example of a possible callback: `the progressbar`.
+   An (external) object that displays the progress. It should have at
+   least four methods: setMinimum(), setMaximum(), setValue() and reset()
+   For example in a QT gui we can define a progressbar with
+   'QProgressBar()'. This routine provides the necessary methods.
+   The QT progressbar displays percentages. We set its range between
+   zero and the number of frames contained in the new cube.
+   Usually, loading 1 image is too fast to use a progressbar, but
+   with numerous images, this can be useful.
 :type callbackslist:
-      Python dictionary with function names and function pointers
+   Python dictionary with function names and function pointers
 
 
+:Attributes:
+   
+    .. attribute:: splitmovieframe
 
-:Example:
+       Number of movie frame which contains the image which we want to
+       use together with the current image to split. The attribute is
+       set with :meth:`maputils.Cubes.set_splitimagenr`.
 
-   myCubes = maputils.Cubes(toolbarinfo=True, printload=True)
-   fitsobject = maputils.FITSimage('rense.fits')
-   slicepos = []
-   for i in range (1,100):
-      slicepos.append(i)
-   axnums = (1,2,3)
-   fr1 = fig.add_axes(box, label=fitsobject.filename, frameon=False)
-   myCubes.append(fr1, fitsobject, slicepos, axnums=axnums)
-   myCubes.splitmovieframe = 30
-   plt.show()
-   TODO: make van attribute splitmovieframe een methode waarin je de validiteit test
+:Examples:
+   1) Simple example with a 3D data FITS file. The cube has axes RA, DEC and VELO. 
+   We show how to initialize a Cubes container and how to add objects of type
+   :class:`maputils.FITSimage` to this container::
 
-   # Changelog:
-   -18 aug 2011: Changed toolbar message for QT backends, i.e. do not cut off
+      from matplotlib.pyplot import figure, show
+      from kapteyn import maputils
+
+      fig = figure()
+      frame = fig.add_subplot(1,1,1)
+      myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=True)
+      fitsobject = maputils.FITSimage('ngc6946.fits')
+      slicepos = range(1,101)
+      axnums = (1,2)
+      myCubes.append(frame, fitsobject, axnums, slicepos=slicepos)
+      show()
+
+   2) The loading process is done with a timer callback. We have to use our own callback function
+   that is triggered when the loading process is finished. In the example we use 
+   a callback to set the image we want to compare with the current image
+   while splitting the images so that we can see them both. :meth:`maputils.Cubes.append` will trigger a 
+   'finished' callback and we can write our own function *setsplit()* to handle it::
+   
+      from matplotlib.pyplot import figure, show
+      from kapteyn import maputils
+
+      def setsplit():
+	myCubes.set_splitimagenr(30)
+	
+      fig = figure()
+      frame = fig.add_subplot(1,1,1)
+      myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+      fitsobject = maputils.FITSimage('ngc6946.fits')
+      slicepos = range(1,101)
+      axnums = (1,2)
+      myCubes.append(frame, fitsobject, axnums, slicepos=slicepos,
+		    callbackslist={'finished':setsplit})
+		    
+      show() 
+   
+
+   List with callbacks::
+
+      myCubes = maputils.Cubes(self.fig, toolbarinfo=True, printload=False,
+                               helptext=False, imageinfo=False,
+                               callbackslist={'finished'   :plotPanels,
+                                              'progressbar':progressBar})
+                                              
+   
+:Methods:
+
+.. automethod:: append
+.. automethod:: set_splitimagenr
+.. automethod:: set_panelframes
+.. automethod:: set_graticule_on
+.. automethod:: set_zprofile
+.. automethod:: zprofileLimits
+.. automethod:: set_crosshair
+.. automethod:: set_colbar_on
+.. automethod:: set_skyout
    """
+      
+   # Changelog:
+   #-18 aug 2011: Changed toolbar message for QT backends, i.e. do not cut off
+   
    #----------------------------------------------------------------------------
    # Class variables:
    # Define the required colorbar width. The width remains the same after scaling the window
@@ -10780,7 +10940,28 @@ which can store images from different data cubes.
    def zprofileLimits(self, cubenr, zmin=None, zmax=None):
       #-----------------------------------------------------------------
       """
-      Purpose: Set limits of plot with Z_profile for the current cube
+      Set limits of plot with Z_profile for the current cube.
+
+      :param cubenr:
+         Index of the cube in Cubes.cubelist for which we want to adjust
+         the range in image values in the z-profile
+      :type cubenr:
+         Integer
+      :param zmin:
+         Clip Y range (image values) in z-profile. ``zmin`` is the minimum value.
+         If set to None, the minimum data value in the corresponding cube is
+         used.
+      :type zmin:
+         Float
+      :param zmax:
+         Clip Y range (image values) in z-profile. ``zmax`` is the maximum value.
+         If set to None, the maximum data value in the corresponding cube is
+         used.
+      :type zmax:
+         Float
+
+      :Notes:
+         See example at :meth:`set_zprofile`
       """
       #-----------------------------------------------------------------
       cube = self.cubelist[cubenr]
@@ -10939,11 +11120,13 @@ which can store images from different data cubes.
               callbackslist={}):
       #-------------------------------------------------------------------------
       """
-      Add a new cube to the container. A cube can be a two dimensional data set.
-      Then we imagine a third axis of length 1 without any meaning. But
-      usually a cube is a set of two dimensional data structures. The axes of
+      Add a new cube to the container with cubes. This class supports data structures
+      with 3 or more axes and we regard a 2D image as a cube with
+      a third axis (without any meaning) of length 1 . But
+      usually a cube is a set of two dimensional data structures (e.g.
+      a sequence of images in a radio cube). The axes of
       these 'images' are arbitrary. For instance, one can also display
-      images with one spatial axis and one spectral axis (e.g. position
+      images with one spatial axis and one spectral axis (so called position
       velocity diagrams).
 
       :param frame:
@@ -10980,6 +11163,7 @@ which can store images from different data cubes.
       self.cubeindx += 1                       # Prepare index for the next cube 
       # Start loading the images. We do this with a timer callback so that
       # we don't have to wait for the last image before a window appears.
+      #timer = TimeCallback(self.loadimages, 0.00001, False, count=0, cube=C, zprofileOn=self.zprofileOn)
       timer = TimeCallback(self.loadimages, 0.00001, False, count=0, cube=C, zprofileOn=self.zprofileOn)
       # The timer list keeps track of the timers. The first that is registered
       # is the first that will be processed entirely before the next callback is
@@ -11061,6 +11245,65 @@ which can store images from different data cubes.
       """
       Set a list with movie frame index numbers to show up in one of the
       side panels. The panels appear when the list is not empty.
+      
+      Imagine a 3D data structure. The axes of such a structure could be 
+      RA, DEC and FREQ. When we appended images, we specified the axis numbers
+      in *axnums*. Assume these numbers are (1,2) which corresponds to images 
+      with axes RA and DEC. We can show a movie loop of the images as function 
+      of positions in axis FREQ. A side panel is a new image that shares 
+      either the RA or the DEC axis with the cube, but the other axis is a FREQ 
+      axis. This way we extracted a slice from the cube. ``panel='X'`` gives
+      a horizontal RA-FREQ slice and ``panel='Y'`` gives
+      a vertical DEC-FREQ slice and the data is extracted at the position of 
+      the cursor in the current image and when you move the mouse while pressing
+      the left mouse button, you will see that the side panels are updated with
+      new data extracted from the new mouse cursor position. It is also possible
+      use the mouse in the side panels. If you move the mouse in the FREQ direction,
+      you will see that the current image is replaced by the one that matches the
+      new slice position in FREQ. If you move in a side panel in the RA or DEC direction,
+      then you will see that the opposite side panel is updated because the
+      position where the slice was extracted (DEC or RA) has been changed.
+      This functionality has been used often for the inspection of radio data because
+      it allows you to discover features in the data in a simple and straightforward way.
+      
+      
+      
+      :param framelist:
+         List with numbers which represent the movie frames from which
+         data is extracted to compose a side panel with slice data. Movie frame 
+         numbers start with index 0 and range to the number of stored images.
+         These images need not to be extracted from the same cube. Therefore 
+         there is no clear correspondence between slice positions and movie frame
+         numbers.
+      :type framelist:
+         Iterable sequence with integers
+      :param panel:
+         Default is to draw a panel along the horizontal image axis (X axis).
+         The panel along the Y axis needs to be specified with ``panel='Y'``.
+         Both panels are plotted with: ``panel='XY'``
+      :type panel:
+         One or two characters from the list 'X', 'Y', 'x', 'y'
+
+      
+      :Examples:
+         Set both side panels to inspect orthogonal slices::
+
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def postloading():
+               myCubes.set_panelframes(range(len(slicepos)), panel='XY')
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
+                           callbackslist={'finished':postloading})
+
+            show()
+         
       """
       #-------------------------------------------------------------------------
       self.numXpanels = self.numYpanels = 0
@@ -11068,11 +11311,11 @@ which can store images from different data cubes.
          frlo = C.movieframeoffset; frhi = C.movieframeoffset + C.nummovieframes
          panelframes = [d-frlo for d in framelist if frlo <= d < frhi]
 
-         if panel.upper() == 'X':
+         if 'X' in panel.upper():
             #flushprint("SET_XPANELS.................")
             C.set_panelXframes(panelframes)
             #self.create_panel('x', C)
-         else:
+         if 'Y' in panel.upper():
             #flushprint("SET_YPANELS.................")
             C.set_panelYframes(panelframes)
             #self.create_panel('y', C)
@@ -11082,10 +11325,10 @@ which can store images from different data cubes.
             self.numYpanels += 1
 
       for C in self.cubelist:
-         if panel.upper() == 'X':
+         if 'X' in panel.upper():
             # Call method even when there are no panelXframes. Then we can clean up.
             self.create_panel('x', C)
-         else:
+         if 'Y' in panel.upper():
             self.create_panel('y', C)
        
       
@@ -11385,7 +11628,7 @@ which can store images from different data cubes.
             #mplimp2.contourSet = framep2.contour(mplimp2.image.im.get_array(), levels=None, colors='c', extent=mplimp2.box)
 
       # Properties
-            flushprint("Panel contours after creating image")
+            #flushprint("Panel contours after creating image")
             #for col in CS.collections:
             #   col.set_visible(True)
             #   mplimp2.frame.draw_artist(col)
@@ -11694,9 +11937,44 @@ which can store images from different data cubes.
    def set_crosshair(self, status):
    #----------------------------------------------------------------------------
       """
-      This method prepares a crosshair cursor. Note that the situation
+      This method prepares a crosshair cursor, which can be moved with the mouse
+      while pressing the left mouse button.
+
+      Usually we want a crosshair cursor, to find the location of features. The
+      crosshair cursor extends also to the side panels where the indicate
+      at which slice we are looking.
+
+      Note that the situation
       with blitted images and multiple frames (Axes objects) prevents the use
-      of matplolib.widgets.Cursor
+      of matplolib.widgets. Cursor so an alternative is implemented.
+
+      :param status:
+         If set to `True`, a crosshair cursor will be plotted. If `False`, an
+         existing crosshair will be removed.
+      :type status:
+         Boolean
+
+      :Examples:
+         Draw a crosshair on the canvas which can be moved with the mouse
+         while pressing the left mouse button. Extend the cursor in two side panels::
+         
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def postloading():
+               myCubes.set_panelframes(range(len(slicepos)), panel='XY')
+               myCubes.set_crosshair(True)
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
+                           callbackslist={'finished':postloading})
+
+            show()
+
       """
    #----------------------------------------------------------------------------
       self.crosshair = status
@@ -11726,7 +12004,52 @@ which can store images from different data cubes.
    def set_zprofile(self, status):
    #----------------------------------------------------------------------------
       """
-      This method is called from an external source
+      This method plots (or removes) a so called z-profile as a (non-filled)
+      histogram as function of cursor position in an image.
+
+      The data is extracted from a data set, with at least three axes,
+      at the cursor position in the current
+      image and this is repeated for all the images in all the cubes that
+      were entered. This is also repeated for all the repeat axex that
+      you specified for a given cube.
+      So the X axis of the z-profile is the movie frame number and not a
+      slice number.
+      The z-profile is shown per cube. If you change to an image that
+      belongs to another cube, the z-profile will change accordingly, but
+      the X axis still represents the movie frame number.
+
+      You can update the z-profile by moving the mouse while pressing the left
+      mouse button.
+      Change the limits in the Y direction (image values) with
+      method :meth:`maputils.zprofileLimits()`.
+
+      :param status:
+         Plot z-profile if ``status=True``. If there is already a z-profile
+         plotted, then remove it with ``status=False``
+      :type status:
+         Boolean
+
+      :Examples:
+         Load a cube and plot its z-profile. Set the range of image values
+         for the z-profile::
+
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def postloading():
+               myCubes.set_zprofile(True)
+               myCubes.zprofileLimits(0, 0.0, 0.1)
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
+                           callbackslist={'finished':postloading})
+
+            show()
+         
       """
    #----------------------------------------------------------------------------
       self.zprofileOn = status
@@ -11771,7 +12094,7 @@ which can store images from different data cubes.
          self.zprofileframe.cubeindx = -1
          self.zprofileframe.changed = False
 
-         info = self.zprofileframe.text(0.99, 0.96, "Z-profile at: x,y=",
+         info = self.zprofileframe.text(0.99, 0.8, "Z-profile at: x,y=",
                                        horizontalalignment='right',
                                        verticalalignment='top',
                                        transform=self.zprofileframe.transAxes,
@@ -11792,11 +12115,55 @@ which can store images from different data cubes.
       self.reposition(force=True)
 
       
-   def set_colbar_on(self, cube, mode):
+   def set_colbar_on(self, cube,  mode):
     #----------------------------------------------------------------------------
       """
-      Purpose: This method draws or removes a colorbar. Each cube is associated with a
-               colorbar.
+      This method draws or removes a colorbar. Each cube is associated with a
+      color bar.
+
+      A color bar will always be plotted to the left side of your plot and it
+      have the same height as the canvas.
+      The color bar will change its colours if you move the mouse while pressing
+      the right mouse button. It will also change if you use color navigation
+      with keyboard keys:
+
+      * pgUp and pgDown: browse through colour maps -- MB right: Change slope and offset
+      * Colour scales: 0=reset 1=linear 2=logarithmic
+      * 3=exponential 4=square-root 5=square 9=inverse
+      * h: Toggle histogram equalization & raw image 
+
+      :param cube:
+         An entry from the list Cubes.cubelist. For example: ``cube=myCubes.cubelist[0]``
+      :type cube:
+         An object from class :class:`maputils.Cubeatts`.
+      :param mode:
+         If set to ``True``, a color bar will be plotted. If set to ``False``, an
+         existing color bar will be removed.
+      :type mode:
+         Boolean
+
+      :Examples:
+         Plot a color bar::
+
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def postloading():
+               cube = myCubes.cubelist[0]
+               myCubes.set_colbar_on(cube, mode=True)
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,2),
+                           slicepos=slicepos, hascolbar=False,
+                           callbackslist={'finished':postloading})
+
+            show()
+
+
       """
    #----------------------------------------------------------------------------
       if not cube or not len(cube.imagesinthiscube):
@@ -11892,7 +12259,43 @@ which can store images from different data cubes.
    def set_skyout(self, cube, skyout):
    #----------------------------------------------------------------------------
       """
-      This method changes the celestial system. It redraws the graticule.
+      This method changes the celestial system. It redraws the graticule so that 
+      its labels represent the new celestial system.
+      
+      
+      :param cube:
+         An entry from the list Cubes.cubelist. For example: ``cube=myCubes.cubelist[0]``
+      :type cube:
+         An object from class :class:`maputils.Cubeatts`.
+      :param skyout:
+         See :ref:`celestial-skysystems`
+      :type skyout:
+         String or tuple
+      
+      
+      :Examples:
+         Change the sky system from the native system to Galactic and draw a graticule
+         showing the world coordinate system::
+      
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def postloading():
+               cube = myCubes.cubelist[0]
+               myCubes.set_skyout(cube, "galactic")
+               myCubes.set_graticule_on(cube, True)
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, helptext=False,
+                                    printload=False)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
+                           callbackslist={'finished':postloading})
+
+            show()
+
       """
    #----------------------------------------------------------------------------    
       if not cube or not len(cube.imagesinthiscube):
@@ -11948,7 +12351,43 @@ which can store images from different data cubes.
       """
       This method creates the WCS overlay and refreshes the current image or
       the relevant image if the current image does not belong to the cube
-      for which a graticule is ordered.
+      for which a graticule is requested. The method can be used if the 
+      *hasgraticule* parameter in :meth:`maputils.Cubes.append` has not been set.
+      
+      :param cube:
+         An object from the list Cubes.cubelist. For example: ``cube = myCubes.cubelist[0]``
+      :type cube:
+         An object from class :class:`Cubeatts`.
+      :param mode:
+         If set to True, a graticule will be plotted. If set to False, an existing
+         graticule will be removed.
+      :type mode:
+         Boolean
+      
+      :Examples:
+         Define a callback which is triggered after loading all the images in 
+         a data cube. The callback function extracts the first (and only)
+         cube of a list of cubes and plots the graticules::
+		  
+	    from matplotlib.pyplot import figure, show
+	    from kapteyn import maputils
+
+	    def postloading():
+	      cube = myCubes.cubelist[0]
+	      myCubes.set_graticule_on(cube, True)
+
+	    fig = figure()
+	    frame = fig.add_subplot(1,1,1)
+	    myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+	    fitsobject = maputils.FITSimage('ngc6946.fits')
+	    slicepos = range(1,101)
+	    axnums = (1,2)
+	    myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=range(1,101),
+			  callbackslist={'finished':postloading})
+
+	    show()
+	
+	
       """
    #----------------------------------------------------------------------------   
       if not cube or not len(cube.imagesinthiscube):
@@ -11991,7 +12430,6 @@ which can store images from different data cubes.
       This is a feature of Matplotlib.
       """
    #----------------------------------------------------------------------------
-      
       if not len(self.movieimages.annimagelist):
          return     # No images yet, nothing to do
 
@@ -12230,7 +12668,7 @@ which can store images from different data cubes.
             if hasattr(cube, 'grat'):
                if cube.grat:
                   action = True
-                  #cube.frame.apply_aspect()
+                  cube.frame.apply_aspect()                  
                   gratframe = cube.grat.frame
                   #gratframe.apply_aspect()
                   gratframe.set_position(cube.frame.get_position())
@@ -12268,7 +12706,8 @@ which can store images from different data cubes.
          # komt (net) niet in de goede eindtoestand terecht met je graticulen
          # Ik denk dat het voor de panels nog erger is.
          self.fig.canvas.draw()
-         #self.fig.canvas.flush_events()
+
+         
       """
       x0, x1 = cube.frame.get_xlim()
       y0, y1 = cube.frame.get_ylim()
@@ -12301,12 +12740,22 @@ which can store images from different data cubes.
    def set_splitimagenr(self, nr):
       #-------------------------------------------------------------------------
       """
-      Set image (by its number) which is used to split the current scrren
+      Set image (by its number) which is used to split the current screen.
+      
+      :param nr:
+         Number of the movie frame that corresponds to the image you want
+         to use together with the current image to split and compare.
+         Note that these movieframe numbers start with 0 and run to the 
+         number of loaded frames. The numbering continues after loading 
+         more than 1 data cube.
+
+      :type nr:
+         Integer
       """
       #-------------------------------------------------------------------------
       num = len(self.movieimages.annimagelist)
       if nr < 0 or nr >= num:
-         raise ValueError, "Image nr %d does not exist (%d<nr<%d). Reset to 0!"%(nr, 0, num)
+         raise ValueError, "Image nr %d does not exist (%d<nr<%d)!"%(nr, 0, num)
       else:
          # First reset a possible earlier image that was used to compare
          # to the current.
@@ -12977,7 +13426,7 @@ which can store images from different data cubes.
       s = "image number %d: "%self.movieframecounter
       mplim.info = None
       if self.imageinfo:
-         mplim.info = mplim.frame.text(0.01, 0.99, s,
+         mplim.info = mplim.frame.text(0.01, 0.98, s,
                                        horizontalalignment='left',
                                        verticalalignment='top',
                                        transform=mplim.frame.transAxes,
