@@ -2318,11 +2318,21 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 
       # wcs.debug=True
-      # Create the wcs projection object
-      if spectrans == None:
-         proj = wcs.Projection(header, skyout=skyout, alter=alter)
-      else:
-         proj = wcs.Projection(header, skyout=skyout, alter=alter)   #.spectra(spectrans)
+      # Create the wcs projection object      
+      proj = wcs.Projection(header, skyout=skyout, alter=alter)
+      if spectrans:
+         # Spectral transformations must be applied to the Projection object
+         # with all her axes because we need it both for plotting
+         # graticule label in the right spectral type (one of the image
+         # axes is spectral) or we want the output of the pixels on the
+         # repeat axis in the right spectral coordinates (if that axis is
+         # spectral). If we postpone this translation until we have a
+         # 2-D image, the spectral translation will not work for the
+         # repeat axis.
+         st2 = spectrans.split('-')
+         if len(st2) == 1:
+            spectrans += '-???'
+         proj = proj.spectra(spectrans)
       
       # If one of the selected axes is a spatial axis and the other
       # is not, then try to find the axis number of the matching axis.
@@ -2353,16 +2363,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          gmap = proj.sub([self.xaxnum, self.yaxnum])
          self.mixpix = None
 
-
-      # Set the spectral translation and make Projection object an attribute
-      # First process the string
-      if spectrans != None:
-         st2 = spectrans.split('-')
-         if len(st2) == 1:
-            spectrans += '-???'
-         self.gmap = gmap.spectra(spectrans)
-      else:
-         self.gmap = gmap
+      self.gmap = gmap
       self.gmap.allow_invalid = True
 
       # We arrived at the stage that we have a Projection object (called 'gmap')

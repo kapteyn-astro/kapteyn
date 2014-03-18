@@ -16,8 +16,10 @@
 #          February 27,  2014; version 1.15. Improved function that writes contour
 #                              information to file. Also enhanced routines for 
 #                              pan and zoom events.
+#          March 17,     2014; Version 1.16. Added extra triggers for callbacks.
+#                              Documented all triggers
 #
-#__version__ = '1.14'  Do not define it here because the first line in this
+#__version__ = '1.16'  Do not define it here because the first line in this
 # program must be a Sphinx documentation string!
 #
 # (C) University of Groningen
@@ -48,7 +50,7 @@
 
 """
 .. highlight:: python
-   :linenothreshold: 10
+   :linenothreshold: 5
 
 Module maputils 
 ===============
@@ -132,22 +134,28 @@ Module level data
    Object from class Colmaplist which has attribute *colormaps* which
    is a sorted list with names of colormaps.
 
-:Example:
+   :Attributes:
 
-   >>> from kapteyn import maputils
-   >>> print maputils.cmlist.colormaps
-   >>> cmap = raw_input("Enter name of a colormap: ")
-   ['Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'Dark2',
-    'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn',
-    'Paired', 'Pastel1', 'Pastel2', 'PiYG', 'PuBu', 'PuBuGn',
-    'PuOr', 'PuRd', 'Purples', 'RdBu', 'RdGy', 'RdPu',
-    'RdYlBu', 'RdYlGn', 'Reds', 'Set1', 'Set2', 'Set3',
-    'Spectral', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd',
-    'autumn', 'binary', 'bone', 'cool', 'copper', 'flag',
-    'gist_earth', 'gist_gray', 'gist_heat', 'gist_ncar',
-    'gist_rainbow', 'gist_stern', 'gist_yarg', 'gray',
-    'hot', 'hsv', 'jet', 'pink', 'prism', 'spectral',
-    'spring', 'summer', 'winter']
+      * **colormaps** -- List with names of color lookup tables
+      
+      * **cmap_default** -- Color map set by default to 'jet'
+
+   :Example:
+
+      >>> from kapteyn import maputils
+      >>> print maputils.cmlist.colormaps
+      >>> cmap = raw_input("Enter name of a colormap: ")
+      ['Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'Dark2',
+      'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn',
+      'Paired', 'Pastel1', 'Pastel2', 'PiYG', 'PuBu', 'PuBuGn',
+      'PuOr', 'PuRd', 'Purples', 'RdBu', 'RdGy', 'RdPu',
+      'RdYlBu', 'RdYlGn', 'Reds', 'Set1', 'Set2', 'Set3',
+      'Spectral', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd',
+      'autumn', 'binary', 'bone', 'cool', 'copper', 'flag',
+      'gist_earth', 'gist_gray', 'gist_heat', 'gist_ncar',
+      'gist_rainbow', 'gist_stern', 'gist_yarg', 'gray',
+      'hot', 'hsv', 'jet', 'pink', 'prism', 'spectral',
+      'spring', 'summer', 'winter']
 
 Prompt functions
 ----------------
@@ -269,7 +277,7 @@ print "Matplotlib version:", mplversion
 # Use this to find the current backend. We need this parameter to find
 # out whether we work with a QT canvas or not. For a QT canvas we deal with
 # toolbar messages in a different way.
-__version__ = '1.15'
+__version__ = '1.16'
 
 # Local settings of LC_NUMERIC that interpret dots as comma's v.v., area
 # causing problems with reading numbers. We change this variable to a global default
@@ -294,19 +302,7 @@ from sys import stdout
 # It does not work for the 1.1 versions.
 from matplotlib import __version__ as mplversion
 mploldversion = mplversion < '1.2.0'
-
-# PyFITS 1.2.x is not compatible with 1.3.x, i.e. if we remove lines which cause
-# the 'deprecated' warnings and replace them by the suggested PyFITS 1.3.x versions
-# then the code is not backwards compatible.
-try:
-   from pyfits import __version__ as pyfitsversion
-   pyfitsoldversion = pyfitsversion < '3.1.0'
-except:
-   pyfitsoldversion = False                # no old version in astropy
-
 #print "Matplotlib version:", mplversion, mploldversion
-#print "PyFITS version:" , pyfitsversion, pyfitsoldversion
-#stdout.flush()
 
 from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
 from matplotlib.pyplot import figure, show
@@ -325,10 +321,23 @@ if mploldversion:
    import matplotlib.nxutils as nxutils
 else:
    import matplotlib.path as path
-try:   # try to import pyfits. If it is not available, then perhaps it is available in astropy
+
+# PyFITS 1.2.x is not compatible with 1.3.x, i.e. if we remove lines which cause
+# the 'deprecated' warnings and replace them by the suggested PyFITS 1.3.x versions
+# then the code is not backwards compatible.
+# If pyfits cannot be imported, it could be that a user has Astropy installed
+# The fits module is the old PyFITS but without a version number, so we create
+# one.   
+try:   
    import pyfits
+   pyfitsversion = pyfits.__version__
+   pyfitsoldversion = pyfitsversion < '3.1.0'
 except:
+   from astropy import __version__ as astropyversion
    import astropy.io.fits as pyfits
+   pyfitsoldversion = False
+   pyfitsversion = "Astropy %s"%astropyversion
+   
 import numpy
 from kapteyn import wcs, wcsgrat
 from kapteyn.celestial import skyrefsystems, epochs, skyparser, lon2hms, lat2dms, lon2dms
@@ -375,6 +384,7 @@ KeyPressFilter.allowed = ['f', 'g']
 # This list is used by function 'showall()' to plot
 # all the objects in each Annotatedimage object.
 annotatedimage_list = []
+nonefunc = lambda x: None
 
 # For the administration of toolbars
 globalfigmanager = None
@@ -546,7 +556,7 @@ def getmemory():
                  stdout=PIPE).stdout.readlines()
       mem = int(a[1].split()[1])                     # Res. memory in kB
       mem /= 1024                                    # in mB
-      mem = "Resident mem.: <b>" + str(mem) + "</b> MB "
+      mem = "Resident mem.: " + str(mem) + " MB "
    else:
       mem = report_memory()
       mem = "Mem. pages: " + str(mem)
@@ -1088,9 +1098,18 @@ class Colmaplist(object):
       List with names of colormaps as used in combination
       with keyword parameter *cmap* in the constructor
       of :class:`Annotatedimage`.
+      Note that currently we use a module level object
+      ``cmlist`` which has all the information, so we
+      don't use class variable ``colormaps``.
+      Only when we created a list with color maps with object ``cmlist``, this 
+      variable has a value. Then both of the next statements are equivalent:
       
+      >>> print maputils.Colmaplist.colormaps
+      >>> print maputils.cmlist.colormaps
+          
    """
 #-----------------------------------------------------------
+   colormaps = []
    def compare(self, a, b): return cmp(a.lower(), b.lower())  # For case insensitive sorting
    def __init__(self):
       # A list with available Matplotlib color maps
@@ -1100,7 +1119,8 @@ class Colmaplist(object):
       self.colormaps = [m for m in cm.datad.keys() if not m.endswith("_r")]
       # Sort this list in a case insensitive way
       self.colormaps.sort(self.compare)
-      colormaps = self.colormaps
+      Colmaplist.colormaps = self.colormaps  # The class variable colormaps points always to the current list
+      self.cmap_default = 'jet'
    def add(self, clist):
       if not issequence(clist):
          clist = [clist]
@@ -1109,14 +1129,12 @@ class Colmaplist(object):
       #for c in clist[::-1]:
       #   self.colormaps.insert(0,c)
       self.colormaps.sort(self.compare)
-      colormaps = self.colormaps
    def addfavorites(self, flist):
       # Prepend a list with (unsorted) favorites
       if not issequence(flist):
          flist = [flist]
       newlist = flist + self.colormaps
       self.colormaps = flist + self.colormaps
-      colormaps = self.colormaps
 
 cmlist = Colmaplist()
 cmlist.add(VariableColormap.luts())      # Add luts from lut directory of the Kapteyn Package
@@ -1126,9 +1144,7 @@ cmlist.add(VariableColormap.luts())      # Add luts from lut directory of the Ka
 # never know what color maps are added and how they are sorted.
 # So we store only the name, and when necessary we retrieve an index
 # with list method index()
-cmlist.cmap_default = 'jet'
-
-# TODO: Maak ook bovenstaande default een class var.
+# cmlist.cmap_default = 'jet'
 
 
 
@@ -3143,7 +3159,41 @@ this class.
           'lo' is longitude axis. 'la' is latitude axis,
           'sp' is spectral axis. 'li' is a linear axis. Appended to 'li' is an
           underscore and the ctype of that axis (e.g. 'li_stokes').
+  
+    Class variables
 
+    .. attribute:: lutscales
+    
+          Class variable. A list with possible color mapping scales:
+          ['linear', 'log', 'exp', 'sqrt', 'square']
+     
+    .. attribute:: blankcols
+    
+          Class variable. A list with Matplotlib colors:
+          ['c', 'w', 'k', 'y', 'm', 'r', 'g', 'b']
+                    
+    .. attribute:: blanknames
+     
+          Class variable. A list with strings, representing the colors in 
+          :attr:`maputils.Annotatedimage.blankcols`:
+          ['Cyan', 'White', 'Black', 'Yellow', 'Magenta', 'Red', 'Green', 'Blue']
+          
+    .. attribute:: slopetrans
+    
+          Pixel values between [a,b] are mapped to colors with index between
+          [A,B]. The mapping is a straight line with a slope and an offset
+          Scale horizontal mouse position between [0,1] into a
+          value between 0 and ``slopetrans`` degrees to scale the mapping of 
+          pixel values to colors.
+          Current value is set to 89 degrees. 
+           
+    .. attribute:: shifttrans
+    
+          Translate vertical mouse position from [0,1] to [-``shifttrans``, ``shifttrans``]
+          to scale the mapping of pixel values to colors.
+          Currently ``shifttrans`` is set to 0.5.
+          
+          
 :Methods:
 
 .. automethod:: set_norm
@@ -3251,36 +3301,52 @@ this class.
       self.toolbarkey = None
       # Keys of class dictionary with callbacks are: slope, offset, ...
       self.callbackslist = callbackslist
+
+      # The next lines need some explanation. Mouse cursor positions
+      # are written to an area on the canvas set by the backend in use.
+      # This area is either in the toolbar or in a status bar (QT4agg)
+      # The default toolbar message is bound to a figure manager
+      # (self.figmanager = plt_get_current_fig_manager).
+      # For multiple images we want to set the messenger to the same function
+      # To disable Matplotlib interference with this function we
+      # set the function to None with lambda x: None (nonefunc)
+      global globalmessenger
       if 'exmes' in callbackslist:
          self.externalmessenger = callbackslist['exmes']
+         self.messenger = self.externalmessenger
+         if not globalmessenger:
+            globalmessenger = self.figmanager.toolbar.set_message
+            self.figmanager.toolbar.set_message = nonefunc    # Disable toolbar's messenger
       else:
          self.externalmessenger = None
-      # The next lines need some explanation. The toolbar message
-      # is bound to a figure(manager). If a figure changes, then we need
-      # new toolbar message function. For multiple frames in one figure
-      # we want to use the same toolbar message function.
-      # To disable Matplotlib interference with this function we
-      # set the function to None with lambda x: None
-      # This makes it necessary to maintain two global variables.
-      # One to keep track of the figure(manager) and one that
-      # stores the last message function (the messenger).
+         self.messenger = self.figmanager.toolbar.set_message
+         if self.messenger is nonefunc:
+            self.messenger = globalmessenger
+         
+      """
       global globalfigmanager, globalmessenger
       if not (self.figmanager is globalfigmanager):
+         # The first time, globalfigmanager is None but self.figmanager is not!
+         flushprint("1")
          try: # Sphinx does something with the figure manager, so we need a try/except
             globalfigmanager = self.figmanager
-            if not self.externalmessenger is None:
+            if self.externalmessenger:
+               flushprint("2")
+               flushprint("externalmessenger should not be none %s"%(self.externalmessenger))
                globalmessenger = self.externalmessenger
             else:
+               flushprint("3")
                globalmessenger = self.figmanager.toolbar.set_message
             self.figmanager.toolbar.set_message=lambda x: None
          except:
+           flushprint("4")
            pass
       self.messenger = globalmessenger
-
+      """
+      
       # In the constructor, the colormap should not update the image
       # otherwise we get incompatible frames which behave differently
       # if we resize the plot window. 
-
       self.autostate = None
       try:
          self.autostate = cmap.auto
@@ -3393,6 +3459,7 @@ this class.
       self.contours_cmap = None
       self.contours_colour = 'r'
       self.backgroundImageNr = None
+      self.alpha = 1.0
       
 
    def callback(self, cbid, *arg):
@@ -3550,7 +3617,7 @@ this class.
       a color map on disk (e.g. cmap="/home/user/luts/mousse.lut").
       If the color map is not found in the list with known color maps
       then it is added to the list, which is a global variable called
-      *cmlist*.
+      *cmlist*. (see: :data:`maputils.cmlist`)
 
       The Kapteyn Package has also a list with useful color maps. See
       example below or example 'mu_luttest.py' in the
@@ -3579,7 +3646,7 @@ this class.
          >>> annim = fitsobj.Annotatedimage(frame, cmap="spectral", clipmin=10000, clipmax=15500)
 
          Get extra lookup tables from Kapteyn Package (by default, these
-         luts are appended at creation time of cmlist)
+         luts are appended at creation time of cmlist, see :data:`maputils.cmlist`)
       
          >>> extralist = mplutil.VariableColormap.luts()
          >>> maputils.cmlist.add(extralist)
@@ -5625,6 +5692,7 @@ this class.
          self.write_colormap(filename)
          mes = "Save color map to file [%s]" % filename
          self.messenger(mes)
+         self.callback('savelut', filename)
       elif eventkey.upper() == 'H':
          # Set data to histogram equalized version
          if self.histogram:
@@ -5647,17 +5715,20 @@ this class.
          mes = "Blur index: %d blur sigma: %g" % (self.blurindx, self.blurfac)
          self.messenger(mes)
          self.set_blur(nx=self.blurfac, new=True)
+         self.callback('blurfac', self.blurfac)
       elif eventkey.upper() == 'Z':
          # Set data to blurred version
          if self.blurred:
             # Back to normal
             self.set_blur(False)
             self.messenger('Original image displayed')
+            self.callback('blurred', False)
          else:
             if self.data_blur is None:
                self.messenger('Calculating smoothed version')
             self.set_blur(nx=self.blurfac)
             self.messenger('Smoothed eq. image displayed')
+            self.callback('blurred', True)
 
    def set_histogrameq(self, on=True):
       if not on:
@@ -9860,28 +9931,29 @@ Usually one creates a movie container with class class:`Cubes`
       
       # Make sure that the image used to compare to the current is reset to invisible
       resets = 0
-      if self.compareim:   
+      
+      
+      if self.compareim:        
           self.compareim.image.im.set_alpha(1.0)
           self.compareim.image.im.set_visible(False)
           self.compareim = None
           if oldim:
-             oldim.image.im.set_alpha(1.0)
-             resets += 1      
-      
+             resets += 1
+         
       if oldim is not None:
         # If the old image was splitted (or transparent), it does not contain the original data
         if oldim.origdata is not None:
            oldim.data[:] = oldim.origdata[:]
            oldim.origdata = None
            oldim.image.im.set_data(oldim.data)  # Necessary!
-           # Note that we need to restore the blank color and transparancy
+           # Note that we need to restore the blank color and transparency
            # both in one time. We are sure that the attribute old_blankcolor
            # exists because we have splitted the image (it has a non empty
-           # 'origdata' attribute.
+           # 'origdata' attribute).
            oldim.set_blankcolor(oldim.old_blankcolor[0], oldim.old_blankcolor[1])
            splitimage = self.annimagelist[oldim.splitmovieframe]
            splitimage.image.im.set_visible(False)
-           resets += 1                
+           resets += 1                           
         if oldim.blurred:
            oldim.set_blur(False)
            resets += 1
@@ -9897,7 +9969,9 @@ Usually one creates a movie container with class class:`Cubes`
            self.callback('imagereset')
                                 
         # Make the old image invisible and disconnect existing callbacks   
+        #oldim.image.im.set_alpha(1.0)
         oldim.image.im.set_visible(False)
+        
         oldim.disconnectCallbacks()        
         #flushprint("Toggle images: Made oldim (%d) invisible and no callbacks"%(id(oldim)))
         
@@ -9919,14 +9993,14 @@ Usually one creates a movie container with class class:`Cubes`
               flushprint("Toolbarinfo ziet valide x,y")
            """
 
+      #flushprint("Setimage movie index=%d"%(newmovieframeindx))
       newim = self.annimagelist[newmovieframeindx]
       if newim.backgroundImageNr:
           backgroundimage = self.annimagelist[newim.backgroundImageNr]
           newim.image.im.set_visible(False)
-          backgroundimage.image.im.set_visible(True)
+          backgroundimage.image.im.set_visible(True)  
       else:
-          newim.image.im.set_visible(True)
-      #flushprint("Setimage movie index=%d"%(newmovieframeindx))      
+          newim.image.im.set_visible(True)            
       
       info = newim.infoobj
       if info:
@@ -10033,7 +10107,7 @@ Usually one creates a movie container with class class:`Cubes`
                                  dmsprec=newim.coord_dmsprec,
                                  wcsfmt=newim.coord_wcsfmt,
                                  zfmt=newim.coord_zfmt,
-                                 gipsy=True,
+                                 gipsy=True,   # No effect if gipsymod == False
                                  grids=newim.coord_grids,
                                  world=newim.coord_world,
                                  worlduf=newim.coord_worlduf,
@@ -10140,7 +10214,7 @@ class Cubeatts(object):
    """
    #----------------------------------------------------------------------------
    def __init__(self, frame, fitsobj, axnums, slicepos=[], pxlim=None, pylim=None,
-                vmin=None, vmax=None, xpanel=[], ypanel=[], hasgraticule=False,
+                vmin=None, vmax=None, hasgraticule=False,
                 gridmode=False, hascolbar=True, pixelaspectratio=None,
                 clipmode=0, clipmn=(4,5), callbackslist={}):
       self.frame = frame
@@ -10154,8 +10228,8 @@ class Cubeatts(object):
       # 'slicepos' is a list with tuples. Each tuple sets positions
       # on repeat axes. For 2-dim images, the list is empty
       self.slicepos = slicepos
-      self.fitsobj = fitsobj                    # The source from which the data is extracted
-      self.pixelaspectratio = pixelaspectratio
+      self.fitsobj = fitsobj                    # The source from which the data is extracted      
+      self.pixelaspectratio = pixelaspectratio     
       if slicepos:
          self.nummovieframes = len(slicepos)
       else:
@@ -10198,15 +10272,6 @@ class Cubeatts(object):
       # It is not changed in maputils if images are changed in a cube, but the
       # calling environment can keep track of  it and update this attribute
       self.lastimagenr = 0                      # Gets the value of movieframeoffset after loading
-      # What are the movieframes from which we want to extract the data?
-      # Set these frames in a list. One list per data cube
-      # Show all slices by default
-      # TODO: Het is netter om set_panelframes() te gebruiken maar
-      # dan crasht het programma omdat er nog geen cubelist is.
-      #self.set_panelframes(xpanel, panel='X')
-      #self.set_panelframes(xpanel, panel='Y')
-      #self.set_panelXframes(xpanel)
-      #self.set_panelYframes(ypanel)
       self.panelXframes = []    # Initialize the slice panels
       self.panelYframes = []
       self.cmap = None
@@ -10226,7 +10291,6 @@ class Cubeatts(object):
       self.preparefirst = True
       self.cnr = None                           # Cube number in container
 
-      #self.lastimagenr = 0
       self.hascolbar = hascolbar
       #if hascolbar and self.cbframe is None:
       self.cbframe = None
@@ -10624,15 +10688,122 @@ which can store images from different data cubes.
 
 
 :param callbackslist:
-   Example of a possible callback: `the progressbar`.
-   An (external) object that displays the progress. It should have at
-   least four methods: setMinimum(), setMaximum(), setValue() and reset()
-   For example in a QT gui we can define a progressbar with
-   'QProgressBar()'. This routine provides the necessary methods.
-   The QT progressbar displays percentages. We set its range between
-   zero and the number of frames contained in the new cube.
-   Usually, loading 1 image is too fast to use a progressbar, but
-   with numerous images, this can be useful.
+
+   To be able to interfere or interact with the cube viewer we need to
+   know the status of processes in maputils, like when is the loading of images finished
+   or when does the image viewer switches between two images from a different cube.
+   These events are sometimes related to the container with cubes, sometimes they
+   are specific for a cube, see also :meth:`maputils.Cubes.append`. 
+   To handle these events, one must connect it to a function
+   or an object with methods. For a :class:`maputils.Cubes` container we have defined two events:
+
+       * 'progressbar' --
+         The progress bar is an
+         object from a class that (somehow) displays the progress. It should have at
+         least four methods:  
+            
+            1) ``setMinimum()``
+            2) ``setMaximum()``
+            3) ``setValue()`` 
+            4) ``reset()``
+            
+         For example in a PyQt4 gui we can define `progressbar` with an object from class 
+         ``QProgressBar()``. This class provides already the necessary methods.
+         The PyQt4 progress bar displays percentages. Maputils sets its range between
+         zero and the number of movie frames (images) contained in the new cube.
+         Usually, loading 1 image is too fast for a useful progress bar, but
+         with numerous images in a cube, it is convenient to know the progress of the loading
+         process. 
+         
+       * 'memory' --  Every time Maputils calls a function associated with trigger 'memory', a 
+         string is generated with a 'used memory' report. The function should have only one argument
+         and this argument is set by Maputils to the requested string with memory information.
+         
+       * 'cubechanged' -- If images are loaded from different data cubes and a user
+         changes the viewer to display an image from a different cube, then the handler 
+         for this trigger is executed.
+         The trigger must be handled by a
+         function with at least one parameter and this parameter (the first) is returned as object from 
+         class :class:`maputils.Annotatedimage`
+         
+       * 'imagereset' --
+         Actions like transparency setting, splitting, blurring and histogram
+         equalization are restricted to the current image and are
+         undone after changing to another image in the movie container.
+         This trigger can update a GUI with this information (e.g. reset a transparency slider).
+         The trigger must be handled by a function that does not need to have any
+         parameter because nothing will be returned. 
+         
+       * 'movchanged' -- The function that handles the event has a parameter which is an object
+         with four attributes:
+  
+            * ``mes`` -- A string which contains information about the slicemessage
+            * ``indx`` -- The index of the image in the movie container with all images
+            * ``cubenr`` -- The index of the cube to which the current image belongs. The
+              index is for the list :attr:`maputils.Cubes.cubelist`
+            * ``slicemessage`` -- A string with information about the image (name and axis names)      
+        
+       * 'finished' -- All images are loaded and mouse- and keyboard interaction with
+         the canvas is enabled. A similar callback is found in method :meth:`maputils.Cubes.append`
+         but the difference is that 'finished' is triggered only after all stacked append actions are 
+         finished, while 'cubeloaded` is triggered as soon images from a cube are loaded.
+                  
+                  
+   Example::
+   
+      from matplotlib.pyplot import figure, show
+      from kapteyn import maputils
+
+      def writeMemory(mem):
+         print mem
+
+      class ProgressBar(object):
+         def __init__(self):
+            self.value = 0
+         def setMinimum(self, x):
+            self.minimum = x
+         def setMaximum(self, x):
+            self.maximum = x
+         def setValue(self, x):
+            self.value = x
+            print "Progress: %d %%"%(100.0*self.value/(self.maximum-self.minimum))
+         def reset(self):
+            self.value = self.minimum
+
+      def cubeChanged(newim, x=10):
+         print "Viewer changed cube with image", newim, x
+
+      def imageChange(imageinfo):
+         print "New image with movie container index:", imageinfo.indx
+         print "Image belongs to cube number:", imageinfo.cubenr
+         print "Short info:", imageinfo.mes
+         print "Long info:", imageinfo.slicemessage 
+
+      def imageReset():
+         print "User changed images, but the previous was changed by temporary settings (e.g. splitting)"
+
+      def printFinish():
+         print "Loading finished and user interaction has been started"
+   
+      fig = figure()
+      frame = fig.add_subplot(1,1,1)
+      progressBar = ProgressBar()
+      myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False, 
+                               callbackslist={'memory'     : writeMemory,
+                                              'progressbar': progressBar,
+                                              'cubechanged': cubeChanged,
+                                              'imagereset' : imageReset,
+                                              'movchanged' : imageChange,
+                                              'finished'   : printFinish})
+      fitsobject = maputils.FITSimage('ngc6946.fits')
+      myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=range(1,101))
+
+      frame = fig.add_subplot(1,1,1, label='m101')
+      fitsobject2 = maputils.FITSimage('m101.fits')
+      myCubes.append(frame, fitsobject2, axnums=(1,2))
+
+      show()
+         
 :type callbackslist:
    Python dictionary with function names and function pointers
 
@@ -10644,67 +10815,26 @@ which can store images from different data cubes.
        Number of movie frame which contains the image which we want to
        use together with the current image to split. The attribute is
        set with :meth:`maputils.Cubes.set_splitimagenr`.
-
-:Examples:
-   1) Simple example with a 3D data FITS file. The cube has axes RA, DEC and VELO. 
-   We show how to initialize a Cubes container and how to add objects of type
-   :class:`maputils.FITSimage` to this container::
-
-      from matplotlib.pyplot import figure, show
-      from kapteyn import maputils
-
-      fig = figure()
-      frame = fig.add_subplot(1,1,1)
-      myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=True)
-      fitsobject = maputils.FITSimage('ngc6946.fits')
-      slicepos = range(1,101)
-      axnums = (1,2)
-      myCubes.append(frame, fitsobject, axnums, slicepos=slicepos)
-      show()
-
-   2) The loading process is done with a timer callback. We have to use our own callback function
-   that is triggered when the loading process is finished. In the example we use 
-   a callback to set the image we want to compare with the current image
-   while splitting the images so that we can see them both. :meth:`maputils.Cubes.append` will trigger a 
-   'finished' callback and we can write our own function *setsplit()* to handle it::
-   
-      from matplotlib.pyplot import figure, show
-      from kapteyn import maputils
-
-      def setsplit():
-	myCubes.set_splitimagenr(30)
-	
-      fig = figure()
-      frame = fig.add_subplot(1,1,1)
-      myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
-      fitsobject = maputils.FITSimage('ngc6946.fits')
-      slicepos = range(1,101)
-      axnums = (1,2)
-      myCubes.append(frame, fitsobject, axnums, slicepos=slicepos,
-		    callbackslist={'finished':setsplit})
-		    
-      show() 
-   
-
-   List with callbacks::
-
-      myCubes = maputils.Cubes(self.fig, toolbarinfo=True, printload=False,
-                               helptext=False, imageinfo=False,
-                               callbackslist={'finished'   :plotPanels,
-                                              'progressbar':progressBar})
-                                              
+       
+    .. attribute:: cubelist
+       
+       Python list with cubes appended to this list by method :meth:`maputils.Cubes.append`.
    
 :Methods:
 
 .. automethod:: append
-.. automethod:: set_splitimagenr
-.. automethod:: set_panelframes
+.. automethod:: set_aspectratio
+.. automethod:: set_colbar_on
+.. automethod:: set_coordinate_mode
+.. automethod:: set_crosshair
 .. automethod:: set_graticule_on
+.. automethod:: set_panelframes
+.. automethod:: set_skyout
+.. automethod:: set_spectrans
+.. automethod:: set_splitimagenr
 .. automethod:: set_zprofile
 .. automethod:: zprofileLimits
-.. automethod:: set_crosshair
-.. automethod:: set_colbar_on
-.. automethod:: set_skyout
+
    """
       
    # Changelog:
@@ -10712,7 +10842,8 @@ which can store images from different data cubes.
    
    #----------------------------------------------------------------------------
    # Class variables:
-   # Define the required colorbar width. The width remains the same after scaling the window
+   # Define the required colorbar width. The width remains the same after
+   # a resize of the canvas.
    colbwidth = 0.06         # A dummy value that stores width of colorbar in device coordinates
    colbwpixels = 40         # Fixed width of colorbar in pixels
    zprofileheight = 0.1
@@ -10724,12 +10855,27 @@ which can store images from different data cubes.
                 printload=False, helptext=True,
                 callbackslist={}):
 
+      # Clean and separate the list with callbacks triggers
+      # One list is for the movie container which always contains the 
+      # internal triggers for cross hair cursor and z-profile.
+      # The other triggers are for the Cubes container.
+      keysM = ['cubechanged', 'movchanged', 'imagereset']      
+      dictM = {'crosshair':self.drawCrosshair, 'zprofile':self.plotZprofile}
+      keysC = ['progressbar', 'memory', 'finished']
+      dictC = {}
+      for k in keysM:
+         if k in callbackslist:
+            dictM[k] = callbackslist[k]
+      for k in keysC:
+         if k in callbackslist:
+            dictC[k] = callbackslist[k]
 
       self.numcubes = 0
       self.movieimages = MovieContainer(fig, helptext=helptext,
                                         toolbarinfo=toolbarinfo,
                                         imageinfo=imageinfo,
-                                        callbackslist={'crosshair':self.drawCrosshair, 'zprofile':self.plotZprofile})
+                                        callbackslist = dictM)
+                                        
       # Initialize two callback id's for reacting to keys and scroll wheel
       # for movie actions in the figure. These are not of type AxexCallbacks
       # because the actions are not restricted to a frame.
@@ -10778,7 +10924,7 @@ which can store images from different data cubes.
       # action also executes method 'reposition'. So we need a flag to prevent this.
       #self.resizecb.update = True                    
       #flushprint("I CONNECT DRAW_EVENT to REPOSITION()")
-      self.callbackslist = callbackslist
+      self.callbackslist = dictC
       if 'progressbar' in self.callbackslist:
          self.progressbar = self.callbackslist['progressbar']
       else:
@@ -10961,7 +11107,7 @@ which can store images from different data cubes.
          Float
 
       :Notes:
-         See example at :meth:`set_zprofile`
+         See example at :meth:`maputils.Cubes.set_zprofile`
       """
       #-----------------------------------------------------------------
       cube = self.cubelist[cubenr]
@@ -11114,35 +11260,440 @@ which can store images from different data cubes.
 
    def append(self, frame, fitsobj, axnums, slicepos=[],
               pxlim=None, pylim=None, vmin=None, vmax=None,
-              xpanel=[], ypanel=[], hasgraticule=False,
+              hasgraticule=False,
               gridmode=False, hascolbar=True, pixelaspectratio=None,
               clipmode=0, clipmn=(4,5),
               callbackslist={}):
       #-------------------------------------------------------------------------
       """
-      Add a new cube to the container with cubes. This class supports data structures
-      with 3 or more axes and we regard a 2D image as a cube with
-      a third axis (without any meaning) of length 1 . But
-      usually a cube is a set of two dimensional data structures (e.g.
-      a sequence of images in a radio cube). The axes of
-      these 'images' are arbitrary. For instance, one can also display
-      images with one spatial axis and one spectral axis (so called position
-      velocity diagrams).
+      Add a new cube to the container with cubes.
+      Let's introduce some definitions first:
+
+      1) A **data cube** is a FITS file with more than two data axes.
+         Examples are a sequence of channel maps in a radio cube where
+         the spatial maps are a function of the observing freequency.
+      2) **Image axes** are the two axes of a map we want to display
+         Usually these maps have two spatial axes (e.g. R.A. and Dec.),
+         but this class can also handle images which are slices with
+         axes of mixed types (e.g. R.A. and velocity, a so called position
+         velocity diagram).
+      3) **Repeat axes** are all the axes that do not belong to the
+         set of image axes. Along these repeat axes, one can define
+         a sequence of images, for example a set of R.A., Dec. images as function
+         of velocity or Stokes parameter.
 
       :param frame:
           Each series of movie images that is appended needs its own frame.
+          Frames can be defined with either Matplotlib's figure.add_subplot() or
+          figure.add_axes(). Note that any frame is always resized to fit
+          the canvas (with some room for a color bar and using the aspect
+          ratio of the pixels in the current image). To prevent that Matplotlib
+          thinks that two frames are the same, you need to give each frame a unique
+          label::
+          
+             frame1 = fig.add_subplot(1,1,1, label='label1', frameon=False)
+             cube = myCubes.append(frame1, ....)
+             frame2 = fig.add_subplot(1,1,1, label='label2', frameon=False)
+             cube = myCubes.append(frame2, ....)
+             
       :type frame:
-          Matplotlib Axes object.
+         Matplotlib Axes object.
+      :param fitsobj:
+         A FITSimage object as in: ``fitsobject = maputils.FITSimage('ngc6946.fits')``.
+      :type fitsobj:
+         Instance of :class:`maputils.FITSimage`
+      :param axnums:
+         A sequence (tuple or list) with axis numbers. The numbers start with 1.
+         For an image you need to specify two axes. The numbers can be in any order.
+         So, for instance, you can swap R.A. and Dec. axes, or you can make slices
+         with one spatial and a spectral axis. For a cube with CTYPE's (RA,DEC,FREQ)
+         you should enter then ``axnums=(1,3)`` or ``axnums=(3,2)`` etc.
+         If we want RA, FREQ images for all DEC slices, we should write::
+         
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            
+            n1, n2, n3 = [fitsobject.axisinfo[i].axlen for i in (1,2,3)]
+            print "Range axis 1:", 1, n1
+            print "Range axis 2:", 1, n2
+            print "Range axis 3:", 1, n3
 
-      :param finished:
-            An external method that is called after the images are loaded
-      :type finished:
-            A function that will be executed after the loading of a series of images
-            has been completed (per cube)
+            # Note that slice positions follow FITS standard, i.e. first pixel is 1
+            slicepos = range(1, n2+1)  # all DEC slices
+            cube = myCubes.append(frame1, fitsobject, axnums=(1,3), slicepos=slicepos)                                  
+
+         
+      :type axnums:
+         Tuple or list with integers
+      :param slicepos:
+         A sequence with integers which set the slices that are stored as images. If we call 
+         axes outside an image *repeat axes*, then the slice positions are pixel positions
+         (following the FITS syntax, so they start with 1 and end with NAXISn (e.g. NAXIS3 from the 
+         header). By default, the value of ``slicepos`` is None. This value is
+         interpreted as follows:
+
+         1) If a data structure is 2-dimensional, ``slicepos`` is not used
+         2) If a data structure has n repeat axes, then for each repeat axis, the value
+         
+         of CRPIX of the corresponding axis is used, unless the this value is
+         negative or greater than the axis length. In that case it is set to 1.
+         Note that ``slicepos=None`` always defines only one image!.
+
+         Slice positions can be given in any order::
+         
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            naxis3 = fitsobject.hdr['NAXIS3']
+            slicepos = range(naxis3, 0, -1)
+            cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=slicepos)
+           
+         Assume you have two repeat axes. One has CTYPE *VELO* and the other has CTYPE *STOKES*.
+         Then we need to define a list ``slicepos`` with elements that are tuples with two integers.
+         The first for the VELO axis and the second for the STOKES axis, e.g.:
+         ``slicepos=[(1,1), (1,2), (1,3), ... ]``
+         
+         In the lines below, we load images from a set with axes (RA, DEC, VELO, STOKES).
+         We want RA, DEC as image axes (``axnums=(1,2)``) and VELO and STOKES as the repeat axes.
+         
+         Assume we want a movie loop where we want to loop over all STOKES slices for each 
+         slice on the VELO axis. One can define the slice positions as follows::
+         
+            fitsobject3 = maputils.FITSimage('aurora.fits')
+            n3 = fitsobject3.axisinfo[3].axlen
+            n4 = fitsobject3.axisinfo[4].axlen
+
+            a = range(1,n3+1)
+            b = range(1,n4+1)
+            A = [x for x in a for i in range(n4)]
+            B = b*n3
+            slicepos = zip(A, B)
+ 
+            cube = myCubes.append(frame3, fitsobject3, axnums=(1,2), slicepos=slicepos)
+         
+         If we want to see all the VELO slices per STOKES slice, then use::
+
+            A = a*n4
+            B = [x for x in b for i in range(n3)]
+            slicepos = zip(A, B)
+
+      :type slicepos:
+         None or a list, tuple or NumPy array with integers
+      :param pxlim:
+         Two values which set the range on the X axis. The numbers follow the FITS 
+         standard, i.e. the first pixel is 1 and the last pixel is given by header item NAXISn.
+      :type pxlim:
+         Tuple with two integers
+      :param pylim:
+         Two values which set the range on the Y axis. The numbers follow the FITS 
+         standard, i.e. the first pixel is 1 and the last pixel is given by header item NAXISn.
+         Example::
+         
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+                                 
+            n1, n2, n3 = [fitsobject.axisinfo[i].axlen for i in (1,2,3)]
+            print "Range axis 1:", 1, n1
+            print "Range axis 2:", 1, n2
+            print "Range axis 3:", 1, n3
+            pxlim = (5, n1-5)
+            pylim = (5, n2-5)
+
+            cube = myCubes.append(frame1, fitsobject, axnum(1,2), slicepos=range(1, n3+1),
+                                  pxlim=pxlim, pylim=pylim)
+
+         
+         
+      :type pylim:
+         Tuple with two integers
+      :param vmin:
+         Colors are assigned to pixels in a range between vmin and vmax. The values are
+         pixel values in units given by BUNIT in the header of the data set.
+         By default, the value of *vmin* is set to None. After loading all images,
+         the value of *vmin* will be set to the minumum value of all the loaded data.
+         One can use *vmin* to enhance features in the data.
+         Note that the distribution of colors can be so unbalanced that nothing can be seen
+         in the data (e.g. with one pixel which has a much higher value than all the others).
+         In this case, one can press key ``h`` to get histogram equalization.
+      :type vmin:
+         Floating point number
+      :param vmax:
+         Colors are assigned to pixels in a range between *vmin* and *vmax*.
+         The values are
+         pixel values in units given by BUNIT in the header of the data set.
+         By default, the value of *vmax* is set to None. After loading all images,
+         the value of *vmax* will be set to the minimum value of all the loaded data.
+         One can use *vmax* to visually extract features in the data.
+         Note that the distribution of colors can be so unbalanced that almost no details
+         can be seen (e.g. for data with one pixel which has a much higher value
+         than all the others).
+         In this case, one can press key ``h`` to get histogram equalization.
+         Example::
+         
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            
+            vmin, vmax = fitsobject.get_dataminmax()
+            n3 = fitsobject.axisinfo[3].axlen 
+            slicepos = range(1, n3+1)
+            cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=slicepos,
+                                  vmin=1.1*vmin, vmax=0.9*vmax)
+
+         
+      :type vmax:
+         Floating point number
+      :param hasgraticule:
+         If set to True, a system of grid lines will be plotted. The grid lines represent
+         the world coordinate system. The system of grid lines is also called a *graticule*.
+      :type hasgraticule:
+         Boolean
+      :param gridmode:
+         If set to True, positions are no longer given in the pixel system of the FITS
+         standard, but are given in *grids*. In a grid system we call the pixel that 
+         corresponds to the projection center, pixel 0. In this system you don't need to
+         know the header values of CRPIXn to find the projection center in a map.
+      :type gridmode:
+         Boolean
+      :param hascolbar:
+         If set to True (is set by default), a color bar is plotted at the left of the 
+         images. The color bar has a fixed with and its height is always the same as the height of 
+         the canvas. The color bar can also be plotted with a separate method.
+      :type hascolbar:
+         Boolean
+      :param pixelaspectratio:
+         Set the ratio between the height of a pixel and its width. For images with spatial axes, 
+         the default should be fine. For other images, the aspect ratio is adjust so that
+         a square image will be plotted. In this situation it is often convenient to be able 
+         to change the size of a plot with the pixel aspect ratio.
+      :type pixelaspectratio:
+         Floating point
+      :param clipmode:
+         * ``clipmode=0`` (default):
+           distribute all available image colors equally between *vmin* and *vmax*.
+           If these values are not specified, then calculate *vmin* and *vmax*
+           from the minimum and maximum
+           data value (of all the loaded images in the current cube).
+         * ``clipmode=1``: Calculate clip values from the minimum and maximum
+           data value (of all the loaded images in the current cube) unless
+           values are entered in *vmin* or *vmax* which overrule the calculated
+           values.
+         * ``clipmode=2``: First calculate the mean and standard deviation (std)
+           of all the data (of all the loaded images in the current cube).
+           Then calculate ``vmin=mean-clipmn[0]*std`` and ``vmax=mean+clipmn[1]*std``
+           and use these values unless a preset value for either *vmin* or
+           *vmax* was found. For *clipmn*, see next parameter.
+           The next example illustrates this clip mode::
+           
+               fig = figure(figsize=(10,10))
+               myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False,
+                                             helptext=False, imageinfo=True)
+
+               # Create a maputils FITS object from a FITS file on disk
+               fitsobject = maputils.FITSimage('m101.fits')
+
+               frame1 = fig.add_subplot(1,1,1, label='label1', frameon=False)
+
+               cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=None,
+                                    clipmode=2, clipmn=(4,4), hascolbar=False)
+               show()
+           
+      :type clipmode:
+         Integer
+      :param clipmn:
+         Set the scale factors for the standard deviation as described at the
+         previous parameter *clipmode*.
+         By default, the value is set to (4,5) 
+      :type clipmn:
+         Tuple with two floats
+      :param callbackslist:
+            To be able to interfere or interact with the cube viewer we need to
+            know the status of processes in Maputils, like when is the color
+            mapping in an image has been changed.
+            The events handlers that we define with this method are specific
+            to one cube.
+            To handle these events, one must connect it to a function
+            or an object with methods. With method :meth:``maputils.Cubes.append``
+            we can handle the following events:
+                                    
+               *  'waitcursor' --
+                  The process of loading images starts and one could change the
+                  cursor to another shape to indicate the loading process
+               *  'resetcursor'  --
+                  The process of loading images has been finished and one could
+                  change the cursor to its original shape               
+               *  'exmes' -- This event is triggered when the string with information about
+                  the cursor position is send to the canvas or to an external function.
+                           
+            Some triggers are included to report changes in the color mapping of an image:
+
+               *  'blankcol'  -- Must be handled by a function with one parameter. It returns the
+                  index value of the new color that represents blank pixels in the image.
+                  The index can be used to retrieve the Matplotlib short and long name of the color
+                  as in::
+                  
+                     print maputils.Annotatedimage.blankcols[bcol]
+                     print maputils.Annotatedimage.blanknames[bcol]
+               
+               *  'blurfac' -- User pressed *x* on the keyboard to change the smoothing factor
+                  The callback function must have at least one parameter. The first
+                  parameter stores the smoothing (blur) factor in pixels (floating point number).
+               *  'blurred' -- User pressed *z* on the keyboard to toggle between smoothed and original image
+                  The callback function must have at least one parameter. The first
+                  parameter stores the current status (Boolean)
+               *  'savelut' -- User pressed *m* on the keyboard to write the current color lookup table
+                  to file on disk. The callback function must have at least one parameter. The first
+                  parameter stores the file name (string).
+               *  'histeq' -- A user pressed key *h* on the keyboard and requested a histogram
+                  equalization (or a reset of a previous equalization). The trigger must be handled by a
+                  function with one parameter and this parameter is returned as True or False.
+               *  'inverse' -- A user changed the current color map to its inverse.
+                  The trigger must be handled by a
+                  function with one parameter and this parameter is returned as True or False.
+               *  'lut' -- A user changed the color lookup table. These so called luts are stored
+                  in :data:`maputils.cmlist`.
+                  The trigger must be handled by a
+                  function with one parameter and this parameter is returned as a index for the list with
+                  color maps.
+               *  'offset' -- A user changed the relation between pixel values and color mapping.
+                  The trigger must be handled by a
+                  function with one parameter and this parameter is returned as the current offset which
+                  is a floating point value between -0.5 and 0.5
+               *  'scale' -- A user changed the color map scaling 
+                  1='linear', 2='log', 3='exp', 4='sqrt', 5='square'
+                  Key '9' triggers the 'inverse' callback. Key '0' triggers all other callbacks in this
+                  list.
+                  The trigger must be handled by a
+                  function with (at least) one parameter (i.e. the first) and this parameter is returned as a index for the list with
+                  scales :attr:`maputils.Annotatedimage.lutscales`.
+               *  'slope' -- A user changed the relation between pixel values and color mapping.
+                  The trigger must be handled by a
+                  function with one parameter and this parameter is returned as the current slope which
+                  is a floating point value between 0 and 89 degrees
+              
+            
+      :type callbackslist:
+          A dictionary with functions that will be executed after the loading of the images
+          has been completed (for the current cube)
+          
+      
+      :Examples:
+         1) Simple example with a 3D data FITS file. The cube has axes RA, DEC and VELO. 
+         We show how to initialize a Cubes container and how to add objects of type
+         :class:`maputils.FITSimage` to this container::
+
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=True)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            slicepos = range(1,101)
+            axnums = (1,2)
+            myCubes.append(frame, fitsobject, axnums, slicepos=slicepos)
+            show()
+ 
+         2) List with callbacks. In this example we demonstrate how triggers for callbacks
+         can be used. The use of Lambda expressions is demonstrated for functions that need
+         extra parameters. If you run this example you will soon discover how these callbacks work::
+
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def printSlope(slope, cubenr=0):
+               # Right mouse button in horizontal direction
+               print "Color mapping slope for cube %d = %f"%(cubenr, slope)
+
+            def printOffset(offs):
+               # Right mouse button in vertical direction
+               print "Shift in color mapping:", offs
+
+            def printLut(indx):
+               # User pressed PgUp or PgDn key
+               print "User changed lut to: ", maputils.Colmaplist.colormaps[indx]
+
+            def printBlankcol(bcol):
+               # User presswed key 'b'
+               print "Blank color set to: ", bcol, maputils.Annotatedimage.blankcols[bcol], maputils.Annotatedimage.blanknames[bcol]
+
+            def printHistog(hist):
+               # User pressed key 'h' to toggle between a histogram equalized version
+               # and the original
+               print "Histogram equalized?", hist
+
+            def printScale(scale):
+               # User pressed a number from the list [1,2,3,4,5] on the keyboard to set a scale
+               print "Scale:", scale, maputils.Annotatedimage.lutscales[scale]
+
+            def printInverse(inv):
+               # User pressed key '9' on the keyboard to get an inverse color mapping
+               print "Inverse color mapping?", inv
+           
+            def printBlurfac(blurfac):
+               # User pressed 'x' on the keyboard to change the smoothing factor
+               print "Smoothing factor:", blurfac
+
+            def writeLut(filename):
+               # User pressed 'm' on the keyboard to write the current color lookup table to file
+               print "Write lut to file:", filename
+
+            def printSmooth(smooth):
+               # User pressed 'z' on the keyboard to toggle between smoothed and original image
+               print "Image smoothed?", smooth
+
+            def externalMes(pos):
+               print "Position:", pos
+
+            def externalMes2(pos):
+               print "Position 2:", pos
+
+            def waitCursor():
+               print "Wait cursor on"
+
+            def resetCursor():
+               print "Wait cursor off"
+
+            def postLoading(splitfr, slicepos):
+               print "Set frame to compare with to:", splitfr
+               myCubes.set_splitimagenr(splitfr)
+               myCubes.set_panelframes(range(len(slicepos)), panel='XY')
+
+            def printFinish():
+               print "Loading finished and user interaction has been started"
+
+            fig = figure()
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False,
+                                     callbackslist={'finished':printFinish} )
+
+            frame = fig.add_subplot(1,1,1, label='ngc6946')
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            splitfr = 30
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
+                           callbackslist={'slope'    : lambda slope, cubenr=0 : printSlope(slope, cubenr),
+                                          'offset'   : printOffset,
+                                          'lut'      : printLut,
+                                          'scale'    : printScale,
+                                          'inverse'  : printInverse,
+                                          'blankcol' : printBlankcol,
+                                          'blurfac'  : printBlurfac,
+                                          'blurred'  : printSmooth,
+                                          'savelut'  : writeLut,
+                                          'exmes'    : externalMes,
+                                          'waitcursor'  : waitCursor,
+                                          'resetcursor' : resetCursor,
+                                          'cubeloaded'  : lambda: postLoading(splitfr, slicepos)})
+
+            frame = fig.add_subplot(1,1,1, label='m101')
+            fitsobject2 = maputils.FITSimage('m101.fits')
+            myCubes.append(frame, fitsobject2, axnums=(1,2),
+                           callbackslist={'slope'       : lambda slope, cubenr=1 : printSlope(slope, cubenr),
+                                          'histeq'      : printHistog,
+                                          'waitcursor'  : waitCursor,
+                                          'resetcursor' : resetCursor})
+                                         #'exmes'       : externalMes2})
+
+            show()
+          
       """
       #-------------------------------------------------------------------------
       C = Cubeatts(frame, fitsobj,  axnums, slicepos, pxlim, pylim, vmin, vmax,
-                   xpanel, ypanel, hasgraticule, gridmode, hascolbar, pixelaspectratio,
+                   hasgraticule, gridmode, hascolbar, pixelaspectratio,
                    clipmode, clipmn,
                    callbackslist)
       C.movieframeoffset = self.movieframeoffset       # First cube has offset 0
@@ -11196,9 +11747,43 @@ which can store images from different data cubes.
    def set_aspectratio(self, cube, aspectratio):
       #-------------------------------------------------------------------------
       """
-      Change aspect ratio of frame of 'cube'. The aspect ratio is entered in
-      parameter 'aspectratio'. We need a call to method reposition() to adjust
-      the graticule frames
+      Change aspect ratio of frame of 'cube'. 
+
+      :param cube:
+         An entry from the list ``Cubes.cubelist``. For example: ``cube=myCubes.cubelist[0]``
+      :type cube:
+         An object from class :class:`maputils.Cubeatts`.
+      :param aspectratio:
+         Set aspect ratio of pixels for the images in the cube ``cube``.
+      :type aspectratio:
+         Floating point number
+      
+      :Examples:
+         Load a cube with images and set the pixel aspect ratio::
+         
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def postloading():
+               cube = myCubes.cubelist[0]
+               print "Original aspect ratio current cube: %f"%(cube.pixelaspectratio)
+               myCubes.set_aspectratio(cube, 2.1)
+
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, helptext=False,
+                                    printload=False)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
+                           callbackslist={'finished':postloading})
+
+            show()
+
+      :notes:
+         Note for programmers: We need a call to method reposition() to adjust
+         the graticule frames
       """
       #-------------------------------------------------------------------------      
       if aspectratio is None or aspectratio == 0.0:
@@ -11946,7 +12531,7 @@ which can store images from different data cubes.
 
       Note that the situation
       with blitted images and multiple frames (Axes objects) prevents the use
-      of matplolib.widgets. Cursor so an alternative is implemented.
+      of class:`matplolib.widgets.Cursor` so an alternative is implemented.
 
       :param status:
          If set to `True`, a crosshair cursor will be plotted. If `False`, an
@@ -12021,7 +12606,7 @@ which can store images from different data cubes.
       You can update the z-profile by moving the mouse while pressing the left
       mouse button.
       Change the limits in the Y direction (image values) with
-      method :meth:`maputils.zprofileLimits()`.
+      method :meth:`maputils.Cubes.zprofileLimits()`.
 
       :param status:
          Plot z-profile if ``status=True``. If there is already a z-profile
@@ -12127,13 +12712,21 @@ which can store images from different data cubes.
       the right mouse button. It will also change if you use color navigation
       with keyboard keys:
 
-      * pgUp and pgDown: browse through colour maps -- MB right: Change slope and offset
-      * Colour scales: 0=reset 1=linear 2=logarithmic
-      * 3=exponential 4=square-root 5=square 9=inverse
+      * pgUp and pgDown: browse through colour maps
+      * Right mouse button: Change slope and offset
+      * Colour scales: 
+         * 0=reset 
+         * 1=linear 
+         * 2=logarithmic
+         * 3=exponential 
+         * 4=square-root 
+         * 5=square 
+         * 9=inverse
+         * 0=reset
       * h: Toggle histogram equalization & raw image 
 
       :param cube:
-         An entry from the list Cubes.cubelist. For example: ``cube=myCubes.cubelist[0]``
+         An entry from the list ``Cubes.cubelist``. For example: ``cube=myCubes.cubelist[0]``
       :type cube:
          An object from class :class:`maputils.Cubeatts`.
       :param mode:
@@ -12261,10 +12854,9 @@ which can store images from different data cubes.
       """
       This method changes the celestial system. It redraws the graticule so that 
       its labels represent the new celestial system.
-      
-      
+            
       :param cube:
-         An entry from the list Cubes.cubelist. For example: ``cube=myCubes.cubelist[0]``
+         An entry from the list ``Cubes.cubelist``. For example: ``cube=myCubes.cubelist[0]``
       :type cube:
          An object from class :class:`maputils.Cubeatts`.
       :param skyout:
@@ -12315,8 +12907,48 @@ which can store images from different data cubes.
    def set_spectrans(self, cube, spectrans):
    #----------------------------------------------------------------------------
       """
-      This method changes the spectral system. It redraws the graticule if
-      necessary requested and if one of the image axes is spectral.
+      This method changes the spectral system. If a valid system is defined,
+      you will notice that spectral coordinates are printed in the new
+      system. If a graticule has a spectral axis, you will see that the labels
+      will change so that they represent the new spectral system.
+
+      :param cube:
+         An entry from the list ``Cubes.cubelist``. For example: ``cube=myCubes.cubelist[0]``
+      :type cube:
+         An object from class :class:`maputils.Cubeatts`.
+      :param spectrans:
+         See :ref:`Alternate headers for a spectral line example <spectralbackground_alt>`
+      :type spectrans:
+         String
+
+      :Examples:
+         Change the sky system from the native spectral system to wavelengths (in m)
+         and draw a graticule showing the world coordinate system. Note that we
+         loaded images with one spatial and one spectral axis (the cube has a RA, DEC
+         and VELO axis) with axnums=(1,3). To get a list with valid spectral
+         translations, we printed ``fitsobject.allowedtrans``::
+         
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def postloading():
+               cube = myCubes.cubelist[0]
+               myCubes.set_spectrans(cube, "WAVE")
+               myCubes.set_graticule_on(cube, True)
+
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, helptext=False,
+                                    printload=False)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            print "Possible spectral translations:", fitsobject.allowedtrans
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,3), slicepos=slicepos,
+                           callbackslist={'finished':postloading})
+
+            show()
+
       """
    #----------------------------------------------------------------------------
       if not cube or not len(cube.imagesinthiscube):
@@ -12329,8 +12961,10 @@ which can store images from different data cubes.
          for im in cube.imagesinthiscube:
             #flushprint("Spectral axis aanwezig?=%s"%(str(im.projection.specaxnum)))
             #flushprint("CTYPES in projection object=%s"%(str(im.projection.ctype)))
+            #flushprint("Spectrans=%s"%spectrans)
             if spectrans:
                im.projection = im.projection.spectra(spectrans)
+               im.spectrans = spectrans # Otherwise the spectral translation does not change
             else:
                im.projection = cube.nativeproj
             #flushprint("Set spectrans to %s"%(str(spectrans)))
@@ -12580,7 +13214,112 @@ which can store images from different data cubes.
                            appendcr=False, tocli=False, tolog=True, resetim=True):
    #----------------------------------------------------------------------------
       """
-      Set modes for the formatting of coordinate information
+      Set modes for the formatting of coordinate information.
+      The output is generated by :meth:`Annotatedimage.interact_writepos`.
+      Coordinates are written to the terminal (by default)
+      if the left mouse button is pressed
+      simultaneously with the Shift button. The position corresponds to
+      the position of the mouse cursor. For maps with one spatial axis, the
+      coordinate of the matching spatial axis is also written.
+      
+      There are several options to format the output. World coordinates follow
+      the syntax of the system set by :meth:`maputils.Cubes.set_skyout` and :meth:`maputils.Cubes.set_spectrans`.
+
+      Note that the settings in this method, only applies to the coordinates that are
+      written to terminal (or log file). The labels on the graticule are not changed.
+
+      :param grids:
+         Write cursor position in pixels or grids if ``gridmode=True`` in 
+         :meth:`maputils.Cubes.append`.
+         (the name ``grids`` is a bit misleading). 
+      :type grids:
+         Boolean
+      :param world:
+         Write cursor position in world coordinates for the current
+         celestial and spectral system
+      :type grids:
+         Boolean
+      :param worlduf:
+         Write cursor position in unformatted world coordinates for the current
+         celestial and spectral system. This implies that equatorial coordinates
+         are written in degrees, not in hms/dms format.
+      :type grids:
+         Boolean
+      :param imval:
+         Write the image value at the cursor position in units of the (FITS)
+         header.         
+      :type imval:
+         Boolean
+      :param pixfmt:
+         Set the precision of the pixels/grids with a Python number format string.
+         (default: pixfmt="%.1f")
+      :type pixfmt:
+         Number format string
+      :param dmsprec:
+         Number of digits after comma for seconds in latitude. If the longitude
+         is equatorial, one extra digit is used.
+      :type dmsprec:
+         Integer
+      :param wcsfmt:
+         Set the precision of the un-formatted world coordinates with a Python
+         number format string. (Default: wcsfmt="%.7f")
+      :type wcsfmt:
+         Number format string
+      :param zfmt:
+         Set the precision of the image values with a Python number format string
+         (default: zfmt='%.3e')
+      :type zfmt:
+         Number format string
+      :param appendcr:
+         After composing the string with coordinate transformation, add a carriage return
+         character. This can be useful when the output is written to a prompt
+         which expects a carriage return to process the input.
+      :type appendcr:
+         Boolean
+      :param tocli:
+         Only available in the context of GIPSY. This selects the input area of
+         Hermes. Often used together with ``appendcr``.
+      :type tocli:
+         Boolean         
+      :param tolog:
+         Only available in the context of GIPSY. This selects the log file of
+         Hermes.
+      :type tolog:
+         Boolean
+      :param resetim:
+         Redraw the current image. The value is set to True by default. The value
+         is set to False in the loading process. After loading, one can set
+         parameters but you need a trigger to make them current. Note for programmers:
+         the parameters in this method are set in :meth:`MovieContainer.toggle_images`.
+      :type resetim:
+         Boolean
+
+      :Examples:
+          Modify the output of coordinates. We want a position written to
+          a terminal in pixels, formatted and unformatted world coordinates
+          and we also want the image value at the current cursor location::
+
+         
+            from matplotlib.pyplot import figure, show
+            from kapteyn import maputils
+
+            def postloading():
+               myCubes.set_coordinate_mode(grids=True, world=True, worlduf=True,
+                                          wcsfmt='%.2f', imval=True, pixfmt='%.2f', dmspre$
+               cube = myCubes.cubelist[0]               
+
+            fig = figure()
+            frame = fig.add_subplot(1,1,1)
+            myCubes = maputils.Cubes(fig, toolbarinfo=True, helptext=False,
+                                    printload=False)
+            fitsobject = maputils.FITSimage('ngc6946.fits')
+            print "Possible spectral translations:", fitsobject.allowedtrans
+            slicepos = range(1,101)
+            myCubes.append(frame, fitsobject, axnums=(1,3), slicepos=slicepos,
+                           callbackslist={'finished':postloading})
+            show()
+
+         
       """
    #----------------------------------------------------------------------------
       #flushprint("len container=%d"%(len(self.movieimages.annimagelist)))
@@ -13397,6 +14136,11 @@ which can store images from different data cubes.
                                     slicepos=cube.slicepos[i])
       # Set the box
       cube.fitsobj.set_limits(cube.pxlim, cube.pylim)
+      # If no aspect ratio for the pixels was given, then find a default
+      # Note that only in this method, the image axes are known and a proper
+      # aspect ratio can be determined.
+      if cube.pixelaspectratio is None:
+         cube.pixelaspectratio = cube.fitsobj.get_pixelaspectratio()
 
       mplim = cube.fitsobj.Annotatedimage(cube.frame, cmap=cube.cmap,
                                           clipmin=cube.vmin, clipmax=cube.vmax,
@@ -13471,7 +14215,9 @@ which can store images from different data cubes.
       # will be in an endless loop and we don't need to give a show() command.
       # If however, the class is used from a simple script, then the script
       # should execute Matplotlib's show() command.
-      fig.canvas.draw()  # Do not blit yet because movie container is not filled
+         self.reposition()  # Re position graticule etc. before a final draw (included in reposition())
+      else:
+         fig.canvas.draw()  # Do not blit yet because movie container is not filled
       
       cb.count += 1      
       if self.progressbar:
@@ -13507,15 +14253,16 @@ which can store images from different data cubes.
             #flushprint("MAPUTILS SETS IMAGE nr %d"%(cube.movieframeoffset))
             self.movieimages.setimage(cube.movieframeoffset)
             self.movieimages.movie_events(allow=True)
-            cube.callback('finished')            # Callback from calling environment to finish up
+            self.callback('finished')            # Callback from calling environment to finish up
             
          if self.progressbar:
             self.progressbar.reset()                          # Reset bar
          
          cube.callback('resetcursor')
+         cube.callback('cubeloaded')
          # Add a callback to the color map. If this changes then we want
          # to set a global flag. Use the method below to set this flag.
-         cube.cmap.auto = True   # Allow images to be update immediately after a change to the color map
+         cube.cmap.auto = True   # Allow images to be updated immediately after a change to the color map
          cube.cmap.callback = self.cmapcallback
 
      
