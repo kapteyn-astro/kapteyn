@@ -21,6 +21,8 @@ without modifications will give wrong results.
    common to give a topocentric reference frequency and a reference velocity in a
    different reference system. 
 
+.. _spectralbackground-alt:
+
 Alternate headers for a spectral line example
 +++++++++++++++++++++++++++++++++++++++++++++
 

@@ -287,7 +287,7 @@ import locale
 locale.setlocale(locale.LC_NUMERIC,"C")
 
 from matplotlib import rcParams
-backend = rcParams['backend'].upper()
+
 
 # !!!!!!!!!!!!
 # Uitproberen met nieuwe MPL versies. Het wijzigt de default
@@ -304,7 +304,7 @@ from matplotlib import __version__ as mplversion
 mploldversion = mplversion < '1.2.0'
 #print "Matplotlib version:", mplversion, mploldversion
 
-from matplotlib.pyplot import setp as plt_setp,  get_current_fig_manager as plt_get_current_fig_manager
+from matplotlib.pyplot import setp as plt_setp
 from matplotlib.pyplot import figure, show
 from matplotlib import cm
 from matplotlib.colors import Colormap, Normalize          #, LogNorm, NoNorm
@@ -321,6 +321,11 @@ if mploldversion:
    import matplotlib.nxutils as nxutils
 else:
    import matplotlib.path as path
+
+backend = rcParams['backend'].upper()
+if backend.startswith('QT'):
+   # fig.canvas.figureoptions = None
+   pass
 
 # PyFITS 1.2.x is not compatible with 1.3.x, i.e. if we remove lines which cause
 # the 'deprecated' warnings and replace them by the suggested PyFITS 1.3.x versions
@@ -386,9 +391,6 @@ KeyPressFilter.allowed = ['f', 'g']
 annotatedimage_list = []
 nonefunc = lambda x: None
 
-# For the administration of toolbars
-globalfigmanager = None
-globalmessenger = None
 backgroundchanged = False
 MINBOUND = 0.005
 MAXBOUND = 0.995
@@ -967,35 +969,35 @@ class Positionmessage(object):
 
    :Attributes:
 
-    .. attribute:: pixfmt
+      .. attribute:: pixfmt
 
-          Python number format to set formatting of pixel
-          coordinates in position message in toolbar.
+         Python number format to set formatting of pixel
+         coordinates in position message in toolbar.
 
-    .. attribute:: wcsfmt
+      .. attribute:: wcsfmt
 
-          Python number format to set formatting of world
-          coordinates in position message in toolbar.
-          If the map has a valid sky system then the
-          values will be formatted in hms/dms, unless
-          attribute *hmsdms* is set to *False*.
+         Python number format to set formatting of world
+         coordinates in position message in toolbar.
+         If the map has a valid sky system then the
+         values will be formatted in hms/dms, unless
+         attribute *hmsdms* is set to *False*.
 
-    .. attribute:: zfmt
+      .. attribute:: zfmt
 
-          Python number format to set formatting of image
-          value(s) in position message in toolbar.
+         Python number format to set formatting of image
+         value(s) in position message in toolbar.
 
-    .. attribute:: hmsdms
+      .. attribute:: hmsdms
 
-          If True, spatial coordinates are formatted in hms/dms.
+         If True, spatial coordinates are formatted in hms/dms.
 
-    .. attribute:: dmsprec
+      .. attribute:: dmsprec
 
-          Precision in (dms) seconds if coordinate is
-          formatted in dms. The precision in seconds of a
-          longitude axis in an equatorial system is
-          automatically copied from this number and increased
-          with 1.
+         Precision in (dms) seconds if coordinate is
+         formatted in dms. The precision in seconds of a
+         longitude axis in an equatorial system is
+         automatically copied from this number and increased
+         with 1.
    """
 #-----------------------------------------------------------
    def __init__(self, skysys, skyout, axtype):
@@ -2998,6 +3000,10 @@ this class.
    todo
 :type clipmn:
    tuple with 2 integers
+:param cubemanager:
+   todo
+:type cubemanager:
+   maputils.figure.canvas.manager object or None
 :param callbackslist:
    todo
 :type callbackslist:
@@ -3007,191 +3013,191 @@ this class.
 
     .. attribute:: alter
 
-          Character that sets an alternate world coordinate system.
+       Character that sets an alternate world coordinate system.
 
     .. attribute:: aspect
 
-          Aspect ratio of a pixel according to the FITS header.
-          For spatial maps this value is used to set and keep an
-          image in the correct aspect ratio.
+       Aspect ratio of a pixel according to the FITS header.
+       For spatial maps this value is used to set and keep an
+       image in the correct aspect ratio.
 
     .. attribute:: axperm
 
-          Axis numbers of the two axis in this map. Axis numbers
-          start with 1.
+       Axis numbers of the two axis in this map. Axis numbers
+       start with 1.
 
     .. attribute:: basename
 
-          Name of data origin.
+       Name of data origin.
 
     .. attribute:: blankcolor
 
-          Color of 'bad' pixels as a Matplotlib color.
+       Color of 'bad' pixels as a Matplotlib color.
           
     .. attribute:: box
 
-          Coordinates of the plot box. In order to keep the entire pixel in the
-          corners in the plot, one has to extend the values of *pxlim* and
-          *pylim* with 0.5 pixel.
+       Coordinates of the plot box. In order to keep the entire pixel in the
+       corners in the plot, one has to extend the values of *pxlim* and
+       *pylim* with 0.5 pixel.
 
     .. attribute:: clipmin
 
-          Value either entered or calculated, which scales the image data to the
-          available colors. Clipmin is the minimum value.
+       Value either entered or calculated, which scales the image data to the
+       available colors. Clipmin is the minimum value.
 
     .. attribute:: clipmax
 
-          Value either entered or calculated, which scales the image data to the
-          available colors. Clipmax is the maximum value.
+       Value either entered or calculated, which scales the image data to the
+       available colors. Clipmax is the maximum value.
 
     .. attribute:: cmap
 
-          The color map. This is an object from class :class:`mplutil.VariableColormap`.
-          which is inherited from the Matplotlib color map class.
+       The color map. This is an object from class :class:`mplutil.VariableColormap`.
+       which is inherited from the Matplotlib color map class.
 
     .. attribute:: cmapinverse
 
-          Boolean which store the status of the current colormap, standard or inverted.
+       Boolean which store the status of the current colormap, standard or inverted.
 
     .. attribute:: data
 
-          Image data. Other data containers are attibutes 'data_blur', 'data_hist',
-          and 'data_orig'.
+       Image data. Other data containers are attibutes 'data_blur', 'data_hist',
+       and 'data_orig'.
 
     .. attribute:: fluxfie
 
-          Function or Lambda expression which can be used to scale the flux found with
-          method *getflux()*. There must be two parameters in this function or
+       Function or Lambda expression which can be used to scale the flux found with
+       method *getflux()*. There must be two parameters in this function or
 
-          expression: *a* for the area and *s* for the sum of the pixel values.
-          E.g. ``Annotatedimage.fluxfie = lambda s, a: s/a``
-          Note that there is no method to set this attribute.
-          The attribute is used in the shapes module.
+       expression: *a* for the area and *s* for the sum of the pixel values.
+       E.g. ``Annotatedimage.fluxfie = lambda s, a: s/a``
+       Note that there is no method to set this attribute.
+       The attribute is used in the shapes module.
 
     .. attribute:: frame
 
-          Matplotlib Axes instance where image and contours are plotted
+       Matplotlib Axes instance where image and contours are plotted
 
     .. attribute:: gridmode
 
-          Boolean that indicates when we work in pixel- or in grid coordinates.
+       Boolean that indicates when we work in pixel- or in grid coordinates.
 
     .. attribute:: hdr
 
-          Header which is used to derive the world coordinate system for axis labels
-          and graticule lines. The header is either a Python dictionary or a PyFITS
-          header.
+       Header which is used to derive the world coordinate system for axis labels
+       and graticule lines. The header is either a Python dictionary or a PyFITS
+       header.
 
     .. attribute:: mixpix
 
-          The pixel of the missing spatial axis in a Position-Velocity
-          image.
+       The pixel of the missing spatial axis in a Position-Velocity
+       image.
 
     .. attribute:: objlist
 
-          List with all plot objects for the current *Annotatedimage* object derived from classes:
-          'Beam', 'Colorbar', 'Contours', 'Graticule', 'Image', 'Marker', 'Minortickmarks',
-          'Pixellabels', 'RGBimage', 'Ruler', 'Skypolygon'
+       List with all plot objects for the current *Annotatedimage* object derived from classes:
+       'Beam', 'Colorbar', 'Contours', 'Graticule', 'Image', 'Marker', 'Minortickmarks',
+       'Pixellabels', 'RGBimage', 'Ruler', 'Skypolygon'
 
     .. attribute:: pixelstep
 
-          The step size in pixels or fraction of pixels. This size is used to sample
-          the area of an object. Used in the context of the shapes module.
-          E.g. ``annim.pixelstep = 0.5;``
+       The step size in pixels or fraction of pixels. This size is used to sample
+       the area of an object. Used in the context of the shapes module.
+       E.g. ``annim.pixelstep = 0.5;``
 
     .. attribute:: pixoffset
 
-          Tuple with two offsets in pixels used to distinguish a pixel coordinate system
-          from a grid coordinate system.
+       Tuple with two offsets in pixels used to distinguish a pixel coordinate system
+       from a grid coordinate system.
 
     .. attribute:: projection
 
-          An object from the Projection class as defined in module :mod:`wcs`
+       An object from the Projection class as defined in module :mod:`wcs`
 
     .. attribute:: ptype
 
-          Each object in the object list has an attribute which describes the (plot) type
-          of the object. The ptype of an Annotatedimage is *Annotatedimage*.
+       Each object in the object list has an attribute which describes the (plot) type
+       of the object. The ptype of an Annotatedimage is *Annotatedimage*.
 
     .. attribute:: pxlim
 
-          Pixel limits in x = (xlo, xhi)
+       Pixel limits in x = (xlo, xhi)
 
     .. attribute:: pylim
 
-          Pixel limits in y = (ylo, yhi)
+       Pixel limits in y = (ylo, yhi)
 
     .. attribute:: rgbs
 
-          Boolean which is set to True if the current image is composed of three images
-          each representing one color.
+       Boolean which is set to True if the current image is composed of three images
+       each representing one color.
           
     .. attribute:: sliceaxnames
 
-          A list with axis names that are not part of the current image, but
-          are part of the data structure from which the current Annotated image data
-          is extracted.
+       A list with axis names that are not part of the current image, but
+       are part of the data structure from which the current Annotated image data
+       is extracted.
 
     .. attribute:: skyout
 
-          The sky definition for which graticule lines are plotted
-          and axis annotation is made (e.g. "Equatorial FK4")
+       The sky definition for which graticule lines are plotted
+       and axis annotation is made (e.g. "Equatorial FK4")
 
     .. attribute:: spectrans
 
-          The translation code to transform native spectral coordinates
-          to another system (e.g. frequencies to velocities)
+       The translation code to transform native spectral coordinates
+       to another system (e.g. frequencies to velocities)
 
 
     .. attribute:: slicepos
 
-          Single value or tuple with more than one value representing
-          the pixel coordinates on axes in the original data structure
-          that do not belong to the image. It defines how the data slice
-          is ectracted from the original.
-          The order of these 'outside' axes is copied from the (FITS) header.
+       Single value or tuple with more than one value representing
+       the pixel coordinates on axes in the original data structure
+       that do not belong to the image. It defines how the data slice
+       is ectracted from the original.
+       The order of these 'outside' axes is copied from the (FITS) header.
 
     .. attribute:: wcstypes
     
-          Type of the axes in this data. The order is the same as of the axes.
-          The types ara strings and are derived from attribute wcstype of the
-          Projection object. The types are:
-          'lo' is longitude axis. 'la' is latitude axis,
-          'sp' is spectral axis. 'li' is a linear axis. Appended to 'li' is an
-          underscore and the ctype of that axis (e.g. 'li_stokes').
-  
-    Class variables
+       Type of the axes in this data. The order is the same as of the axes.
+       The types ara strings and are derived from attribute wcstype of the
+       Projection object. The types are:
+       'lo' is longitude axis. 'la' is latitude axis,
+       'sp' is spectral axis. 'li' is a linear axis. Appended to 'li' is an
+       underscore and the ctype of that axis (e.g. 'li_stokes').
+
+       
 
     .. attribute:: lutscales
     
-          Class variable. A list with possible color mapping scales:
-          ['linear', 'log', 'exp', 'sqrt', 'square']
+       Class variable. A list with possible color mapping scales:
+       ['linear', 'log', 'exp', 'sqrt', 'square']
      
     .. attribute:: blankcols
     
-          Class variable. A list with Matplotlib colors:
-          ['c', 'w', 'k', 'y', 'm', 'r', 'g', 'b']
+       Class variable. A list with Matplotlib colors:
+       ['c', 'w', 'k', 'y', 'm', 'r', 'g', 'b']
                     
     .. attribute:: blanknames
      
-          Class variable. A list with strings, representing the colors in 
-          :attr:`maputils.Annotatedimage.blankcols`:
-          ['Cyan', 'White', 'Black', 'Yellow', 'Magenta', 'Red', 'Green', 'Blue']
+       Class variable. A list with strings, representing the colors in
+       :attr:`maputils.Annotatedimage.blankcols`:
+       ['Cyan', 'White', 'Black', 'Yellow', 'Magenta', 'Red', 'Green', 'Blue']
           
     .. attribute:: slopetrans
     
-          Pixel values between [a,b] are mapped to colors with index between
-          [A,B]. The mapping is a straight line with a slope and an offset
-          Scale horizontal mouse position between [0,1] into a
-          value between 0 and ``slopetrans`` degrees to scale the mapping of 
-          pixel values to colors.
-          Current value is set to 89 degrees. 
+       Pixel values between [a,b] are mapped to colors with index between
+       [A,B]. The mapping is a straight line with a slope and an offset
+       Scale horizontal mouse position between [0,1] into a
+       value between 0 and ``slopetrans`` degrees to scale the mapping of
+       pixel values to colors.
+       Current value is set to 89 degrees.
            
     .. attribute:: shifttrans
     
-          Translate vertical mouse position from [0,1] to [-``shifttrans``, ``shifttrans``]
-          to scale the mapping of pixel values to colors.
-          Currently ``shifttrans`` is set to 0.5.
+       Translate vertical mouse position from [0,1] to [-``shifttrans``, ``shifttrans``]
+       to scale the mapping of pixel values to colors.
+       Currently ``shifttrans`` is set to 0.5.
           
           
 :Methods:
@@ -3296,7 +3302,6 @@ this class.
          cmap = cmlist.cmap_default
       self.objlist = []
       self.frame = self.adjustframe(frame, adjustable)
-      self.figmanager = plt_get_current_fig_manager()
       self.messenger = None
       self.toolbarkey = None
       # Keys of class dictionary with callbacks are: slope, offset, ...
@@ -3306,43 +3311,37 @@ this class.
       # are written to an area on the canvas set by the backend in use.
       # This area is either in the toolbar or in a status bar (QT4agg)
       # The default toolbar message is bound to a figure manager
-      # (self.figmanager = plt_get_current_fig_manager).
-      # For multiple images we want to set the messenger to the same function
+      # (self.figmanager = self.frame.figure.canvas.manager)
+      # For multiple images we want to set the messenger to the same function.
       # To disable Matplotlib interference with this function we
-      # set the function to None with lambda x: None (nonefunc)
-      global globalmessenger
-      if 'exmes' in callbackslist:
-         self.externalmessenger = callbackslist['exmes']
-         self.messenger = self.externalmessenger
-         if not globalmessenger:
-            globalmessenger = self.figmanager.toolbar.set_message
-            self.figmanager.toolbar.set_message = nonefunc    # Disable toolbar's messenger
+      # set the function to a function that does nothing
+      # with lambda x: None (nonefunc)
+      # Note that external messengers and messengers defined in the Cubes() class
+      # have priority.
+      
+      
+      try:  # because this will not be successful for certain backends
+         self.figmanager = self.frame.figure.canvas.manager   # Every figure has its own manager
+         if not (self.figmanager.toolbar.set_message is nonefunc):  # This is the first image of the current Cubes() object
+            # We introduce a new attribute: 'globalmessenger' to set all messengers of 
+            # the current Cubes() object to the same messenger.
+            self.figmanager.toolbar.globalmessenger = self.figmanager.toolbar.set_message
+            self.figmanager.toolbar.set_message = nonefunc
+      except:
+         self.figmanager = None
+
+      if 'exmes' in callbackslist:         
+         self.messenger = callbackslist['exmes']
+         self.canvasmessenger = False         
       else:
-         self.externalmessenger = None
-         self.messenger = self.figmanager.toolbar.set_message
-         if self.messenger is nonefunc:
-            self.messenger = globalmessenger
-         
-      """
-      global globalfigmanager, globalmessenger
-      if not (self.figmanager is globalfigmanager):
-         # The first time, globalfigmanager is None but self.figmanager is not!
-         flushprint("1")
-         try: # Sphinx does something with the figure manager, so we need a try/except
-            globalfigmanager = self.figmanager
-            if self.externalmessenger:
-               flushprint("2")
-               flushprint("externalmessenger should not be none %s"%(self.externalmessenger))
-               globalmessenger = self.externalmessenger
-            else:
-               flushprint("3")
-               globalmessenger = self.figmanager.toolbar.set_message
-            self.figmanager.toolbar.set_message=lambda x: None
+         # There is no external messenger defined.
+         # Then we have to use the one from the canvas manager (i.e. if it has a toolbar.)
+         try:
+            self.messenger = self.figmanager.toolbar.globalmessenger
+            self.canvasmessenger = True
          except:
-           flushprint("4")
-           pass
-      self.messenger = globalmessenger
-      """
+            self.messenger = nonefunc
+            self.canvasmessenger = False
       
       # In the constructor, the colormap should not update the image
       # otherwise we get incompatible frames which behave differently
@@ -5375,7 +5374,7 @@ this class.
                s += "  z=%s" % sz
          else: #except:
             spix = self.posobj.pix2str(x,y)
-            s = "pix:%s" % spix
+            s = "pix:%s" % spix      
       if parts:
          return(spix, swcs, swcsuf, sz)
       else:
@@ -5397,11 +5396,18 @@ this class.
       x, y = axesevent.xdata, axesevent.ydata
       self.X_lastvisited = x
       self.Y_lastvisited = y
-      mode = self.figmanager.toolbar.mode
+      
+      
+      try:
+         mode = self.figmanager.toolbar.mode
+      except:
+         return
 
+      if mode != '':
+         return
       s = self.positionmessage(x, y, axesevent.posobj)
       if s != '':
-         if self.externalmessenger is None and not backend.startswith('QT'):
+         if self.canvasmessenger and not backend.startswith('QT'):
             # For a non QT canvas with width 19.5 cm, there is a fixed width for
             # toolbar buttons (7.5 cm = 2.95 inch). For the rest (12 cm) we have
             # space to set a message. Unfortunately we don't have any information
@@ -5497,7 +5503,7 @@ this class.
       posobj.wcsfmt = wcsfmt
       posobj.zfmt = zfmt
       posobj.hmsdms = hmsdms
-      posobj.dmsprec = dmsprec      
+      posobj.dmsprec = dmsprec   
       self.toolbarkey = AxesCallback(self.mouse_toolbarinfo, self.frame,
                                      'motion_notify_event', posobj=posobj)
       #t("Add mouse toolbar callback %d for object %d"%(id(self.toolbarkey), id(self)))
@@ -9495,8 +9501,7 @@ Usually one creates a movie container with class class:`Cubes`
       method where we check whether the frame number in this list is a valid
       index.
       The entered list is associated to the movie container not
-      to specific cubes. If we add a new cube with images and their index
-      is already in .... #TODO
+      to specific cubes.
       """
       #---------------------------------------------------------------------
       self.movieframelist = framelist
@@ -9619,13 +9624,16 @@ Usually one creates a movie container with class class:`Cubes`
          if self.helptext:
             speedtxt = " Speed=%d im/s"% (self.framespersec)
             self.helptext_id.set_text(self.helptextbase+speedtxt)
+         self.callback('speedchanged', self.framespersec)         
 
+      # Decrease in speed of movie
       elif key in ['-', '_']:
          self.framespersec = max(self.framespersec-1, 1)
          self.movieloop.set_interval(1.0/self.framespersec)
          if self.helptext:
             speedtxt = " Speed=%d im/s"% (self.framespersec)
             self.helptext_id.set_text(self.helptextbase+speedtxt)
+         self.callback('speedchanged', self.framespersec)
 
       elif key in [',','<', 'PREV']:
          if not self.pause:
@@ -10696,16 +10704,16 @@ which can store images from different data cubes.
    are specific for a cube, see also :meth:`maputils.Cubes.append`. 
    To handle these events, one must connect it to a function
    or an object with methods. For a :class:`maputils.Cubes` container we have defined two events:
-
-       * 'progressbar' --
+   
+      *  'progressbar' --
          The progress bar is an
          object from a class that (somehow) displays the progress. It should have at
          least four methods:  
             
-            1) ``setMinimum()``
-            2) ``setMaximum()``
-            3) ``setValue()`` 
-            4) ``reset()``
+         1) ``setMinimum()``
+         2) ``setMaximum()``
+         3) ``setValue()``
+         4) ``reset()``
             
          For example in a PyQt4 gui we can define `progressbar` with an object from class 
          ``QProgressBar()``. This class provides already the necessary methods.
@@ -10715,18 +10723,18 @@ which can store images from different data cubes.
          with numerous images in a cube, it is convenient to know the progress of the loading
          process. 
          
-       * 'memory' --  Every time Maputils calls a function associated with trigger 'memory', a 
+      *  'memory' --  Every time Maputils calls a function associated with trigger 'memory', a
          string is generated with a 'used memory' report. The function should have only one argument
          and this argument is set by Maputils to the requested string with memory information.
          
-       * 'cubechanged' -- If images are loaded from different data cubes and a user
+      *  'cubechanged' -- If images are loaded from different data cubes and a user
          changes the viewer to display an image from a different cube, then the handler 
          for this trigger is executed.
          The trigger must be handled by a
          function with at least one parameter and this parameter (the first) is returned as object from 
          class :class:`maputils.Annotatedimage`
          
-       * 'imagereset' --
+      *  'imagereset' --
          Actions like transparency setting, splitting, blurring and histogram
          equalization are restricted to the current image and are
          undone after changing to another image in the movie container.
@@ -10734,23 +10742,28 @@ which can store images from different data cubes.
          The trigger must be handled by a function that does not need to have any
          parameter because nothing will be returned. 
          
-       * 'movchanged' -- The function that handles the event has a parameter which is an object
+      *  'movchanged' -- The function that handles the event has a parameter which is an object
          with four attributes:
   
-            * ``mes`` -- A string which contains information about the slicemessage
-            * ``indx`` -- The index of the image in the movie container with all images
-            * ``cubenr`` -- The index of the cube to which the current image belongs. The
-              index is for the list :attr:`maputils.Cubes.cubelist`
-            * ``slicemessage`` -- A string with information about the image (name and axis names)      
+         * ``mes`` -- A string which contains information about the slicemessage
+         * ``indx`` -- The index of the image in the movie container with all images
+         * ``cubenr`` -- The index of the cube to which the current image belongs. The
+           index is for the list :attr:`maputils.Cubes.cubelist`
+         * ``slicemessage`` -- A string with information about the image (name and axis names)
         
-       * 'finished' -- All images are loaded and mouse- and keyboard interaction with
+      *  'speedchanged' -- User changed frame rate. The function has at least one parameter (the first)
+         which stores the new frame rate in frames per second.
+         
+      *  'finished' -- All images are loaded and mouse- and keyboard interaction with
          the canvas is enabled. A similar callback is found in method :meth:`maputils.Cubes.append`
          but the difference is that 'finished' is triggered only after all stacked append actions are 
          finished, while 'cubeloaded` is triggered as soon images from a cube are loaded.
                   
                   
-   Example::
+   Example 1 (callbacks)::
    
+      # Use callback functions in the constructor of a Cubes object
+     
       from matplotlib.pyplot import figure, show
       from kapteyn import maputils
 
@@ -10784,23 +10797,69 @@ which can store images from different data cubes.
 
       def printFinish():
          print "Loading finished and user interaction has been started"
-   
+
+      def speedChanged(framerate):
+         print "User changes speed of movie loop to %d fr/s"%framerate
+
       fig = figure()
       frame = fig.add_subplot(1,1,1)
       progressBar = ProgressBar()
       myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False, 
-                               callbackslist={'memory'     : writeMemory,
-                                              'progressbar': progressBar,
-                                              'cubechanged': cubeChanged,
-                                              'imagereset' : imageReset,
-                                              'movchanged' : imageChange,
-                                              'finished'   : printFinish})
+                               callbackslist={'memory'       : writeMemory,
+                                              'progressbar'  : progressBar,
+                                              'cubechanged'  : cubeChanged,
+                                              'imagereset'   : imageReset,
+                                              'speedchanged' : speedChanged,
+                                              'movchanged'   : imageChange,
+                                              'finished'     : printFinish})
       fitsobject = maputils.FITSimage('ngc6946.fits')
       myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=range(1,101))
 
       frame = fig.add_subplot(1,1,1, label='m101')
       fitsobject2 = maputils.FITSimage('m101.fits')
       myCubes.append(frame, fitsobject2, axnums=(1,2))
+
+      show()
+
+   Example 2 (two figures)::
+
+      # Use two different cube containers connected to two different figures
+      from matplotlib.pyplot import figure, show
+      from kapteyn import maputils
+
+      def externalMes(pos):
+         print "Position cube 1:", pos
+
+      def externalMes2(pos):
+         print "Position cube 2:", pos
+
+      def postLoading(cubecontainer, splitfr, slicepos):
+         print "Set frame to compare with to:", splitfr
+         cubecontainer.set_splitimagenr(splitfr)
+         cubecontainer.set_panelframes(range(len(slicepos)), panel='XY')
+
+      fig = figure()
+      myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+
+      frame = fig.add_subplot(1,1,1, label='ngc6946')
+      fitsobject = maputils.FITSimage('ngc6946.fits')
+      splitfr = 30
+      slicepos = range(1,102)
+
+      # Create a lambda function, but make sure it uses the current values
+      # for the cube container (Cubes() object)
+      cubeLoaded = lambda myCubes=myCubes, splitfr=splitfr, slicepos=slicepos: postLoading(myCubes, splitfr, slicepos)
+      myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
+                     callbackslist={'exmes'      : externalMes,                              
+                                    'cubeloaded' : cubeLoaded})
+
+      fig2 = figure(2)
+      myCubes = maputils.Cubes(fig2, toolbarinfo=True, printload=False)
+
+      frame2 = fig2.add_subplot(1,1,1, label='m101')
+      fitsobject2 = maputils.FITSimage('ngc6946.fits')
+      myCubes.append(frame2, fitsobject2, axnums=(1,3), slicepos=range(1,101),
+                     callbackslist={'exmes' : externalMes2})
 
       show()
          
@@ -10818,7 +10877,9 @@ which can store images from different data cubes.
        
     .. attribute:: cubelist
        
-       Python list with cubes appended to this list by method :meth:`maputils.Cubes.append`.
+       Python list with cubes appended to this list by
+       method :meth:`maputils.Cubes.append`.
+   
    
 :Methods:
 
@@ -10848,8 +10909,7 @@ which can store images from different data cubes.
    colbwpixels = 40         # Fixed width of colorbar in pixels
    zprofileheight = 0.1
    
-   # The timerlist must be accessible by all objects of this class.
-   timerlist = []    # One list with timer callbacks to load all cubes
+
    
    def __init__(self, fig, toolbarinfo=False, imageinfo=True,
                 printload=False, helptext=True,
@@ -10859,7 +10919,7 @@ which can store images from different data cubes.
       # One list is for the movie container which always contains the 
       # internal triggers for cross hair cursor and z-profile.
       # The other triggers are for the Cubes container.
-      keysM = ['cubechanged', 'movchanged', 'imagereset']      
+      keysM = ['cubechanged', 'movchanged', 'imagereset', 'speedchanged']      
       dictM = {'crosshair':self.drawCrosshair, 'zprofile':self.plotZprofile}
       keysC = ['progressbar', 'memory', 'finished']
       dictC = {}
@@ -10880,8 +10940,11 @@ which can store images from different data cubes.
       # for movie actions in the figure. These are not of type AxexCallbacks
       # because the actions are not restricted to a frame.
       self.fig = fig
+      # The timerlist must be accessible by all objects of this instance.
+      self.timerlist = []    # One list with timer callbacks to load all cubes
       self.movieimages.cidkey = None
       self.movieimages.cidscroll = None
+      self.toolbarinfo = toolbarinfo
       self.imageinfo = imageinfo
       self.imageloadnr = 0                   # A counter for images in all cubes
       self.movieframecounter = 0             # Only used in the loading process
@@ -11501,74 +11564,74 @@ which can store images from different data cubes.
       :type clipmn:
          Tuple with two floats
       :param callbackslist:
-            To be able to interfere or interact with the cube viewer we need to
-            know the status of processes in Maputils, like when is the color
-            mapping in an image has been changed.
-            The events handlers that we define with this method are specific
-            to one cube.
-            To handle these events, one must connect it to a function
-            or an object with methods. With method :meth:``maputils.Cubes.append``
-            we can handle the following events:
-                                    
-               *  'waitcursor' --
-                  The process of loading images starts and one could change the
-                  cursor to another shape to indicate the loading process
-               *  'resetcursor'  --
-                  The process of loading images has been finished and one could
-                  change the cursor to its original shape               
-               *  'exmes' -- This event is triggered when the string with information about
-                  the cursor position is send to the canvas or to an external function.
-                           
-            Some triggers are included to report changes in the color mapping of an image:
+         To be able to interfere or interact with the cube viewer we need to
+         know the status of processes in Maputils, like when is the color
+         mapping in an image has been changed.
+         The events handlers that we define with this method are specific
+         to one cube.
+         To handle these events, one must connect it to a function
+         or an object with methods. With method :meth:``maputils.Cubes.append``
+         we can handle the following events:
 
-               *  'blankcol'  -- Must be handled by a function with one parameter. It returns the
-                  index value of the new color that represents blank pixels in the image.
-                  The index can be used to retrieve the Matplotlib short and long name of the color
-                  as in::
-                  
-                     print maputils.Annotatedimage.blankcols[bcol]
-                     print maputils.Annotatedimage.blanknames[bcol]
-               
-               *  'blurfac' -- User pressed *x* on the keyboard to change the smoothing factor
-                  The callback function must have at least one parameter. The first
-                  parameter stores the smoothing (blur) factor in pixels (floating point number).
-               *  'blurred' -- User pressed *z* on the keyboard to toggle between smoothed and original image
-                  The callback function must have at least one parameter. The first
-                  parameter stores the current status (Boolean)
-               *  'savelut' -- User pressed *m* on the keyboard to write the current color lookup table
-                  to file on disk. The callback function must have at least one parameter. The first
-                  parameter stores the file name (string).
-               *  'histeq' -- A user pressed key *h* on the keyboard and requested a histogram
-                  equalization (or a reset of a previous equalization). The trigger must be handled by a
-                  function with one parameter and this parameter is returned as True or False.
-               *  'inverse' -- A user changed the current color map to its inverse.
-                  The trigger must be handled by a
-                  function with one parameter and this parameter is returned as True or False.
-               *  'lut' -- A user changed the color lookup table. These so called luts are stored
-                  in :data:`maputils.cmlist`.
-                  The trigger must be handled by a
-                  function with one parameter and this parameter is returned as a index for the list with
-                  color maps.
-               *  'offset' -- A user changed the relation between pixel values and color mapping.
-                  The trigger must be handled by a
-                  function with one parameter and this parameter is returned as the current offset which
-                  is a floating point value between -0.5 and 0.5
-               *  'scale' -- A user changed the color map scaling 
-                  1='linear', 2='log', 3='exp', 4='sqrt', 5='square'
-                  Key '9' triggers the 'inverse' callback. Key '0' triggers all other callbacks in this
-                  list.
-                  The trigger must be handled by a
-                  function with (at least) one parameter (i.e. the first) and this parameter is returned as a index for the list with
-                  scales :attr:`maputils.Annotatedimage.lutscales`.
-               *  'slope' -- A user changed the relation between pixel values and color mapping.
-                  The trigger must be handled by a
-                  function with one parameter and this parameter is returned as the current slope which
-                  is a floating point value between 0 and 89 degrees
-              
+            *  'waitcursor' --
+               The process of loading images starts and one could change the
+               cursor to another shape to indicate the loading process
+            *  'resetcursor'  --
+               The process of loading images has been finished and one could
+               change the cursor to its original shape
+            *  'exmes' -- This event is triggered when the string with information about
+               the cursor position is send to the canvas or to an external function.
+
+         Some triggers are included to report changes in the color mapping of an image:
+
+            *  'blankcol'  -- Must be handled by a function with one parameter. It returns the
+               index value of the new color that represents blank pixels in the image.
+               The index can be used to retrieve the Matplotlib short and long name of the color
+               as in::
+
+                  print maputils.Annotatedimage.blankcols[bcol]
+                  print maputils.Annotatedimage.blanknames[bcol]
+
+            *  'blurfac' -- User pressed *x* on the keyboard to change the smoothing factor
+               The callback function must have at least one parameter. The first
+               parameter stores the smoothing (blur) factor in pixels (floating point number).
+            *  'blurred' -- User pressed *z* on the keyboard to toggle between smoothed and original image
+               The callback function must have at least one parameter. The first
+               parameter stores the current status (Boolean)
+            *  'savelut' -- User pressed *m* on the keyboard to write the current color lookup table
+               to file on disk. The callback function must have at least one parameter. The first
+               parameter stores the file name (string).
+            *  'histeq' -- A user pressed key *h* on the keyboard and requested a histogram
+               equalization (or a reset of a previous equalization). The trigger must be handled by a
+               function with one parameter and this parameter is returned as True or False.
+            *  'inverse' -- A user changed the current color map to its inverse.
+               The trigger must be handled by a
+               function with one parameter and this parameter is returned as True or False.
+            *  'lut' -- A user changed the color lookup table. These so called luts are stored
+               in :data:`maputils.cmlist`.
+               The trigger must be handled by a
+               function with one parameter and this parameter is returned as a index for the list with
+               color maps.
+            *  'offset' -- A user changed the relation between pixel values and color mapping.
+               The trigger must be handled by a
+               function with one parameter and this parameter is returned as the current offset which
+               is a floating point value between -0.5 and 0.5
+            *  'scale' -- A user changed the color map scaling
+               1='linear', 2='log', 3='exp', 4='sqrt', 5='square'
+               Key '9' triggers the 'inverse' callback. Key '0' triggers all other callbacks in this
+               list.
+               The trigger must be handled by a
+               function with (at least) one parameter (i.e. the first) and this parameter is returned as a index for the list with
+               scales :attr:`maputils.Annotatedimage.lutscales`.
+            *  'slope' -- A user changed the relation between pixel values and color mapping.
+               The trigger must be handled by a
+               function with one parameter and this parameter is returned as the current slope which
+               is a floating point value between 0 and 89 degrees
+            
             
       :type callbackslist:
-          A dictionary with functions that will be executed after the loading of the images
-          has been completed (for the current cube)
+         A dictionary with functions that will be executed after the loading of the images
+         has been completed (for the current cube)
           
       
       :Examples:
@@ -11590,7 +11653,11 @@ which can store images from different data cubes.
  
          2) List with callbacks. In this example we demonstrate how triggers for callbacks
          can be used. The use of Lambda expressions is demonstrated for functions that need
-         extra parameters. If you run this example you will soon discover how these callbacks work::
+         extra parameters.
+         If you run this example you will soon discover how these callbacks work:
+         
+         .. code-block:: python
+            :linenos:
 
             from matplotlib.pyplot import figure, show
             from kapteyn import maputils
@@ -11685,8 +11752,8 @@ which can store images from different data cubes.
                            callbackslist={'slope'       : lambda slope, cubenr=1 : printSlope(slope, cubenr),
                                           'histeq'      : printHistog,
                                           'waitcursor'  : waitCursor,
+                                          'exmes'       : externalMes2
                                           'resetcursor' : resetCursor})
-                                         #'exmes'       : externalMes2})
 
             show()
           
@@ -12087,7 +12154,7 @@ which can store images from different data cubes.
          #framep1.set_xlim(pxlim)
          #framep1.set_ylim([ly-1-delta,0])
          posobj1 = Positionmessage(cube.panelx_proj.skysys, fo.skyout, cube.panelx_proj.types)
-         # Add a callback for this panel. A move with button 1 on, will change
+         # Add a callback for this panel. A move with button 1 pressed, will change
          # the cube image to the one where the index corresponds to the (mouse) position
          mplimp1.regcb = AxesCallback(self.eventfrompanel1, framep1,
                                      'motion_notify_event',
@@ -12368,12 +12435,13 @@ which can store images from different data cubes.
       # reset the last mouse position
       oim = self.movieimages.annimagelist[self.movieimages.indx]
       oim.X_lastvisited = oim.Y_lastvisited = None
-      yinfo = currentim.slicemessage
-      ypos = currentcube.pylim[0] # As a dummy
-      xw, yw, missingspatial = currentim.toworld(cb.xdata, ypos, matchspatial=True)
-      sl = cb.posobj.wcs2str(xw, yw, missingspatial, returnlist=True)
-      s = sl[0] + ' ' + yinfo
-      currentim.messenger(s)
+      if self.toolbarinfo:
+         yinfo = currentim.slicemessage
+         ypos = currentcube.pylim[0] # As a dummy
+         xw, yw, missingspatial = currentim.toworld(cb.xdata, ypos, matchspatial=True)
+         sl = cb.posobj.wcs2str(xw, yw, missingspatial, returnlist=True)
+         s = sl[0] + ' ' + yinfo
+         currentim.messenger(s)
       if cb.event.button == 1:      # Only action when the left m.button is pressed
          self.updatemovieframe(cb, frompanel1=True)
 
@@ -12406,12 +12474,13 @@ which can store images from different data cubes.
       # reset the last mouse position
       oim = self.movieimages.annimagelist[self.movieimages.indx]
       oim.X_lastvisited = oim.Y_lastvisited = None
-      xinfo = currentim.slicemessage
-      xpos = currentcube.pxlim[0] # As a dummy
-      xw, yw, missingspatial = currentim.toworld(xpos, cb.ydata, matchspatial=True)
-      sl = cb.posobj.wcs2str(xw, yw, missingspatial, returnlist=True)
-      s = sl[1] + ' ' + xinfo
-      currentim.messenger(s)    
+      if self.toolbarinfo:
+         xinfo = currentim.slicemessage
+         xpos = currentcube.pxlim[0] # As a dummy
+         xw, yw, missingspatial = currentim.toworld(xpos, cb.ydata, matchspatial=True)
+         sl = cb.posobj.wcs2str(xw, yw, missingspatial, returnlist=True)
+         s = sl[1] + ' ' + xinfo
+         currentim.messenger(s)    
       if cb.event.button == 1:
          self.updatemovieframe(cb, frompanel2=True)
 
@@ -12917,7 +12986,7 @@ which can store images from different data cubes.
       :type cube:
          An object from class :class:`maputils.Cubeatts`.
       :param spectrans:
-         See :ref:`Alternate headers for a spectral line example <spectralbackground_alt>`
+         See :ref:`Alternate headers for a spectral line example <spectralbackground-alt>`
       :type spectrans:
          String
 
