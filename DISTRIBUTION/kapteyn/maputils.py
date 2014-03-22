@@ -132,9 +132,7 @@ Module level data
 
 :data:`cmlist`
    Object from class Colmaplist which has attribute *colormaps* which
-   is a sorted list with names of colormaps.
-
-   :Attributes:
+   is a sorted list with names of colormaps. It has attributes:
 
       * **colormaps** -- List with names of color lookup tables
       
@@ -287,7 +285,7 @@ import locale
 locale.setlocale(locale.LC_NUMERIC,"C")
 
 from matplotlib import rcParams
-
+backend = rcParams['backend'].upper()
 
 # !!!!!!!!!!!!
 # Uitproberen met nieuwe MPL versies. Het wijzigt de default
@@ -321,11 +319,6 @@ if mploldversion:
    import matplotlib.nxutils as nxutils
 else:
    import matplotlib.path as path
-
-backend = rcParams['backend'].upper()
-if backend.startswith('QT'):
-   # fig.canvas.figureoptions = None
-   pass
 
 # PyFITS 1.2.x is not compatible with 1.3.x, i.e. if we remove lines which cause
 # the 'deprecated' warnings and replace them by the suggested PyFITS 1.3.x versions
@@ -937,44 +930,44 @@ def colornavigation_info():
 class Positionmessage(object):
 #-----------------------------------------------------------
    """
-   This class creates an object with attributes that are needed to
-   set a proper message with information about a position
-   in a map and its corresponding image value.
-   The world coordinates are calculated in the sky system
-   of the image. This system could have been changed by the user.
+This class creates an object with attributes that are needed to
+set a proper message with information about a position
+in a map and its corresponding image value.
+The world coordinates are calculated in the sky system
+of the image. This system could have been changed by the user.
 
-   The input parameters are usually set after initialization of
-   an object from class :class:`Annotatedimage`.
-   For users/programmers the atributes are more important.
-   With the attributes of objects of this class we can change
-   the format of the numbers in the informative message.
+The input parameters are usually set after initialization of
+an object from class :class:`Annotatedimage`.
+For users/programmers the atributes are more important.
+With the attributes of objects of this class we can change
+the format of the numbers in the informative message.
 
-   Note that the methods of this class return separate strings
-   for the pixel coordinates, the world coordinates and the image
-   values. The final string is composed in the calling environment.
-   
-   :param skysys:
-      The sky definition of the current image
-   :type skysys:
-      A single parameter or tuple with integers or string
-   :param skyout:
-      The sky definition of the current image as defined by
-      a user/programmer
-   :type skyout:
-      A single parameter or tuple with integers or string
-   :param skysys:
-      The sky definition of the current image
-   :type axtype:
-      tuple with strings
+Note that the methods of this class return separate strings
+for the pixel coordinates, the world coordinates and the image
+values. The final string is composed in the calling environment.
 
-   :Attributes:
+:param skysys:
+   The sky definition of the current image
+:type skysys:
+   A single parameter or tuple with integers or string
+:param skyout:
+   The sky definition of the current image as defined by
+   a user/programmer
+:type skyout:
+   A single parameter or tuple with integers or string
+:param skysys:
+   The sky definition of the current image
+:type axtype:
+   tuple with strings
 
-      .. attribute:: pixfmt
+:Attributes:
+
+   .. attribute:: pixfmt
 
          Python number format to set formatting of pixel
          coordinates in position message in toolbar.
 
-      .. attribute:: wcsfmt
+   .. attribute:: wcsfmt
 
          Python number format to set formatting of world
          coordinates in position message in toolbar.
@@ -982,16 +975,16 @@ class Positionmessage(object):
          values will be formatted in hms/dms, unless
          attribute *hmsdms* is set to *False*.
 
-      .. attribute:: zfmt
+   .. attribute:: zfmt
 
          Python number format to set formatting of image
          value(s) in position message in toolbar.
 
-      .. attribute:: hmsdms
+   .. attribute:: hmsdms
 
          If True, spatial coordinates are formatted in hms/dms.
 
-      .. attribute:: dmsprec
+   .. attribute:: dmsprec
 
          Precision in (dms) seconds if coordinate is
          formatted in dms. The precision in seconds of a
@@ -1095,20 +1088,24 @@ class Colmaplist(object):
    other classes but its attribute *colormaps*
    can be useful.
 
-   .. attribute:: colormaps
+   :param -: No parameters
+   
+   :Attributes:
+   
+      .. attribute:: colormaps
 
-      List with names of colormaps as used in combination
-      with keyword parameter *cmap* in the constructor
-      of :class:`Annotatedimage`.
-      Note that currently we use a module level object
-      ``cmlist`` which has all the information, so we
-      don't use class variable ``colormaps``.
-      Only when we created a list with color maps with object ``cmlist``, this 
-      variable has a value. Then both of the next statements are equivalent:
-      
-      >>> print maputils.Colmaplist.colormaps
-      >>> print maputils.cmlist.colormaps
-          
+         List with names of colormaps as used in combination
+         with keyword parameter *cmap* in the constructor
+         of :class:`Annotatedimage`.
+         Note that currently we use a module level object
+         ``cmlist`` which has all the information, so we
+         don't use class variable ``colormaps``.
+         Only when we created a list with color maps with object ``cmlist``, this 
+         variable has a value. Then both of the next statements are equivalent:
+         
+         >>> print maputils.Colmaplist.colormaps
+         >>> print maputils.cmlist.colormaps
+            
    """
 #-----------------------------------------------------------
    colormaps = []
@@ -1845,7 +1842,7 @@ class Image(object):
 
    See also: :meth:`Annotatedimage.Image`
 
-   Methods:
+   :Methods:
 
    .. automethod:: plot
    """
@@ -1921,7 +1918,7 @@ class Contours(object):
       line widths in the colorbar (if requested).
 
 
-   Methods:
+   :Methods:
 
    .. automethod:: plot
    .. automethod:: setp_contour
@@ -2017,11 +2014,16 @@ class Contours(object):
       is omitted or for specific levels if keyword *levels*
       is set to one or more levels.
 
+      :param levels:
+         None or one or more levels from the set of given contour levels
+      :type levels:
+         None or one or a sequence of numbers
+
       :Examples:
       
-      >>> cont = annim.Contours(levels=range(10000,16000,1000))
-      >>> cont.setp_contour(linewidth=1)
-      >>> cont.setp_contour(levels=11000, color='g', linewidth=3)
+         >>> cont = annim.Contours(levels=range(10000,16000,1000))
+         >>> cont.setp_contour(linewidth=1)
+         >>> cont.setp_contour(levels=11000, color='g', linewidth=3)
       """
       #--------------------------------------------------------------------
       if levels is None:
@@ -2049,9 +2051,9 @@ class Contours(object):
       inline, fmt).
 
       :param levels:
-          None or one or more levels from the set of given contour levels
+            None or one or more levels from the set of given contour levels
       :type levels:
-          None or one or a sequence of numbers
+            None or one or a sequence of numbers
 
       :param tex:
          Print the labels in TeX if a format is entered.
@@ -2060,16 +2062,16 @@ class Contours(object):
          in TeX. The default is *True*. 
       :type tex:
          Boolean
+      :param xxx:
+         Other parameters are Matplotlib parameters for method
+         :meth:`clabel` in Matplotlib :class:`ContourLabeler`
+         (fontsize, colors, inline, fmt).
 
-      Other parameters are Matplotlib parameters for method
-      :meth:`clabel` in Matplotlib :class:`ContourLabeler`
-      (fontsize, colors, inline, fmt).
-      
       :Examples:
 
-      >>> cont2 = annim.Contours(levels=(8000,9000,10000,11000))
-      >>> cont2.setp_label(11000, colors='b', fontsize=14, fmt="%.3f")
-      >>> cont2.setp_label(fontsize=10, fmt="%g \lambda")
+         >>> cont2 = annim.Contours(levels=(8000,9000,10000,11000))
+         >>> cont2.setp_label(11000, colors='b', fontsize=14, fmt="%.3f")
+         >>> cont2.setp_label(fontsize=10, fmt="%g \lambda")
       """
       #--------------------------------------------------------------------
       if tex and ('fmt' in kwargs):
@@ -2106,7 +2108,8 @@ class Colorbar(object):
    :type frame:
       Matplotlib Axes instance
 
-      
+   :Methods:
+   
    .. automethod:: plot
    .. automethod:: set_label
    """
@@ -2593,6 +2596,8 @@ class Pixellabels(object):
                            mplim.Pixellabels(plotaxis="right", color="b", markersize=10)
                            mplim.Pixellabels(plotaxis="top", color="g", markersize=-10, gridlines=True)
 
+   :Methods:
+
    .. automethod:: setp_marker
    .. automethod:: setp_label
    """
@@ -3013,191 +3018,190 @@ this class.
 
     .. attribute:: alter
 
-       Character that sets an alternate world coordinate system.
+          Character that sets an alternate world coordinate system.
 
     .. attribute:: aspect
 
-       Aspect ratio of a pixel according to the FITS header.
-       For spatial maps this value is used to set and keep an
-       image in the correct aspect ratio.
+          Aspect ratio of a pixel according to the FITS header.
+          For spatial maps this value is used to set and keep an
+          image in the correct aspect ratio.
 
     .. attribute:: axperm
 
-       Axis numbers of the two axis in this map. Axis numbers
-       start with 1.
+          Axis numbers of the two axis in this map. Axis numbers
+          start with 1.
 
     .. attribute:: basename
 
-       Name of data origin.
+          Name of data origin.
 
     .. attribute:: blankcolor
 
-       Color of 'bad' pixels as a Matplotlib color.
+          Color of 'bad' pixels as a Matplotlib color.
           
     .. attribute:: box
 
-       Coordinates of the plot box. In order to keep the entire pixel in the
-       corners in the plot, one has to extend the values of *pxlim* and
-       *pylim* with 0.5 pixel.
+          Coordinates of the plot box. In order to keep the entire pixel in the
+          corners in the plot, one has to extend the values of *pxlim* and
+          *pylim* with 0.5 pixel.
 
     .. attribute:: clipmin
 
-       Value either entered or calculated, which scales the image data to the
-       available colors. Clipmin is the minimum value.
+          Value either entered or calculated, which scales the image data to the
+          available colors. Clipmin is the minimum value.
 
     .. attribute:: clipmax
 
-       Value either entered or calculated, which scales the image data to the
-       available colors. Clipmax is the maximum value.
+          Value either entered or calculated, which scales the image data to the
+          available colors. Clipmax is the maximum value.
 
     .. attribute:: cmap
 
-       The color map. This is an object from class :class:`mplutil.VariableColormap`.
-       which is inherited from the Matplotlib color map class.
+          The color map. This is an object from class :class:`mplutil.VariableColormap`.
+          which is inherited from the Matplotlib color map class.
 
     .. attribute:: cmapinverse
 
-       Boolean which store the status of the current colormap, standard or inverted.
+          Boolean which store the status of the current colormap, standard or inverted.
 
     .. attribute:: data
 
-       Image data. Other data containers are attibutes 'data_blur', 'data_hist',
-       and 'data_orig'.
+          Image data. Other data containers are attibutes 'data_blur', 'data_hist',
+          and 'data_orig'.
 
     .. attribute:: fluxfie
 
-       Function or Lambda expression which can be used to scale the flux found with
-       method *getflux()*. There must be two parameters in this function or
+          Function or Lambda expression which can be used to scale the flux found with
+          method *getflux()*. There must be two parameters in this function or
 
-       expression: *a* for the area and *s* for the sum of the pixel values.
-       E.g. ``Annotatedimage.fluxfie = lambda s, a: s/a``
-       Note that there is no method to set this attribute.
-       The attribute is used in the shapes module.
+          expression: *a* for the area and *s* for the sum of the pixel values.
+          E.g. ``Annotatedimage.fluxfie = lambda s, a: s/a``
+          Note that there is no method to set this attribute.
+          The attribute is used in the shapes module.
 
     .. attribute:: frame
 
-       Matplotlib Axes instance where image and contours are plotted
+          Matplotlib Axes instance where image and contours are plotted
 
     .. attribute:: gridmode
 
-       Boolean that indicates when we work in pixel- or in grid coordinates.
+          Boolean that indicates when we work in pixel- or in grid coordinates.
 
     .. attribute:: hdr
 
-       Header which is used to derive the world coordinate system for axis labels
-       and graticule lines. The header is either a Python dictionary or a PyFITS
-       header.
+          Header which is used to derive the world coordinate system for axis labels
+          and graticule lines. The header is either a Python dictionary or a PyFITS
+          header.
 
     .. attribute:: mixpix
 
-       The pixel of the missing spatial axis in a Position-Velocity
-       image.
+          The pixel of the missing spatial axis in a Position-Velocity
+          image.
 
     .. attribute:: objlist
 
-       List with all plot objects for the current *Annotatedimage* object derived from classes:
-       'Beam', 'Colorbar', 'Contours', 'Graticule', 'Image', 'Marker', 'Minortickmarks',
-       'Pixellabels', 'RGBimage', 'Ruler', 'Skypolygon'
+          List with all plot objects for the current *Annotatedimage* object derived from classes:
+          'Beam', 'Colorbar', 'Contours', 'Graticule', 'Image', 'Marker', 'Minortickmarks',
+          'Pixellabels', 'RGBimage', 'Ruler', 'Skypolygon'
 
     .. attribute:: pixelstep
 
-       The step size in pixels or fraction of pixels. This size is used to sample
-       the area of an object. Used in the context of the shapes module.
-       E.g. ``annim.pixelstep = 0.5;``
+          The step size in pixels or fraction of pixels. This size is used to sample
+          the area of an object. Used in the context of the shapes module.
+          E.g. ``annim.pixelstep = 0.5;``
 
     .. attribute:: pixoffset
 
-       Tuple with two offsets in pixels used to distinguish a pixel coordinate system
-       from a grid coordinate system.
+          Tuple with two offsets in pixels used to distinguish a pixel coordinate system
+          from a grid coordinate system.
 
     .. attribute:: projection
 
-       An object from the Projection class as defined in module :mod:`wcs`
+          An object from the Projection class as defined in module :mod:`wcs`
 
     .. attribute:: ptype
 
-       Each object in the object list has an attribute which describes the (plot) type
-       of the object. The ptype of an Annotatedimage is *Annotatedimage*.
+          Each object in the object list has an attribute which describes the (plot) type
+          of the object. The ptype of an Annotatedimage is *Annotatedimage*.
 
     .. attribute:: pxlim
 
-       Pixel limits in x = (xlo, xhi)
+          Pixel limits in x = (xlo, xhi)
 
     .. attribute:: pylim
 
-       Pixel limits in y = (ylo, yhi)
+          Pixel limits in y = (ylo, yhi)
 
     .. attribute:: rgbs
 
-       Boolean which is set to True if the current image is composed of three images
-       each representing one color.
+          Boolean which is set to True if the current image is composed of three images
+          each representing one color.
           
     .. attribute:: sliceaxnames
 
-       A list with axis names that are not part of the current image, but
-       are part of the data structure from which the current Annotated image data
-       is extracted.
+          A list with axis names that are not part of the current image, but
+          are part of the data structure from which the current Annotated image data
+          is extracted.
 
     .. attribute:: skyout
 
-       The sky definition for which graticule lines are plotted
-       and axis annotation is made (e.g. "Equatorial FK4")
+          The sky definition for which graticule lines are plotted
+          and axis annotation is made (e.g. "Equatorial FK4")
 
     .. attribute:: spectrans
 
-       The translation code to transform native spectral coordinates
-       to another system (e.g. frequencies to velocities)
+          The translation code to transform native spectral coordinates
+          to another system (e.g. frequencies to velocities)
 
 
     .. attribute:: slicepos
 
-       Single value or tuple with more than one value representing
-       the pixel coordinates on axes in the original data structure
-       that do not belong to the image. It defines how the data slice
-       is ectracted from the original.
-       The order of these 'outside' axes is copied from the (FITS) header.
+          Single value or tuple with more than one value representing
+          the pixel coordinates on axes in the original data structure
+          that do not belong to the image. It defines how the data slice
+          is ectracted from the original.
+          The order of these 'outside' axes is copied from the (FITS) header.
 
     .. attribute:: wcstypes
     
-       Type of the axes in this data. The order is the same as of the axes.
-       The types ara strings and are derived from attribute wcstype of the
-       Projection object. The types are:
-       'lo' is longitude axis. 'la' is latitude axis,
-       'sp' is spectral axis. 'li' is a linear axis. Appended to 'li' is an
-       underscore and the ctype of that axis (e.g. 'li_stokes').
-
-       
+          Type of the axes in this data. The order is the same as of the axes.
+          The types ara strings and are derived from attribute wcstype of the
+          Projection object. The types are:
+          'lo' is longitude axis. 'la' is latitude axis,
+          'sp' is spectral axis. 'li' is a linear axis. Appended to 'li' is an
+          underscore and the ctype of that axis (e.g. 'li_stokes').
+  
 
     .. attribute:: lutscales
     
-       Class variable. A list with possible color mapping scales:
-       ['linear', 'log', 'exp', 'sqrt', 'square']
+          Class variable. A list with possible color mapping scales:
+          ['linear', 'log', 'exp', 'sqrt', 'square']
      
     .. attribute:: blankcols
     
-       Class variable. A list with Matplotlib colors:
-       ['c', 'w', 'k', 'y', 'm', 'r', 'g', 'b']
+          Class variable. A list with Matplotlib colors:
+          ['c', 'w', 'k', 'y', 'm', 'r', 'g', 'b']
                     
     .. attribute:: blanknames
      
-       Class variable. A list with strings, representing the colors in
-       :attr:`maputils.Annotatedimage.blankcols`:
-       ['Cyan', 'White', 'Black', 'Yellow', 'Magenta', 'Red', 'Green', 'Blue']
+          Class variable. A list with strings, representing the colors in 
+          :attr:`maputils.Annotatedimage.blankcols`:
+          ['Cyan', 'White', 'Black', 'Yellow', 'Magenta', 'Red', 'Green', 'Blue']
           
     .. attribute:: slopetrans
     
-       Pixel values between [a,b] are mapped to colors with index between
-       [A,B]. The mapping is a straight line with a slope and an offset
-       Scale horizontal mouse position between [0,1] into a
-       value between 0 and ``slopetrans`` degrees to scale the mapping of
-       pixel values to colors.
-       Current value is set to 89 degrees.
+          Pixel values between [a,b] are mapped to colors with index between
+          [A,B]. The mapping is a straight line with a slope and an offset
+          Scale horizontal mouse position between [0,1] into a
+          value between 0 and ``slopetrans`` degrees to scale the mapping of 
+          pixel values to colors.
+          Current value is set to 89 degrees. 
            
     .. attribute:: shifttrans
     
-       Translate vertical mouse position from [0,1] to [-``shifttrans``, ``shifttrans``]
-       to scale the mapping of pixel values to colors.
-       Currently ``shifttrans`` is set to 0.5.
+          Translate vertical mouse position from [0,1] to [-``shifttrans``, ``shifttrans``]
+          to scale the mapping of pixel values to colors.
+          Currently ``shifttrans`` is set to 0.5.
           
           
 :Methods:
@@ -3693,6 +3697,13 @@ this class.
 
       This method is only useful if the colormap changes i.e.
       in an interactive environment.
+      
+      :param filename:  
+         Name of file to which the current (modified) color look up table
+         (lut) is written. This lut can be imported as a new lut in another session.
+      :type filename: 
+         Python stringz
+       
       """
       #-----------------------------------------------------------------
       #print self.cmap.name
@@ -3864,7 +3875,7 @@ this class.
 
          The object generated after a call to Matplotlib's *imshow()*.
 
-      :Examples:
+      :Example:
 
          >>> fitsobject = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
          >>> annim = fitsobject.Annotatedimage()
@@ -4359,7 +4370,6 @@ this class.
          By default this will not be visible. It is visible if you user
          a longer marker size, a different color or a marker with increased
          width.
-   
          The default marker size is set to 2.
    
       :Returns:
@@ -4382,13 +4392,12 @@ this class.
             plt.show()
    
          Adding parameters to change attributes:
-   
-            >>> grat2 = grat.minortickmarks(3, 5,
-                     color="#aa44dd", markersize=3, markeredgewidth=2)
-   
+
+         >>> grat2 = grat.minortickmarks(3, 5, color="#aa44dd", markersize=3, markeredgewidth=2)
+
          Minor tick marks only along x axis:
-   
-            >>> grat2 = minortickmarks(grat, 3, None)
+
+         >>> grat2 = minortickmarks(grat, 3, None)
       """
       #-------------------------------------------------------------
       # Get the position of the first label in the original graticule
@@ -4446,48 +4455,53 @@ this class.
       with a number of default parameters.
       It sets the annotation along a plot axis to pixel coordinates.
 
-      :param plotaxis:     The axis name of one or two of the axes of the
-                           plot rectangle:
-                           or 'left', 'bottom', 'right', 'top'
-                           Combinations are always between
-                           'left' and 'bottom' and 'right' and 'top'.
-      :type  plotaxis:     String
-      :param markersize:   Set size of ticks at pixel positions.
-                           The size can be negative to get tick
-                           marks that point outwards.
-      :type  markersize:   Integer
-      :param gridlines:    Set plotting of grid lines (connected tick marks)
-                           on or off (True/False). The default is off.
-      :type gridlines:     Boolean
-      :param offset:       The pixels can have an integer offset.
-                           If you want the reference pixel to be pixel
-                           0 then supply offset=(crpixX, crpixY).
-                           These crpix values are usually read from then
-                           header (e.g. as CRPIX1 and CRPIX2).
-                           In this routine the nearest integer of
-                           the input is calculated to ensure that the
-                           offset is an integer value.
-      :type offset:        *None* or floating point numbers
-
-      Other parameters are related to Matplotlib label attributes.
+      :param plotaxis:     
+         The axis name of one or two of the axes of the
+         plot rectangle: or 'left', 'bottom', 'right', 'top'
+         Combinations are always between 'left' and 'bottom' and 'right' and 'top'.
+      :type  plotaxis:     
+         String
+      :param markersize:   
+         Set size of ticks at pixel positions.
+         The size can be negative to get tick marks that point outwards.
+      :type  markersize:   
+         Integer
+      :param gridlines:    
+         Set plotting of grid lines (connected tick marks)
+         on or off (True/False). The default is off.
+      :type gridlines:     
+         Boolean
+      :param offset:       
+         The pixels can have an integer offset.
+         If you want the reference pixel to be pixel
+         0 then supply offset=(crpixX, crpixY).
+         These crpix values are usually read from then
+         header (e.g. as CRPIX1 and CRPIX2).
+         In this routine the nearest integer of
+         the input is calculated to ensure that the
+         offset is an integer value.
+      :type offset:        
+         *None* or floating point numbers
+      :param xxx:          
+         Other parameters are related to Matplotlib label attributes.
 
       :Examples:
 
-      >>> fitsobject = maputils.FITSimage("m101.fits")
-      >>> annim = fitsobject.Annotatedimage()
-      >>> annim.Pixellabels(plotaxis=("top","right"), color="b", markersize=10)
+         >>> fitsobject = maputils.FITSimage("m101.fits")
+         >>> annim = fitsobject.Annotatedimage()
+         >>> annim.Pixellabels(plotaxis=("top","right"), color="b", markersize=10)
 
-      or separate the labeling so that you can give different properties
-      for different axes. In this case we shift the labels along the
-      top axis towards the axis line with *va='top'*:
-         
-      >>> annim.Pixellabels(plotaxis='top', va='top')
-      >>> annim.Pixellabels(plotaxis='right')
+         or separate the labeling so that you can give different properties
+         for different axes. In this case we shift the labels along the
+         top axis towards the axis line with *va='top'*:
+            
+         >>> annim.Pixellabels(plotaxis='top', va='top')
+         >>> annim.Pixellabels(plotaxis='right')
 
       :Notes:
 
-      If a pixel offset is given for this Annimated object, then plot
-      the pixel labels with this offset.
+         If a pixel offset is given for this Annimated object, then plot
+         the pixel labels with this offset.
 
       """
       #-----------------------------------------------------------------
@@ -5230,20 +5244,20 @@ this class.
 
       :Examples:
 
-      >>> fitsobj = maputils.FITSimage("m101.fits")
-      >>> fitsobj.set_limits((180,344), (100,200))
-      >>> annim = fitsobj.Annotatedimage()
+         >>> fitsobj = maputils.FITSimage("m101.fits")
+         >>> fitsobj.set_limits((180,344), (100,200))
+         >>> annim = fitsobj.Annotatedimage()
 
-      >>> pos="{} 210.870170 {} 54.269001"
-      >>> print annim.inside(pos=pos)
-      >>> pos="ga 101.973853, ga 59.816461"
-      >>> print annim.inside(pos=pos)
+         >>> pos="{} 210.870170 {} 54.269001"
+         >>> print annim.inside(pos=pos)
+         >>> pos="ga 101.973853, ga 59.816461"
+         >>> print annim.inside(pos=pos)
 
-      >>> x = range(180,400,40)
-      >>> y = range(100,330,40)
-      >>> print annim.inside(x=x, y=y, mode='pixels')
+         >>> x = range(180,400,40)
+         >>> y = range(100,330,40)
+         >>> print annim.inside(x=x, y=y, mode='pixels')
 
-      >>> print annim.inside(x=crval1, y=crval2, mode='w')
+         >>> print annim.inside(x=crval1, y=crval2, mode='w')
 
       """
       #--------------------------------------------------------------------
@@ -5971,21 +5985,21 @@ this class.
       
       :Example:
 
-      >>> fits = maputils.FITSimage("m101.fits")
-      >>> fig = plt.figure()
-      >>> frame = fig.add_subplot(1,1,1)
-      >>> annim = fits.Annotatedimage(frame)
-      >>> annim.Image()
-      >>> annim.interact_writepos()
-      >>> annim.plot()
+         >>> fits = maputils.FITSimage("m101.fits")
+         >>> fig = plt.figure()
+         >>> frame = fig.add_subplot(1,1,1)
+         >>> annim = fits.Annotatedimage(frame)
+         >>> annim.Image()
+         >>> annim.interact_writepos()
+         >>> annim.plot()
 
-      For a formatted output one could add parameters to *interact_writepos()*.
-      The next line writes no pixel coordinates, writes spatial coordinates
-      in degrees (not in HMS/DMS format) and adds a format for
-      the world coordinates and the image value(s).
+         For a formatted output one could add parameters to *interact_writepos()*.
+         The next line writes no pixel coordinates, writes spatial coordinates
+         in degrees (not in HMS/DMS format) and adds a format for
+         the world coordinates and the image value(s).
 
-      >>> annim.interact_writepos(pixfmt=None, wcsfmt="%.12f", zfmt="%.3e",
-                                  hmsdms=False)
+         >>> annim.interact_writepos(pixfmt=None, wcsfmt="%.12f", zfmt="%.3e",
+                                    hmsdms=False)
       """
       #--------------------------------------------------------------------
       posobj = Positionmessage(self.projection.skysys, self.skyout, self.projection.types)
@@ -6084,14 +6098,14 @@ this class.
 
       :Examples:
       
-      >>> fn = 'smallworld.txt'
-      >>> xp, yp = annim.positionsfromfile(fn, 's', cols=[0,1])
-      >>> frame.plot(xp, yp, ',', color='#FFDAAA')
+         >>> fn = 'smallworld.txt'
+         >>> xp, yp = annim.positionsfromfile(fn, 's', cols=[0,1])
+         >>> frame.plot(xp, yp, ',', color='#FFDAAA')
 
-      Or: your graticule is equatorial but the coordinates in the file are
-      galactic:
-      
-      >>> xp, yp = annim.positionsfromfile(fn, 's', skyout='ga', cols=[0,1])
+         Or: your graticule is equatorial but the coordinates in the file are
+         galactic:
+         
+         >>> xp, yp = annim.positionsfromfile(fn, 's', skyout='ga', cols=[0,1])
       """
       #--------------------------------------------------------------------
       ainv = self.projection.allow_invalid
@@ -7266,7 +7280,7 @@ to know the properties of the FITS data beforehand.
                 A list with strings representing the spectral translations
                 that are possible for the current image axis selection.
 
-          .. attribute:: spectrans
+           .. attribute:: spectrans
 
                 The selected spectral translation
 
@@ -7941,6 +7955,8 @@ to know the properties of the FITS data beforehand.
       See also: Calabretta & Greisen: 'Representations of celestial coordinates
       in FITS', section 6
 
+      :param -: No parameters
+      
       :Returns:
          A tuple with three elements:
 
@@ -7951,22 +7967,8 @@ to know the properties of the FITS data beforehand.
            skew in the data. One should reproject the data so that it fits
            a non skewed version with only a CROTA in the header
          * *hdrchanged* - A list with keywords the are changed when a
-           'classic header is required.
+           'classic' header is required.
 
-      :Example:
-
-         ::
-         
-            from kapteyn import maputils, wcs
-            import pyfits
-            
-            
-            Basefits = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
-            newheader, skew, hdrchanged = Basefits.header2classic()
-            if len(hdrchanged):
-               print newheader
-            if skew != 0.0:
-               print "found skew:", skew
 
       :Notes:
 
@@ -7980,6 +7982,18 @@ to know the properties of the FITS data beforehand.
          * With sample files with skew
 
          
+      :Example:
+       ::   
+       
+            from kapteyn import maputils, wcs
+            import pyfits
+                     
+            Basefits = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
+            newheader, skew, hdrchanged = Basefits.header2classic()
+            if len(hdrchanged):
+               print newheader
+            if skew != 0.0:
+               print "found skew:", skew
       """
       #--------------------------------------------------------------------
       skew = 0.0
@@ -8338,18 +8352,6 @@ to know the properties of the FITS data beforehand.
          Python keyword arguments.
 
 
-      .. warning::
-
-            Values for *CROTAn* in parameter *fitskeys* overwrite
-            values previously set with keyword *rotation*.
-
-      .. warning::
-
-            Changing values of *CROTAn* will not always result in
-            a rotated image. If the world coordinate system was defined using
-            CD or PC elements, then changing *CROTAn* will only add the keyword
-            but it is never read because CD & PC transformations have precedence.
-
 
       :Examples:
 
@@ -8440,23 +8442,7 @@ to know the properties of the FITS data beforehand.
                fnew.writetofits("classic.fits", clobber=True, append=False)
 
             
-      .. note::
-
-            If you want to align an image with the direction of the north,
-            then the value of *CROTAn* (e.g. CROTA2) should be set to zero.
-            To ensure that the data will be rotated, use parameter
-            *rotation* with a dummy value so that the header used for
-            the re-projection is a 'classic' header:
-
-            e.g.:
-
-            >>> Rotfits = Basefits.reproject_to(rotation=0.0, crota2=0.0)
-
-
-            Todo: If CTYPE's change, then also LONPOLE and LATPOLE
-                  should change
-         
-
+      
       :Tests:
 
          1) The first test was a reprojection of data of *map1* to the
@@ -8484,6 +8470,36 @@ to know the properties of the FITS data beforehand.
          3) Tested with values for the output box
          4) Tested with a new CTYPE (GLON-TAN, GLAT-TAN)
             and new CRVAL
+      
+      .. note::
+
+            If you want to align an image with the direction of the north,
+            then the value of *CROTAn* (e.g. CROTA2) should be set to zero.
+            To ensure that the data will be rotated, use parameter
+            *rotation* with a dummy value so that the header used for
+            the re-projection is a 'classic' header:
+
+            e.g.:
+
+            >>> Rotfits = Basefits.reproject_to(rotation=0.0, crota2=0.0)
+
+
+            Todo: If CTYPE's change, then also LONPOLE and LATPOLE
+                  should change
+         
+
+      
+      .. warning::
+
+            Values for *CROTAn* in parameter *fitskeys* overwrite
+            values previously set with keyword *rotation*.
+
+      .. warning::
+
+            Changing values of *CROTAn* will not always result in
+            a rotated image. If the world coordinate system was defined using
+            CD or PC elements, then changing *CROTAn* will only add the keyword
+            but it is never read because CD & PC transformations have precedence.
       """
       #---------------------------------------------------------------------
 
@@ -10694,9 +10710,7 @@ which can store images from different data cubes.
 :type helptext:
    Boolean
 
-
 :param callbackslist:
-
    To be able to interfere or interact with the cube viewer we need to
    know the status of processes in maputils, like when is the loading of images finished
    or when does the image viewer switches between two images from a different cube.
@@ -10704,66 +10718,67 @@ which can store images from different data cubes.
    are specific for a cube, see also :meth:`maputils.Cubes.append`. 
    To handle these events, one must connect it to a function
    or an object with methods. For a :class:`maputils.Cubes` container we have defined two events:
-   
-      *  'progressbar' --
-         The progress bar is an
-         object from a class that (somehow) displays the progress. It should have at
-         least four methods:  
-            
+
+   *  'progressbar' -- The progress bar is an
+      object from a class that (somehow) displays the progress. It should have at
+      least four methods:  
+         
          1) ``setMinimum()``
          2) ``setMaximum()``
-         3) ``setValue()``
+         3) ``setValue()`` 
          4) ``reset()``
-            
-         For example in a PyQt4 gui we can define `progressbar` with an object from class 
-         ``QProgressBar()``. This class provides already the necessary methods.
-         The PyQt4 progress bar displays percentages. Maputils sets its range between
-         zero and the number of movie frames (images) contained in the new cube.
-         Usually, loading 1 image is too fast for a useful progress bar, but
-         with numerous images in a cube, it is convenient to know the progress of the loading
-         process. 
          
-      *  'memory' --  Every time Maputils calls a function associated with trigger 'memory', a
-         string is generated with a 'used memory' report. The function should have only one argument
-         and this argument is set by Maputils to the requested string with memory information.
-         
-      *  'cubechanged' -- If images are loaded from different data cubes and a user
-         changes the viewer to display an image from a different cube, then the handler 
-         for this trigger is executed.
-         The trigger must be handled by a
-         function with at least one parameter and this parameter (the first) is returned as object from 
-         class :class:`maputils.Annotatedimage`
-         
-      *  'imagereset' --
-         Actions like transparency setting, splitting, blurring and histogram
-         equalization are restricted to the current image and are
-         undone after changing to another image in the movie container.
-         This trigger can update a GUI with this information (e.g. reset a transparency slider).
-         The trigger must be handled by a function that does not need to have any
-         parameter because nothing will be returned. 
-         
-      *  'movchanged' -- The function that handles the event has a parameter which is an object
-         with four attributes:
-  
+      For example in a PyQt4 gui we can define `progressbar` with an object from class 
+      ``QProgressBar()``. This class provides already the necessary methods.
+      The PyQt4 progress bar displays percentages. Maputils sets its range between
+      zero and the number of movie frames (images) contained in the new cube.
+      Usually, loading 1 image is too fast for a useful progress bar, but
+      with numerous images in a cube, it is convenient to know the progress of the loading
+      process. 
+      
+   *  'memory' --  Every time Maputils calls a function associated with trigger 'memory', a 
+      string is generated with a 'used memory' report. The function should have only one argument
+      and this argument is set by Maputils to the requested string with memory information.
+      
+   *  'cubechanged' -- If images are loaded from different data cubes and a user
+      changes the viewer to display an image from a different cube, then the handler 
+      for this trigger is executed.
+      The trigger must be handled by a
+      function with at least one parameter and this parameter (the first) is returned as object from 
+      class :class:`maputils.Annotatedimage`
+      
+   *  'imagereset' --
+      Actions like transparency setting, splitting, blurring and histogram
+      equalization are restricted to the current image and are
+      undone after changing to another image in the movie container.
+      This trigger can update a GUI with this information (e.g. reset a transparency slider).
+      The trigger must be handled by a function that does not need to have any
+      parameter because nothing will be returned. 
+      
+   *  'movchanged' -- The function that handles the event has a parameter which is an object
+      with four attributes:
+
          * ``mes`` -- A string which contains information about the slicemessage
          * ``indx`` -- The index of the image in the movie container with all images
          * ``cubenr`` -- The index of the cube to which the current image belongs. The
            index is for the list :attr:`maputils.Cubes.cubelist`
-         * ``slicemessage`` -- A string with information about the image (name and axis names)
-        
-      *  'speedchanged' -- User changed frame rate. The function has at least one parameter (the first)
-         which stores the new frame rate in frames per second.
-         
-      *  'finished' -- All images are loaded and mouse- and keyboard interaction with
-         the canvas is enabled. A similar callback is found in method :meth:`maputils.Cubes.append`
-         but the difference is that 'finished' is triggered only after all stacked append actions are 
-         finished, while 'cubeloaded` is triggered as soon images from a cube are loaded.
+         * ``slicemessage`` -- A string with information about the image (name and axis names)      
+      
+   *  'speedchanged' -- User changed frame rate. The function has at least one parameter (the first)
+      which stores the new frame rate in frames per second.
+      
+   *  'finished' -- All images are loaded and mouse- and keyboard interaction with
+      the canvas is enabled. A similar callback is found in method :meth:`maputils.Cubes.append`
+      but the difference is that 'finished' is triggered only after all stacked append actions are 
+      finished, while 'cubeloaded` is triggered as soon images from a cube are loaded.
                   
-                  
-   Example 1 (callbacks)::
+:type callbackslist:
+   Python dictionary with function names and function pointers
    
-      # Use callback functions in the constructor of a Cubes object
-     
+:Example: Example 1 (Use callback functions in the constructor of a Cubes object)
+      
+   ::   
+   
       from matplotlib.pyplot import figure, show
       from kapteyn import maputils
 
@@ -10805,13 +10820,13 @@ which can store images from different data cubes.
       frame = fig.add_subplot(1,1,1)
       progressBar = ProgressBar()
       myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False, 
-                               callbackslist={'memory'       : writeMemory,
-                                              'progressbar'  : progressBar,
-                                              'cubechanged'  : cubeChanged,
-                                              'imagereset'   : imageReset,
-                                              'speedchanged' : speedChanged,
-                                              'movchanged'   : imageChange,
-                                              'finished'     : printFinish})
+                        callbackslist={'memory'       : writeMemory,
+                                       'progressbar'  : progressBar,
+                                       'cubechanged'  : cubeChanged,
+                                       'imagereset'   : imageReset,
+                                       'speedchanged' : speedChanged,
+                                       'movchanged'   : imageChange,
+                                       'finished'     : printFinish})
       fitsobject = maputils.FITSimage('ngc6946.fits')
       myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=range(1,101))
 
@@ -10819,11 +10834,10 @@ which can store images from different data cubes.
       fitsobject2 = maputils.FITSimage('m101.fits')
       myCubes.append(frame, fitsobject2, axnums=(1,2))
 
-      show()
+:Example: Use two different cube containers connected to two different figures
 
-   Example 2 (two figures)::
-
-      # Use two different cube containers connected to two different figures
+   ::
+   
       from matplotlib.pyplot import figure, show
       from kapteyn import maputils
 
@@ -10848,7 +10862,7 @@ which can store images from different data cubes.
 
       # Create a lambda function, but make sure it uses the current values
       # for the cube container (Cubes() object)
-      cubeLoaded = lambda myCubes=myCubes, splitfr=splitfr, slicepos=slicepos: postLoading(myCubes, splitfr, slicepos)
+      cubeLoaded = lambda A=myCubes, B=splitfr, C=slicepos: postLoading(A,B,C)
       myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
                      callbackslist={'exmes'      : externalMes,                              
                                     'cubeloaded' : cubeLoaded})
@@ -10863,8 +10877,7 @@ which can store images from different data cubes.
 
       show()
          
-:type callbackslist:
-   Python dictionary with function names and function pointers
+
 
 
 :Attributes:
@@ -10877,8 +10890,7 @@ which can store images from different data cubes.
        
     .. attribute:: cubelist
        
-       Python list with cubes appended to this list by
-       method :meth:`maputils.Cubes.append`.
+       Python list with cubes appended to this list by method :meth:`maputils.Cubes.append`.
    
    
 :Methods:
@@ -11354,10 +11366,10 @@ which can store images from different data cubes.
           thinks that two frames are the same, you need to give each frame a unique
           label::
           
-             frame1 = fig.add_subplot(1,1,1, label='label1', frameon=False)
-             cube = myCubes.append(frame1, ....)
-             frame2 = fig.add_subplot(1,1,1, label='label2', frameon=False)
-             cube = myCubes.append(frame2, ....)
+            frame1 = fig.add_subplot(1,1,1, label='label1', frameon=False)
+            cube = myCubes.append(frame1, ....)
+            frame2 = fig.add_subplot(1,1,1, label='label2', frameon=False)
+            cube = myCubes.append(frame2, ....)
              
       :type frame:
          Matplotlib Axes object.
@@ -11371,19 +11383,18 @@ which can store images from different data cubes.
          So, for instance, you can swap R.A. and Dec. axes, or you can make slices
          with one spatial and a spectral axis. For a cube with CTYPE's (RA,DEC,FREQ)
          you should enter then ``axnums=(1,3)`` or ``axnums=(3,2)`` etc.
-         If we want RA, FREQ images for all DEC slices, we should write::
+         If we want RA, FREQ images for all DEC slices, we should write:: 
          
             fitsobject = maputils.FITSimage('ngc6946.fits')
-            
+               
             n1, n2, n3 = [fitsobject.axisinfo[i].axlen for i in (1,2,3)]
             print "Range axis 1:", 1, n1
             print "Range axis 2:", 1, n2
             print "Range axis 3:", 1, n3
-
+         
             # Note that slice positions follow FITS standard, i.e. first pixel is 1
             slicepos = range(1, n2+1)  # all DEC slices
             cube = myCubes.append(frame1, fitsobject, axnums=(1,3), slicepos=slicepos)                                  
-
          
       :type axnums:
          Tuple or list with integers
@@ -11400,7 +11411,6 @@ which can store images from different data cubes.
          of CRPIX of the corresponding axis is used, unless the this value is
          negative or greater than the axis length. In that case it is set to 1.
          Note that ``slicepos=None`` always defines only one image!.
-
          Slice positions can be given in any order::
          
             fitsobject = maputils.FITSimage('ngc6946.fits')
@@ -11564,74 +11574,74 @@ which can store images from different data cubes.
       :type clipmn:
          Tuple with two floats
       :param callbackslist:
-         To be able to interfere or interact with the cube viewer we need to
-         know the status of processes in Maputils, like when is the color
-         mapping in an image has been changed.
-         The events handlers that we define with this method are specific
-         to one cube.
-         To handle these events, one must connect it to a function
-         or an object with methods. With method :meth:``maputils.Cubes.append``
-         we can handle the following events:
+            To be able to interfere or interact with the cube viewer we need to
+            know the status of processes in Maputils, like when is the color
+            mapping in an image has been changed.
+            The events handlers that we define with this method are specific
+            to one cube.
+            To handle these events, one must connect it to a function
+            or an object with methods. With method :meth:``maputils.Cubes.append``
+            we can handle the following events:
+                                    
+               *  'waitcursor' --
+                  The process of loading images starts and one could change the
+                  cursor to another shape to indicate the loading process
+               *  'resetcursor'  --
+                  The process of loading images has been finished and one could
+                  change the cursor to its original shape               
+               *  'exmes' -- This event is triggered when the string with information about
+                  the cursor position is send to the canvas or to an external function.
+                           
+            Some triggers are included to report changes in the color mapping of an image:
 
-            *  'waitcursor' --
-               The process of loading images starts and one could change the
-               cursor to another shape to indicate the loading process
-            *  'resetcursor'  --
-               The process of loading images has been finished and one could
-               change the cursor to its original shape
-            *  'exmes' -- This event is triggered when the string with information about
-               the cursor position is send to the canvas or to an external function.
-
-         Some triggers are included to report changes in the color mapping of an image:
-
-            *  'blankcol'  -- Must be handled by a function with one parameter. It returns the
-               index value of the new color that represents blank pixels in the image.
-               The index can be used to retrieve the Matplotlib short and long name of the color
-               as in::
-
-                  print maputils.Annotatedimage.blankcols[bcol]
-                  print maputils.Annotatedimage.blanknames[bcol]
-
-            *  'blurfac' -- User pressed *x* on the keyboard to change the smoothing factor
-               The callback function must have at least one parameter. The first
-               parameter stores the smoothing (blur) factor in pixels (floating point number).
-            *  'blurred' -- User pressed *z* on the keyboard to toggle between smoothed and original image
-               The callback function must have at least one parameter. The first
-               parameter stores the current status (Boolean)
-            *  'savelut' -- User pressed *m* on the keyboard to write the current color lookup table
-               to file on disk. The callback function must have at least one parameter. The first
-               parameter stores the file name (string).
-            *  'histeq' -- A user pressed key *h* on the keyboard and requested a histogram
-               equalization (or a reset of a previous equalization). The trigger must be handled by a
-               function with one parameter and this parameter is returned as True or False.
-            *  'inverse' -- A user changed the current color map to its inverse.
-               The trigger must be handled by a
-               function with one parameter and this parameter is returned as True or False.
-            *  'lut' -- A user changed the color lookup table. These so called luts are stored
-               in :data:`maputils.cmlist`.
-               The trigger must be handled by a
-               function with one parameter and this parameter is returned as a index for the list with
-               color maps.
-            *  'offset' -- A user changed the relation between pixel values and color mapping.
-               The trigger must be handled by a
-               function with one parameter and this parameter is returned as the current offset which
-               is a floating point value between -0.5 and 0.5
-            *  'scale' -- A user changed the color map scaling
-               1='linear', 2='log', 3='exp', 4='sqrt', 5='square'
-               Key '9' triggers the 'inverse' callback. Key '0' triggers all other callbacks in this
-               list.
-               The trigger must be handled by a
-               function with (at least) one parameter (i.e. the first) and this parameter is returned as a index for the list with
-               scales :attr:`maputils.Annotatedimage.lutscales`.
-            *  'slope' -- A user changed the relation between pixel values and color mapping.
-               The trigger must be handled by a
-               function with one parameter and this parameter is returned as the current slope which
-               is a floating point value between 0 and 89 degrees
-            
+               *  'blankcol'  -- Must be handled by a function with one parameter. It returns the
+                  index value of the new color that represents blank pixels in the image.
+                  The index can be used to retrieve the Matplotlib short and long name of the color
+                  as in::
+                  
+                     print maputils.Annotatedimage.blankcols[bcol]
+                     print maputils.Annotatedimage.blanknames[bcol]
+               
+               *  'blurfac' -- User pressed *x* on the keyboard to change the smoothing factor
+                  The callback function must have at least one parameter. The first
+                  parameter stores the smoothing (blur) factor in pixels (floating point number).
+               *  'blurred' -- User pressed *z* on the keyboard to toggle between smoothed and original image
+                  The callback function must have at least one parameter. The first
+                  parameter stores the current status (Boolean)
+               *  'savelut' -- User pressed *m* on the keyboard to write the current color lookup table
+                  to file on disk. The callback function must have at least one parameter. The first
+                  parameter stores the file name (string).
+               *  'histeq' -- A user pressed key *h* on the keyboard and requested a histogram
+                  equalization (or a reset of a previous equalization). The trigger must be handled by a
+                  function with one parameter and this parameter is returned as True or False.
+               *  'inverse' -- A user changed the current color map to its inverse.
+                  The trigger must be handled by a
+                  function with one parameter and this parameter is returned as True or False.
+               *  'lut' -- A user changed the color lookup table. These so called luts are stored
+                  in :data:`maputils.cmlist`.
+                  The trigger must be handled by a
+                  function with one parameter and this parameter is returned as a index for the list with
+                  color maps.
+               *  'offset' -- A user changed the relation between pixel values and color mapping.
+                  The trigger must be handled by a
+                  function with one parameter and this parameter is returned as the current offset which
+                  is a floating point value between -0.5 and 0.5
+               *  'scale' -- A user changed the color map scaling 
+                  1='linear', 2='log', 3='exp', 4='sqrt', 5='square'
+                  Key '9' triggers the 'inverse' callback. Key '0' triggers all other callbacks in this
+                  list.
+                  The trigger must be handled by a
+                  function with (at least) one parameter (i.e. the first) and this parameter is returned as a index for the list with
+                  scales :attr:`maputils.Annotatedimage.lutscales`.
+               *  'slope' -- A user changed the relation between pixel values and color mapping.
+                  The trigger must be handled by a
+                  function with one parameter and this parameter is returned as the current slope which
+                  is a floating point value between 0 and 89 degrees
+              
             
       :type callbackslist:
-         A dictionary with functions that will be executed after the loading of the images
-         has been completed (for the current cube)
+          A dictionary with functions that will be executed after the loading of the images
+          has been completed (for the current cube)
           
       
       :Examples:
@@ -11676,7 +11686,8 @@ which can store images from different data cubes.
 
             def printBlankcol(bcol):
                # User presswed key 'b'
-               print "Blank color set to: ", bcol, maputils.Annotatedimage.blankcols[bcol], maputils.Annotatedimage.blanknames[bcol]
+               print "Blank color set to: ", bcol, maputils.Annotatedimage.blankcols[bcol],
+                     maputils.Annotatedimage.blanknames[bcol]
 
             def printHistog(hist):
                # User pressed key 'h' to toggle between a histogram equalized version
@@ -11732,28 +11743,28 @@ which can store images from different data cubes.
             splitfr = 30
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
-                           callbackslist={'slope'    : lambda slope, cubenr=0 : printSlope(slope, cubenr),
-                                          'offset'   : printOffset,
-                                          'lut'      : printLut,
-                                          'scale'    : printScale,
-                                          'inverse'  : printInverse,
-                                          'blankcol' : printBlankcol,
-                                          'blurfac'  : printBlurfac,
-                                          'blurred'  : printSmooth,
-                                          'savelut'  : writeLut,
-                                          'exmes'    : externalMes,
-                                          'waitcursor'  : waitCursor,
-                                          'resetcursor' : resetCursor,
-                                          'cubeloaded'  : lambda: postLoading(splitfr, slicepos)})
+               callbackslist={'slope'    : lambda slope, cubenr=0 : printSlope(slope, cubenr),
+                              'offset'   : printOffset,
+                              'lut'      : printLut,
+                              'scale'    : printScale,
+                              'inverse'  : printInverse,
+                              'blankcol' : printBlankcol,
+                              'blurfac'  : printBlurfac,
+                              'blurred'  : printSmooth,
+                              'savelut'  : writeLut,
+                              'exmes'    : externalMes,
+                              'waitcursor'  : waitCursor,
+                              'resetcursor' : resetCursor,
+                              'cubeloaded'  : lambda: postLoading(splitfr, slicepos)})
 
             frame = fig.add_subplot(1,1,1, label='m101')
             fitsobject2 = maputils.FITSimage('m101.fits')
             myCubes.append(frame, fitsobject2, axnums=(1,2),
-                           callbackslist={'slope'       : lambda slope, cubenr=1 : printSlope(slope, cubenr),
-                                          'histeq'      : printHistog,
-                                          'waitcursor'  : waitCursor,
-                                          'exmes'       : externalMes2
-                                          'resetcursor' : resetCursor})
+               callbackslist={'slope'       : lambda slope, cubenr=1 : printSlope(slope, cubenr),
+                              'histeq'      : printHistog,
+                              'waitcursor'  : waitCursor,
+                              'exmes'       : externalMes2
+                              'resetcursor' : resetCursor})
 
             show()
           
@@ -11849,7 +11860,7 @@ which can store images from different data cubes.
             show()
 
       :notes:
-         Note for programmers: We need a call to method reposition() to adjust
+         Note for programmers: We need a call to method :meth:`maputils.Cubes.reposition` to adjust
          the graticule frames
       """
       #-------------------------------------------------------------------------      
@@ -13363,18 +13374,18 @@ which can store images from different data cubes.
       :type resetim:
          Boolean
 
-      :Examples:
-          Modify the output of coordinates. We want a position written to
-          a terminal in pixels, formatted and unformatted world coordinates
-          and we also want the image value at the current cursor location::
-
-         
+      :Examples: 
+         Modify the output of coordinates. We want a position written to
+         a terminal in pixels, formatted and unformatted world coordinates
+         and we also want the image value at the current cursor location::
+                     
             from matplotlib.pyplot import figure, show
             from kapteyn import maputils
 
             def postloading():
                myCubes.set_coordinate_mode(grids=True, world=True, worlduf=True,
-                                          wcsfmt='%.2f', imval=True, pixfmt='%.2f', dmspre$
+                                          wcsfmt='%.2f', imval=True, pixfmt='%.2f', 
+                                          dmsprec=2)
                cube = myCubes.cubelist[0]               
 
             fig = figure()
@@ -13387,7 +13398,6 @@ which can store images from different data cubes.
             myCubes.append(frame, fitsobject, axnums=(1,3), slicepos=slicepos,
                            callbackslist={'finished':postloading})
             show()
-
          
       """
    #----------------------------------------------------------------------------
