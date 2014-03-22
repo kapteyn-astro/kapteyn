@@ -5647,7 +5647,7 @@ this class.
       # Invert the color map colors
       #elif eventkey.upper() == 'I':
       elif eventkey == '9':
-         if self.cmapinverse:
+         if self.cmap.invrt == -1.0:   # see mplutil #inverse:
             self.cmap.set_inverse(False)
             self.cmapinverse = False
             mes = "Color map not inverted"
@@ -5665,7 +5665,7 @@ this class.
          #self.cmap.set_source(self.startcmap)
          self.cmap.set_source(cmlist.colormaps[self.startcmindx])
          self.cmap.modify(1.0, 0.0)
-         if self.cmapinverse:
+         if self.cmap.invrt == -1.0:  #inverse:
             self.cmap.set_inverse(False)
             self.cmapinverse = False
          #colmap_start = cmlist.colormaps[self.image.startcmap]
@@ -9594,6 +9594,7 @@ Usually one creates a movie container with class class:`Cubes`
             self.movieloop.deschedule()
             self.fig.canvas.draw()                # Restore also graticules etc.
             self.pause = True
+         self.callback('moviepause', self.pause, self.forward) 
       elif key == 'START':
          if not self.pause:
             self.movieloop.deschedule()
@@ -10767,6 +10768,10 @@ which can store images from different data cubes.
    *  'speedchanged' -- User changed frame rate. The function has at least one parameter (the first)
       which stores the new frame rate in frames per second.
       
+   *  'moviepaused' -- User pressed keyboard key 'P' to start or stop a movie. 
+      The function has at least two parameters (the first and second)
+      which stores the the pause status as a Boolean and the forward/backward status as a Boolean.
+      
    *  'finished' -- All images are loaded and mouse- and keyboard interaction with
       the canvas is enabled. A similar callback is found in method :meth:`maputils.Cubes.append`
       but the difference is that 'finished' is triggered only after all stacked append actions are 
@@ -10931,7 +10936,7 @@ which can store images from different data cubes.
       # One list is for the movie container which always contains the 
       # internal triggers for cross hair cursor and z-profile.
       # The other triggers are for the Cubes container.
-      keysM = ['cubechanged', 'movchanged', 'imagereset', 'speedchanged']      
+      keysM = ['cubechanged', 'movchanged', 'imagereset', 'speedchanged', 'moviepause']      
       dictM = {'crosshair':self.drawCrosshair, 'zprofile':self.plotZprofile}
       keysC = ['progressbar', 'memory', 'finished']
       dictC = {}
@@ -12802,7 +12807,7 @@ which can store images from different data cubes.
          * 4=square-root 
          * 5=square 
          * 9=inverse
-         * 0=reset
+
       * h: Toggle histogram equalization & raw image 
 
       :param cube:
