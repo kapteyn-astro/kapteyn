@@ -30,8 +30,8 @@ annim.interact_imagecolors()
 annim.interact_writepos()
 
 units = 'unknown'
-if f.hdr.has_key('BUNIT'):
-   units = hdr['BUNIT']
+if 'BUNIT' in f.hdr:
+   units = f.hdr['BUNIT']
 helptext  = "File: [%s]  Data units:  [%s]\n" % (f.filename, units)
 helptext += annim.get_colornavigation_info()
 tdict = dict(color='g', fontsize=10, va='bottom', ha='left')
