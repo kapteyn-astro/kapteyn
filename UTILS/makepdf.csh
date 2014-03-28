@@ -10,6 +10,5 @@ mkdir LATEX >& /dev/null
 sphinx-build ${flag} -b latex . LATEX
 cd LATEX
 \cp ../sphinx.sty .    # modified version (see comment in file)
-\cp ../enumitem.sty .  # for use by sphinx.sty
 make
 cd ../..

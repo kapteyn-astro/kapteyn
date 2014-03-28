@@ -6,7 +6,6 @@
 %
 % Modified by Hans Terlouw for use with the Kapteyn Package documentation.
 %  - use footnotesize font in Verbatim environment for code examples.
-%  - use package enumitem and \setlistdepth to 'fix' nesting depth errors.
 
 \NeedsTeXFormat{LaTeX2e}[1995/12/01]
 \ProvidesPackage{sphinx}[2010/01/15 LaTeX package (Sphinx markup)]
@@ -523,8 +522,3 @@
     \gdef\@chappos{}
   }
 \fi
-
-% riduculously large depth because of documentation error or,
-% less likely, an error in Sphinx.
-\RequirePackage{enumitem}
-\setlistdepth{500}
