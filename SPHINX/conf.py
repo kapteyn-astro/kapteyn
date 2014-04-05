@@ -282,28 +282,10 @@ latex_domain_indices = False
 # ----------------------------------------------------------------------------
 
 plot_formats = [('png', 80), ('hires.png', 200), ('pdf', 50)]
-
-# Inject own versions of align() and clear_state() into module plot_directive.
-#
-# - The original align() caused plot_directive to fail.
-# - The original clear_state depends on matplotlibrc. In my opinion
-#   it is better to change settings in this configuration file.
-#
-from docutils.parsers.rst import directives
-###from docutils.parsers.rst.directives.images import Image
-###from matplotlib.sphinxext import plot_directive
-###import matplotlib
-def my_align(arg):
-   return directives.choice(arg,Image.align_values)
-def my_clear_state(plot_rcparams):
-   plot_directive.plt.close('all')
-   matplotlib.rcdefaults()
-   # Set a figure size that doesn't overflow typical browser windows:
-   matplotlib.rcParams['figure.figsize'] = (5.5, 4.5)
-###plot_directive.align = my_align
-###plot_directive.clear_state = my_clear_state
+plot_rcparams = {'figure.figsize': (5.5, 4.5)}
 
 # Introduce 'author' directive
 #
+from docutils.parsers.rst import directives
 from sphinx.directives import Author
 directives.register_directive('author', Author)

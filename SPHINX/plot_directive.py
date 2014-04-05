@@ -1,6 +1,19 @@
 """
 A directive for including a matplotlib plot in a Sphinx document.
 
+==========================================================================
+MODIFIED
+--------
+Kapteyn Package private version, modified by Hans Terlouw
+- Suppressed Python 3 print function (imported from future)
+  (This caused may example scripts to crash.)
+- changed two template lines:
+    {%- for option in options %}
+  into:
+    {% for option in options -%}
+  (This prevented the use of figure and image options)
+---------------------------------------------------------------------------
+
 By default, in HTML output, `plot` will include a .png file with a
 link to a high-res .png and .pdf.  In LaTeX output, it will include a
 .pdf.
@@ -123,14 +136,11 @@ The plot directive has the following configuration options:
         
 
 """
+### suppressed because this breaks many example scripts.
+### from __future__ import print_function
 
-# The following import disabled because it causes script
-# with old-style print statements to crash.
-#
-#from __future__ import print_function
-
-import sys, os, glob, shutil, imp, warnings, cStringIO, re, textwrap, \
-       traceback, exceptions
+import sys, os, glob, shutil, imp, warnings, cStringIO, re, textwrap
+import traceback
 
 from docutils.parsers.rst import directives
 from docutils import nodes
@@ -396,7 +406,7 @@ TEMPLATE = """
 
    {% for img in images %}
    .. figure:: {{ build_dir }}/{{ img.basename }}.png
-      {%- for option in options %}
+      {% for option in options -%}
       {{ option }}
       {% endfor %}
 
@@ -422,7 +432,7 @@ TEMPLATE = """
 
    {% for img in images %}
    .. image:: {{ build_dir }}/{{ img.basename }}.png
-      {%- for option in options %}
+      {% for option in options -%}
       {{ option }}
       {% endfor %}
 
@@ -528,12 +538,10 @@ def run_code(code, code_path, ns=None, function_name=None):
         sys.stdout = stdout
     return ns
 
-# clear_state() modified to explicit figsize
-#
 def clear_state(plot_rcparams):
     plt.close('all')
-    matplotlib.rcdefaults()
-    matplotlib.rcParams['figure.figsize'] = (5.5, 4.5)
+    matplotlib.rc_file_defaults()
+    matplotlib.rcParams.update(plot_rcparams)
 
 def render_figures(code, code_path, output_dir, output_base, context,
                    function_name, config):
