@@ -12,15 +12,20 @@ Kapteyn Package private version, modified by Hans Terlouw
   into:
     {% for option in options -%}
   (This prevented the use of figure and image options)
-- changed code line:
+- changed code lines:
     caption = '\n'.join('      ' + line.strip()
   into:
     caption = ''.join(line + ' '
-  changed code line:
+  and:
     raise RuntimeError("plot:: directive can't have both args and content")
   into:
     pass
   (captions weren't processed properly)
+- changed code line:
+    lines = ['.. code-block:: python', '']
+  into:
+    lines = ['::', '']
+  (in order to produce line numbers for the code)
 
 ---------------------------------------------------------------------------
 
@@ -779,7 +784,8 @@ def run(arguments, content, options, state_machine, state, lineno):
                 lines = ['']
                 lines += [row.rstrip() for row in code_piece.split('\n')]
             else:
-                lines = ['.. code-block:: python', '']
+###                lines = ['.. code-block:: python', '']
+                lines = ['::', '']
                 lines += ['    %s' % row.rstrip()
                           for row in code_piece.split('\n')]
             source_code = "\n".join(lines)
