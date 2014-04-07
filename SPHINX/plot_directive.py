@@ -12,6 +12,16 @@ Kapteyn Package private version, modified by Hans Terlouw
   into:
     {% for option in options -%}
   (This prevented the use of figure and image options)
+- changed code line:
+    caption = '\n'.join('      ' + line.strip()
+  into:
+    caption = ''.join(line + ' '
+  changed code line:
+    raise RuntimeError("plot:: directive can't have both args and content")
+  into:
+    pass
+  (captions weren't processed properly)
+
 ---------------------------------------------------------------------------
 
 By default, in HTML output, `plot` will include a .png file with a
@@ -158,7 +168,7 @@ try:
     # Sphinx depends on either Jinja or Jinja2
     import jinja2
     def format_template(template, **kw):
-        return jinja2.Template(template).render(**kw)
+       return jinja2.Template(template).render(**kw)
 except ImportError:
     import jinja
     def format_template(template, **kw):
@@ -652,7 +662,8 @@ def render_figures(code, code_path, output_dir, output_base, context,
 def run(arguments, content, options, state_machine, state, lineno):
     # The user may provide a filename *or* Python code content, but not both
     if arguments and content:
-        raise RuntimeError("plot:: directive can't have both args and content")
+        pass ###
+###        raise RuntimeError("plot:: directive can't have both args and content")
 
     document = state_machine.document
     config = document.settings.env.config
@@ -756,7 +767,8 @@ def run(arguments, content, options, state_machine, state, lineno):
         errors = [sm]
 
     # Properly indent the caption
-    caption = '\n'.join('      ' + line.strip()
+###    caption = '\n'.join('      ' + line.strip()
+    caption = ''.join(line + ' '
                         for line in caption.split('\n'))
 
     # generate output restructuredtext
