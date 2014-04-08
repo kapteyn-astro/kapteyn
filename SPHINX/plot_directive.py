@@ -26,7 +26,13 @@ Kapteyn Package private version, modified by Hans Terlouw
   into:
     lines = ['::', '']
   (in order to produce line numbers for the code)
+- changed teplate line:
+    .. image:: {{ build_dir }}/{{ img.basename }}.pdf
+  into:
+    .. figure:: {{ build_dir }}/{{ img.basename }}.pdf
 
+       {{ caption }}
+  (in order to allow plot captions in LaTeX mode)
 ---------------------------------------------------------------------------
 
 By default, in HTML output, `plot` will include a .png file with a
@@ -440,7 +446,9 @@ TEMPLATE = """
 {{ only_latex }}
 
    {% for img in images %}
-   .. image:: {{ build_dir }}/{{ img.basename }}.pdf
+   .. figure:: {{ build_dir }}/{{ img.basename }}.pdf
+
+      {{ caption }}
    {% endfor %}
 
 {{ only_texinfo }}
