@@ -33,6 +33,7 @@ Kapteyn Package private version, modified by Hans Terlouw
 
        {{ caption }}
   (in order to allow plot captions in LaTeX mode)
+- implemented option :figwidth:
 ---------------------------------------------------------------------------
 
 By default, in HTML output, `plot` will include a .png file with a
@@ -179,7 +180,9 @@ try:
     # Sphinx depends on either Jinja or Jinja2
     import jinja2
     def format_template(template, **kw):
-       return jinja2.Template(template).render(**kw)
+       result = jinja2.Template(template).render(**kw)
+###       print result
+       return result
 except ImportError:
     import jinja
     def format_template(template, **kw):
@@ -319,6 +322,7 @@ def setup(app):
     options = {'alt': directives.unchanged,
                'height': directives.length_or_unitless,
                'width': directives.length_or_percentage_or_unitless,
+               'figwidth': directives.length_or_percentage_or_unitless,
                'scale': directives.nonnegative_int,
                'align': _option_align,
                'class': directives.class_option,
@@ -332,6 +336,7 @@ def setup(app):
     app.add_directive('plot', plot_directive, True, (0, 2, False), **options)
     app.add_config_value('plot_pre_code', None, True)
     app.add_config_value('plot_include_source', False, True)
+    app.add_config_value('plot_figwidth', '80%', True)
     app.add_config_value('plot_formats', ['png', 'hires.png', 'pdf'], True)
     app.add_config_value('plot_basedir', None, True)
     app.add_config_value('plot_html_show_formats', True, True)
@@ -454,10 +459,12 @@ TEMPLATE = """
 {{ only_texinfo }}
 
    {% for img in images %}
-   .. image:: {{ build_dir }}/{{ img.basename }}.png
+   .. figure:: {{ build_dir }}/{{ img.basename }}.png
       {% for option in options -%}
       {{ option }}
       {% endfor %}
+
+      {{ caption }}
 
    {% endfor %}
 
@@ -683,6 +690,7 @@ def run(arguments, content, options, state_machine, state, lineno):
     nofigs = options.has_key('nofigs')
 
     options.setdefault('include-source', config.plot_include_source)
+    options.setdefault('figwidth', config.plot_figwidth)
     context = options.has_key('context')
 
     rst_file = document.attributes['source']
@@ -804,7 +812,8 @@ def run(arguments, content, options, state_machine, state, lineno):
             images = []
 
         opts = [':%s: %s' % (key, val) for key, val in options.items()
-                if key in ('alt', 'height', 'width', 'scale', 'align', 'class')]
+                if key in ('alt', 'height', 'width', 'scale', 'align',
+                           'class', 'figwidth')]
 
         only_html = ".. only:: html"
         only_latex = ".. only:: latex"
