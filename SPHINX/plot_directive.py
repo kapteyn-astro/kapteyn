@@ -5,13 +5,16 @@ A directive for including a matplotlib plot in a Sphinx document.
 MODIFIED
 --------
 Kapteyn Package private version, modified by Hans Terlouw
+
 - Suppressed Python 3 print function (imported from future)
   (This caused may example scripts to crash.)
+
 - changed two template lines:
     {%- for option in options %}
   into:
     {% for option in options -%}
   (This prevented the use of figure and image options)
+
 - changed code lines:
     caption = '\n'.join('      ' + line.strip()
   into:
@@ -21,19 +24,28 @@ Kapteyn Package private version, modified by Hans Terlouw
   into:
     pass
   (captions weren't processed properly)
+
 - changed code line:
     lines = ['.. code-block:: python', '']
   into:
     lines = ['::', '']
   (in order to produce line numbers for the code)
-- changed teplate line:
+
+- changed template line:
     .. image:: {{ build_dir }}/{{ img.basename }}.pdf
   into:
     .. figure:: {{ build_dir }}/{{ img.basename }}.pdf
 
        {{ caption }}
   (in order to allow plot captions in LaTeX mode)
+
 - implemented option :figwidth:
+  (figure option, can be used to limit caption width; not effective
+   with LaTeX)
+
+- implemented option :hide-source:
+  (source code will not be included en there will be no link to the source)
+
 ---------------------------------------------------------------------------
 
 By default, in HTML output, `plot` will include a .png file with a
@@ -105,9 +117,9 @@ The ``plot`` directive supports the following options:
         option.
 
 Additionally, this directive supports all of the options of the
-`image` directive, except for `target` (since plot will add its own
-target).  These include `alt`, `height`, `width`, `scale`, `align` and
-`class`.
+`figure` directive, except for `target` (since plot will add its own
+target).  These include `alt`, `height`, `width`, `scale`, `align`,
+`class` and `figwidth`.
 
 Configuration options
 ---------------------
@@ -181,7 +193,7 @@ try:
     import jinja2
     def format_template(template, **kw):
        result = jinja2.Template(template).render(**kw)
-###       print result
+###       print result  ### TEST ###
        return result
 except ImportError:
     import jinja
@@ -327,6 +339,7 @@ def setup(app):
                'align': _option_align,
                'class': directives.class_option,
                'include-source': _option_boolean,
+               'hide-source': _option_boolean,
                'format': _option_format,
                'context': directives.flag,
                'nofigs': directives.flag,
@@ -336,6 +349,7 @@ def setup(app):
     app.add_directive('plot', plot_directive, True, (0, 2, False), **options)
     app.add_config_value('plot_pre_code', None, True)
     app.add_config_value('plot_include_source', False, True)
+    app.add_config_value('plot_hide_source', False, True)
     app.add_config_value('plot_figwidth', '80%', True)
     app.add_config_value('plot_formats', ['png', 'hires.png', 'pdf'], True)
     app.add_config_value('plot_basedir', None, True)
@@ -689,7 +703,9 @@ def run(arguments, content, options, state_machine, state, lineno):
     config = document.settings.env.config
     nofigs = options.has_key('nofigs')
 
+
     options.setdefault('include-source', config.plot_include_source)
+    options.setdefault('hide-source', config.plot_hide_source)
     options.setdefault('figwidth', config.plot_figwidth)
     context = options.has_key('context')
 
@@ -795,7 +811,7 @@ def run(arguments, content, options, state_machine, state, lineno):
     # generate output restructuredtext
     total_lines = []
     for j, (code_piece, images) in enumerate(results):
-        if options['include-source']:
+        if options['include-source'] and not options['hide-source']:
             if is_doctest:
                 lines = ['']
                 lines += [row.rstrip() for row in code_piece.split('\n')]
@@ -819,7 +835,7 @@ def run(arguments, content, options, state_machine, state, lineno):
         only_latex = ".. only:: latex"
         only_texinfo = ".. only:: texinfo"
 
-        if j == 0:
+        if j == 0 and not options['hide-source']:
             src_link = source_link
         else:
             src_link = None
@@ -859,10 +875,13 @@ def run(arguments, content, options, state_machine, state, lineno):
     # copy script (if necessary)
     target_name = os.path.join(dest_dir, output_base + source_ext)
     with open(target_name, 'w') as f:
-        if source_file_name == rst_file:
-            code_escaped = unescape_doctest(code)
+        if options['hide-source']:
+            code_escaped = u'### source file not available ###'
         else:
-            code_escaped = code
+            if source_file_name == rst_file:
+                code_escaped = unescape_doctest(code)
+            else:
+                code_escaped = code
         f.write(code_escaped)
 
     return errors
