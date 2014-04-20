@@ -1662,6 +1662,7 @@ coordinates on the FREQ axis).
 Re-projecting to an adjusted header
 ....................................
 
+
 As an alternative to re-projecting to an existing header of a different wcs,
 one can also make a copy of a header and adjust it by making changes to
 existing keywords or to add new keyword, value pairs.
@@ -1682,11 +1683,12 @@ There are two practical problems we have to address:
 
 These problems are solved by creating an intermediate FITSimage object
 with the new header where CRVAL is set to 0 and where the values
-of CTYPE were changed. Then the corners of the original image are used to
+of CTYPE were changed. Then the pixel positions of the border of the original image are used to
 find world coordinates in the original image and from these world
-coordinates we derive pixel coordinates in the new system.
-Then we know what the pixel limits are which correspond
-to the original area in the sky. We end up with the rectangular system
+coordinates we derive pixel coordinates in the new projection. From these positions we take the minimum and
+maximum to extend the output box so that it can hold the entire image without any clipping.
+
+We end up with the rectangular system
 that we are used to from a Mercator projection. Note that the image is
 subject to a small rotation.
 
@@ -1697,6 +1699,43 @@ subject to a small rotation.
    :align: center
 
 
+   
+Re-projecting to an adjusted header II
+.......................................
+
+
+In the previous section we have dealt with a change in the projection only and we 
+needed to set explicit values for CRVAL. But what if we want to change both
+projection system and sky system. For example, we want to transform our M101 FITS file
+to a map with a Galactic sky system and we want to change the projection type from 
+``TAN`` to ``SIN``. Now we need an extra step to find the values for CRVAL in the 
+galactic system that correspond to the values of CRVAL in the original file.
+We do this with class :class:`wcs.Transformation` which transforms world coordinates from one celestial 
+system to the other.
+
+We apply the same trick with the border pixels, but now we need to convert the world coordinates of the border
+to world coordinates in the Galactic system.
+
+**Example: mu_skyAndProj.py - Transforming a map to another projection AND another sky system**
+
+
+
+
+.. plot:: EXAMPLES/mu_skyAndProj.py
+   :include-source:
+   :align: center
+
+   
+
+   
+   
+   
+   
+   
+   
+   
+   
+   
 Transforming a WCS with CD or PC elements to a classic header
 ...............................................................
 
@@ -2300,12 +2339,32 @@ the blanks can also be read from a FITS file with scaled data.
 
 
 Movies
-.......
+--------
 
-.. literalinclude:: EXAMPLES/mu_movie.py
+In version 2.3 of the Kapteyn Package, a lot of effort was spent on developing a class
+for access to- and visualization of N dimensional data. This visualization is restricted 
+to a movieloop of images and side panels with slices from a data cube.
+One can change the color mapping interactively and graticules can be overlayed.
+
+The base class for interactive image viewing is :class:`maputils.Cubes`. It needs 
+only a Figure instance for its initialization. There are a couple of extra parameters.
+One is *helptext* which shows a informative text on your plot to help you with
+the interaction. The other is *imageinfo* which must be set to True if you want a line
+in your plot with text showing which slice is on display by giving the name and world coordinate
+of the repeat axes.
+
+The core of interactive image display is :class:`maputils.Cubes`. An object 
+of this class is constructed with:
+
+>>>   myCubes = Cubes(fig, toolbarinfo=True, printload=False,
+>>>                        helptext=False, imageinfo=True)
+
+
+.. literalinclude:: EXAMPLES/mu_movie_simple.py
+
 
 Coordinate transformations
-...........................
+---------------------------
 
 An object from class :class:`maputils.Annotatedimage` has a so called
 wcs projection object (see module :mod:`wcs`) as attribute (called *projection*)
