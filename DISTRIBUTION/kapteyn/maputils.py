@@ -18,8 +18,11 @@
 #                              pan and zoom events.
 #          March 17,     2014; Version 1.16. Added extra triggers for callbacks.
 #                              Documented all triggers
+#          April 27,     2014; Version 1.17. Make indices for boxdat[] integer to avoid 'deprecated' warnings
+#          May 01,       2014: Version 1.18. Changed position of set_coordinate_mode(). Was called too late
+#                              which resulted in crashes while deleting tabs in visions.
 #
-#__version__ = '1.16'  Do not define it here because the first line in this
+#__version__ = '1.18'  Do not define it here because the first line in this
 # program must be a Sphinx documentation string!
 #
 # (C) University of Groningen
@@ -254,11 +257,17 @@ Class MovieContainer
 
 .. autoclass:: MovieContainer
 
+Class Cubeatts
+---------------
+
+.. autoclass:: Cubeatts
+
 Class Cubes
 -----------
 
 .. autoclass:: Cubes
 
+   
 """
 # ----------------- Use for experiments -----------------
 """
@@ -275,23 +284,23 @@ print "Matplotlib version:", mplversion
 # Use this to find the current backend. We need this parameter to find
 # out whether we work with a QT canvas or not. For a QT canvas we deal with
 # toolbar messages in a different way.
-__version__ = '1.16'
+__version__ = '1.18'
 
 # Local settings of LC_NUMERIC that interpret dots as comma's v.v., area
 # causing problems with reading numbers. We change this variable to a global default
 # a.s.a.p. but we are not sure if it propagates well (e.g. tabarray does not seem
-# to recognize it. TODO: Find better solution
+# to recognize it. Update: We inserted it in the cython code of tabarray
 import locale
 locale.setlocale(locale.LC_NUMERIC,"C")
 
 from matplotlib import rcParams
 backend = rcParams['backend'].upper()
 
-# !!!!!!!!!!!!
-# Uitproberen met nieuwe MPL versies. Het wijzigt de default
-# file format in savefig:
-#rcParams['savefig.extension'] = 'pdf'
-#rcParams['savefig.format'] = 'pdf'
+# Try to set default plot output to file to pdf format
+try:
+   rcParams['savefig.format'] = 'pdf'
+except:
+   pass
 
 from sys import stdout
 # Check version of Matplotlib because from version 1.2.0 the nxutils
@@ -7628,19 +7637,21 @@ to know the properties of the FITS data beforehand.
       npxlim = [None,None]
       npylim = [None,None]
       if pxlim is None:
-         npxlim = [1, n1]
+         npxlim = [1, n1]         
       else:
          if not issequence(pxlim):
             raise Exception, "pxlim must be tuple or list!"
-         npxlim[0] = pxlim[0]
-         npxlim[1] = pxlim[1]
+         npxlim[0] = int(nint(pxlim[0]))
+         npxlim[1] = int(nint(pxlim[1]))
+
       if pylim is None:
          npylim = [1, n2]
       else:
          if not issequence(pylim):
             raise Exception, "pylim must be tuple or list!"
-         npylim[0] = pylim[0]
-         npylim[1] = pylim[1]
+         npylim[0] = int(nint(pylim[0]))
+         npylim[1] = int(nint(pylim[1]))
+
       if promptfie != None:
          axname1 = self.axisinfo[self.axperm[0]].axname
          axname2 = self.axisinfo[self.axperm[1]].axname
@@ -8423,7 +8434,7 @@ to know the properties of the FITS data beforehand.
                                                 crpix1=400, crpix2=400)
 
 
-            -Use the FITS files own header. Change it and use it as an
+            -Use the FITS file's own header. Change it and use it as an
             external header
 
             ::
@@ -8436,7 +8447,7 @@ to know the properties of the FITS data beforehand.
                lat = Basefits.proj.lataxnum
                key = "CROTA%d"%lat
                classicheader[key] = 0.0 # New value for CROTA
-               fnew = Basefits.reproject_to(classicheader, insertspatial=False)
+               Basefits.reproject_to(classicheader, insertspatial=False)
                fnew = maputils.FITSimage(externalheader=classicheader,
                                          externaldata=Basefits.dat)
                fnew.writetofits("classic.fits", clobber=True, append=False)
@@ -10235,7 +10246,97 @@ wkey()'s
 class Cubeatts(object):
    #----------------------------------------------------------------------------
    """
-   Class that sets cube attributes
+   Class that sets cube attributes. The constructor is called by the :meth:`maputils.Cubes.append`
+   method of class :class:`maputils.Cubes` and should not be used otherwise.
+   We document the class because it has some useful attributes.
+   
+   The attributes should only be used as a read-only attribute.
+   
+   :param xxx:
+      All parameters are set by the :class:`maputils.Cubes` class.
+   
+   :Attributes:
+       
+    .. attribute:: frame
+    
+       Matplotlib Axes object used to display the current image. The attribute should 
+       only be used as a read-only attribute.
+       
+    .. attribute:: pxlim, pylim
+    
+       The axes limits in pixels. The attribute should 
+       only be used as a read-only attribute.
+       
+    .. attribute:: slicepos
+    
+       Attribute ``slicepos`` is documented in :meth:`maputils.Cubes.append`.
+       It is a sequence with numbers or tuples with numbers.
+       The attribute should only be used as a read-only attribute.
+       
+    .. attribute:: fitsobj
+    
+       Object from class :class:`maputils.FITSimage`
+       
+    .. attribute:: pixelaspectratio
+    
+       This attribute stores the aspect ratio of the pixels in the images of this cube.
+       
+    .. attribute:: nummovieframes
+    
+       This attribute stores the number of images in this cube.
+       
+    .. attribute:: hasgraticule
+    
+       Boolean which flags whether one requested to plot a graticule
+       
+    .. attribute:: gridmode
+    
+       Boolean which flags wheter one requested positions in grids or in pixels.
+       Pixels follow the FITS syntax. That is, the first pixel along an axis
+       is pixel 1. The last pixel is pixel NAXISn. NAXIS is a header item and n
+       is the axis number (starting with 1). FITS headers also contain an key
+       CRPIXn. This is the number (may be non-integer) of the pixel where 
+       the projection center is located. If ``gridmode==True``, the position
+       of CRPIX is labeled 0. The mode applies to the output of positions.
+       
+    .. attribute:: cmap
+    
+       The current color lookup table (color mapping). 
+       
+    .. attribute:: hascolbar
+    
+       Boolean which flag whether one requested to draw a color bar.
+       
+    .. attribute:: vmin, vmax
+    
+       Attributes which store the minimum and maximum clip values to display the data.
+       
+    .. attribute:: datmin, datmax
+    
+       Attributes which stores the minimum and maximum data values.
+       They are used to set the default clip levels.
+       
+    .. attribute:: mean
+    
+       Mean of all the data values in this cube. It gets its value for certain values
+       of attribute ``clipmode``.
+       
+    .. attribute:: rms
+    
+       Root mean square of all the data values in this cube.
+       It gets its value for certain values
+       of attribute ``clipmode``.
+       
+    .. attribute:: clipmode
+    
+       Stores the requested mode which sets the clip values.
+       The modes are documented in method :meth:`maputils.Cubes.append`.
+       
+    .. attribute:: clipmn
+    
+       Stores the requested number of times (m, n) the value of the rms
+       is used to set the clip values around the mean.
+       The modes are documented in method :meth:`maputils.Cubes.append`.
    """
    #----------------------------------------------------------------------------
    def __init__(self, frame, fitsobj, axnums, slicepos=[], pxlim=None, pylim=None,
@@ -10270,7 +10371,6 @@ class Cubeatts(object):
       self.linepieces = set()
       self.textlabels = set()
       self.grat = None
-      self.divider = None                       # To make axes locatable
       # Axis numbers for images and extra axis which
       # is one of the repeat axes (usually velocity is axnum 3)
 
@@ -10773,7 +10873,7 @@ which can store images from different data cubes.
       which stores the the pause status as a Boolean and the forward/backward status as a Boolean.
       
    *  'finished' -- All images are loaded and mouse- and keyboard interaction with
-      the canvas is enabled. A similar callback is found in method :meth:`maputils.Cubes.append`
+      the canvas is enabled. A similar callback is found in method :meth:`maputils.Cubes.append`         
       but the difference is that 'finished' is triggered only after all stacked append actions are 
       finished, while 'cubeloaded` is triggered as soon images from a cube are loaded.
                   
@@ -10887,15 +10987,84 @@ which can store images from different data cubes.
 
 :Attributes:
    
+    .. attribute:: calbackslist
+    
+       List with strings which correspond to the triggers in parameter `maputils.Cubes.callbackslist`
+       The list is filtered and contains only known triggers. Triggers for the 
+       MovieContainer object are filtered and passed to the constructor of this object.
+    
+    .. attribute:: colbwpixels
+    
+       Class attribute which sets a fixed width for the color bar in pixels.
+       e.g.:: 
+       
+          myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+          myCubes.colbwpixels = 100
+
+
+    .. attribute:: crosshair
+    
+       Boolean which flags whether a cross hair cursor has been set or not.
+ 
+    .. attribute:: cubelist
+       
+       Python list with cubes appended to this list by method :meth:`maputils.Cubes.append`.
+
+
+    .. attribute:: currentcube
+    
+       This cube containers can store multiple cubes. Each cube (object of class :class:`maputils.Cubeatts`)
+       is stored in the list :attr:`maputils.Cubes.cubelist`. The current cube is the cube to which
+       the image on display belongs. This current cube is also an object of
+       :class:`maputils.Cubeatts`.
+
+    .. attribute:: fig
+    
+       The Matplotlib Figure used to display the images in the cubes container
+
+    .. attribute:: imageinfo
+    
+       The status of Boolean parameter ``imageinfo``
+
+
+    .. attribute:: numcubes
+    
+       The number of cubes with images stored in this container
+       
+    .. attribute:: movieimages
+    
+       The container of class :class:`maputils.MovieContainer`
+    
+    .. attribute:: printload
+    
+       The status of Boolean parameter ``printload``
+   
     .. attribute:: splitmovieframe
 
        Number of movie frame which contains the image which we want to
        use together with the current image to split. The attribute is
        set with :meth:`maputils.Cubes.set_splitimagenr`.
        
-    .. attribute:: cubelist
+    .. attribute:: toolbarinfo
+    
+       The status of Boolean parameter ``toolbarinfo``
+ 
+    .. attribute:: zprofileheight
+                
+       Class attribute to set the height of the plot with the z-profile.
+       The height is given in normalized device coordinates [0,1]. The height is 
+       set to 0.1 by default.
+       The other plots on your canvas will adjust to fit the new height. You can set the 
+       new height immediately after you created a cubes container, e.g.::
        
-       Python list with cubes appended to this list by method :meth:`maputils.Cubes.append`.
+          myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+          myCubes.zprofileheight = 0.3       
+   
+   
+
+    .. attribute:: zprofileOn
+       
+       Boolean which flags whether a z-profile plot has been requested or not.
    
    
 :Methods:
@@ -10975,7 +11144,7 @@ which can store images from different data cubes.
       self.movieframeoffset = 0
       self.cubeindx = 0
       self.loadcb = None                # The callback for the image load method
-      self.cmap = None
+      #self.cmap = None
       self.printload = printload
       self.splitmovieframe = 0
       self.panelmode = 0
@@ -11346,21 +11515,20 @@ which can store images from different data cubes.
               callbackslist={}):
       #-------------------------------------------------------------------------
       """
-      Add a new cube to the container with cubes.
-      Let's introduce some definitions first:
+      Add a new cube to the container with cubes. Let's introduce some definitions first:
 
-      1) A **data cube** is a FITS file with more than two data axes.
-         Examples are a sequence of channel maps in a radio cube where
-         the spatial maps are a function of the observing freequency.
-      2) **Image axes** are the two axes of a map we want to display
-         Usually these maps have two spatial axes (e.g. R.A. and Dec.),
-         but this class can also handle images which are slices with
-         axes of mixed types (e.g. R.A. and velocity, a so called position
-         velocity diagram).
-      3) **Repeat axes** are all the axes that do not belong to the
-         set of image axes. Along these repeat axes, one can define
-         a sequence of images, for example a set of R.A., Dec. images as function
-         of velocity or Stokes parameter.
+         1) A **data cube** is a FITS file with more than two data axes.
+            Examples are a sequence of channel maps in a radio cube where
+            the spatial maps are a function of the observing freequency.
+         2) **Image axes** are the two axes of a map we want to display
+            Usually these maps have two spatial axes (e.g. R.A. and Dec.),
+            but this class can also handle images which are slices with
+            axes of mixed types (e.g. R.A. and velocity, a so called position
+            velocity diagram).
+         3) **Repeat axes** are all the axes that do not belong to the
+            set of image axes. Along these repeat axes, one can define
+            a sequence of images, for example a set of R.A., Dec. images as function
+            of velocity or Stokes parameter.
 
       :param frame:
           Each series of movie images that is appended needs its own frame.
@@ -11596,6 +11764,10 @@ which can store images from different data cubes.
                   change the cursor to its original shape               
                *  'exmes' -- This event is triggered when the string with information about
                   the cursor position is send to the canvas or to an external function.
+               *  'cubeloaded' -- This event is triggerd after all images of the current cube
+                  (for which you apply this append method) are loaded. It differs from 
+                  the 'finished' event because that event is triggered after loading **all**
+                  the cubes in a queue of cubes.
                            
             Some triggers are included to report changes in the color mapping of an image:
 
@@ -11847,7 +12019,7 @@ which can store images from different data cubes.
             from matplotlib.pyplot import figure, show
             from kapteyn import maputils
 
-            def postloading():
+            def postloading():               
                cube = myCubes.cubelist[0]
                print "Original aspect ratio current cube: %f"%(cube.pixelaspectratio)
                myCubes.set_aspectratio(cube, 2.1)
@@ -11856,11 +12028,11 @@ which can store images from different data cubes.
             fig = figure()
             frame = fig.add_subplot(1,1,1)
             myCubes = maputils.Cubes(fig, toolbarinfo=True, helptext=False,
-                                    printload=False)
+                                     printload=False)
             fitsobject = maputils.FITSimage('ngc6946.fits')
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
-                           callbackslist={'finished':postloading})
+                           callbackslist={'cubeloaded':postloading})
 
             show()
 
@@ -11968,7 +12140,7 @@ which can store images from different data cubes.
             fitsobject = maputils.FITSimage('ngc6946.fits')
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
-                           callbackslist={'finished':postloading})
+                           callbackslist={'cubeloaded':postloading})
 
             show()
          
@@ -12641,7 +12813,7 @@ which can store images from different data cubes.
             fitsobject = maputils.FITSimage('ngc6946.fits')
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
-                           callbackslist={'finished':postloading})
+                           callbackslist={'cubeloaded':postloading})
 
             show()
 
@@ -12713,10 +12885,12 @@ which can store images from different data cubes.
             fig = figure()
             frame = fig.add_subplot(1,1,1)
             myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False)
+            myCubes.zprofileheight = 0.3  # Change the height of the z-profile in normalized device coordinates
+
             fitsobject = maputils.FITSimage('ngc6946.fits')
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
-                           callbackslist={'finished':postloading})
+                           callbackslist={'cubeloaded':postloading})
 
             show()
          
@@ -12731,7 +12905,6 @@ which can store images from different data cubes.
          width = 1.0 # 1.0 - left
          bottom = 1.0 - self.zprofileheight
          height = self.zprofileheight
-         # TODO: de waarde 0.9 komt terug in reposition(). Maar daar parameter van
          self.zprofileframe = self.fig.add_axes([left, bottom, width, height], label="zprofile",
                                         #frameon=False,  # transparency needed
                                         autoscale_on=False,
@@ -12827,6 +13000,7 @@ which can store images from different data cubes.
             from kapteyn import maputils
 
             def postloading():
+               myCubes.colbwpixels = 100    # Change width of color bar in pixels
                cube = myCubes.cubelist[0]
                myCubes.set_colbar_on(cube, mode=True)
 
@@ -12837,7 +13011,7 @@ which can store images from different data cubes.
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,2),
                            slicepos=slicepos, hascolbar=False,
-                           callbackslist={'finished':postloading})
+                           callbackslist={'cubeloaded':postloading})
 
             show()
 
@@ -12965,11 +13139,11 @@ which can store images from different data cubes.
             fig = figure()
             frame = fig.add_subplot(1,1,1)
             myCubes = maputils.Cubes(fig, toolbarinfo=True, helptext=False,
-                                    printload=False)
+                                     printload=False)
             fitsobject = maputils.FITSimage('ngc6946.fits')
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=slicepos,
-                           callbackslist={'finished':postloading})
+                           callbackslist={'cubeloaded':postloading})
 
             show()
 
@@ -13025,12 +13199,12 @@ which can store images from different data cubes.
             fig = figure()
             frame = fig.add_subplot(1,1,1)
             myCubes = maputils.Cubes(fig, toolbarinfo=True, helptext=False,
-                                    printload=False)
+                                     printload=False)
             fitsobject = maputils.FITSimage('ngc6946.fits')
             print "Possible spectral translations:", fitsobject.allowedtrans
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,3), slicepos=slicepos,
-                           callbackslist={'finished':postloading})
+                           callbackslist={'cubeloaded':postloading})
 
             show()
 
@@ -13102,7 +13276,7 @@ which can store images from different data cubes.
 	    slicepos = range(1,101)
 	    axnums = (1,2)
 	    myCubes.append(frame, fitsobject, axnums=(1,2), slicepos=range(1,101),
-			  callbackslist={'finished':postloading})
+			  callbackslist={'cubeloaded':postloading})
 
 	    show()
 	
@@ -13401,7 +13575,7 @@ which can store images from different data cubes.
             print "Possible spectral translations:", fitsobject.allowedtrans
             slicepos = range(1,101)
             myCubes.append(frame, fitsobject, axnums=(1,3), slicepos=slicepos,
-                           callbackslist={'finished':postloading})
+                           callbackslist={'cubeloaded':postloading})
             show()
          
       """
@@ -14103,7 +14277,7 @@ which can store images from different data cubes.
          else:
             left = 0.0
          if self.zprofileOn:
-            top = 0.9
+            top = 1.0 - self.zprofileheight
          else:
             top = 1.0
          if self.numXpanels or self.numYpanels:            
@@ -14203,7 +14377,7 @@ which can store images from different data cubes.
             #dy = yf1 - yf0
             self.colbwidth = dx
             if zprofileOn:
-               top = 0.9
+               top = 1.0 - self.zprofileheight
             else:
                top = 1.0
             fig.subplots_adjust(left=self.colbwidth, right=1.0, bottom=0.0, top=top)
@@ -14306,9 +14480,11 @@ which can store images from different data cubes.
       cb.count += 1      
       if self.progressbar:
          self.progressbar.setValue(cb.count)
+     
       if cb.count == cube.nummovieframes:  # We already added 1 to cb.count
          # Deschedule this callback. Perhaps more loads are scheduled.
          cb.deschedule()
+         self.set_coordinate_mode(resetim=False)           # Configure output of coordinates for all images
          # The use of the timerlist is to support loading multiple cubes
          # The loading process is appended to the previous and will not
          # interfere with the current loading process.
@@ -14322,8 +14498,7 @@ which can store images from different data cubes.
             # method does not know yet what the previous image is.
             self.lastimage.image.im.set_visible(False)
             # Interesting point to show memory use to calling environment
-            self.callback('memory', getmemory())
-            self.set_coordinate_mode(resetim=False)           # Configure output of coordinates for all images
+            self.callback('memory', getmemory())            
             # At this point there is nothing to load anymore, so we start
             # to define some callbacks for mouse interaction
             if self.cubelist[0].panelscb is None:             # First time
@@ -14341,6 +14516,7 @@ which can store images from different data cubes.
             
          if self.progressbar:
             self.progressbar.reset()                          # Reset bar
+         
          
          cube.callback('resetcursor')
          cube.callback('cubeloaded')
