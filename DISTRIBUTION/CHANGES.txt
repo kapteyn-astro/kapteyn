@@ -1,9 +1,9 @@
-Version 2.2.1 (being developed)
-===============================
+Version 2.3 (being developed)
+=============================
 
 * WCSLIB:
 
-  * changed to version 4.19
+  * changed to version 4.23
 
 * Module wcs:
 
