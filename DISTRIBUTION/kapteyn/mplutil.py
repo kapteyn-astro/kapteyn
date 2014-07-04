@@ -655,7 +655,7 @@ Values should be between 0.0 and 1.0.
             y = 1.0
          elif y<0.0:
             y = 0.0
-         m = float(ncolors-1)*y+0.5
+         m = int(float(ncolors-1)*y+0.5)
          lut[i] = worklut[m]
       
       if self.auto:
