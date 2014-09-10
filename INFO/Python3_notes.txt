@@ -1,0 +1,12 @@
+Python 3
+========
+
+reduce() - [profiles.pyx: use sum() instead]
+
+print stamenents - [many examples]
+
+cannot import name 'upper' - [celestial.py]
+
+cannot import name 'ListType' - [rulers.py]
+
+ndimg - C code appears not to be py3k compatible. Make a separate branch? 

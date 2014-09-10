@@ -293,9 +293,9 @@ Fitter object's behaviour.
 
 .. attribute:: parinfo
 
-   A list of directories with parameter contraints, one directory
+   A list of dictionaries with parameter contraints, one dictionary
    per parameter, or None if not given.
-   Each directory can have zero or more items with the following keys
+   Each dictionary can have zero or more items with the following keys
    and values:
 
      ``'fixed'``: a boolean value, whether the parameter is to be held fixed or
