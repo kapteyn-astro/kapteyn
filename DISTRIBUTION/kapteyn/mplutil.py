@@ -541,7 +541,7 @@ Values should be between 0.0 and 1.0.
       if self.bad_set:
          if not isinstance(X, numpy.ma.masked_array):
             X = numpy.ma.asarray(X)
-         X.mask = ma.make_mask(-numpy.isfinite(X))
+         X.mask = ma.make_mask(~numpy.isfinite(X))
       return Colormap.__call__(self, X, alpha, bytes)
 
    def __len__(self):

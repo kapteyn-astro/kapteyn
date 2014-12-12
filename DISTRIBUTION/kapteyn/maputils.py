@@ -21,8 +21,10 @@
 #          April 27,     2014; Version 1.17. Make indices for boxdat[] integer to avoid 'deprecated' warnings
 #          May 01,       2014: Version 1.18. Changed position of set_coordinate_mode(). Was called too late
 #                              which resulted in crashes while deleting tabs in visions.
+#          Dec 11,       2014: Version 1.19. Small changes. Leftovers from experiments with 
+#                              display pixels can be re-used for next version.
 #
-#__version__ = '1.18'  Do not define it here because the first line in this
+#__version__ = '1.19'  Do not define it here because the first line in this
 # program must be a Sphinx documentation string!
 #
 # (C) University of Groningen
@@ -284,7 +286,7 @@ print "Matplotlib version:", mplversion
 # Use this to find the current backend. We need this parameter to find
 # out whether we work with a QT canvas or not. For a QT canvas we deal with
 # toolbar messages in a different way.
-__version__ = '1.18'
+__version__ = '1.19'
 
 # Local settings of LC_NUMERIC that interpret dots as comma's v.v., area
 # causing problems with reading numbers. We change this variable to a global default
@@ -373,6 +375,7 @@ from os import remove, getcwd
 from os.path import basename as os_basename
 from subprocess import Popen, PIPE, check_call, CalledProcessError 
 from platform import system as os_system
+#from scipy.ndimage import interpolation
 
 try:
    from gipsy import anyout, typecli
@@ -1889,9 +1892,26 @@ class Image(object):
       if self.data is None:
          raise Exception, "Cannot plot image because image data is not available!"
       self.frame = frame
+      
+      #
+      # To prevent an overkill of plotpixels, we decimate the map
+      # The zoom factor is set to the ratio of the number of display pixels and data pixels.
+      
+      t = self.frame.figure.transFigure.transform([(0, 0), (1,1)])
+      pixX = abs(t[0,0] - t[1,0])
+      zoom = pixX / self.data.shape[1]
+      #print "pixel, Zoom:", pixX, zoom, self.data.shape
+      """
+      if zoom < 1.0:
+         dummy = interpolation.zoom(self.data, zoom, order=3, mode='constant', cval=0.0, prefilter=True)
+         #self.data = dummy
+      else:
+         dummy = self.data
+      """
+      dummy = self.data
       # In the following call to imshow() it seems to be necessary to set the
       # aspect ratio explicitly. We copy its value from the current frame.
-      self.im = self.frame.imshow(self.data, cmap=self.cmap, norm=self.norm,
+      self.im = self.frame.imshow(dummy, cmap=self.cmap, norm=self.norm,
                                   aspect=frame.get_aspect(), **self.kwargs)
       self.frame.set_xlim((self.box[0], self.box[1]))
       self.frame.set_ylim((self.box[2], self.box[3]))
@@ -10451,7 +10471,7 @@ class Cubeatts(object):
       self.clipmn = clipmn
       self.scalefac = None
       self.limitsinfo = None              # String that show the max. limits of the axes
-
+      self.setlimits = []                 # xlo, xhi, ylo, yhi
 
 
    def callback(self, cbid, *arg):
@@ -10579,7 +10599,8 @@ class Cubeatts(object):
       for aim in self.imagesinthiscube:
          # Prevent exception if min > max
          aim.image.im.set_clim(min(clipmin,clipmax), max(clipmin,clipmax))
-
+         #TODO hier nog aim.clipmin en aim.clipmax updaten (heeft dit consequenties?)
+         
       canvas = aim.frame.figure.canvas
       canvas.draw()
 
@@ -13860,9 +13881,9 @@ which can store images from different data cubes.
       # pixel in the box.  and is always > 1.
       # Note that we change index at the center of a pixel (which explains the
       # addition 0f 0.5)
-      xi = nint(cb.xdata+0.5) - cube.pxlim[0]
-      yi = nint(cb.ydata+0.5) - cube.pylim[0]
-      xo = currentimage.split_xold; yo = currentimage.split_yold
+      xi = int(nint(cb.xdata+0.5) - cube.pxlim[0])
+      yi = int(nint(cb.ydata+0.5) - cube.pylim[0])
+      xo = int(currentimage.split_xold); yo = int(currentimage.split_yold)
       # If the mouse button has switched, then restore entire image first
       if mb != currentimage.split_mb:
          currentimage.data[:] = cube.origdata[:]
