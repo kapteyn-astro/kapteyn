@@ -3,7 +3,7 @@ Version 2.3 (being developed)
 
 * WCSLIB:
 
-  * changed to version 4.23
+  * changed to version 4.24
 
 * Module wcs:
 

@@ -1,10 +1,10 @@
-WCSLIB 4.23 - an implementation of the FITS WCS standard.
+WCSLIB 4.24 - an implementation of the FITS WCS standard.
 Copyright (C) 1995-2014, Mark Calabretta
 
-WCSLIB is free software: you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+WCSLIB is free software: you can redistribute it and/or modify it under the
+terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version.
 
 WCSLIB is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
