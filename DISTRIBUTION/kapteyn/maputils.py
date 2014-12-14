@@ -19,12 +19,14 @@
 #          March 17,     2014; Version 1.16. Added extra triggers for callbacks.
 #                              Documented all triggers
 #          April 27,     2014; Version 1.17. Make indices for boxdat[] integer to avoid 'deprecated' warnings
-#          May 01,       2014: Version 1.18. Changed position of set_coordinate_mode(). Was called too late
+#          May 01,       2014; Version 1.18. Changed position of set_coordinate_mode(). Was called too late
 #                              which resulted in crashes while deleting tabs in visions.
-#          Dec 11,       2014: Version 1.19. Small changes. Leftovers from experiments with 
+#          Dec 11,       2014; Version 1.19. Small changes. Leftovers from experiments with 
 #                              display pixels can be re-used for next version.
+#          Dec 14,       2014; Version 1.20. More DeprecationWarning-s removed. These were revealed by 
+#                              NumPy 1.9. All == None and != None replaced by is and is not.          
 #
-#__version__ = '1.19'  Do not define it here because the first line in this
+#__version__ = '1.20'  Do not define it here because the first line in this
 # program must be a Sphinx documentation string!
 #
 # (C) University of Groningen
@@ -286,7 +288,7 @@ print "Matplotlib version:", mplversion
 # Use this to find the current backend. We need this parameter to find
 # out whether we work with a QT canvas or not. For a QT canvas we deal with
 # toolbar messages in a different way.
-__version__ = '1.19'
+__version__ = '1.20'
 
 # Local settings of LC_NUMERIC that interpret dots as comma's v.v., area
 # causing problems with reading numbers. We change this variable to a global default
@@ -1788,11 +1790,11 @@ Ask user to enter the output sky system if the data is a spatial map.
    else:
       skyout = []
       skyout.append(skysys)
-      if equinox != None:
+      if equinox is not None:
          skyout.append(equinox)
-      if refsys != None:
+      if refsys is not None:
          skyout.append(refsys)
-      if epoch != None:
+      if epoch is not None:
          skyout.append(epoch)
       skyout = tuple(skyout)
 
@@ -1970,11 +1972,11 @@ class Contours(object):
       self.clevels = levels
       self.commoncontourkwargs = None            # Is set for all contours by method setp_contour()
       self.ckwargslist = None                    # Properties in setp_contour for individual contours
-      if self.clevels != None:
+      if self.clevels is not None:
          self.ckwargslist = [None]*len(self.clevels)
       self.commonlabelkwargs = None              # Is set for all contour labels in setp_labels()
       self.lkwargslist = None                    # Properties in setp_labels for individual labels
-      if self.clevels != None:
+      if self.clevels is not None:
          self.lkwargslist = [None]*len(self.clevels)
       self.labs = None                           # Label objects from method clabel() 
       self.filled = filled                       # Do we require filled contours?
@@ -2011,27 +2013,27 @@ class Contours(object):
       self.frame.set_xlim((self.box[0], self.box[1]))
       self.frame.set_ylim((self.box[2], self.box[3]))
       # Properties
-      if self.commoncontourkwargs != None:
+      if self.commoncontourkwargs is not None:
          for c in self.CS.collections:
             plt_setp(c, **self.commoncontourkwargs)
-      if self.ckwargslist != None:
+      if self.ckwargslist is not None:
          for i, kws in enumerate(self.ckwargslist):
-            if kws != None:
+            if kws is not None:
                plt_setp(self.CS.collections[i], **kws)
 
-      if self.negative != None:
+      if self.negative is not None:
          for i, lev in enumerate(self.CS.levels):
             if lev < 0:
                plt_setp(self.CS.collections[i], linestyle=self.negative)
                
-      if self.commonlabelkwargs != None:
+      if self.commonlabelkwargs is not None:
          self.labs = self.frame.clabel(self.CS, **self.commonlabelkwargs)
          #for c in self.labs:
          #   plt_setp(c, **self.commonlabelkwargs)
             
-      if self.lkwargslist != None:
+      if self.lkwargslist is not None:
          for i, kws in enumerate(self.lkwargslist):
-            if kws != None:
+            if kws is not None:
                lab = self.frame.clabel(self.CS, [self.clevels[i]], **kws)
                #plt_setp(lab, **kws)
 
@@ -2223,7 +2225,7 @@ class Colorbar(object):
       self.cb = fig.colorbar(mappable, cax=self.frame, norm=self.norm,
                              format=majorFormatter, **self.kwargs)
 
-      if self.plotcontourlines and self.contourset != None:
+      if self.plotcontourlines and self.contourset is not None:
          CS = self.contourset.CS
          if not ('ticks' in self.kwargs):
             self.kwargs["ticks"] = CS.levels
@@ -2240,7 +2242,7 @@ class Colorbar(object):
           CS = None
 
       self.colorbarticks()    # Set font size given in kwargs or use default
-      if self.label != None:
+      if self.label is not None:
          if self.labelkwargs is None:
             self.cb.set_label(self.label)
          else:
@@ -2296,7 +2298,7 @@ class Beam(object):
       else:
          grids = False
       if not grids:
-         if units != None:
+         if units is not None:
             uf, errmes = unitfactor('degree', units)
             if uf is None:
                raise ValueError(errmes)
@@ -2383,7 +2385,7 @@ class Skypolygon(object):
             major = minor
          if minor is None:
             minor = major
-         if units != None:
+         if units is not None:
             uf, errmes = unitfactor('degree', units)
             if uf is None:
                raise ValueError(errmes)
@@ -2645,7 +2647,7 @@ class Pixellabels(object):
       px = [0,0]; py = [0,0]
       px[0] = pxlim[0]; py[0] = pylim[0]    # Do not copy directly because new values must be temporary
       px[1] = pxlim[1]; py[1] = pylim[1]
-      if offset != None:
+      if offset is not None:
          offX = nint(offset[0])
          offY = nint(offset[1])
          px[0] -= offX; px[1] -= offX;
@@ -2754,7 +2756,7 @@ class Pixellabels(object):
       self.frame = gframe
       
       if 3 in plotaxes or 1 in plotaxes:
-         if pixellabels.major != None:
+         if pixellabels.major is not None:
             majorLocator = MultipleLocator(pixellabels.major)
             gframe.xaxis.set_major_locator(majorLocator)
          if pixellabels.minor:
@@ -2790,7 +2792,7 @@ class Pixellabels(object):
             tick.gridOn = pixellabels.gridlines
 
       if 2 in plotaxes or 0 in plotaxes:
-         if pixellabels.major != None:
+         if pixellabels.major is not None:
             majorLocator = MultipleLocator(pixellabels.major)
             gframe.yaxis.set_major_locator(majorLocator)
          if pixellabels.minor:
@@ -3296,7 +3298,7 @@ this class.
       self.projection = projection
       self.pxlim = pxlim
       self.pylim = pylim
-      if boxdat != None:
+      if boxdat is not None:
          # shp = (pylim[1]-pylim[0]+1, pxlim[1]-pxlim[0]+1)
          #shp = imdata.shape
          #if boxdat.shape != shp:
@@ -3629,13 +3631,13 @@ this class.
          clipmin, clipmax = clipmax, clipmin  # Swap, to prevent ValueError
       self.norm = Normalize(vmin=clipmin, vmax=clipmax, clip=True)
       #self.clipmin = clipmin; self.clipmax = clipmax
-      if self.cmap != None:
+      if self.cmap is not None:
          self.cmap.update()
-      if self.image != None:
+      if self.image is not None:
          self.image.norm = self.norm
-         if self.image.im != None:
+         if self.image.im is not None:
             self.image.im.set_clim(clipmin, clipmax)
-      if self.colorbar != None:
+      if self.colorbar is not None:
          #self.colorbar.cb.set_norm(self.norm)
          self.colorbar.cb.set_clim(clipmin, clipmax)
 
@@ -3702,14 +3704,14 @@ this class.
          self.cmap = VariableColormap(cmap)
       else:
          raise Exception, "Color map is not of type Colormap or string"
-      if self.image != None:
+      if self.image is not None:
          self.cmap.set_source(cmap)
       
       self.startcmap = self.cmap         # This could be one that is not in the list with color maps
       #self.startcmindx = self.cmindx     # Use the start color map if a reset is requested
       self.startcmindx = cmlist.colormaps.index(cmlist.cmap_default)
       self.cmapinverse = False
-      if blankcolor != None:
+      if blankcolor is not None:
          self.set_blankcolor(blankcolor)
       try:
          self.cmap.auto = False
@@ -3915,7 +3917,7 @@ this class.
          >>> annim.Image(visible=False)
       """
       #-----------------------------------------------------------------
-      if self.image != None:
+      if self.image is not None:
          raise Exception, "Only 1 image allowed per Annotatedimage object"
       image = Image(self.data, self.box, self.cmap, self.norm, **kwargs)
       self.objlist.append(image)
@@ -3997,7 +3999,7 @@ this class.
 
       """
       #-----------------------------------------------------------------
-      if self.image != None:
+      if self.image is not None:
          raise Exception, "Only 1 image allowed per Annotatedimage object"
       if f_red.boxdat.shape != self.data.shape:
          raise Exception, "Shape of red image is not equal to shape of Annotatedimage object!"
@@ -4272,7 +4274,7 @@ this class.
           >>> colbar.set_label(label=units, fontsize=24)
       """
       #------------------------------------------------------------------
-      if self.colorbar != None:
+      if self.colorbar is not None:
          raise Exception, "Only 1 colorbar allowed per Annotatedimage object"
       colorbar = Colorbar(self.cmap, frame=frame, norm=self.norm, contourset=self.contourset, clines=clines, **kwargs)
       self.objlist.append(colorbar)
@@ -4642,7 +4644,7 @@ this class.
       else:
          grids = False
          
-      if pos != None:           
+      if pos is not None:           
          poswp = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
             raise Exception, poswp[3]
@@ -4767,7 +4769,7 @@ this class.
          Matplotlib keyword arguments
       """
    #-----------------------------------------------------------------
-      if cpos != None:
+      if cpos is not None:
          poswp = str2pos(cpos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
             raise Exception, poswp[3]
@@ -4899,9 +4901,9 @@ this class.
          else:
             world = w
 
-      if (x is None and not y is None) or (not x is None and y is None):
+      if (x is None and y is not None) or (x is not None and y is None):
          raise Exception, "Marker(): One of the arrays is None and the other is not!"
-      if not pos is None and (not x is None or not y is None):
+      if not (pos is None) and (not (x is None) or not (y is None)):
          raise Exception, "Marker(): You cannot enter values for both pos= and x= and/or y="
 
       if not pos is None:
@@ -5306,11 +5308,11 @@ this class.
          else:
             world = w
             
-      if (x is None and not y is None) or (not x is None and y is None):
+      if (x is None and y is not None) or (x is not None and y is None):
          raise Exception, "Inside(): One of the arrays is None and the other is not!"
-      if not pos is None and (not x is None or not y is None):
+      if not (pos is None) and (not (x is None) or not (y is None)):
          raise Exception, "Inside(): You cannot enter values for both pos= and x= and/or y="
-      if not pos is None:
+      if not (pos is None):
          world, pixels, units, errmes = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if errmes != '':
             raise Exception, errmes
@@ -5791,7 +5793,7 @@ this class.
          self.data = self.data_hist
          self.histogram = True
       #self.norm = Normalize(vmin=self.clipmin, vmax=self.clipmax)
-      if self.image.im != None:
+      if self.image.im is not None:
          self.image.im.set_data(self.data)
       else:
          # An image was not yet 'plotted'. Then we adjust some
@@ -6893,9 +6895,9 @@ to know the properties of the FITS data beforehand.
       world = []
       j = 0
       skyout_old = self.proj.skyout
-      if skyout != None:
+      if skyout is not None:
          self.proj.skyout = skyout
-      if spectra != None:
+      if spectra is not None:
          newproj = self.proj.spectra(spectra)
       else:
          newproj = self.proj
@@ -6915,7 +6917,7 @@ to know the properties of the FITS data beforehand.
          if not (i+1) in self.axperm:
             world.append(wor[i])
             units.append(newproj.cunit[i])
-      if skyout != None:
+      if skyout is not None:
          self.proj.skyout = skyout_old
 
       # This method accepts a tuple with units given by a user.
@@ -7151,16 +7153,16 @@ to know the properties of the FITS data beforehand.
    #------------------------------------------------------------
       s = ''
       sys, ref, equinox, epoch = skyparser(self.convproj.skysys)
-      if sys != None:     s +=  "Native sky system:                 %s\n" % skyrefsystems.id2fullname(sys)
-      if ref != None:     s +=  "Native reference system:           %s\n" % skyrefsystems.id2fullname(ref)
-      if equinox != None: s +=  "Native Equinox:                    %s\n" % equinox
-      if epoch   != None: s +=  "Native date of observation:        %s\n" % epoch
+      if sys is not None:     s +=  "Native sky system:                 %s\n" % skyrefsystems.id2fullname(sys)
+      if ref is not None:     s +=  "Native reference system:           %s\n" % skyrefsystems.id2fullname(ref)
+      if equinox is not None: s +=  "Native Equinox:                    %s\n" % equinox
+      if epoch   is not None: s +=  "Native date of observation:        %s\n" % epoch
 
       sys, ref, equinox, epoch = skyparser(self.convproj.skyout)
-      if sys != None:     s +=  "Output sky system:                 %s\n" % skyrefsystems.id2fullname(sys)
-      if ref != None:     s +=  "Output reference system:           %s\n" % skyrefsystems.id2fullname(ref)
-      if equinox != None: s +=  "Output Equinox:                    %s\n" % equinox
-      if epoch   != None: s +=  "Output date of observation:        %s\n" % epoch
+      if sys is not None:     s +=  "Output sky system:                 %s\n" % skyrefsystems.id2fullname(sys)
+      if ref is not None:     s +=  "Output reference system:           %s\n" % skyrefsystems.id2fullname(ref)
+      if equinox is not None: s +=  "Output Equinox:                    %s\n" % equinox
+      if epoch   is not None: s +=  "Output date of observation:        %s\n" % epoch
 
       s +=  "Projection's epoch:                %s\n" % self.convproj.epoch
       s +=  "Date of observation from DATE-OBS: %s\n" % self.convproj.dateobs
@@ -7383,10 +7385,10 @@ to know the properties of the FITS data beforehand.
       # spectral translations
       self.allowedtrans = self.proj.altspec
 
-      if promptfie != None:
+      if promptfie is not None:
          axnr1, axnr2, self.slicepos = promptfie(self, axnr1, axnr2)
       else:
-         if slicepos != None and n > 2:
+         if slicepos is not None and n > 2:
             if issequence(slicepos):
                self.slicepos = slicepos
             else:
@@ -7433,15 +7435,19 @@ to know the properties of the FITS data beforehand.
          # You can reshape with the shape attribute or with NumPy's squeeze method. With
          # squeeze there is no way to find images axis which have also length 1 so we use
          # the reshape() method.
-         if self.dat != None:
+         if self.dat is not None:
+            axlen1 = int(self.axisinfo[axnr1].axlen)
+            axlen2 = int(self.axisinfo[axnr2].axlen)            
             if axperm[0] != wcsaxperm[0]:
-               self.boxdat = self.dat[sl].reshape((self.axisinfo[axnr1].axlen,self.axisinfo[axnr2].axlen))
+               #self.boxdat = self.dat[sl].reshape((self.axisinfo[axnr1].axlen,self.axisinfo[axnr2].axlen))
+               self.boxdat = self.dat[sl].reshape( (axlen1,axlen2) )
             else:
-               self.boxdat = self.dat[sl].reshape((self.axisinfo[axnr2].axlen,self.axisinfo[axnr1].axlen))
+               #self.boxdat = self.dat[sl].reshape((self.axisinfo[axnr2].axlen,self.axisinfo[axnr1].axlen))
+               self.boxdat = self.dat[sl].reshape( (axlen2,axlen1) )
       else:
          self.boxdat = self.dat
 
-      if self.boxdat != None:
+      if self.boxdat is not None:
          self.imshape = self.boxdat.shape
          if axperm[0] != wcsaxperm[0]:
             # The x-axis should be the y-axis vv.
@@ -7494,7 +7500,7 @@ to know the properties of the FITS data beforehand.
             matchingaxnum = self.proj.lonaxnum
             mix = True
       if mix:
-         if matchingaxnum != None:
+         if matchingaxnum is not None:
             self.mixpix = self.axisinfo[matchingaxnum].outsidepix
             ap = (axperm[0], axperm[1], matchingaxnum)
          else:
@@ -7505,12 +7511,12 @@ to know the properties of the FITS data beforehand.
       # method on the original projection object, which contains the spectral axis
       # The method does not work if the projection object is restricted to
       # two non spectral axes.
-      if self.spectrans != None:
+      if self.spectrans is not None:
          self.proj.spectra(self.spectrans)
       self.convproj = self.proj.sub(ap)  # Projection object for selected image only
       #if self.spectrans != None:
       #   self.convproj = self.convproj.spectra(self.spectrans)
-      if self.skyout != None:
+      if self.skyout is not None:
          self.convproj.skyout = self.skyout
       self.axperm = wcsaxperm        # We need only the numbers of the first two axes
       self.aspectratio = None        # Reset the aspect ratio because we could have another image now
@@ -7563,7 +7569,7 @@ to know the properties of the FITS data beforehand.
          self.spectrans = spectrans
       else:
          self.spectrans = promptfie(self)
-      if self.spectrans != None:
+      if self.spectrans is not None:
          self.convproj = self.convproj.spectra(self.spectrans)
       
          
@@ -7612,7 +7618,7 @@ to know the properties of the FITS data beforehand.
       else:
          self.skyout = promptfie(self)
 
-      if self.skyout != None:
+      if self.skyout is not None:
          self.convproj.skyout = self.skyout
 
 
@@ -7652,8 +7658,8 @@ to know the properties of the FITS data beforehand.
          >>> fitsobject.set_limits(promptfie=maputils.prompt_box)
       """
    #---------------------------------------------------------------------
-      n1 = self.axisinfo[self.axperm[0]].axlen
-      n2 = self.axisinfo[self.axperm[1]].axlen
+      n1 = int(self.axisinfo[self.axperm[0]].axlen)
+      n2 = int(self.axisinfo[self.axperm[1]].axlen)
       npxlim = [None,None]
       npylim = [None,None]
       if pxlim is None:
@@ -7672,7 +7678,7 @@ to know the properties of the FITS data beforehand.
          npylim[0] = int(nint(pylim[0]))
          npylim[1] = int(nint(pylim[1]))
 
-      if promptfie != None:
+      if promptfie is not None:
          axname1 = self.axisinfo[self.axperm[0]].axname
          axname2 = self.axisinfo[self.axperm[1]].axname
          npxlim, npylim = promptfie(self.pxlim, self.pylim, axname1, axname2)
@@ -7682,7 +7688,7 @@ to know the properties of the FITS data beforehand.
       if npylim[0] < 1:  npylim[0] = 1
       if npylim[1] > n2: npylim[1] = n2
       # Get the subset from the (already) 2-dim array
-      if self.boxdat != None:
+      if self.boxdat is not None:
          self.boxdat = self.boxdat[npylim[0]-1:npylim[1], npxlim[0]-1:npxlim[1]]       # map is a subset of the original (squeezed into 2d) image
          self.imshape = self.boxdat.shape
       self.pxlim = npxlim
@@ -7755,11 +7761,11 @@ to know the properties of the FITS data beforehand.
       
       """
    #---------------------------------------------------------------------
-      if xsize != None and not cm:
+      if xsize is not None and not cm:
          xsize *= 2.54
-      if ysize != None and not cm:
+      if ysize is not None and not cm:
          ysize *= 2.54
-      if xsize != None and ysize != None:
+      if xsize is not None and ysize is not None:
          return (xsize/2.54, ysize/2.54)
 
       a1 = self.axperm[0]; a2 = self.axperm[1];
@@ -7777,7 +7783,7 @@ to know the properties of the FITS data beforehand.
             xsize = 21.0        # A4 width
          else:
             ysize = 21.0
-      if xsize != None:                       # abs(nx*cdeltx) >= abs(ny*cdelty):
+      if xsize is not None:                       # abs(nx*cdeltx) >= abs(ny*cdelty):
          xcm = xsize
          # The extra space is to accommodate labels and titles
          ycm = xcm * (ny/nx) * aspectratio + extraspace
@@ -8037,7 +8043,7 @@ to know the properties of the FITS data beforehand.
       comment = "Appended by Kapteyn Package module Maputils %s" % datetime.now().strftime("%dd%mm%Yy%Hh%Mm%Ss")
       lonaxnum = self.proj.lonaxnum
       lataxnum = self.proj.lataxnum
-      spatial = (lonaxnum != None and lataxnum != None)
+      spatial = (lonaxnum is not None and lataxnum is not None)
       if spatial:
          cdeltlon = None
          cdeltlat = None
@@ -8680,7 +8686,7 @@ to know the properties of the FITS data beforehand.
                plimHI[i] = p1.naxis[axnr-1]
                #flushprint("Reproject_to pxlimLO/HI=%d %d"%(plimLO[i],plimHI[i]))
             # Make sure user given limits are list or tuple
-            if plimlo != None:
+            if plimlo is not None:
                if not issequence(plimlo):
                   plimlo = [plimlo]
                if len(plimlo) > naxisout:
@@ -8688,7 +8694,7 @@ to know the properties of the FITS data beforehand.
                for i, p in enumerate(plimlo):
                   plimLO[i] = p
                   #flushprint("reproject+to p lo=%d"%(d))
-            if plimhi != None:
+            if plimhi is not None:
                if not issequence(plimhi):
                   plimhi = [plimhi]
                if len(plimhi) > naxisout:
@@ -8751,7 +8757,7 @@ to know the properties of the FITS data beforehand.
                newheader[key2] = newheader["CDELT%d"%axnr]
 
       # Process the dictionary for the interpolation options
-      if interpol_dict != None:
+      if interpol_dict is not None:
          if not ('order' in interpol_dict):
             interpol_dict['order'] = 1
          if not ('cval' in interpol_dict):
@@ -9165,7 +9171,7 @@ to know the properties of the FITS data beforehand.
                   hdu.header[key] = (val, pythondict.comment[key])
             except:
                pass
-      if bitpix != None:
+      if bitpix is not None:
          # User wants to scale
          code = hdu.NumCode[bitpix]   # Undocumented PyFITS function
          if bzero is None and bscale is None:
@@ -9178,7 +9184,7 @@ to know the properties of the FITS data beforehand.
             if bscale is None:
                bscale = 1.0
             hdu.scale(code, bzero=bzero, bscale=bscale)
-         if blank != None:
+         if blank is not None:
             hdu.header['BLANK'] = self.blank
       else:
          # The output format is copied from the Numpy array
@@ -10039,7 +10045,7 @@ Usually one creates a movie container with class class:`Cubes`
            # a separate frame (i.e. mpl axes object)
            x = oldim.X_lastvisited
            y = oldim.Y_lastvisited
-           if not None in [x,y]:
+           if not (None in [x,y]):
               xd, yd = oldim.frame.transData.transform((x,y))           
            #flushprint("Toolbarinfo voor oldim %s DISCONnected"%(str(id(oldim))))
            """
@@ -10174,7 +10180,7 @@ Usually one creates a movie container with class class:`Cubes`
          
          #flushprint("Toolbarinfo voor newim %s CONnected"%(str(id(newim))))
          cb = newim.toolbarkey
-         if not None in [xd, yd]:
+         if not (None in [xd, yd]):
             cb.xdata, cb.ydata = newim.frame.transData.inverted().transform((xd,yd))
             # Trigger the toolbarinfo method to get the right image data value (z)
             # for this new image. Note that events from the panels come always from

@@ -681,22 +681,22 @@ Values should be between 0.0 and 1.0.
       if scale=='LOG':
          fac = float(ncolors-1)/math.log(ncolors)
          for i in xrange(ncolors):
-            worklut[i] = baselut[fac*math.log(i+1)]
+            worklut[i] = baselut[int(fac*math.log(i+1))]
 
       elif scale=='EXP':
          fac = float(ncolors-1)/math.pow(10.0, (ncolors-1)/100.0 -1.0)
          for i in xrange(ncolors):
-            worklut[i] = baselut[fac*math.pow(10.0, i/100.0-1.0)]
+            worklut[i] = baselut[int(fac*math.pow(10.0, i/100.0-1.0))]
 
       elif scale=='SQRT':
          fac = float(ncolors-1)/math.sqrt(ncolors)
          for i in xrange(ncolors):
-            worklut[i] = baselut[fac*math.sqrt(i)]
+            worklut[i] = baselut[int(fac*math.sqrt(i))]
             
       elif scale=='SQUARE':
          fac = float(ncolors-1)/(ncolors*ncolors)
          for i in xrange(ncolors):
-            worklut[i] = baselut[fac*i*i]
+            worklut[i] = baselut[int(fac*i*i)]
 
       elif scale=='LINEAR':
          worklut[:] = baselut[:]

@@ -9,6 +9,7 @@
 #          Version 0.3, October 17, 2008
 #          Version 1.0, June 17, 2009
 #          Version 1.1, December 05, 2012 (bug fixes only)
+#          Version 1.2, December 14, 2014; replaced == None etc.
 #
 # (C) University of Groningen
 # Kapteyn Astronomical Institute
@@ -260,7 +261,7 @@ def gethmsdms(a, prec, axtype, skysys, eqlon=None):
    sign = 1
    if not issequence(skysys): # Usually a number, sometimes a tuple
       skysys = [skysys]
-   if eqlon == None:
+   if eqlon is None:
       eqlon = (axtype == 'longitude') and (wcs.equatorial in skysys)
    if axtype == 'longitude':
       degs = numpy.fmod(a, 360.0)  # Now in range -360, 360
@@ -387,9 +388,9 @@ def makelabel(hmsdms, Hlab, Dlab, Mlab, Slab, prec, fmt, tex):
       
    Ihours, Ideg, Imin, Isec, Fsec, sign = hmsdms
    hms = False
-   if Ihours != None:
+   if Ihours is not None:
       hms = True
-   if not fmt is None:
+   if not (fmt is None):
       if fmt.find('%') == -1:   # Not a common format, must be a HMS/DMS format
          if fmt.find('H') != -1:
             Hlab = True
@@ -531,8 +532,8 @@ def createlabels(Tlist):
    for t in Tlist:
       # There are some conditions for plotting labels in hms/dms:
       stdout.flush()
-      if t.axtype in ['longitude', 'latitude'] and t.offset == False and t.fun == None and\
-         (t.fmt == None or t.fmt.find('%') == -1):
+      if t.axtype in ['longitude', 'latitude'] and t.offset == False and t.fun is None and\
+         (t.fmt is None or t.fmt.find('%') == -1):
 
          # Each tick label has its own fontsize. We take the first label's fontsize as
          # the value for which we tweak the characters 's' and 'm' in the TeX labels
@@ -540,7 +541,7 @@ def createlabels(Tlist):
             if tweakhms == 0:
                tweakhms = t.kwargs['fontsize']
             
-         if t.axtype == 'longitude' and t.fmt != None and 'D' in t.fmt.upper():
+         if t.axtype == 'longitude' and t.fmt is not None and 'D' in t.fmt.upper():
             # This is an equatorial longitude axis for which one wants
             # DMS formatting not HMS formatting. Useful for "all sky" plots
             eqlon = False
@@ -553,9 +554,9 @@ def createlabels(Tlist):
             first = False
          # Take care of the fact that the first label is not at the end
          # so possibly the direction of labeling can be switched.
-         if Labprev != None:
+         if Labprev is not None:
             direction = t.labval > Labprev
-            if direction != dirprev and dirprev != None:
+            if direction != dirprev and dirprev is not None:
                Hprev, Dprev, Mpriv, Sprev, Fsecprev, sign = hmsdms1
                Sprev += Fsecprev
             dirprev = direction
@@ -570,11 +571,11 @@ def createlabels(Tlist):
                texsexa = False
          lab = makelabel(hmsdms, H, D, M, S, t.prec, t.fmt, texsexa)
       else:
-         if t.fun == None:
+         if t.fun is None:
             val = t.labval
          else:
             val = t.fun(t.labval)
-         if t.fmt == None:
+         if t.fmt is None:
             lab = "%g" % val
          else:
             if t.tex and t.fmt.count("%") == 2:
@@ -771,7 +772,7 @@ class Gratline(object):
       else:  # A grid line without one of the coordinates being constant e.g. a border
          xw = addx
          yw = addy
-      if (mixgrid == None):  # Probably matching axis pair or two independent axes
+      if (mixgrid is None):  # Probably matching axis pair or two independent axes
          world = (xw, yw)
          if wcsaxis in [0,1]:
             pixel = gmap.topixel(world)
@@ -831,7 +832,7 @@ class Gratline(object):
          #   print xp, yp, box, constval
          if not numpy.isnan(xp) and not numpy.isnan(yp):  # NaN's can occur with divergent projections
             currentinside = __inbox(xp, yp, box)
-            if lastx != None  and (lastinside or currentinside):
+            if lastx is not None  and (lastinside or currentinside):
                # These jump conditions are somewhat arbitrary.
                # If the projection diverges then these steps sizes may be
                # not enough to have a full coverage.
@@ -862,7 +863,7 @@ class Gratline(object):
             if crossing2in or crossing2out:
                axisnr, xlab, ylab = __handlecrossing(box, lastx, lasty, xp, yp)
                if self.axtype != 'border':    # Border lines sometimes do not have a constant world coordinate
-                  if offsetlabel != None:
+                  if offsetlabel is not None:
                      labelvalue = offsetlabel
                      offs = True
                   else:
@@ -1061,14 +1062,14 @@ class Insidelabels(object):
       if not tex is None:
          if not tex:
             texsexa = False
-      if position != None:
+      if position is not None:
          if not issequence(position):
             posn = [position]
          else:
             posn = position
 
       for label in self.labels:
-         if position == None:
+         if position is None:
             if not fmt is None:
                label.fmt = fmt
             if not fun is None:
@@ -1913,7 +1914,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                 t.prec = self.prec[wcsaxis]
                 t.delta = self.delta[wcsaxis]
                 # Tex mode could have been changed by a set properties method
-                if t.tex == None:
+                if t.tex is None:
                    t.tex = tex
                 ticks[anr].append(t)
 
@@ -2073,7 +2074,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                  # graticule lines too close to the borders
       if not issequence(skysys):
          skysys = [skysys]
-      if delta == None:
+      if delta is None:
          if axtype in ['longitude', 'latitude']:
             # Nice numbers for dms should also be nice numbers for hms 
             sec = numpy.array([30, 20, 15, 10, 5, 2, 1])
@@ -2096,7 +2097,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                   # nc = nicenumber
                   break           # Stop if we have a candidate
 
-         if step == None:
+         if step is None:
             d = x2 - x1
             f = int(numpy.log10(d))
             if d < 1.0:
@@ -2143,7 +2144,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       else:
          prec = 0
       startx = None
-      if start != None:
+      if start is not None:
          startx = start
       elif x1orig+dedge < 0.0 < x2orig-dedge:
          startx = 0.0
@@ -2203,7 +2204,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # Always include the edges of the frame
       xr[0] = xlo; xr[1] = xhi; xr[2] = xlo; xr[3] = xhi;
       yr[0] = ylo; yr[1] = ylo; yr[2] = yhi; yr[3] = yhi;
-      if self.mixpix == None:
+      if self.mixpix is None:
          pixels = (xr, yr)
       else:
          zr = numpy.zeros(nrandomsamples+4) + self.mixpix
@@ -2253,8 +2254,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       -----------------------------------------------------------
       """
       self.ptype = 'Graticule'
-      if graticuledata != None:
-         if header == None:
+      if graticuledata is not None:
+         if header is None:
             header = graticuledata.hdr
          axnum  = graticuledata.axperm
          pxlim  = graticuledata.pxlim
@@ -2262,9 +2263,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          mixpix = graticuledata.mixpix
          wcstypes = graticuledata.wcstypes
          # Allow these to be overwritten
-         if spectrans == None:
+         if spectrans is None:
             spectrans = graticuledata.spectrans
-         if skyout == None:
+         if skyout is None:
             skyout = graticuledata.skyout
          if alter =='':
             alter = graticuledata.alter
@@ -2278,7 +2279,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          raise Exception, "Need a list with wcs types for these axes"
       self.wcstypes = wcstypes
       # Try to get two axis numbers if none are given
-      if axnum == None:
+      if axnum is None:
          naxis = header['NAXIS']
          if naxis < 2:
             raise Exception, "Need data with at least two axes"
@@ -2297,7 +2298,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # Get the axes limits in pixels. The default is copied from
       # the values of NAXISn in the header. Note that there are no alternative
       # keywords for NAXIS.
-      if pxlim == None:
+      if pxlim is None:
          self.pxlim = (1, header['NAXIS' +str(self.xaxnum)])
       else:
          if not issequence(pxlim):
@@ -2306,7 +2307,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             raise Exception,"pxlim must have two elements"
          else: 
             self.pxlim = pxlim
-      if pylim == None:
+      if pylim is None:
          self.pylim = (1, header['NAXIS' +str(self.yaxnum)])
       else:
          if not issequence(pylim):
@@ -2354,7 +2355,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             mixpix = proj.source['CRPIX'+str(self.matchingaxnum)+proj.alter]
          if mixpix is None:
             raise Exception, "Could not find a grid for the missing spatial axis"
-         ok = proj.lonaxnum != None and proj.lataxnum != None 
+         ok = proj.lonaxnum is not None and proj.lataxnum is not None 
          if not ok:
             raise Exception, "Could not find a matching spatial axis pair"
          gmap = proj.sub([self.xaxnum, self.yaxnum, self.matchingaxnum])
@@ -2392,27 +2393,27 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # Now we have a projection object available and we want the limits of the axes in 
       # world coordinates. If nothing is specified for the constructor, we have
       # to calculate estimates of these ranges.
-      if wxlim != None:
+      if wxlim is not None:
          if not issequence(wxlim):
             raise Exception, "wxlim needs to be of type tuple or list"
          elif len(wxlim) != 2:
             raise Exception, "wxlim must have two elements"
          else: 
             self.wxlim = wxlim
-      if wylim != None:
+      if wylim is not None:
          if not issequence(wylim):
             raise Exception, "wylim needs to be of type tuple or list"
          elif len(wylim) != 2:
             raise Exception, "wylim must have two elements"
          else: 
             self.wylim = wylim
-      if wxlim == None or wylim == None:
+      if wxlim is None or wylim is None:
          if boxsamples < 2:
             raise Exception, "boxsamples < 2: Need at least two samples to find limits"
          minmax = self.__estimateLonLatRanges(boxsamples)
-         if wxlim == None:
+         if wxlim is None:
             self.wxlim = (minmax[0], minmax[1])
-         if wylim == None:
+         if wylim is None:
             self.wylim = (minmax[2], minmax[3])
 
       # At this point we need to know for which constant positions we need to find a graticule
@@ -2460,7 +2461,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          parts = deltax.split()
          if len(parts) > 1:
             uf, errmes = unitfactor(parts[1], axisunits)
-            if uf == None:
+            if uf is None:
                raise ValueError(errmes)
          else:
             uf =  1.0
@@ -2472,7 +2473,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          parts = deltay.split()
          if len(parts) > 1:
             uf, errmes = unitfactor(parts[1], axisunits)
-            if uf == None:
+            if uf is None:
                raise ValueError(errmes)
          else:
             uf =  1.0
@@ -2507,7 +2508,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             self.delta[0] = startx[1] - startx[0]  # Assume this delta also for not equidistant values in startx
       else:
          # startx is a scalar or None
-         if startx == None and self.offsetx:
+         if startx is None and self.offsetx:
             startx = (self.wxlim[1] + self.wxlim[0]) / 2.0
          self.xstarts, self.offsetvaluesx, self.prec[0], self.delta[0] = self.__nicenumbers(self.wxlim[0],self.wxlim[1],
                                                         start=startx, 
@@ -2540,7 +2541,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             self.delta[1] = starty[1] - starty[0]  # Assume this delta also for not equidistant values in startx
       else:
          # starty is a scalar
-         if starty == None and self.offsety:
+         if starty is None and self.offsety:
             starty = (self.wylim[1] + self.wylim[0]) / 2.0
          self.ystarts, self.offsetvaluesy, self.prec[1], self.delta[1] = self.__nicenumbers(self.wylim[0],self.wylim[1], 
                                                         start=starty, 
@@ -2564,9 +2565,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
       for aa in [0,1]:
          units = self.gmap.units[aa]
-         if aa == 0 and unitsx != None:
+         if aa == 0 and unitsx is not None:
             units = unitsx
-         if aa == 1 and unitsy != None:
+         if aa == 1 and unitsy is not None:
             units = unitsy
          if (aa == 0 and self.offsetx) or (aa == 1 and self.offsety):
             annot[aa] = "Offset " 
@@ -2614,7 +2615,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if not unitsx is None:
             units = unitsx
             uf, errmes = unitfactor(axisunits, units)
-            if uf == None:
+            if uf is None:
                raise ValueError(errmes)
             fie = lambda x: x*uf
             fmt = "%g"
@@ -2667,7 +2668,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if not unitsy is None:
             units = unitsy
             uf, errmes = unitfactor(axisunits, units)
-            if uf == None:
+            if uf is None:
                raise ValueError(errmes)
             fie = lambda x: x*uf
             fmt = "%g"
@@ -2914,11 +2915,11 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       for anr in [left, right]:
          xpos = graticule.axes[anr].xpos
          ypos = graticule.axes[anr].ypos
-         if xpos != None or ypos != None:
-            if xpos == None and ypos != None:
+         if xpos is not None or ypos is not None:
+            if xpos is None and ypos is not None:
                graticule.axes[anr].kwargs.update({'y':ypos})
             else:
-               if ypos == None: ypos = 0.5
+               if ypos is None: ypos = 0.5
                # xpos is not None then use method
                if anr == left:
                   fr = frame
@@ -2929,11 +2930,11 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       for anr in [bottom, top]:
          xpos = graticule.axes[anr].xpos
          ypos = graticule.axes[anr].ypos
-         if xpos != None or ypos != None:
-            if ypos == None and xpos != None:
+         if xpos is not None or ypos is not None:
+            if ypos is None and xpos is not None:
                graticule.axes[anr].kwargs.update({'x':xpos})
             else:
-               if xpos == None: xpos = 0.5
+               if xpos is None: xpos = 0.5
                # ypos is not None then use method set_label_coords
                # because setting y as attribute has no effect.
                if anr == bottom:
@@ -3052,9 +3053,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       """
       #-----------------------------------------------------------------
       xp = []; yp = []
-      if deltax == None:
+      if deltax is None:
          deltax = (self.pxlim[1] - self.pxlim[0])/ 10.0
-      if deltay == None:
+      if deltay is None:
          deltay = (self.pylim[1] - self.pylim[0])/ 10.0
       d = (float(self.pxlim[1] - self.pxlim[0]), float(self.pylim[1] - self.pylim[0])) 
       delta = (deltax, deltay)
@@ -3062,7 +3063,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       limhi = (self.pxlim[1], self.pylim[1])
       start = (xstart, ystart) 
       for i in [0,1]:
-         if tol == None:
+         if tol is None:
             tol = delta[i] / 1000.0
          nx1 = (start[i] - limlo[i])/d[i]
          nx2 = 1.0 - nx1
@@ -3076,7 +3077,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             if xb == start[i]:
                y0 = Y0[i]
             yb = self.__bisect(i, xb, y0-delta[i]/2.0, y0+delta[i]/2.0, self.gmap, tol)
-            if yb != None:
+            if yb is not None:
                if i == 0:
                   xp.append(xb)
                   yp.append(yb)
@@ -3205,18 +3206,18 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       cdelty = self.gmap.cdelt[1]
       nx = float(self.pxlim[1] - self.pxlim[0] + 1)
       ny = float(self.pylim[1] - self.pylim[0] + 1)
-      if xcm == None and ycm == None:
+      if xcm is None and ycm is None:
          xcm = 20.0
       aspectratio = abs(cdelty/cdeltx)
       if aspectratio > 10.0 or aspectratio < 0.1:
          aspectratio = nx/ny
-         if xcm == None:
+         if xcm is None:
             xcm = ycm
          else:
             ycm = xcm
-      if ycm == None:
+      if ycm is None:
          ycm = xcm * (ny/nx) * aspectratio
-      if xcm == None:
+      if xcm is None:
          xcm = ycm * (nx/ny) / aspectratio
       fh = 0.7; fw = 0.7
       self.axesrect = (0.15, 0.15, fw, fh)
@@ -3367,18 +3368,18 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          Or use the lambda operator as in: ``fun=lambda x: x/1000``
       """
       #-----------------------------------------------------------------
-      if wcsaxis == None and plotaxis == None and position == None:
+      if wcsaxis is None and plotaxis is None and position is None:
          ## Nothing to do
          #return
          wcsaxis = [0,1]
-      if wcsaxis != None:
+      if wcsaxis is not None:
          if not issequence(wcsaxis):
             wcsa = [wcsaxis]
          else:
             wcsa = wcsaxis
-      if plotaxis != None:
+      if plotaxis is not None:
          plta = parseplotaxes(plotaxis)
-      if position != None:
+      if position is not None:
          if not issequence(position):
             posn = [position]
          else:
@@ -3386,13 +3387,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
       for gridline in self.graticule:
         skip = False
-        if (wcsaxis != None):
+        if (wcsaxis is not None):
            skip = not (gridline.wcsaxis in wcsa)
         if not skip:
-           if position == None:
+           if position is None:
               for t in gridline.ticks:
                  skip = False
-                 if plotaxis != None:
+                 if plotaxis is not None:
                     skip = not (t.axisnr in plta)
                  if not skip:
                     t.kwargs.update(kwargs)
@@ -3400,9 +3401,9 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                     # The attributes fmt and fun to format tick labels could have
                     # been initialized when the object was created. If values are
                     # given then they override the defaults.
-                    if fmt != None: t.fmt = fmt
-                    if fun != None: t.fun = fun
-                    if tex != None: t.tex = tex
+                    if fmt is not None: t.fmt = fmt
+                    if fun is not None: t.fun = fun
+                    if tex is not None: t.tex = tex
                     if not texsexa is None: t.texsexa = texsexa
                     # There are defaults for the precision in seconds for each axis
                     # If the user sets a format with precision in seconds (e.g. HMS.SS)
@@ -3426,27 +3427,27 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                  d0 = None
                  for i, t in enumerate(gridline.ticks):
                     skip = False
-                    if plotaxis != None:
+                    if plotaxis is not None:
                        skip = not (t.axisnr in plta)
                     if not skip:
                        d = abs(t.labval - pos)
                        if d <= tol:
-                          if d0 == None:
+                          if d0 is None:
                              d0 = d
                              indx = i
                           elif d < d0:
                              d0 = d
                              indx = i
-                 if d0 != None:
+                 if d0 is not None:
                     gridline.ticks[indx].kwargs.update(kwargs)
                     gridline.ticks[indx].markkwargs.update(markerdict)
-                    if len(markerdict) == 0 or fmt != None:
+                    if len(markerdict) == 0 or fmt is not None:
                         gridline.ticks[indx].fmt = fmt
-                    if len(markerdict) == 0 or fun != None:
+                    if len(markerdict) == 0 or fun is not None:
                         gridline.ticks[indx].fun = fun
-                    if tex != None:
+                    if tex is not None:
                         gridline.ticks[indx].tex = tex
-                    if texsexa != None:
+                    if texsexa is not None:
                         gridline.ticks[indx].texsexa = texsexa
 
 
@@ -3608,13 +3609,13 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       """
       #-----------------------------------------------------------------
       # Upgrade 'wcsaxis' to a sequence
-      if wcsaxis == None:
+      if wcsaxis is None:
          wcsaxislist = [0,1]
       elif not issequence(wcsaxis):
          wcsaxislist = [wcsaxis]
       else:
          wcsaxislist = wcsaxis
-      if position == None:
+      if position is None:
          for gridline in self.graticule:
             if gridline.wcsaxis in wcsaxislist:
                gridline.kwargs.update(kwargs)
@@ -3639,14 +3640,14 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                if gridline.wcsaxis in wcsaxislist:
                   d = abs(gridline.constval - constval)
                   if d <= tol:
-                     if d0 == None:
+                     if d0 is None:
                         d0 = d
                         indx = i
                      else:
                         if d < d0:
                            d0 = d
                            indx = i
-            if d0 != None:     # i.e. we found a closest position
+            if d0 is not None:     # i.e. we found a closest position
                self.graticule[indx].kwargs.update(kwargs)
 
 
@@ -3797,14 +3798,14 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          #self.axes[ax].kwargs.update({'visible':True})
          if len(kwargs):
             self.axes[ax].kwargs.update(kwargs)
-         if mode != None:
+         if mode is not None:
             mode = parsetickmode(mode)
             self.axes[ax].mode = mode
-         if label != None:
+         if label is not None:
             self.axes[ax].label = label
-         if xpos != None:
+         if xpos is not None:
             self.axes[ax].xpos = xpos
-         if ypos != None:
+         if ypos is not None:
             self.axes[ax].ypos = ypos
 
 
@@ -3849,7 +3850,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       :type  `**kwargs`: Matplotlib keyword argument(s)
       """
       #-----------------------------------------------------------------
-      if plotaxis == None:
+      if plotaxis is None:
          plotaxis = [0,1,2,3]
       self.setp_plotaxis(plotaxis, mode=None, label=label, xpos=xpos, ypos=ypos, **kwargs)
 
@@ -3894,7 +3895,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       
       """
       #-----------------------------------------------------------------
-      if plotaxis == None:
+      if plotaxis is None:
          plotaxis = [0,1,2,3]
       self.setp_plotaxis(plotaxis, mode=mode)
 
@@ -3998,7 +3999,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                                                 color='r')
       """
       #-----------------------------------------------------------------
-      if world == None:
+      if world is None:
          if wcsaxis == 0:
             world = self.xstarts
          if wcsaxis == 1:
@@ -4006,7 +4007,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       if not issequence(world):
          world = [world,]
 
-      if constval == None:
+      if constval is None:
          if wcsaxis == 0:
             constval = self.ystarts[0]
          else:            
@@ -4033,7 +4034,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             for xw in world:
                #if xw < 0.0:
                #   xw += 180.0
-               if self.mixpix == None:     # Could be projection with matching axis
+               if self.mixpix is None:     # Could be projection with matching axis
                   wt = (xw, constval)
                   xp, yp = self.gmap.topixel(wt)
                else:
@@ -4047,8 +4048,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                if not numpy.isnan(xp):
                   #if wxlim0 <= xw < wxlim1 and self.pxlim[0] < xp < self.pxlim[1]:
                   if self.pxlim[0]-0.5 < xp < self.pxlim[1]+0.5 and self.pylim[0]-0.5 < yp < self.pylim[1]+0.5:
-                     if angle == None:
-                        if self.mixpix == None:
+                     if angle is None:
+                        if self.mixpix is None:
                            d = (self.wylim[1] - self.wylim[0])/200.0 
                            xp1, yp1 = self.gmap.topixel((xw, constval-d))
                            xp2, yp2 = self.gmap.topixel((xw, constval+d))
@@ -4084,7 +4085,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             defkwargs = {'ha':'center', 'va':'center', 'fontsize':10}
             for yw in world:
                phi = 0.0
-               if self.mixpix == None:
+               if self.mixpix is None:
                   wt = (constval, yw)
                   xp, yp = self.gmap.topixel(wt)
                else:
@@ -4098,8 +4099,8 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                if not numpy.isnan(xp):
                   if self.wylim[0] <= yw < self.wylim[1] and self.pylim[0] < yp < self.pylim[1] and self.pxlim[0] < xp < self.pxlim[1]:
                      # Delta's make minus sign more visible on graticule lines
-                     if angle == None:
-                        if self.mixpix == None:
+                     if angle is None:
+                        if self.mixpix is None:
                            d = (self.wxlim[1] - self.wxlim[0])/200.0 
                            xp1, yp1 = self.gmap.topixel((constval-d, yw))
                            xp2, yp2 = self.gmap.topixel((constval+d, yw))
