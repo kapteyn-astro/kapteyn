@@ -7437,7 +7437,7 @@ to know the properties of the FITS data beforehand.
          # the reshape() method.
          if self.dat is not None:
             axlen1 = int(self.axisinfo[axnr1].axlen)
-            axlen2 = int(self.axisinfo[axnr2].axlen)            
+            axlen2 = int(self.axisinfo[axnr2].axlen)   
             if axperm[0] != wcsaxperm[0]:
                #self.boxdat = self.dat[sl].reshape((self.axisinfo[axnr1].axlen,self.axisinfo[axnr2].axlen))
                self.boxdat = self.dat[sl].reshape( (axlen1,axlen2) )
@@ -10712,10 +10712,10 @@ class Cubeatts(object):
       #-------------------------------------------------------------------------
       self.panelXframes = framelist   # Should be filtered and corrected for cube offset in movie frames
       if self.panelXframes:
-         lx = self.pxlim[1] - self.pxlim[0] + 1# Length of x axis of movie image
-         ly = len(self.panelXframes) # Length of new axis is equal to the number
+         lx = int(self.pxlim[1] - self.pxlim[0] + 1)  # Length of x axis of movie image
+         ly = int(len(self.panelXframes))             # Length of new axis is equal to the number
                                                       # of selected movie frames
-         self.Mx = numpy.zeros((ly,lx))             # Image for horizontal panel
+         self.Mx = numpy.zeros((ly,lx))               # Image for horizontal panel
 
 
 
@@ -10730,8 +10730,8 @@ class Cubeatts(object):
       #-------------------------------------------------------------------------
       self.panelYframes = framelist
       if self.panelYframes:
-         ly = self.pylim[1] - self.pylim[0] + 1
-         lx = len(self.panelYframes)
+         ly = int(self.pylim[1] - self.pylim[0] + 1)
+         lx = int(len(self.panelYframes))
          self.My = numpy.zeros((ly,lx))               # Image for vertical panel
 
 
@@ -12336,7 +12336,7 @@ which can store images from different data cubes.
                N = I.origdata
             else:
                N = I.data
-            M[ly-j-1] = N[yi-pylim[0]]
+            M[ly-j-1] = N[int(yi-pylim[0])]
             j += 1
 
          mixpix = pylim[0]
@@ -12433,7 +12433,7 @@ which can store images from different data cubes.
                N = I.origdata
             else:
                N = I.data
-            M[:,j] = N[:,xi-pxlim[0]]   # self.movieimages.annimagelist[offset+indx].data[:,xi-pxlim[0]]
+            M[:,j] = N[:,int(xi-pxlim[0])]   # self.movieimages.annimagelist[offset+indx].data[:,xi-pxlim[0]]
             j += 1
 
          fo = cube.fitsobj
@@ -14130,7 +14130,7 @@ which can store images from different data cubes.
                N = I.origdata
             else:
                N = I.data
-            M[ly-j-1] = N[yi-pylim[0]]
+            M[ly-j-1] = N[int(yi-pylim[0])]
             j += 1
 
          mplimp1.image.im.set_data(M)
@@ -14180,7 +14180,7 @@ which can store images from different data cubes.
                N = I.origdata
             else:
                N = I.data
-            M[:,j] = N[:,xi-pxlim[0]]   # self.movieimages.annimagelist[offset+indx].data[:,xi-pxlim[0]]
+            M[:,j] = N[:,int(xi-pxlim[0])]   # self.movieimages.annimagelist[offset+indx].data[:,xi-pxlim[0]]
             j += 1
 
          mplimp2.image.im.set_data(M)
