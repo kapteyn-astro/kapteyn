@@ -11562,14 +11562,24 @@ which can store images from different data cubes.
           Frames can be defined with either Matplotlib's figure.add_subplot() or
           figure.add_axes(). Note that any frame is always resized to fit
           the canvas (with some room for a color bar and using the aspect
-          ratio of the pixels in the current image). To prevent that Matplotlib
-          thinks that two frames are the same, you need to give each frame a unique
-          label::
-          
-            frame1 = fig.add_subplot(1,1,1, label='label1', frameon=False)
-            cube = myCubes.append(frame1, ....)
-            frame2 = fig.add_subplot(1,1,1, label='label2', frameon=False)
-            cube = myCubes.append(frame2, ....)
+          ratio of the pixels in the current image).
+
+          .. only:: latex
+
+             To prevent that Matplotlib
+             thinks that two frames are the same, you need to give each frame a unique
+             label.  
+    
+          .. only:: html
+
+             To prevent that Matplotlib
+             thinks that two frames are the same, you need to give each frame a unique
+             label::
+
+               frame1 = fig.add_subplot(1,1,1, label='label1', frameon=False)
+               cube = myCubes.append(frame1, ....)
+               frame2 = fig.add_subplot(1,1,1, label='label2', frameon=False)
+               cube = myCubes.append(frame2, ....)
              
       :type frame:
          Matplotlib Axes object.
@@ -11583,18 +11593,21 @@ which can store images from different data cubes.
          So, for instance, you can swap R.A. and Dec. axes, or you can make slices
          with one spatial and a spectral axis. For a cube with CTYPE's (RA,DEC,FREQ)
          you should enter then ``axnums=(1,3)`` or ``axnums=(3,2)`` etc.
-         If we want RA, FREQ images for all DEC slices, we should write:: 
+
+         .. only:: html
+
+            If we want RA, FREQ images for all DEC slices, we should write:: 
          
-            fitsobject = maputils.FITSimage('ngc6946.fits')
+               fitsobject = maputils.FITSimage('ngc6946.fits')
                
-            n1, n2, n3 = [fitsobject.axisinfo[i].axlen for i in (1,2,3)]
-            print "Range axis 1:", 1, n1
-            print "Range axis 2:", 1, n2
-            print "Range axis 3:", 1, n3
+               n1, n2, n3 = [fitsobject.axisinfo[i].axlen for i in (1,2,3)]
+               print "Range axis 1:", 1, n1
+               print "Range axis 2:", 1, n2
+               print "Range axis 3:", 1, n3
          
-            # Note that slice positions follow FITS standard, i.e. first pixel is 1
-            slicepos = range(1, n2+1)  # all DEC slices
-            cube = myCubes.append(frame1, fitsobject, axnums=(1,3), slicepos=slicepos)                                  
+               # Note that slice positions follow FITS standard, i.e. first pixel is 1
+               slicepos = range(1, n2+1)  # all DEC slices
+               cube = myCubes.append(frame1, fitsobject, axnums=(1,3), slicepos=slicepos)                                  
          
       :type axnums:
          Tuple or list with integers
@@ -11611,41 +11624,57 @@ which can store images from different data cubes.
          of CRPIX of the corresponding axis is used, unless the this value is
          negative or greater than the axis length. In that case it is set to 1.
          Note that ``slicepos=None`` always defines only one image!.
-         Slice positions can be given in any order::
+
+         .. only:: latex
+
+            Slice positions can be given in any order.
+            (See example in HTML-version of this documentation)
+
+         .. only:: html
+
+            Slice positions can be given in any order::
          
-            fitsobject = maputils.FITSimage('ngc6946.fits')
-            naxis3 = fitsobject.hdr['NAXIS3']
-            slicepos = range(naxis3, 0, -1)
-            cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=slicepos)
+
+               fitsobject = maputils.FITSimage('ngc6946.fits')
+               naxis3 = fitsobject.hdr['NAXIS3']
+               slicepos = range(naxis3, 0, -1)
+               cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=slicepos)
            
          Assume you have two repeat axes. One has CTYPE *VELO* and the other has CTYPE *STOKES*.
          Then we need to define a list ``slicepos`` with elements that are tuples with two integers.
          The first for the VELO axis and the second for the STOKES axis, e.g.:
          ``slicepos=[(1,1), (1,2), (1,3), ... ]``
          
-         In the lines below, we load images from a set with axes (RA, DEC, VELO, STOKES).
-         We want RA, DEC as image axes (``axnums=(1,2)``) and VELO and STOKES as the repeat axes.
-         
-         Assume we want a movie loop where we want to loop over all STOKES slices for each 
-         slice on the VELO axis. One can define the slice positions as follows::
-         
-            fitsobject3 = maputils.FITSimage('aurora.fits')
-            n3 = fitsobject3.axisinfo[3].axlen
-            n4 = fitsobject3.axisinfo[4].axlen
+         .. only:: latex
 
-            a = range(1,n3+1)
-            b = range(1,n4+1)
-            A = [x for x in a for i in range(n4)]
-            B = b*n3
-            slicepos = zip(A, B)
+            (See example in HTML-version of this documentation)
+
+         .. only:: html
+
+            In the lines below, we load images from a set with axes (RA, DEC, VELO, STOKES).
+            We want RA, DEC as image axes (``axnums=(1,2)``) and VELO and STOKES as the repeat axes.
+         
+            Assume we want a movie loop where we want to loop over all STOKES slices for each 
+            slice on the VELO axis. 
+            One can define the slice positions as follows::
+         
+               fitsobject3 = maputils.FITSimage('aurora.fits')
+               n3 = fitsobject3.axisinfo[3].axlen
+               n4 = fitsobject3.axisinfo[4].axlen
+
+               a = range(1,n3+1)
+               b = range(1,n4+1)
+               A = [x for x in a for i in range(n4)]
+               B = b*n3
+               slicepos = zip(A, B)
  
-            cube = myCubes.append(frame3, fitsobject3, axnums=(1,2), slicepos=slicepos)
+               cube = myCubes.append(frame3, fitsobject3, axnums=(1,2), slicepos=slicepos)
          
-         If we want to see all the VELO slices per STOKES slice, then use::
+            If we want to see all the VELO slices per STOKES slice, then use::
 
-            A = a*n4
-            B = [x for x in b for i in range(n3)]
-            slicepos = zip(A, B)
+               A = a*n4
+               B = [x for x in b for i in range(n3)]
+               slicepos = zip(A, B)
 
       :type slicepos:
          None or a list, tuple or NumPy array with integers
@@ -11657,19 +11686,26 @@ which can store images from different data cubes.
       :param pylim:
          Two values which set the range on the Y axis. The numbers follow the FITS 
          standard, i.e. the first pixel is 1 and the last pixel is given by header item NAXISn.
-         Example::
-         
-            fitsobject = maputils.FITSimage('ngc6946.fits')
-                                 
-            n1, n2, n3 = [fitsobject.axisinfo[i].axlen for i in (1,2,3)]
-            print "Range axis 1:", 1, n1
-            print "Range axis 2:", 1, n2
-            print "Range axis 3:", 1, n3
-            pxlim = (5, n1-5)
-            pylim = (5, n2-5)
 
-            cube = myCubes.append(frame1, fitsobject, axnum(1,2), slicepos=range(1, n3+1),
-                                  pxlim=pxlim, pylim=pylim)
+         .. only:: latex
+
+            (See example in HTML-version of this documentation)
+
+         .. only:: html
+
+            Example::
+         
+               fitsobject = maputils.FITSimage('ngc6946.fits')
+                                 
+               n1, n2, n3 = [fitsobject.axisinfo[i].axlen for i in (1,2,3)]
+               print "Range axis 1:", 1, n1
+               print "Range axis 2:", 1, n2
+               print "Range axis 3:", 1, n3
+               pxlim = (5, n1-5)
+               pylim = (5, n2-5)
+
+               cube = myCubes.append(frame1, fitsobject, axnum(1,2), slicepos=range(1, n3+1),
+                                     pxlim=pxlim, pylim=pylim)
 
          
          
@@ -11697,15 +11733,22 @@ which can store images from different data cubes.
          can be seen (e.g. for data with one pixel which has a much higher value
          than all the others).
          In this case, one can press key ``h`` to get histogram equalization.
-         Example::
+
+         .. only:: latex
+
+            (See example in HTML-version of this documentation)
+
+         .. only:: html
+
+            Example::
          
-            fitsobject = maputils.FITSimage('ngc6946.fits')
+               fitsobject = maputils.FITSimage('ngc6946.fits')
             
-            vmin, vmax = fitsobject.get_dataminmax()
-            n3 = fitsobject.axisinfo[3].axlen 
-            slicepos = range(1, n3+1)
-            cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=slicepos,
-                                  vmin=1.1*vmin, vmax=0.9*vmax)
+               vmin, vmax = fitsobject.get_dataminmax()
+               n3 = fitsobject.axisinfo[3].axlen 
+               slicepos = range(1, n3+1)
+               cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=slicepos,
+                                     vmin=1.1*vmin, vmax=0.9*vmax)
 
          
       :type vmax:
@@ -11750,20 +11793,27 @@ which can store images from different data cubes.
            Then calculate ``vmin=mean-clipmn[0]*std`` and ``vmax=mean+clipmn[1]*std``
            and use these values unless a preset value for either *vmin* or
            *vmax* was found. For *clipmn*, see next parameter.
-           The next example illustrates this clip mode::
+
+           .. only:: latex
+
+              (See example in HTML-version of this documentation)
+
+           .. only:: html
+
+              The next example illustrates this clip mode::
            
-               fig = figure(figsize=(10,10))
-               myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False,
-                                             helptext=False, imageinfo=True)
+                  fig = figure(figsize=(10,10))
+                  myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False,
+                                                helptext=False, imageinfo=True)
 
-               # Create a maputils FITS object from a FITS file on disk
-               fitsobject = maputils.FITSimage('m101.fits')
+                  # Create a maputils FITS object from a FITS file on disk
+                  fitsobject = maputils.FITSimage('m101.fits')
 
-               frame1 = fig.add_subplot(1,1,1, label='label1', frameon=False)
+                  frame1 = fig.add_subplot(1,1,1, label='label1', frameon=False)
 
-               cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=None,
-                                    clipmode=2, clipmn=(4,4), hascolbar=False)
-               show()
+                  cube = myCubes.append(frame1, fitsobject, axnums=(1,2), slicepos=None,
+                                       clipmode=2, clipmn=(4,4), hascolbar=False)
+                  show()
            
       :type clipmode:
          Integer
@@ -11800,11 +11850,20 @@ which can store images from different data cubes.
 
                *  'blankcol'  -- Must be handled by a function with one parameter. It returns the
                   index value of the new color that represents blank pixels in the image.
-                  The index can be used to retrieve the Matplotlib short and long name of the color
-                  as in::
                   
-                     print maputils.Annotatedimage.blankcols[bcol]
-                     print maputils.Annotatedimage.blanknames[bcol]
+                  .. only:: latex
+
+                     The index can be used to retrieve the Matplotlib short
+                     and long name of the color.
+                     (Example in the HTML-version of this documentation)
+
+                  .. only:: html
+
+                     The index can be used to retrieve the Matplotlib short and long name of the color
+                     as in::
+                  
+                        print maputils.Annotatedimage.blankcols[bcol]
+                        print maputils.Annotatedimage.blanknames[bcol]
                
                *  'blurfac' -- User pressed *x* on the keyboard to change the smoothing factor
                   The callback function must have at least one parameter. The first
