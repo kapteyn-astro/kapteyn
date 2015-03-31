@@ -1,4 +1,4 @@
-Copyright (c) 2010-2013, Kapteyn Astronomical Institute, University
+Copyright (c) 2010-2015, Kapteyn Astronomical Institute, University
 of Groningen. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
