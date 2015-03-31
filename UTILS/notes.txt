@@ -45,10 +45,15 @@ hierboven (KAPTEYN) worden gedraaid, dus als "UTILS/make..."
 - clone.csh
 
   maakt een verse kopie van de ontwikkelboom, inclusief wcslib.
+  (in de boom staat de uitgepakte wcslib distributie onder
+  ../DISTRIBUTION, maar maakt geen deel uit van de Mercurial
+  repository)
   Argumenten:
   1. de directory waar de kopie wordt geplaatst (verplicht).
   2. 'build': bouw het package in de subdirectory 'PACKAGE' (optioneel).
   N.B. dit script mag vanuit een willekeurige directory worden gedraaid.
+
+  alternatief: maak repository clone met hg en kopieer wcslib 'met de hand')
 
 - wininst.bat (onder ../DISTRIBUTION)
 
