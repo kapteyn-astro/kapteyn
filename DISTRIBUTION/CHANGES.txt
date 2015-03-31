@@ -22,7 +22,7 @@ Version 2.3 (Mar 31, 2015)
 
   * in class AxesCallback use weak references to Axes objects.
 
-* Bug fixes.
+* Bug fixes; dependency on obsolete matplotlib.nxutils eliminated.
 
 Version 2.2 (Apr 19, 2012)
 ==========================
