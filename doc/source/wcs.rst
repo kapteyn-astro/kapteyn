@@ -1,1 +1,1 @@
-.. automodule:: wcs
+.. automodule:: kapteyn.wcs

@@ -1,1 +1,1 @@
-.. automodule:: rulers
+.. automodule:: kapteyn.rulers

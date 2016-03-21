@@ -49,7 +49,7 @@ Functions
 """
 
 import numpy, string, operator
-from ascarray import ascarray
+from kapteyn.ascarray import ascarray
 
 class tabarray(numpy.ndarray):
 

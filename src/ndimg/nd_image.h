@@ -33,6 +33,7 @@
 #define ND_IMAGE_H
 
 #include "Python.h"
+#include "capsulethunk.h"
 
 #ifndef ND_IMPORT_ARRAY
 #define NO_IMPORT_ARRAY

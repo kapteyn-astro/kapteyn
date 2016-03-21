@@ -30,9 +30,9 @@
 
 import math
 import numpy
-import _ni_support
-import _nd_image
-import doccer
+from . import _ni_support
+from kapteyn import _nd_image
+from kapteyn import doccer
 
 _input_doc = \
 """input : array-like
@@ -113,17 +113,17 @@ def correlate1d(input, weights, axis = -1, output = None, mode = "reflect",
     """
     input = numpy.asarray(input)
     if numpy.iscomplexobj(input):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     output, return_value = _ni_support._get_output(output, input)
     weights = numpy.asarray(weights, dtype=numpy.float64)
     if weights.ndim != 1 or weights.shape[0] < 1:
-        raise RuntimeError, 'no filter weights given'
+        raise RuntimeError('no filter weights given')
     if not weights.flags.contiguous:
         weights = weights.copy()
     axis = _ni_support._check_axis(axis, input.ndim)
     if ((len(weights) // 2 + origin < 0) or
         (len(weights) // 2 + origin > len(weights))):
-        raise ValueError, 'invalid origin'
+        raise ValueError('invalid origin')
     mode = _ni_support._extend_mode_to_code(mode)
     _nd_image.correlate1d(input, weights, axis, output, mode, cval,
                           origin)
@@ -176,7 +176,7 @@ def gaussian_filter1d(input, sigma, axis = -1, order = 0, output = None,
     %(mode)s
     %(cval)s
     """
-    if order not in range(4):
+    if order not in list(range(4)):
         raise ValueError('Order outside 0..3 not implemented')
     sd = float(sigma)
     # make the length of the filter equal to 4 times the standard
@@ -259,7 +259,7 @@ def gaussian_filter(input, sigma, order = 0, output = None,
     if not set(orders).issubset(set(range(4))):
         raise ValueError('Order outside 0..4 not implemented')
     sigmas = _ni_support._normalize_sequence(sigma, input.ndim)
-    axes = range(input.ndim)
+    axes = list(range(input.ndim))
     axes = [(axes[ii], sigmas[ii], orders[ii])
                         for ii in range(len(axes)) if sigmas[ii] > 1e-15]
     if len(axes) > 0:
@@ -342,7 +342,7 @@ def generic_laplace(input, derivative2, output = None, mode = "reflect",
         extra_keywords = {}
     input = numpy.asarray(input)
     output, return_value = _ni_support._get_output(output, input)
-    axes = range(input.ndim)
+    axes = list(range(input.ndim))
     if len(axes) > 0:
         derivative2(input, axes[0], output, mode, cval,
                     *extra_arguments, **extra_keywords)
@@ -427,7 +427,7 @@ def generic_gradient_magnitude(input, derivative, output = None,
         extra_keywords = {}
     input = numpy.asarray(input)
     output, return_value = _ni_support._get_output(output, input)
-    axes = range(input.ndim)
+    axes = list(range(input.ndim))
     if len(axes) > 0:
         derivative(input, axes[0], output, mode, cval,
                    *extra_arguments, **extra_keywords)
@@ -473,12 +473,12 @@ def _correlate_or_convolve(input, weights, output, mode, cval, origin,
                            convolution):
     input = numpy.asarray(input)
     if numpy.iscomplexobj(int):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     origins = _ni_support._normalize_sequence(origin, input.ndim)
     weights = numpy.asarray(weights, dtype=numpy.float64)
     wshape = [ii for ii in weights.shape if ii > 0]
     if len(wshape) != input.ndim:
-        raise RuntimeError, 'filter weights array has incorrect shape.'
+        raise RuntimeError('filter weights array has incorrect shape.')
     if convolution:
         weights = weights[tuple([slice(None, None, -1)] * weights.ndim)]
         for ii in range(len(origins)):
@@ -487,7 +487,7 @@ def _correlate_or_convolve(input, weights, output, mode, cval, origin,
                 origins[ii] -= 1
     for origin, lenw in zip(origins, wshape):
         if (lenw // 2 + origin < 0) or (lenw // 2 + origin > lenw):
-            raise ValueError, 'invalid origin'
+            raise ValueError('invalid origin')
     if not weights.flags.contiguous:
         weights = weights.copy()
     output, return_value = _ni_support._get_output(output, input)
@@ -559,13 +559,13 @@ def uniform_filter1d(input, size, axis = -1, output = None,
     """
     input = numpy.asarray(input)
     if numpy.iscomplexobj(input):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     axis = _ni_support._check_axis(axis, input.ndim)
     if size < 1:
-        raise RuntimeError, 'incorrect filter size'
+        raise RuntimeError('incorrect filter size')
     output, return_value = _ni_support._get_output(output, input)
     if (size // 2 + origin < 0) or (size // 2 + origin > size):
-        raise ValueError, 'invalid origin'
+        raise ValueError('invalid origin')
     mode = _ni_support._extend_mode_to_code(mode)
     _nd_image.uniform_filter1d(input, size, axis, output, mode, cval,
                                origin)
@@ -601,7 +601,7 @@ def uniform_filter(input, size = 3, output = None, mode = "reflect",
     output, return_value = _ni_support._get_output(output, input)
     sizes = _ni_support._normalize_sequence(size, input.ndim)
     origins = _ni_support._normalize_sequence(origin, input.ndim)
-    axes = range(input.ndim)
+    axes = list(range(input.ndim))
     axes = [(axes[ii], sizes[ii], origins[ii])
                            for ii in range(len(axes)) if sizes[ii] > 1]
     if len(axes) > 0:
@@ -635,13 +635,13 @@ def minimum_filter1d(input, size, axis = -1, output = None,
     """
     input = numpy.asarray(input)
     if numpy.iscomplexobj(input):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     axis = _ni_support._check_axis(axis, input.ndim)
     if size < 1:
-        raise RuntimeError, 'incorrect filter size'
+        raise RuntimeError('incorrect filter size')
     output, return_value = _ni_support._get_output(output, input)
     if (size // 2 + origin < 0) or (size // 2 + origin > size):
-        raise ValueError, 'invalid origin'
+        raise ValueError('invalid origin')
     mode = _ni_support._extend_mode_to_code(mode)
     _nd_image.min_or_max_filter1d(input, size, axis, output, mode, cval,
                                   origin, 1)
@@ -669,13 +669,13 @@ def maximum_filter1d(input, size, axis = -1, output = None,
     """
     input = numpy.asarray(input)
     if numpy.iscomplexobj(input):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     axis = _ni_support._check_axis(axis, input.ndim)
     if size < 1:
-        raise RuntimeError, 'incorrect filter size'
+        raise RuntimeError('incorrect filter size')
     output, return_value = _ni_support._get_output(output, input)
     if (size // 2 + origin < 0) or (size // 2 + origin > size):
-        raise ValueError, 'invalid origin'
+        raise ValueError('invalid origin')
     mode = _ni_support._extend_mode_to_code(mode)
     _nd_image.min_or_max_filter1d(input, size, axis, output, mode, cval,
                                   origin, 0)
@@ -687,7 +687,7 @@ def _min_or_max_filter(input, size, footprint, structure, output, mode,
     if structure is None:
         if footprint is None:
             if size is None:
-                raise RuntimeError, "no footprint provided"
+                raise RuntimeError("no footprint provided")
             separable= True
         else:
             footprint = numpy.asarray(footprint)
@@ -708,12 +708,12 @@ def _min_or_max_filter(input, size, footprint, structure, output, mode,
             footprint = footprint.astype(bool)
     input = numpy.asarray(input)
     if numpy.iscomplexobj(input):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     output, return_value = _ni_support._get_output(output, input)
     origins = _ni_support._normalize_sequence(origin, input.ndim)
     if separable:
         sizes = _ni_support._normalize_sequence(size, input.ndim)
-        axes = range(input.ndim)
+        axes = list(range(input.ndim))
         axes = [(axes[ii], sizes[ii], origins[ii])
                                for ii in range(len(axes)) if sizes[ii] > 1]
         if minimum:
@@ -722,22 +722,22 @@ def _min_or_max_filter(input, size, footprint, structure, output, mode,
             filter = maximum_filter1d
         if len(axes) > 0:
             for axis, size, origin in axes:
-                filter(input, int(size), axis, output, mode, cval, origin)
+                list(filter(input, int(size), axis, output, mode, cval, origin))
                 input = output
         else:
             output[...] = input[...]
     else:
         fshape = [ii for ii in footprint.shape if ii > 0]
         if len(fshape) != input.ndim:
-            raise RuntimeError, 'footprint array has incorrect shape.'
+            raise RuntimeError('footprint array has incorrect shape.')
         for origin, lenf in zip(origins, fshape):
             if (lenf // 2 + origin < 0) or (lenf // 2 + origin > lenf):
-                raise ValueError, 'invalid origin'
+                raise ValueError('invalid origin')
         if not footprint.flags.contiguous:
             footprint = footprint.copy()
         if structure is not None:
             if len(structure.shape) != input.ndim:
-                raise RuntimeError, 'structure array has incorrect shape'
+                raise RuntimeError('structure array has incorrect shape')
             if not structure.flags.contiguous:
                 structure = structure.copy()
         mode = _ni_support._extend_mode_to_code(mode)
@@ -787,21 +787,21 @@ def _rank_filter(input, rank, size = None, footprint = None, output = None,
      mode = "reflect", cval = 0.0, origin = 0, operation = 'rank'):
     input = numpy.asarray(input)
     if numpy.iscomplexobj(input):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     origins = _ni_support._normalize_sequence(origin, input.ndim)
     if footprint is None:
         if size is None:
-            raise RuntimeError, "no footprint or filter size provided"
+            raise RuntimeError("no footprint or filter size provided")
         sizes = _ni_support._normalize_sequence(size, input.ndim)
         footprint = numpy.ones(sizes, dtype=bool)
     else:
         footprint = numpy.asarray(footprint, dtype=bool)
     fshape = [ii for ii in footprint.shape if ii > 0]
     if len(fshape) != input.ndim:
-        raise RuntimeError, 'filter footprint array has incorrect shape.'
+        raise RuntimeError('filter footprint array has incorrect shape.')
     for origin, lenf in zip(origins, fshape):
         if (lenf // 2 + origin < 0) or (lenf // 2 + origin > lenf):
-            raise ValueError, 'invalid origin'
+            raise ValueError('invalid origin')
     if not footprint.flags.contiguous:
         footprint = footprint.copy()
     filter_size = numpy.where(footprint, 1, 0).sum()
@@ -812,7 +812,7 @@ def _rank_filter(input, rank, size = None, footprint = None, output = None,
         if percentile < 0.0:
             percentile += 100.0
         if percentile < 0 or percentile > 100:
-            raise RuntimeError, 'invalid percentile'
+            raise RuntimeError('invalid percentile')
         if percentile == 100.0:
             rank = filter_size - 1
         else:
@@ -820,7 +820,7 @@ def _rank_filter(input, rank, size = None, footprint = None, output = None,
     if rank < 0:
         rank += filter_size
     if rank < 0  or rank >= filter_size:
-        raise RuntimeError, 'rank not within filter footprint size'
+        raise RuntimeError('rank not within filter footprint size')
     if rank == 0:
         return minimum_filter(input, None, footprint, output, mode, cval,
                               origin)
@@ -927,14 +927,14 @@ def generic_filter1d(input, function, filter_size, axis = -1,
         extra_keywords = {}
     input = numpy.asarray(input)
     if numpy.iscomplexobj(input):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     output, return_value = _ni_support._get_output(output, input)
     if filter_size < 1:
-        raise RuntimeError, 'invalid filter size'
+        raise RuntimeError('invalid filter size')
     axis = _ni_support._check_axis(axis, input.ndim)
     if ((filter_size // 2 + origin < 0) or
         (filter_size // 2 + origin > filter_size)):
-        raise ValueError, 'invalid origin'
+        raise ValueError('invalid origin')
     mode = _ni_support._extend_mode_to_code(mode)
     _nd_image.generic_filter1d(input, function, filter_size, axis, output,
                       mode, cval, origin, extra_arguments, extra_keywords)
@@ -968,11 +968,11 @@ def generic_filter(input, function, size = None, footprint = None,
         extra_keywords = {}
     input = numpy.asarray(input)
     if numpy.iscomplexobj(input):
-        raise TypeError, 'Complex type not supported'
+        raise TypeError('Complex type not supported')
     origins = _ni_support._normalize_sequence(origin, input.ndim)
     if footprint is None:
         if size is None:
-            raise RuntimeError, "no footprint or filter size provided"
+            raise RuntimeError("no footprint or filter size provided")
         sizes = _ni_support._normalize_sequence(size, input.ndim)
         footprint = numpy.ones(sizes, dtype=bool)
     else:
@@ -980,10 +980,10 @@ def generic_filter(input, function, size = None, footprint = None,
         footprint = footprint.astype(bool)
     fshape = [ii for ii in footprint.shape if ii > 0]
     if len(fshape) != input.ndim:
-        raise RuntimeError, 'filter footprint array has incorrect shape.'
+        raise RuntimeError('filter footprint array has incorrect shape.')
     for origin, lenf in zip(origins, fshape):
         if (lenf // 2 + origin < 0) or (lenf // 2 + origin > lenf):
-            raise ValueError, 'invalid origin'
+            raise ValueError('invalid origin')
     if not footprint.flags.contiguous:
         footprint = footprint.copy()
     output, return_value = _ni_support._get_output(output, input)

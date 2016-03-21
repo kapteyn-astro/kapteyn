@@ -74,12 +74,12 @@ def indentcount_lines(lines):
     >>> indentcount_lines(['    '])
     0
     '''
-    indentno = sys.maxint
+    indentno = sys.maxsize
     for line in lines:
         stripped = line.lstrip()
         if stripped:
             indentno = min(indentno, len(line) - len(stripped))
-    if indentno == sys.maxint:
+    if indentno == sys.maxsize:
         return 0
     return indentno
 

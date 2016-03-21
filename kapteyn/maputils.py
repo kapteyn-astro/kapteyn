@@ -362,11 +362,8 @@ from kapteyn.filters import gaussian_filter
 from kapteyn import rulers
 import readline
 from gc import collect as garbagecollect
-from types import TupleType as types_TupleType
-from types import ListType as types_ListType
-from types import StringType as types_StringType 
-from string import upper as string_upper
-from string import letters, join
+import six
+from string import ascii_letters as letters
 from random import choice
 from re import split as re_split
 from datetime import datetime
@@ -585,7 +582,7 @@ def flushprint(s):
 # we flush stdout, it will be printed immediately.
 #-------------------------------------------------------------------------------
    #return  # TODO if no debugging is required
-   print s
+   print(s)
    stdout.flush()
 
 
@@ -668,7 +665,7 @@ def getnumbers(prompt):
    from NumPy and should be entered e.g. as *numpy.sin(numpy.pi)*
    """
    #--------------------------------------------------------------------
-   xstr = raw_input(prompt)
+   xstr = input(prompt)
    xsplit = mysplit(xstr)
    X = []
    for x in xsplit:
@@ -907,7 +904,7 @@ def change_header(hdr, **kwargs):
    # We need to loop over all keys because we distinguish
    # deleting/adding and changing of entries which cannot
    # be combined into 1 action.
-   for name in kwargs.keys():
+   for name in list(kwargs.keys()):
      value = kwargs[name]
      fitsname = name.upper()
      if value is None:
@@ -1029,7 +1026,7 @@ values. The final string is composed in the calling environment.
          return None
       if issequence(z):
          if len(z) != 3:
-            raise Exception, "z2str: Toolbar Message expects 1 or 3 image values"
+            raise Exception("z2str: Toolbar Message expects 1 or 3 image values")
          else:
             s = ''
             for number in z:
@@ -1123,15 +1120,15 @@ class Colmaplist(object):
    """
 #-----------------------------------------------------------
    colormaps = []
-   def compare(self, a, b): return cmp(a.lower(), b.lower())  # For case insensitive sorting
+   def compare_key(self, a): return a.lower()
    def __init__(self):
       # A list with available Matplotlib color maps
       # The '_r' entries are reversed versions. We omit these versions
       # because maputils has an 'inverse' option to generate an inverted version
       # of each color lut.
-      self.colormaps = [m for m in cm.datad.keys() if not m.endswith("_r")]
+      self.colormaps = [m for m in list(cm.datad.keys()) if not m.endswith("_r")]
       # Sort this list in a case insensitive way
-      self.colormaps.sort(self.compare)
+      self.colormaps.sort(key=self.compare_key)
       Colmaplist.colormaps = self.colormaps  # The class variable colormaps points always to the current list
       self.cmap_default = 'jet'
    def add(self, clist):
@@ -1141,7 +1138,7 @@ class Colmaplist(object):
       self.colormaps += clist
       #for c in clist[::-1]:
       #   self.colormaps.insert(0,c)
-      self.colormaps.sort(self.compare)
+      self.colormaps.sort(key=self.compare_key)
    def addfavorites(self, flist):
       # Prepend a list with (unsorted) favorites
       if not issequence(flist):
@@ -1160,6 +1157,24 @@ cmlist.add(VariableColormap.luts())      # Add luts from lut directory of the Ka
 # cmlist.cmap_default = 'jet'
 
 
+def cmp_to_key(mycmp):
+    'Convert a cmp= function into a key= function'
+    class K:
+        def __init__(self, obj, *args):
+            self.obj = obj
+        def __lt__(self, other):
+            return mycmp(self.obj, other.obj) < 0
+        def __gt__(self, other):
+            return mycmp(self.obj, other.obj) > 0
+        def __eq__(self, other):
+            return mycmp(self.obj, other.obj) == 0
+        def __le__(self, other):
+            return mycmp(self.obj, other.obj) <= 0
+        def __ge__(self, other):
+            return mycmp(self.obj, other.obj) >= 0
+        def __ne__(self, other):
+            return mycmp(self.obj, other.obj) != 0
+    return K
 
 def fitsheader2dict(header, comment=True, history=True):
 #-----------------------------------------------------------
@@ -1283,7 +1298,7 @@ All these numbers are converted to integers.
    while True:
       try:
          s = "Enter pixel limits in %s ..... [%d, %d, %d, %d]: " % (boxtxt, pxlim[0], pxlim[1], pylim[0], pylim[1])
-         box = raw_input(s)
+         box = input(s)
          if box != "":
             lims = re_split('[, ]+', box.strip())
             xlo = int(eval(lims[0]))
@@ -1296,7 +1311,7 @@ All these numbers are converted to integers.
                  (pylim[0] <= ylo <= pylim[1]) and \
                  (pylim[0] <= ylo <= pylim[1])
             if not ok:
-               print "One of the values is outside the pixel limits"
+               print("One of the values is outside the pixel limits")
             else:
                break
          else:
@@ -1304,7 +1319,7 @@ All these numbers are converted to integers.
       except KeyboardInterrupt:                  # Allow user to press ctrl-c to abort program
         raise
       except:
-         print "Wrong box"
+         print("Wrong box")
 
    return (xlo, xhi), (ylo, yhi)
 
@@ -1388,7 +1403,7 @@ the alternate header.
             filename = defaultfile
             s = "Enter name of FITS file ...... [%s]: " % filename   # PyFits syntax
          if defaultfile is None or prompt:
-            fn = raw_input(s)
+            fn = input(s)
          else:
             fn = filename
          if fn != '':
@@ -1396,17 +1411,18 @@ the alternate header.
          # print "Filename memmap", filename, memmap
          hdulist = pyfits.open(filename, memmap=memmap)
          break
-      except IOError, (errno, strerror):
-         print "I/O error(%s): %s opening [%s]" % (errno, strerror, filename)
+      except IOError as xxx_todo_changeme1:
+         (errno, strerror) = xxx_todo_changeme1.args
+         print("I/O error(%s): %s opening [%s]" % (errno, strerror, filename))
          prompt = True    # Also prompt when a default file name was entered
       except KeyboardInterrupt:
          raise
       except:
          defaultfile = None
-         print "Cannot open file, unknown error."
-         con = raw_input("Abort? ........... [Y]/N:")
+         print("Cannot open file, unknown error.")
+         con = input("Abort? ........... [Y]/N:")
          if con == '' or con.upper() == 'Y':
-            raise Exception, "Loop aborted by user"
+            raise Exception("Loop aborted by user")
 
    hdulist.info()
    # Note that an element of this list can be accessed either
@@ -1415,7 +1431,7 @@ the alternate header.
       n = len(hdulist)
       if  n > 1:
          while True:
-            p = raw_input("Enter number of Header Data Unit ... [0]:")
+            p = input("Enter number of Header Data Unit ... [0]:")
             if p == '':
                hnr = 0
                break
@@ -1443,13 +1459,13 @@ the alternate header.
       for a in letters[:26]:
          k = "CRPIX1%c" % a.upper()  # To be sure that it is uppercase
          if k in hdr:
-            print "Found alternate header:", a.upper()
+            print("Found alternate header:", a.upper())
             alternates.append(a)
    
       #alter = ''
       if len(alternates):
          while True:
-            p = raw_input("Enter char. for alternate header ... [No alt. header]:")
+            p = input("Enter char. for alternate header ... [No alt. header]:")
             if p == '':
                alter = ''
                break
@@ -1458,7 +1474,7 @@ the alternate header.
                   alter = p.upper()
                   break
                else:
-                  print "Character not in list with allowed alternates!"
+                  print("Character not in list with allowed alternates!")
 
    return hdulist, hnr, filename, alter
 
@@ -1559,7 +1575,7 @@ translation.
             ax2 = -1
          deflt = "%s,%s" % (fitsobj.axisinfo[a1].axname, fitsobj.axisinfo[a2].axname)
          mes = "Enter 2 axes from %s .... [%s]: " % (axnamelist, deflt)
-         str1 = raw_input(mes)
+         str1 = input(mes)
          if str1 == '':
             str1 = deflt
          axes = re_split('[, ]+', str1.strip())
@@ -1567,19 +1583,19 @@ translation.
             for i in range(n):
                ax = i + 1
                str2 = fitsobj.axisinfo[ax].axname
-               if str2.find(string_upper(axes[0]), 0, len(axes[0])) > -1:
+               if str2.find(axes[0].upper(), 0, len(axes[0])) > -1:
                   ax1 = ax
-               if str2.find(string_upper(axes[1]), 0, len(axes[1])) > -1:
+               if str2.find(axes[1].upper(), 0, len(axes[1])) > -1:
                   ax2 = ax
             unvalid = not (ax1 >= 1 and ax1 <= n and ax2 >= 1 and ax2 <= n and ax1 != ax2)
             if unvalid:
                # No exceptions because we are in a loop
-               print "Incorrect input of image axes!"
+               print("Incorrect input of image axes!")
             if (ax1 == ax2 and ax1 != -1):
-               print "axis 1 == axis 2"
+               print("axis 1 == axis 2")
          else:
-            print "Number of images axes must be 2. You entered %d" % (len(axes),)
-      print  "You selected: ", fitsobj.axisinfo[ax1].axname, fitsobj.axisinfo[ax2].axname
+            print("Number of images axes must be 2. You entered %d" % (len(axes),))
+      print("You selected: ", fitsobj.axisinfo[ax1].axname, fitsobj.axisinfo[ax2].axname)
       axnum1 = ax1; axnum2 = ax2
    axperm = [axnum1, axnum2]
 
@@ -1600,7 +1616,7 @@ translation.
                   if crpix < 1 or crpix > fitsobj.axisinfo[axnr].axlen:
                      crpix = 1
                   prompt = "Enter pixel position between 1 and %d on %s ..... [%d]: " % (maxn, fitsobj.axisinfo[axnr].axname,crpix)
-                  x = raw_input(prompt)
+                  x = input(prompt)
                   if x == "":
                      x = int(crpix)
                   else:
@@ -1608,7 +1624,7 @@ translation.
                      #x = eval(x); print "X=", x, type(x)
                   unvalid = not (x >= 1 and x <= maxn)
                   if unvalid:
-                     print "Pixel position not in range 1 to %d! Try again." % maxn
+                     print("Pixel position not in range 1 to %d! Try again." % maxn)
                slicepos.append(x)
 
    return axnum1, axnum2, slicepos
@@ -1660,17 +1676,17 @@ Ask user to enter spectral translation if one of the axes is spectral.
       s = ''
       for i, tr in enumerate(fitsobj.allowedtrans):
          s += "%d:%s (%s) " % (i, tr[0], tr[1])
-      print s
+      print(s)
       unvalid = True
       while unvalid:
          try:
             prompt = "Enter number between 0 and %d of spectral translation .... [native]: " % (nt - 1)
-            st = raw_input(prompt)
+            st = input(prompt)
             if st != '':
                st = int(st)
                unvalid = (st < 0 or st > nt-1)
                if unvalid:
-                  print "Not a valid number!"
+                  print("Not a valid number!")
                else:
                   spectrans = fitsobj.allowedtrans[st][0]
             else:
@@ -1719,12 +1735,12 @@ Ask user to enter the output sky system if the data is a spatial map.
    while unvalid:
       try:
          prompt = "Sky system 0=eq, 1=ecl, 2=gal, 3=sup.gal .... [native]: "
-         st = raw_input(prompt)
+         st = input(prompt)
          if st != '':
             st = int(st)
             unvalid = (st < 0 or st >= maxskysys)
             if unvalid:
-               print "Not a valid number!"
+               print("Not a valid number!")
             else:
                skysys = st
          else:
@@ -1740,12 +1756,12 @@ Ask user to enter the output sky system if the data is a spatial map.
       prompt = "Ref.sys 0=fk4, 1=fk4_no_e, 2=fk5, 3=icrs, 4=dynj2000 ... [native]: "
       while unvalid:
          try:
-            st = raw_input(prompt)
+            st = input(prompt)
             if st != '':
                st = int(st)
                unvalid = (st < 0 or st >= maxrefsys)
                if unvalid:
-                  print "Not a valid number!"
+                  print("Not a valid number!")
                else:
                   refsys = st + maxskysys  # The ref. systems start at maxskysys
             else:
@@ -1760,7 +1776,7 @@ Ask user to enter the output sky system if the data is a spatial map.
          unvalid = True
          while unvalid:
             try:
-               st = raw_input(prompt)
+               st = input(prompt)
                if st != '':
                   B, J, JD = epochs(st)
                   equinox = st
@@ -1775,7 +1791,7 @@ Ask user to enter the output sky system if the data is a spatial map.
          unvalid = True
          while unvalid:
             try:
-               st = raw_input(prompt)
+               st = input(prompt)
                if st != '':
                   B, J, JD = epochs(st)
                   epoch = st
@@ -1828,7 +1844,7 @@ def prompt_dataminmax(fitsobj):
    #-----------------------------------------------------------------------
    mi, ma = fitsobj.get_dataminmax(box=True)
    mes = "Enter clip levels      [%g %g]: " % (mi, ma)
-   clips = raw_input(mes)
+   clips = input(mes)
    if clips:
       clips = re_split('[, ]+', clips.strip())
       if len(clips) == 1:
@@ -1892,7 +1908,7 @@ class Image(object):
       """
       #--------------------------------------------------------------------
       if self.data is None:
-         raise Exception, "Cannot plot image because image data is not available!"
+         raise Exception("Cannot plot image because image data is not available!")
       self.frame = frame
       
       #
@@ -1995,7 +2011,7 @@ class Contours(object):
       """
       #--------------------------------------------------------------------
       if self.data is None:
-         raise Exception, "Cannot plot image because image data is not available!"
+         raise Exception("Cannot plot image because image data is not available!")
       self.frame = frame
       if self.clevels is None:
          if self.filled:
@@ -2061,7 +2077,7 @@ class Contours(object):
          self.commoncontourkwargs = kwargs
       else:
          if self.clevels is None:
-            raise Exception, "Contour levels not set so I cannot identify contours"
+            raise Exception("Contour levels not set so I cannot identify contours")
          # Change only contour properties for levels in parameter 'levels'.
          if not issequence(levels):
             levels = [levels]
@@ -2111,7 +2127,7 @@ class Contours(object):
          self.commonlabelkwargs = kwargs
       else:
          if self.clevels is None:
-            raise Exception, "Contour levels not set so I cannot identify contours"
+            raise Exception("Contour levels not set so I cannot identify contours")
          # Change only contour properties for levels in parameter 'levels'.
          if not issequence(levels):
             levels = [levels]
@@ -2330,10 +2346,10 @@ class Beam(object):
 
          if len(lon1):
             xp, yp = projection.topixel((lon1, lat1))
-            self.p1 = Polygon(zip(xp, yp), **kwargs)
+            self.p1 = Polygon(list(zip(xp, yp)), **kwargs)
          if len(lon2):
             xp, yp = projection.topixel((lon2, lat2))
-            self.p2 = Polygon(zip(xp, yp), **kwargs)
+            self.p2 = Polygon(list(zip(xp, yp)), **kwargs)
       else:
          self.p1 = Ellipse((xc, yc), fwhm_major, fwhm_minor, angle=pa, **kwargs)
          self.p2 = None
@@ -2486,11 +2502,11 @@ class Skypolygon(object):
          lon1, lat1, lon2, lat2 = split_polygons(lons, lats, splitlon)
       if len(lon1):
          xp, yp = projection.topixel((lon1, lat1))
-         self.p1 = Polygon(zip(xp, yp), closed=True, **kwargs)
+         self.p1 = Polygon(list(zip(xp, yp)), closed=True, **kwargs)
          self.lon1 = lon1; self.lat1 = lat1
       if len(lon2):
          xp, yp = projection.topixel((lon2, lat2))
-         self.p2 = Polygon(zip(xp, yp), closed=True, **kwargs)
+         self.p2 = Polygon(list(zip(xp, yp)), closed=True, **kwargs)
          self.lon2 = lon2; self.lat2 = lat2
 
    def plot(self, frame):
@@ -2719,10 +2735,10 @@ class Pixellabels(object):
       # an exception.
 
       if len(plotaxes) > 2:
-         raise Exception, "Can plot labels for a maximum of 2 axes. Please split up!"
+         raise Exception("Can plot labels for a maximum of 2 axes. Please split up!")
 
       if (0 in plotaxes and 2 in plotaxes) or (1 in plotaxes and 3 in plotaxes):
-         raise Exception, "Cannot plot labels for this combination. Please split up!"
+         raise Exception("Cannot plot labels for this combination. Please split up!")
       
       aspect = frame.get_aspect()
       adjust = frame.get_adjustable()
@@ -3693,7 +3709,7 @@ this class.
          self.cmap = cmap                           # Either a string or a Colormap instance
          # What to do with the index. This is not a string from the list.
          self.cmindx = 0
-      elif type(cmap) == types_StringType:
+      elif isinstance(cmap, six.string_types):
          try:
             # Is this colormap registered in our colormap list?
             self.cmindx = cmlist.colormaps.index(cmap)
@@ -3703,7 +3719,7 @@ this class.
             self.cmindx = cmlist.colormaps.index(cmap)
          self.cmap = VariableColormap(cmap)
       else:
-         raise Exception, "Color map is not of type Colormap or string"
+         raise Exception("Color map is not of type Colormap or string")
       if self.image is not None:
          self.cmap.set_source(cmap)
       
@@ -3836,7 +3852,7 @@ this class.
       if ny is None:
          ny = nx
       if self.data is None:       # Current data
-         raise Exception, "Cannot plot image because image data is not available!"
+         raise Exception("Cannot plot image because image data is not available!")
       if self.data_blur is None:  # Blurred data
          self.data_blur = numpy.zeros(self.data.shape) # Prevent byte order problems
       gaussian_filter(self.data_orig, sigma=(nx,ny), order=0, output=self.data_blur, mode='reflect', cval=numpy.nan)
@@ -3853,7 +3869,7 @@ this class.
       """
       #-----------------------------------------------------------------
       if self.data is None:
-         raise Exception, "Cannot plot image because image data is not available!"
+         raise Exception("Cannot plot image because image data is not available!")
       # Algorithm by Jan Erik Solem
       im = self.data
       ix = numpy.isfinite(im)
@@ -3918,7 +3934,7 @@ this class.
       """
       #-----------------------------------------------------------------
       if self.image is not None:
-         raise Exception, "Only 1 image allowed per Annotatedimage object"
+         raise Exception("Only 1 image allowed per Annotatedimage object")
       image = Image(self.data, self.box, self.cmap, self.norm, **kwargs)
       self.objlist.append(image)
       self.image = image
@@ -4000,13 +4016,13 @@ this class.
       """
       #-----------------------------------------------------------------
       if self.image is not None:
-         raise Exception, "Only 1 image allowed per Annotatedimage object"
+         raise Exception("Only 1 image allowed per Annotatedimage object")
       if f_red.boxdat.shape != self.data.shape:
-         raise Exception, "Shape of red image is not equal to shape of Annotatedimage object!"
+         raise Exception("Shape of red image is not equal to shape of Annotatedimage object!")
       if f_green.boxdat.shape != self.data.shape:
-         raise Exception, "Shape of green image is not equal to shape of Annotatedimage object!"
+         raise Exception("Shape of green image is not equal to shape of Annotatedimage object!")
       if f_blue.boxdat.shape != self.data.shape:
-         raise Exception, "Shape of blue image is not equal to shape of Annotatedimage object!"
+         raise Exception("Shape of blue image is not equal to shape of Annotatedimage object!")
       # Compose a new array. Note that this syntax implies a real copy of the data.
       rgbim = numpy.zeros((self.data.shape+(3,)))
       rgbim[:,:,0] = f_red.boxdat
@@ -4275,7 +4291,7 @@ this class.
       """
       #------------------------------------------------------------------
       if self.colorbar is not None:
-         raise Exception, "Only 1 colorbar allowed per Annotatedimage object"
+         raise Exception("Only 1 colorbar allowed per Annotatedimage object")
       colorbar = Colorbar(self.cmap, frame=frame, norm=self.norm, contourset=self.contourset, clines=clines, **kwargs)
       self.objlist.append(colorbar)
       self.colorbar = colorbar
@@ -4647,7 +4663,7 @@ this class.
       if pos is not None:           
          poswp = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
-            raise Exception, poswp[3]
+            raise Exception(poswp[3])
          if grids:
             world = poswp[1][0]      # Only first element is used of the parsed position is used
          else:
@@ -4659,7 +4675,7 @@ this class.
       spatials = [self.projection.lonaxnum, self.projection.lataxnum]
       spatialmap = self.axperm[0] in spatials and self.axperm[1] in spatials
       if not spatialmap:
-         raise Exception, "Can only plot a beam in a spatial map"
+         raise Exception("Can only plot a beam in a spatial map")
 
       beam = Beam(world[0], world[1], major, minor, pa, projection=self.projection,
                   units=units, **kwargs)
@@ -4772,14 +4788,14 @@ this class.
       if cpos is not None:
          poswp = str2pos(cpos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
-            raise Exception, poswp[3]
+            raise Exception(poswp[3])
          world = poswp[0][0]      # Only first element is used
       else:
          world = (xc, yc)
       spatials = [self.projection.lonaxnum, self.projection.lataxnum]
       spatialmap = self.axperm[0] in spatials and self.axperm[1] in spatials
       if not spatialmap:
-         raise Exception, "Can only plot a sky polygon in a spatial map"
+         raise Exception("Can only plot a sky polygon in a spatial map")
 
       spoly = Skypolygon(projection=self.projection,
                          prescription=prescription,
@@ -4897,19 +4913,19 @@ this class.
          else:
             w = mode.upper().startswith('W')
          if not p and not w:
-            raise Exception, "Marker(): Mode not or incorrectly specified!"
+            raise Exception("Marker(): Mode not or incorrectly specified!")
          else:
             world = w
 
       if (x is None and y is not None) or (x is not None and y is None):
-         raise Exception, "Marker(): One of the arrays is None and the other is not!"
+         raise Exception("Marker(): One of the arrays is None and the other is not!")
       if not (pos is None) and (not (x is None) or not (y is None)):
-         raise Exception, "Marker(): You cannot enter values for both pos= and x= and/or y="
+         raise Exception("Marker(): You cannot enter values for both pos= and x= and/or y=")
 
       if not pos is None:
          poswp = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
-            raise Exception, poswp[3]
+            raise Exception(poswp[3])
          xp = poswp[1][:,0]
          yp = poswp[1][:,1]
       else:
@@ -4974,7 +4990,7 @@ this class.
                else:
                   self.cbframe = obj.frame
          except:
-            raise Exception, "Unknown object. Cannot plot this!"
+            raise Exception("Unknown object. Cannot plot this!")
       
       if needresize:                             # because a colorbar must be included
          self.cbframe = make_axes(self.frame, orientation=orientation)[0]
@@ -4987,7 +5003,7 @@ this class.
          try:
             pt = obj.ptype
          except:
-            raise Exception, "Unknown object. Cannot plot this!"
+            raise Exception("Unknown object. Cannot plot this!")
          if pt in ["Image", "Contour", "Graticule", "Insidelabels", "Pixellabels", "Beam",
                    "Marker", "Ruler", "Skypolygon"]:
             try:
@@ -5006,7 +5022,7 @@ this class.
             elif not self.contourset is None:
                obj.plot(self.cbframe, self.contourset.CS)
             else:
-               raise Exception, "A color bar could not find an image or contour set!"
+               raise Exception("A color bar could not find an image or contour set!")
 
       self.cmap.add_frame(self.frame)   # Add to list in mplutil
 
@@ -5304,18 +5320,18 @@ this class.
          else:
             w = mode.upper().startswith('W')
          if not p and not w:
-            raise Exception, "Inside(): Mode not or incorrectly specified!"
+            raise Exception("Inside(): Mode not or incorrectly specified!")
          else:
             world = w
             
       if (x is None and y is not None) or (x is not None and y is None):
-         raise Exception, "Inside(): One of the arrays is None and the other is not!"
+         raise Exception("Inside(): One of the arrays is None and the other is not!")
       if not (pos is None) and (not (x is None) or not (y is None)):
-         raise Exception, "Inside(): You cannot enter values for both pos= and x= and/or y="
+         raise Exception("Inside(): You cannot enter values for both pos= and x= and/or y=")
       if not (pos is None):
          world, pixels, units, errmes = str2pos(pos, self.projection, mixpix=self.mixpix, gridmode=self.gridmode)
          if errmes != '':
-            raise Exception, errmes
+            raise Exception(errmes)
          else:
             xp = pixels[:,0]
             yp = pixels[:,1]
@@ -5965,7 +5981,7 @@ this class.
             if axesevent.g_tolog:
                anyout(s)   # Write to Hermes log file and screen
          else:
-            print s
+            print(s)
 
 
    def interact_writepos(self, pixfmt="%.1f", dmsprec=1, wcsfmt="%.3g", zfmt="%.3e",
@@ -6173,7 +6189,7 @@ this class.
       l = int(xmax-xmin+1); b = int(ymax-ymin+1)
       numpoints = len(X)*len(Y)
       x, y = numpy.meshgrid(X, Y)
-      pos = zip(x.flatten(), y.flatten())
+      pos = list(zip(x.flatten(), y.flatten()))
       pos = numpy.asarray(pos)
       if mploldversion:
          mask = nxutils.points_inside_poly(pos, poly)
@@ -6691,11 +6707,12 @@ to know the properties of the FITS data beforehand.
                else:
                   hdulist = pyfits.open(filespec, memmap=memmap, **parms)
                filename = filespec
-            except IOError, (errno, strerror):
-               print "Cannot open FITS file: I/O error(%s): %s" % (errno, strerror)
+            except IOError as xxx_todo_changeme:
+               (errno, strerror) = xxx_todo_changeme.args
+               print("Cannot open FITS file: I/O error(%s): %s" % (errno, strerror))
                raise
             except:
-               print "Cannot open file, unknown error!"
+               print("Cannot open file, unknown error!")
                raise
             if hdunr is None:
                hdunr = 0
@@ -6745,10 +6762,10 @@ to know the properties of the FITS data beforehand.
       # Test on the required minimum number of axes (2)
       self.naxis = self.hdr['NAXIS']
       if self.naxis < 2:
-         print "You need at least two axes in your FITS file to extract a 2D image."
-         print "Number of axes in your FITS file is %d" % (self.naxis,)
+         print("You need at least two axes in your FITS file to extract a 2D image.")
+         print("Number of axes in your FITS file is %d" % (self.naxis,))
          hdulist.close()
-         raise Exception, "Number of data axes must be >= 2."
+         raise Exception("Number of data axes must be >= 2.")
       
 
       self.axperm = [1,2]
@@ -6816,7 +6833,7 @@ to know the properties of the FITS data beforehand.
             wcstypes.append('sp')
          else:
             # To distinguish linear types we append the ctype of this axis.
-            wcstypes.append('li_' + self.proj.ctype[i])
+            wcstypes.append('li_' + str(self.proj.ctype[i]))
       self.wcstypes = wcstypes
 
       self.spectrans = None    # Set the spectral translation
@@ -7035,12 +7052,12 @@ to know the properties of the FITS data beforehand.
    #------------------------------------------------------------
       st = ''
       if isinstance(self.hdr, dict):
-         keylist = self.hdr.keys()
+         keylist = list(self.hdr.keys())
          keylist.sort()
          for k in keylist:
             s = self.hdr[k]
             if not str(s).startswith('HISTORY'):
-               if type(s) == types_StringType:
+               if isinstance(s, six.string_types):
                   val = "'" + "%-18s"%s + "'"
                else:
                   val = "%+20s"%str(s)
@@ -7104,7 +7121,7 @@ to know the properties of the FITS data beforehand.
       """
    #------------------------------------------------------------
       if axnum is None:
-         axnum = range(1, self.naxis+1)
+         axnum = list(range(1, self.naxis+1))
       if not issequence(axnum):
          axnum = [axnum]
       s = ''
@@ -7112,7 +7129,7 @@ to know the properties of the FITS data beforehand.
       for i, ax in enumerate(axnum):  # Note that the dictionary is unsorted. We want axes 1,2,3,...
          if ax >= 1 and ax <= self.naxis:
             a = self.axisinfo[ax]
-            if long:
+            if int:
                s += a.printattr()
             else:
                s += a.printinfo()
@@ -7219,7 +7236,7 @@ to know the properties of the FITS data beforehand.
       :type axname:    String or Integer
       """
       #--------------------------------------------------------------
-      if type(axname) != types_StringType:
+      if not isinstance(axname, six.string_types):
          # Probably an integer
          return axname
 
@@ -7377,7 +7394,7 @@ to know the properties of the FITS data beforehand.
                axnr1 = self.axperm[0]
                axnr2 = self.axperm[1]
             else:
-               raise Exception, "One axis number is missing and no prompt function is given!"
+               raise Exception("One axis number is missing and no prompt function is given!")
          if slicepos is None and promptfie is None:
             slicepos = self.slicepos
 
@@ -7409,7 +7426,7 @@ to know the properties of the FITS data beforehand.
 
       if n > 2:    # Get the axis numbers of the other axes
          if len(self.slicepos) != n-2:
-            raise Exception, "Missing positions on axes outside image!"
+            raise Exception("Missing positions on axes outside image!")
          j = 0
          for i in range(n):
             axnr = i + 1
@@ -7504,7 +7521,7 @@ to know the properties of the FITS data beforehand.
             self.mixpix = self.axisinfo[matchingaxnum].outsidepix
             ap = (axperm[0], axperm[1], matchingaxnum)
          else:
-            raise Exception, "Cannot find a matching axis for the spatial axis!"
+            raise Exception("Cannot find a matching axis for the spatial axis!")
       else:
           ap = (axperm[0], axperm[1])
       # If a spectral translation is needed, then we must apply the spectra()
@@ -7612,7 +7629,7 @@ to know the properties of the FITS data beforehand.
       
       if promptfie is None:
          if skyout is None:
-            raise Exception, "No definition for the output sky is given!"
+            raise Exception("No definition for the output sky is given!")
          else:
             self.skyout = skyout
       else:
@@ -7666,7 +7683,7 @@ to know the properties of the FITS data beforehand.
          npxlim = [1, n1]         
       else:
          if not issequence(pxlim):
-            raise Exception, "pxlim must be tuple or list!"
+            raise Exception("pxlim must be tuple or list!")
          npxlim[0] = int(nint(pxlim[0]))
          npxlim[1] = int(nint(pxlim[1]))
 
@@ -7674,7 +7691,7 @@ to know the properties of the FITS data beforehand.
          npylim = [1, n2]
       else:
          if not issequence(pylim):
-            raise Exception, "pylim must be tuple or list!"
+            raise Exception("pylim must be tuple or list!")
          npylim[0] = int(nint(pylim[0]))
          npylim[1] = int(nint(pylim[1]))
 
@@ -8629,7 +8646,7 @@ to know the properties of the FITS data beforehand.
             axnum_out.append(i)
       #flushprint("reproject+to  axnum_out =%s"%(str(axnum_out)))
       if len(axnum) != 2:
-         raise Exception, "No spatial maps to reproject in this data structure!"
+         raise Exception("No spatial maps to reproject in this data structure!")
       naxisout = len(axnum_out)
       len1 = p1.naxis[axnum[0]-1]; len2 =  p1.naxis[axnum[1]-1]
       # Now we are sure that we have a spatial map and the
@@ -8652,7 +8669,7 @@ to know the properties of the FITS data beforehand.
             axnum2.append(i)
 
       if len(axnum2) != 2:
-         raise Exception, "The input header does not contain a spatial data structure!"
+         raise Exception("The input header does not contain a spatial data structure!")
       p2_spat = p2.sub(axnum2)
 
       # Determine the size and shape for a new data array. The new
@@ -8792,7 +8809,7 @@ to know the properties of the FITS data beforehand.
          for lo, hi in zip(plimLO, plimHI):
          #for axnr in axnum_out:
             #pixellist = range(1, p1.naxis[axnr-1]+1)
-            pixellist = range(lo, hi+1)
+            pixellist = list(range(lo, hi+1))
             perms.append(pixellist)
             # Get all permutations. Last axis is slowest axis
          z = perms[0]
@@ -8927,7 +8944,7 @@ to know the properties of the FITS data beforehand.
       # Process PV and other i_j elements in the input header
       # Clean up the new header first
       wcskeys = ['PC', 'CD', 'PV', 'PS']
-      for key in newheader.keys():
+      for key in list(newheader.keys()):
          for wk in wcskeys:
             if key.startswith(wk) and key.find('_') != -1:
                try:
@@ -8942,7 +8959,7 @@ to know the properties of the FITS data beforehand.
       # Insert ['PC', 'CD', 'PV', 'PS'] if they are in the 'insert header'
       cdmatrix = False
       pcmatrix = False
-      for key in repheader.keys():
+      for key in list(repheader.keys()):
          for wk in wcskeys:
             if key.startswith(wk) and key.find('_'):
                try:
@@ -9144,7 +9161,7 @@ to know the properties of the FITS data beforehand.
       hdu = pyfits.PrimaryHDU(self.dat)
       pythondict = fitsheader2dict(self.hdr, comment, history)
       
-      for key, val in pythondict.iteritems():
+      for key, val in pythondict.items():
          if key=='HISTORY' or key=='COMMENT':
             if (history and key=='HISTORY'):
                for v in val:
@@ -9511,7 +9528,7 @@ Usually one creates a movie container with class class:`Cubes`
       """
       #---------------------------------------------------------------------
       if not isinstance(annimage, Annotatedimage):
-         raise TypeError, "Container object not of class maputils.Annotatedimage!" 
+         raise TypeError("Container object not of class maputils.Annotatedimage!") 
 
       annimage.origdata = None
       annimage.image.im.set_visible(visible)
@@ -9728,7 +9745,7 @@ Usually one creates a movie container with class class:`Cubes`
          except:
             if not mes:   
                mes = "Invalid expression for frames per second"
-            raise Exception, mes
+            raise Exception(mes)
 
       self.record_frameformat = MovieContainer.record_frameformat
 
@@ -9746,7 +9763,7 @@ Usually one creates a movie container with class class:`Cubes`
          except:
             if not mes:               
                mes = "Invalid expression for bitrate in kbit/s"
-            raise Exception, mes
+            raise Exception(mes)
 
       if outfile is None:
          self.record_outfile = MovieContainer.record_outfile
@@ -9756,7 +9773,7 @@ Usually one creates a movie container with class class:`Cubes`
             f = file(self.record_outfile, "w+")
             f.close()         
          except:
-            raise Exception, "Cannot write this movie on disk (invalid directory?)"
+            raise Exception("Cannot write this movie on disk (invalid directory?)")
          
       self.record_fnameformatstr = MovieContainer.record_fnameformatstr
       self.record_basename = MovieContainer.record_basename
@@ -9767,7 +9784,7 @@ Usually one creates a movie container with class class:`Cubes`
          try:
             self.record_removetmpfiles = bool(removetmpfiles)
          except:
-            raise Exception, "Invalid value for remove tmp file option"
+            raise Exception("Invalid value for remove tmp file option")
 
 
    @staticmethod      
@@ -9814,7 +9831,7 @@ Usually one creates a movie container with class class:`Cubes`
       from glob import glob
 
       if self.record_counter == 0:
-         raise Exception, "No images available to create a movie!<br> Start recording first."
+         raise Exception("No images available to create a movie!<br> Start recording first.")
       
       cmd = "ffmpeg"
       basename = self.record_fnameformatstr % (self.record_basename, self.record_frameformat)
@@ -9831,11 +9848,11 @@ Usually one creates a movie container with class class:`Cubes`
          proc = check_call(args, shell=False, stdout=PIPE, stderr=PIPE)
          #proc.wait()
       except OSError:
-         raise Exception, "Cannot find ffmpeg to create movie"
-      except CalledProcessError, message:
-         raise Exception, "Something wrong in parameters for command ffmpeg"
+         raise Exception("Cannot find ffmpeg to create movie")
+      except CalledProcessError as message:
+         raise Exception("Something wrong in parameters for command ffmpeg")
       except:
-         raise Exception, "Unknown error creating a movie with ffmpeg"      
+         raise Exception("Unknown error creating a movie with ffmpeg")      
 
       # Remove all tmp files used to build the movie. One needs the glob module
       # to parse the asterisk. An alternative could be to maintain a list with
@@ -9846,7 +9863,7 @@ Usually one creates a movie container with class class:`Cubes`
             remove(f)
       pics = self.record_counter
       self.record_counter = 0   # Reset to be able to create a new movie
-      return pics, join(args)   # The calling environment could need the number of images in a movie
+      return pics, " ".join(args)   # The calling environment could need the number of images in a movie
 
       
    def imageloop(self, cb):
@@ -13838,7 +13855,7 @@ which can store images from different data cubes.
       #-------------------------------------------------------------------------
       num = len(self.movieimages.annimagelist)
       if nr < 0 or nr >= num:
-         raise ValueError, "Image nr %d does not exist (%d<nr<%d)!"%(nr, 0, num)
+         raise ValueError("Image nr %d does not exist (%d<nr<%d)!"%(nr, 0, num))
       else:
          # First reset a possible earlier image that was used to compare
          # to the current.

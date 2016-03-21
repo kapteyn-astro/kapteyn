@@ -1,1 +1,1 @@
-.. automodule:: positions
+.. automodule:: kapteyn.positions

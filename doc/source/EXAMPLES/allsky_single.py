@@ -21,7 +21,7 @@ annim = f.Annotatedimage(frame)
 grat = annim.Graticule(wylim=(20.0,90.0), wxlim=(0,360),
                        startx=X, starty=Y)
 grat.setp_gratline(color='0.75')
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [20, 30, 60, 90]
 grat.setp_lineswcs1(20, color='g', linestyle='--')
 

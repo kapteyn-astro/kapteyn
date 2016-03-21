@@ -45,7 +45,7 @@ cdef extern int gauestd_c( double *y,
                            int    *smode )
 
 import numpy
-
+import functools
 import_array()
 
 MAXPAR = 200   # same value as MAXPAR parameter in gauestd.c
@@ -170,7 +170,7 @@ The gaussians are then estimated as described by
    free(p_c)
 
    if flat:
-      result = list(reduce(lambda x,y: x+y, result))
+      result = list(functools.reduce(lambda x,y: x+y, result))
    return result
 
 class _Gauest(object):

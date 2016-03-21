@@ -171,22 +171,14 @@ setup(
           include_dirs=include_dirs,
           define_macros=define_macros
       ),
-
-   ]),
-   package_dir={'kapteyn': 'kapteyn'},
-   packages=['kapteyn'],
-   package_data={'kapteyn': ['lut/*.lut']},
-)
-
-
-"""Extension(
+      Extension(
          "ascarray",
-         ["src/ascarray.c"],
+         ["src/ascarray.pyx"],
          include_dirs=include_dirs
       ),
       Extension(
          "profiles",
-         ["src/profiles.c", "src/gauestd.c"],
+         ["src/profiles.pyx", "src/gauestd.c"],
          include_dirs=include_dirs
       ),
       Extension(
@@ -195,6 +187,15 @@ setup(
       ),
       Extension(
          "kmpfit",
-         ["src/kmpfit.c", "src/mpfit.c"],
+         ["src/kmpfit.pyx", "src/mpfit.c"],
          include_dirs=include_dirs
-      )"""
+      ),
+
+   ]),
+   package_dir={'kapteyn': 'kapteyn'},
+   packages=['kapteyn'],
+   package_data={'kapteyn': ['lut/*.lut']},
+)
+
+
+""""""

@@ -1,1 +1,1 @@
-.. automodule:: celestial
+.. automodule:: kapteyn.celestial

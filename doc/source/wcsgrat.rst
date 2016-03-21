@@ -1,1 +1,1 @@
-.. automodule:: wcsgrat
+.. automodule:: kapteyn.wcsgrat

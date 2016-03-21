@@ -119,15 +119,15 @@ from kapteyn import wcs        # The Kapteyn Python binding to WCSlib, including
 from kapteyn.positions import str2pos, parsehmsdms, unitfactor
 from kapteyn import rulers
 from kapteyn.celestial import skyparser
-from types import TupleType, ListType, StringType
-from string import join, letters
+import six
+from string import ascii_letters as letters
 from random import choice
 import numpy
 
 
 __version__ = '1.1'
-(left,bottom,right,top) = range(4)                 # Names of the four plot axes
-(native, notnative, bothticks, noticks) = range(4)
+(left,bottom,right,top) = list(range(4))                 # Names of the four plot axes
+(native, notnative, bothticks, noticks) = list(range(4))
 
 # A variable to change the vertical size of a TeX box
 # For more information, have a look at method
@@ -160,10 +160,10 @@ def parseplotaxes(plotaxes):
    """
    if not issequence(plotaxes):
       plotaxes = [plotaxes,]
-   if type(plotaxes) == TupleType:
+   if isinstance(plotaxes, tuple):
       plotaxes = list(plotaxes)
    for i,pa in enumerate(plotaxes):
-      if type(pa) == StringType:
+      if isinstance(pa, six.string_types):
          if "LEFT".find(pa.upper()) == 0:
             plotaxes[i] = left
          elif "BOTTOM".find(pa.upper()) == 0:
@@ -173,13 +173,13 @@ def parseplotaxes(plotaxes):
          elif "TOP".find(pa.upper()) == 0:
             plotaxes[i] = top
          else:
-            raise ValueError, "[%s] Cannot identify this plot axis!" % pa
+            raise ValueError("[%s] Cannot identify this plot axis!" % pa)
    for pa in plotaxes:                           # Check validity
       if pa < 0 or pa > 3:
-         raise ValueError, "Cannot identify this plot axis!"
+         raise ValueError("Cannot identify this plot axis!")
    aset = {}
-   map(aset.__setitem__, plotaxes, [])
-   return aset.keys()
+   list(map(aset.__setitem__, plotaxes, []))
+   return list(aset.keys())
 
 
 
@@ -198,7 +198,7 @@ def parsetickmode(tickmode):
    -----------------------------------------------------------
    """
    #(native, notnative, bothticks, noticks) = range(4)
-   if type(tickmode) == StringType:
+   if isinstance(tickmode, six.string_types):
       if "NATIVE_TICKS".find(tickmode.upper()) == 0:
          tickmode = native
       elif "SWITCHED_TICKS".find(tickmode.upper()) == 0:
@@ -208,9 +208,9 @@ def parsetickmode(tickmode):
       elif "NO_TICKS".find(tickmode.upper()) == 0:
          tickmode = noticks
       else:
-         raise ValueError, "[%s] Cannot identify this tick mode!" % tickmode
+         raise ValueError("[%s] Cannot identify this tick mode!" % tickmode)
    if tickmode < 0 or tickmode > 3:
-      raise ValueError, "%d does not correspond to a supported tick mode!" % tickmode
+      raise ValueError("%d does not correspond to a supported tick mode!" % tickmode)
    return tickmode
 
 
@@ -537,7 +537,7 @@ def createlabels(Tlist):
 
          # Each tick label has its own fontsize. We take the first label's fontsize as
          # the value for which we tweak the characters 's' and 'm' in the TeX labels
-         if t.kwargs.has_key('fontsize') and t.tex:
+         if 'fontsize' in t.kwargs and t.tex:
             if tweakhms == 0:
                tweakhms = t.kwargs['fontsize']
             
@@ -1081,12 +1081,12 @@ class Insidelabels(object):
             label.kwargs.update(kwargs)
          else:      # One or more positions are given. Find the right index.
             for pos in posn:
-               if type(pos) == StringType:
+               if isinstance(pos, six.string_types):
                   C = pos.upper()
                   if 'H' in C or 'D' in C or 'M' in C or 'S' in C:
                      pos, err = parsehmsdms(pos)
                      if err != '':
-                        raise Exception, err
+                        raise Exception(err)
                      else:
                         pos = pos[0]
                   else:
@@ -1182,7 +1182,7 @@ def getStarts(startvals, proj, i, axnum, wcstype, mixpix=None):
       # This is the default. Do nothing
       return startvals, None, ""
 
-   if type(startvals) != StringType:
+   if not isinstance(startvals, six.string_types):
       # Perhaps the values are one or more floating point numbers
       return startvals, None, ""
 
@@ -2216,7 +2216,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       wx = numpy.ma.masked_where(numpy.isnan(world[0]), world[0])
       wy = numpy.ma.masked_where(numpy.isnan(world[1]), world[1])
       if numpy.ma.count_masked(wx) > len(wx)-2:
-         raise Exception, "Could not find enough (>1) valid world coordinates in this map!"
+         raise Exception("Could not find enough (>1) valid world coordinates in this map!")
       wxmin = wx.min(); wxmax = wx.max(); wymin = wy.min(); wymax = wy.max()
 
       # If one of the axes is a 'longitude' type axis then 
@@ -2276,24 +2276,24 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       self.spectrans = spectrans
       self.labelsintex = labelsintex
       if wcstypes is None:
-         raise Exception, "Need a list with wcs types for these axes"
+         raise Exception("Need a list with wcs types for these axes")
       self.wcstypes = wcstypes
       # Try to get two axis numbers if none are given
       if axnum is None:
          naxis = header['NAXIS']
          if naxis < 2:
-            raise Exception, "Need data with at least two axes"
+            raise Exception("Need data with at least two axes")
          else:
             self.xaxnum = 1
             self.yaxnum = 2
       else:
          if len(axnum) != 2:
-            raise Exception, "Need two axis numbers to create a graticule"
+            raise Exception("Need two axis numbers to create a graticule")
          else:
            self.xaxnum = axnum[0]
            self.yaxnum = axnum[1]
       if (self.xaxnum == self.yaxnum):
-         raise Exception, "Need two different axis numbers"
+         raise Exception("Need two different axis numbers")
       
       # Get the axes limits in pixels. The default is copied from
       # the values of NAXISn in the header. Note that there are no alternative
@@ -2302,18 +2302,18 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          self.pxlim = (1, header['NAXIS' +str(self.xaxnum)])
       else:
          if not issequence(pxlim):
-            raise Exception, "pxlim needs to be of type tuple or list"
+            raise Exception("pxlim needs to be of type tuple or list")
          elif len(pxlim) != 2:
-            raise Exception,"pxlim must have two elements"
+            raise Exception("pxlim must have two elements")
          else: 
             self.pxlim = pxlim
       if pylim is None:
          self.pylim = (1, header['NAXIS' +str(self.yaxnum)])
       else:
          if not issequence(pylim):
-            raise Exception, "pylim needs to be of type tuple or list"
+            raise Exception("pylim needs to be of type tuple or list")
          elif len(pylim) != 2:
-            raise Exception, "pylim must have two elements"
+            raise Exception("pylim must have two elements")
          else:
             self.pylim = pylim
 
@@ -2354,10 +2354,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if mixpix is None:
             mixpix = proj.source['CRPIX'+str(self.matchingaxnum)+proj.alter]
          if mixpix is None:
-            raise Exception, "Could not find a grid for the missing spatial axis"
+            raise Exception("Could not find a grid for the missing spatial axis")
          ok = proj.lonaxnum is not None and proj.lataxnum is not None 
          if not ok:
-            raise Exception, "Could not find a matching spatial axis pair"
+            raise Exception("Could not find a matching spatial axis pair")
          gmap = proj.sub([self.xaxnum, self.yaxnum, self.matchingaxnum])
          self.mixpix = mixpix
       else:
@@ -2379,10 +2379,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # has only one spatial axis.
       startx, startpixX, errmes = getStarts(startx, self.gmap, 0, axnum, wcstypes[0], self.mixpix)
       if errmes != '':
-         raise Exception, errmes
+         raise Exception(errmes)
       starty, startpixY, errmes = getStarts(starty, self.gmap, 1, axnum, wcstypes[1], self.mixpix)
       if errmes != '':
-         raise Exception, errmes
+         raise Exception(errmes)
 
       # The next line is added at 28-08-2010 and is necessary because
       # the sky system does not need to be an integer number anymore.
@@ -2395,21 +2395,21 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # to calculate estimates of these ranges.
       if wxlim is not None:
          if not issequence(wxlim):
-            raise Exception, "wxlim needs to be of type tuple or list"
+            raise Exception("wxlim needs to be of type tuple or list")
          elif len(wxlim) != 2:
-            raise Exception, "wxlim must have two elements"
+            raise Exception("wxlim must have two elements")
          else: 
             self.wxlim = wxlim
       if wylim is not None:
          if not issequence(wylim):
-            raise Exception, "wylim needs to be of type tuple or list"
+            raise Exception("wylim needs to be of type tuple or list")
          elif len(wylim) != 2:
-            raise Exception, "wylim must have two elements"
+            raise Exception("wylim must have two elements")
          else: 
             self.wylim = wylim
       if wxlim is None or wylim is None:
          if boxsamples < 2:
-            raise Exception, "boxsamples < 2: Need at least two samples to find limits"
+            raise Exception("boxsamples < 2: Need at least two samples to find limits")
          minmax = self.__estimateLonLatRanges(boxsamples)
          if wxlim is None:
             self.wxlim = (minmax[0], minmax[1])
@@ -2456,7 +2456,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # Handle the values for the step in the labels/graticule lines.
       self.delta = [None, None]
       axisunits = self.gmap.units[0]
-      if not deltax is None and type(deltax) == StringType:
+      if not deltax is None and isinstance(deltax, six.string_types):
          # Not empty and the type is a string. Then a unit can follow.
          parts = deltax.split()
          if len(parts) > 1:
@@ -2468,7 +2468,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          deltax = uf * eval(parts[0])
          
       axisunits = self.gmap.units[1]
-      if not deltay is None and type(deltay) == StringType:
+      if not deltay is None and isinstance(deltay, six.string_types):
          # Not empty and the type is a string. Then a unit can follow.
          parts = deltay.split()
          if len(parts) > 1:
@@ -2553,7 +2553,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
       # better to use the name grid line with constant x or constant
       # y to identify the graticule lines.
       if (gridsamples < 2):
-         raise Exception, "Number of samples along graticule line must be >= 2 to avoid a step size of zero"
+         raise Exception("Number of samples along graticule line must be >= 2 to avoid a step size of zero")
 
       # Create the plot axes. The defaults are: plot native ticks to axis
       # for the left and bottom axis and omit ticks along right and top axis.
@@ -2572,7 +2572,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          if (aa == 0 and self.offsetx) or (aa == 1 and self.offsety):
             annot[aa] = "Offset " 
          if self.gmap.types[aa] in [None, 'spectral']:
-            annot[aa] += self.gmap.ctype[aa].split('-')[0] + ' (' + units + ')'
+            annot[aa] += str(self.gmap.ctype[aa]).split('-')[0] + ' (' + str(units) + ')'
          else:        # Must be spatial
             if (aa == 0 and (self.radoffsetx or self.offsetx)) or\
                (aa == 1 and (self.radoffsety or self.offsety)):
@@ -2792,7 +2792,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
       # Each graticule holds two frames for two times two axes
       if not frame:
-         framelabel= 'FR'+join([choice(letters) for i in range(8)], "")
+         framelabel= 'FR'+"".join([choice(letters) for i in range(8)])
          try:
             r,c,n = framebase.get_geometry()
             frame = framebase.figure.add_subplot(r, c, n,
@@ -2862,7 +2862,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          tick.tick2line.set_visible(False) 
 
       if not frame2:
-         framelabel= 'SFR'+join([choice(letters) for i in range(8)], "")
+         framelabel= 'SFR'+"".join([choice(letters) for i in range(8)])
          try:
             r,c,n = framebase.get_geometry()
             frame2 = framebase.figure.add_subplot(r, c, n,
@@ -2969,7 +2969,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
             try:
                pt = obj.ptype
             except:
-               raise Exception, "Unknown object. Cannot plot this!"
+               raise Exception("Unknown object. Cannot plot this!")
             if pt in ["Insidelabels"]:
                try:
                   visible = obj.visible
@@ -3414,12 +3414,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                           self.prec[gridline.wcsaxis] = len(s2[1])
            else:      # One or more positions are given. Find the right index.
               for pos in posn:
-                 if type(pos) == StringType:
+                 if isinstance(pos, six.string_types):
                     C = pos.upper()
                     if 'H' in C or 'D' in C or 'M' in C or 'S' in C:
                        pos, err = parsehmsdms(pos)
                        if err != '':
-                          raise Exception, err
+                          raise Exception(err)
                        else:
                           pos = pos[0]
                     else:
@@ -3625,12 +3625,12 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          else:
             S = position
          for constval in S:
-            if type(constval) == StringType:
+            if isinstance(constval, six.string_types):
                C = constval.upper()
                if 'H' in C or 'D' in C or 'M' in C or 'S' in C:
                   constval, err = parsehmsdms(constval)
                   if err != '':
-                     raise Exception, err
+                     raise Exception(err)
                   else:
                      constval = constval[0]
                else:
@@ -4013,10 +4013,10 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
          else:            
             constval = self.xstarts[0]
 
-      if type(constval) == StringType:
+      if isinstance(constval, six.string_types):
          pos, err = parsehmsdms(constval)
          if err != '':
-            raise Exception, err
+            raise Exception(err)
          else:
             constval = pos[0]
 

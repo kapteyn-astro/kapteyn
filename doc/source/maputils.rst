@@ -1,1 +1,1 @@
-.. automodule:: maputils
+.. automodule:: kapteyn.maputils

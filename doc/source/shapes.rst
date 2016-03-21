@@ -1,1 +1,1 @@
-.. automodule:: shapes
+.. automodule:: kapteyn.shapes

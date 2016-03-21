@@ -485,7 +485,7 @@ class Ruler(object):
 
       spatial = projection.types[0] in ['longitude', 'latitude'] or projection.types[1] in ['longitude', 'latitude']
       if not spatial:
-         raise Exception, "Rulers only suitable for maps with at least one spatial axis!"
+         raise Exception("Rulers only suitable for maps with at least one spatial axis!")
 
       # User entered units, then check conversion
       uf = None
@@ -498,7 +498,7 @@ class Ruler(object):
       if not pos1 is None:
          poswp = str2pos(pos1, projection, mixpix=mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
-            raise Exception, poswp[3]
+            raise Exception(poswp[3])
          # The result of the position parsing of str2pos is stored in 'poswp'
          # Its second element are the returned pixel coordinates.
          # (poswp[1]).
@@ -518,7 +518,7 @@ class Ruler(object):
       if not pos2 is None:
          poswp = str2pos(pos2, projection, mixpix=mixpix, gridmode=self.gridmode)
          if poswp[3] != "":
-            raise Exception, poswp[3]
+            raise Exception(poswp[3])
          pix =  poswp[1][0]
          x2 = pix[0]
          y2 = pix[1]
@@ -556,7 +556,7 @@ class Ruler(object):
       else:
          stepsizeW = step
       if step == 0.0:
-         raise Exception, "Cannot make ruler with step size equal to zero!"
+         raise Exception("Cannot make ruler with step size equal to zero!")
    
    
       # Look for suitable units (degrees, arcmin, arcsec) if nothing is
@@ -577,7 +577,7 @@ class Ruler(object):
                if labelsintex:
                   fmt = r"%4.0f^{\circ}"
                else:
-                  fmt = u"%4.0f\u00B0"
+                  fmt = "%4.0f\u00B0"
             elif uf == 60.0:
                # Write labels in arcmin
                if labelsintex:
@@ -597,7 +597,7 @@ class Ruler(object):
             if labelsintex:
                fmt = r"%4.0f^{\circ}"
             else:
-               fmt = u"%4.0f\u00B0"
+               fmt = "%4.0f\u00B0"
             if abs(stepsizeW) < 1.0:
                # Write labels in arcmin
                fun = lambda x: x*60.0
@@ -618,12 +618,12 @@ class Ruler(object):
       start_in = isinside(x1, y1, pxlim, pylim)
       #start_in = (pxlim[0]-0.5 <= x1 <= pxlim[1]+0.5) and (pylim[0]-0.5 <= y1 <= pylim[1]+0.5)
       if not start_in:
-         raise Exception, "Start point of ruler not in pixel limits!"
+         raise Exception("Start point of ruler not in pixel limits!")
 
       end_in = isinside(x2, y2, pxlim, pylim)
       #end_in = (pxlim[0]-0.5 <= x2 <= pxlim[1]+0.5) and (pylim[0]-0.5 <= y2 <= pylim[1]+0.5)
       if not end_in:
-         raise Exception, "End point of ruler not in pixel limits!"
+         raise Exception("End point of ruler not in pixel limits!")
    
       # Ticks perpendicular to ruler line. Prependicular is with respect to
       # square pixels, so correct these first for their aspect ratio to find

@@ -68,7 +68,6 @@ else:
    import matplotlib.path as path
 from kapteyn.maputils import AxesCallback
 from sys import stdout, exit
-from types import TupleType
 from kapteyn.mplutil import KeyPressFilter
 from numpy import pi, array, dot, zeros, sin, cos, asarray, hypot, matrix, concatenate
 from numpy import equal, nonzero, amin, arange
@@ -201,7 +200,7 @@ def ellipsesamples(xc, yc, major, minor, pa, n):
 
    a = abs(major); b = abs(minor)       # Make it a bit more robust
    if a == 0 or b == 0.0:               # Empty list if one of the axes is 0
-      return zip([],[])
+      return list(zip([],[]))
    dth = 2*pi/n
    cosdth = Cos(dth)
    sindth = Sin(dth)
@@ -268,12 +267,12 @@ def cubicspline(xyu, nsamples):
    if scale == 0.0:
       return None
    xys = asarray(xyu)/scale
-   x, y = zip(*xys)
+   x, y = list(zip(*xys))
    x = list(x)
    y = list(y)
    x.append(x[0])                 # Close polygon
    y.append(y[0])
-   xy = zip(x,y)
+   xy = list(zip(x,y))
    np += 1                        # A vertex was added, increase the counter
    x1 = array(x[:-1])
    x2 = array(x[1:])
@@ -308,7 +307,7 @@ def cubicspline(xyu, nsamples):
    # points are needed to interpolate those segments.
    # The alternative is not implemented. The alternative is to calculate samples
    # that are equidistant on all segments.
-   ta = array(range(nsamples))/float(nsamples)
+   ta = array(list(range(nsamples)))/float(nsamples)
    ta2 = ta*ta
    ta3 = ta*ta2
    F = matrix(zeros((4,len(ta))))
@@ -351,7 +350,7 @@ class Poly(Polygon):
       self.edgecolor = 'r'
       self.shapetype = type
       self.epsilon = 20                  # A distance in display coordinates
-      Polygon.__init__(self, zip([x0],[y0]), closed=False,
+      Polygon.__init__(self, list(zip([x0],[y0])), closed=False,
                        alpha=0.1, edgecolor='r', picker=5, animated=False, **self.kwargs)
       if not spline:
          self.frame.add_patch(self)
@@ -367,7 +366,7 @@ class Poly(Polygon):
       self.flux = None
       self.spline = None
       if spline:
-         self.spline = Polygon(zip([x0],[y0]), closed=False, alpha=0.3, edgecolor='r')
+         self.spline = Polygon(list(zip([x0],[y0])), closed=False, alpha=0.3, edgecolor='r')
          self.frame.add_patch(self.spline)
       if self.active:
          self.set_active(markers)
@@ -384,7 +383,7 @@ class Poly(Polygon):
    def updatexy(self, xy, x0=None, y0=None):
       #self.xy = xy     # Direct access. Not preferred but still possible
       self.set_xy(xy)   # Just to demonstrate that also the setter and getter can be used
-      x, y = zip(*self.get_xy())
+      x, y = list(zip(*self.get_xy()))
       self.markers.set_data(x, y)
       self.startmarker.set_data(x[0], y[0])
       if not x0 is None:
@@ -394,12 +393,12 @@ class Poly(Polygon):
 
 
    def shiftxy(self, x0, y0):
-      x, y = zip(*self.xy)
+      x, y = list(zip(*self.xy))
       dx = x0 - self.x0
       dy = y0 - self.y0
       x = asarray(x) + dx
       y = asarray(y) + dy
-      return zip(x,y)
+      return list(zip(x,y))
 
 
    def set_active(self, markers=False):
@@ -422,7 +421,7 @@ class Poly(Polygon):
       xyl = list(self.get_xy())
       xyl.append([x,y])    # Append the new position
       self.set_xy(xyl)
-      self.markers.set_data(zip(*self.get_xy()))
+      self.markers.set_data(list(zip(*self.get_xy())))
       self.markers.set_visible(markers)
 
 
@@ -448,7 +447,7 @@ class Poly(Polygon):
 
    def indexclosestmarker(self, x, y):
       # These coordinates are display pixels!
-      xt,yt = zip(*self.frame.transData.transform(self.xy))
+      xt,yt = list(zip(*self.frame.transData.transform(self.xy)))
       xt = asarray(xt); yt = asarray(yt)
       d = (xt-x)*(xt-x) + (yt-y)*(yt-y)
       a2 = equal(d, amin(d))
@@ -472,7 +471,7 @@ class Poly(Polygon):
       else:
          del xyl[indx]
       self.xy = xyl
-      self.markers.set_data(zip(*self.xy))
+      self.markers.set_data(list(zip(*self.xy)))
 
 
    def indexsegmentinrange(self, x, y):
@@ -508,7 +507,7 @@ class Poly(Polygon):
       if i >= len(self.xy):   # After the last segment you can only append
          return
       self.xy = array(list(self.xy[:i]) + [(x, y)] + list(self.xy[i:]))
-      self.markers.set_data(zip(*self.xy))
+      self.markers.set_data(list(zip(*self.xy)))
 
 
    def delete(self):
@@ -535,12 +534,12 @@ class Poly(Polygon):
 
    def moveall(self, dx, dy):
       # dx = x0-self.x0; dy = y0-self.y0
-      x, y = zip(*self.xy)
+      x, y = list(zip(*self.xy))
       x = asarray(x) + dx
       y = asarray(y) + dy
       self.markers.set_data(x, y)
       self.startmarker.set_data(x[0], y[0])
-      self.xy = zip(x, y)
+      self.xy = list(zip(x, y))
       self.x0 += dx
       self.y0 += dy
       return self.xy
@@ -548,7 +547,7 @@ class Poly(Polygon):
 
    def movemarker(self, x, y, indx):
       self.xy[indx] = x,y
-      self.markers.set_data(zip(*self.xy))
+      self.markers.set_data(list(zip(*self.xy)))
       if indx == 0:
          self.startmarker.set_data(x, y)
 
@@ -606,7 +605,7 @@ class Ellipse(Poly):
       if major or majorpa:
          self.maj = axis
       self.xy = self.getvertices()
-      xn, yn = zip(*self.xy)
+      xn, yn = list(zip(*self.xy))
       self.markers.set_data(xn, yn)
       self.startmarker.set_data(xn[0], yn[0])
 
@@ -623,7 +622,7 @@ class Ellipse(Poly):
 
    def updatexy(self, xy, x0=None, y0=None):
       self.xy = xy
-      self.markers.set_data(zip(*self.xy))
+      self.markers.set_data(list(zip(*self.xy)))
       if not x0 is None:
          self.x0 = x0
       if not y0 is None:
@@ -633,7 +632,7 @@ class Ellipse(Poly):
       # another image is usually not an ellipse anymore.
       # So we need to estimate the new parameters.
       # We require that the center position (x0, y0) remains constant
-      x, y = zip(*self.xy)
+      x, y = list(zip(*self.xy))
       # x = asarray(x); y = asarray(y)
       # Assume symmetry and estimate ellipse parameters.
       # The indices are based on a sampling of len(xy) samples.
@@ -658,7 +657,7 @@ class Circle(Poly):
 
 
    def getvertices(self):
-      vertices = zip(self.radius*cos(self.phi)+self.x0, self.radius*sin(self.phi)+self.y0)
+      vertices = list(zip(self.radius*cos(self.phi)+self.x0, self.radius*sin(self.phi)+self.y0))
       return vertices
 
 
@@ -666,7 +665,7 @@ class Circle(Poly):
       # Move 1 marker to x, y
       self.radius = Sqrt((self.x0-x)**2 + (self.y0-y)**2)
       self.xy = self.getvertices()
-      xn, yn = zip(*self.xy)
+      xn, yn = list(zip(*self.xy))
       self.markers.set_data(xn, yn)
       self.startmarker.set_data(xn[0], yn[0])
 
@@ -686,7 +685,7 @@ class Circle(Poly):
       if not y0 is None:
          self.y0 = y0
       self.xy = xy
-      self.markers.set_data(zip(*self.xy))
+      self.markers.set_data(list(zip(*self.xy)))
       # Now estimate the radius. Note that a circle in the original
       # system needs not to be a cricle in another image. We make it
       # a circle by calculating a new radius which is the distance
@@ -724,13 +723,13 @@ class Rectangle(Poly):
       y[2] = y[1] + self.height
       x[3] = x[0]
       y[3] = y[2]
-      vertices = zip(x,y)
+      vertices = list(zip(x,y))
       return vertices
 
 
    def movemarker(self, xnew, ynew, indx):
       # The rectangle
-      x, y = zip(*self.xy)
+      x, y = list(zip(*self.xy))
       dx = (xnew - x[indx])   # Displacement in the rotated system
       dy = (ynew - y[indx])
       # Now get all the vertices and xnew, ynew in the unrotated system centered at (0,0)
@@ -763,7 +762,7 @@ class Rectangle(Poly):
       x, y = rotate(xr, yr, self.pa)
       x = [a+self.x0 for a in x]
       y = [a+self.y0 for a in y]
-      self.xy = zip(x, y)
+      self.xy = list(zip(x, y))
       self.markers.set_data(x, y)
       self.startmarker.set_data(x[0], y[0])
 
@@ -792,7 +791,7 @@ class Rectangle(Poly):
       # and the choice of the exact object is in an arbitrary image (i.e. the image of the 
       # current active object)
       self.xy = xy
-      x, y = zip(*self.xy)
+      x, y = list(zip(*self.xy))
       self.markers.set_data(x,y)
       # Now get all the vertices and xnew, ynew in the unrotated system centered at (0,0)
       if not x0 is None:
@@ -963,7 +962,7 @@ class Shapecollection(object):
       self.currenttype = 0
       self.canvas = ifigure.canvas
       self.numberoftypes = 5
-      self.shapetypes = [self.polygon, self.ellipse, self.circle, self.rectangle, self.spline] = range(self.numberoftypes)
+      self.shapetypes = [self.polygon, self.ellipse, self.circle, self.rectangle, self.spline] = list(range(self.numberoftypes))
       # Extend the shape types by adding a variable and the number in self.numberoftypes 
       self.maxindx = [-1]*self.numberoftypes  # Initialize index for object sequences to -1
       # A shape is repeated in all images.  For this group of shapes we reserve an index
@@ -1230,11 +1229,11 @@ class Shapecollection(object):
 
       if not possible:
          # Incompatible axes
-         if type(xy1) == TupleType and len(xy1) == 2:
+         if isinstance(xy1, tuple) and len(xy1) == 2:
             xy2 = (0, 0)
          else:
             xx = [0.0]*len(xy1); yy = [0.0]*len(xy1)
-            xy2 = zip(xx, yy)
+            xy2 = list(zip(xx, yy))
          return xy2
 
       # Is the order of the axes in the images the same? If not then swap
@@ -1249,9 +1248,9 @@ class Shapecollection(object):
       # In principle we work with a two column zipped variable
       # but allow also a tuple with two elements
       # Convert this last type to the first to simplify the code below
-      if type(xy1) == TupleType and len(xy1) == 2:
+      if isinstance(xy1, tuple) and len(xy1) == 2:
          twoelements = True
-         xy1 = zip([xy1[0]], [xy1[1]])        # Upgrade to lists
+         xy1 = list(zip([xy1[0]], [xy1[1]]))        # Upgrade to lists
       else:
          twoelements = False
 
@@ -1272,8 +1271,8 @@ class Shapecollection(object):
          xyworld1 =  proj1.toworld(xy1)
          #  What if the axes order is not the same?
          if swap:
-            xw, yw = zip(*xyworld1)
-            xyworld1 = zip(yw, xw)       # Swap the pixel coordinates then
+            xw, yw = list(zip(*xyworld1))
+            xyworld1 = list(zip(yw, xw))       # Swap the pixel coordinates then
          xy2 = proj2.topixel(xyworld1)
       else:
          # Add the pixel that sets the position on the 'missing'
@@ -1293,13 +1292,13 @@ class Shapecollection(object):
          else:
             proj1s = proj1
          z = zeros(len(xy1)) + mixpix1
-         x, y = zip(*xy1)
-         t = zip(x, y, z)
+         x, y = list(zip(*xy1))
+         t = list(zip(x, y, z))
          xyworld1 =  proj1s.toworld(t)
          n = len(xy1)
          unknown = zeros(n) + NAN
          zp = zeros(n) + mixpix2
-         xw, yw, zw = zip(*xyworld1)
+         xw, yw, zw = list(zip(*xyworld1))
          if swap:
             world = (yw, xw, unknown)
          else:
@@ -1308,7 +1307,7 @@ class Shapecollection(object):
          # For the destination image we need to use the mixed method because
          # for a missing spatial axis we only have the pixel coordinate available.
          (world, pixel) = proj2.mixed(world, pixel)
-         xy2 = zip(pixel[0], pixel[1])
+         xy2 = list(zip(pixel[0], pixel[1]))
 
       proj1.skyout = None                    # Reset
       if twoelements:                        # Make tuple of two elements again
@@ -1354,7 +1353,7 @@ class Shapecollection(object):
       elif self.currenttype == self.spline:
          baseobj = Spline(currentframe, framenr, active, markers,
                      xpb, ypb, type=self.currenttype, r1=maj, r2=min)
-      baseobj.updatexy(zip(x, y))                # The position to start with
+      baseobj.updatexy(list(zip(x, y)))                # The position to start with
       if self.wcs:
          xyworld = self.images[framenr].toworld(baseobj.xy[:,0], baseobj.xy[:,1])
       #proj1 = self.images[framenr].projection
@@ -1922,7 +1921,7 @@ class Shapecollection(object):
       if self.gipsy and gipsymod:
          anyout(mes)
       else:
-         print mes
+         print(mes)
       fluxlist = []
       for i, im in enumerate(self.images):
          for sh in self.shapes:
@@ -1940,14 +1939,14 @@ class Shapecollection(object):
                         if self.gipsy and gipsymod:
                            anyout(mes)
                         else:
-                           print mes
+                           print(mes)
                         fluxlist.append(obj.flux)
                      else:
                         mes = "Object %d with shape %d in image %d has pixels outside frame" % (ol, obj.shapetype, i)
                         if self.gipsy and gipsymod:
                            anyout(mes)
                         else:
-                           print mes
+                           print(mes)
                         obj.area = obj.sum = obj.flux = None
 
 
@@ -1979,7 +1978,7 @@ class Shapecollection(object):
       frameresult.set_ylim(ymin-d, ymax+d)
       frameresult.set_xlim(-0.5, self.numberofimages-1+0.5)
       frameresult.set_title("Flux as function of shape and image")
-      xticks = range(self.numberofimages)  # Only the image numbers as labels
+      xticks = list(range(self.numberofimages))  # Only the image numbers as labels
       frameresult.set_xticks(xticks)
       frameresult.set_xlabel("Image number")
       frameresult.set_ylabel("Flux")

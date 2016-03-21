@@ -894,13 +894,11 @@ Functions
 """
 
 # Imports
-from __future__ import division
-from types import ListType, TupleType
+
 from re import split as re_split
 from re import findall as re_findall
-from string import whitespace, ascii_uppercase, join
-from string import upper as string_upper
-from types import StringType, SliceType
+from string import whitespace, ascii_uppercase
+import six
 from numpy import nan as unknown
 from numpy import asarray, zeros, floor, array2string
 from numpy import  array, ndarray
@@ -913,7 +911,17 @@ from numpy import abs, arccos, arccosh, arcsin, arcsinh, arctan, arctan2
 from numpy import arctanh, cos, cosh, degrees, exp, log2, log10, mean, median, min, max
 from numpy import pi, radians, sin, sinc, sqrt, sum, tan, tanh, sign
 from numpy.random import rand, randn, ranf, randint
-from operator import isSequenceType
+
+# py2/3 comp:
+#from operator import isSequenceType
+def isSequenceType(obj):
+    try:
+        from collections import Sequence
+    except ImportError:
+        from operator import isSequenceType
+        return operator.isSequenceType(obj)
+    else:
+        return isinstance(obj, Sequence)
 
 # Euler's number
 e = 2.7182818284590452353602874713527
@@ -951,7 +959,7 @@ class __a(object):
          key = (key,)
       result = []
       for element in key:
-         if type(element)==SliceType:
+         if isinstance(element, slice):
             startval = float(element.start)
             if element.stop is None:                      # v::n
                for value in [element.start]*element.step:
@@ -1297,11 +1305,11 @@ def unitfactor(unitfrom, unitto):
       unitfrom = unitfrom.split('/')[1]
       unitto = unitto.split('/')[1]
       
-   mylist = units.keys()
+   mylist = list(units.keys())
    i = minmatch(unitfrom, mylist)
    if i != None:
       if i >= 0:
-         key = units.keys()[i]
+         key = list(units.keys())[i]
          typ1 = units[key][0]
          fac1 = units[key][1]
       else:
@@ -1313,7 +1321,7 @@ def unitfactor(unitfrom, unitto):
    i = minmatch(unitto, mylist)
    if i != None:
       if i >= 0:
-         key = units.keys()[i]
+         key = list(units.keys())[i]
          typ2 = units[key][0]
          fac2 = units[key][1]
       else:
@@ -1367,7 +1375,7 @@ def parseskysystem(skydef):
    try:
       sky = skyparser(skydef)
       return sky, ""
-   except ValueError, message:
+   except ValueError as message:
       errmes = str(message)
       return None, errmes
 
@@ -1660,7 +1668,7 @@ class Coordparser(object):
       self.source = source
       self.gipsygrids = gipsygrids
       if translations:
-         self.strans, self.sunits = zip(*translations)
+         self.strans, self.sunits = list(zip(*translations))
       else:
          self.strans = []
          self.sunits = []
@@ -1763,12 +1771,12 @@ class Coordparser(object):
       # Try it as argument for Python's eval() with retrictions
       try:
          x = eval_restrict(currenttoken)
-         if type(x) is TupleType or isinstance(x, ndarray):
+         if isinstance(x, (tuple, ndarray)):
             x = list(x)
-         if type(x) is not ListType:       # These two types cannot be combined. x = list(x) will raise except.
+         if not isinstance(x, list):       # These two types cannot be combined. x = list(x) will raise except.
             x = [x]
          number = x
-      except Exception, message:
+      except Exception as message:
          self.errmes = usermessage(currenttoken, message)
          tryother = True
 
@@ -1885,7 +1893,7 @@ class Coordparser(object):
                skydef = self.prevsky
          else:
             skydef = sk         # Copy the PARSED sky definition!
-      except Exception, message:
+      except Exception as message:
          skydef = None
          self.errmes = usermessage(currenttoken, message)
 
@@ -2032,7 +2040,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None):
       # to deal with these situations.
       try:
          wor, pix = newproj.mixed(tuple(wcoord), tuple(gcoord))
-      except wcs.WCSerror, message:
+      except wcs.WCSerror as message:
          errmes = str(message[1])  # element 0 is error number
          # Restore to the original projection object
          # Note that 'newproj' could be pointer to 'subproj' which shares the same skyout
@@ -2152,8 +2160,8 @@ def str2pos(postxt, subproj, mixpix=None, gridmode=False):
 
    """
    #-------------------------------------------------------------------
-   if type(postxt) != StringType:
-      raise TypeError, "str2pos(): parameter postxt must be a String"
+   if not isinstance(postxt, six.string_types):
+      raise TypeError("str2pos(): parameter postxt must be a String")
    subdim = len(subproj.types)
    if mixpix != None:
       subdim -= 1
@@ -2191,13 +2199,13 @@ def dotest():
    def printpos(postxt, pos):
       # Print the position information
       world, pixels, units, errmes = pos
-      print    "Expression        : %s"%postxt
+      print(("Expression        : %s"%postxt))
       if errmes == '':
-         print "World coordinates :", world, units
-         print "Pixel coordinates :", pixels
+         print(("World coordinates :", world, units))
+         print(("Pixel coordinates :", pixels))
       else:
-         print errmes
-      print ""
+         print(errmes)
+      print("")
       
    header = { 'NAXIS'  : 3,
               'BUNIT'  : 'w.u.',
@@ -2227,7 +2235,7 @@ def dotest():
    #wcs.debug=True
    origproj = wcs.Projection(header)
 
-   print "-------------- Examples of numbers and constants, missing spatial--------------\n"
+   print("-------------- Examples of numbers and constants, missing spatial--------------\n")
    proj = origproj.sub((1,3,2))
    mixpix = 6
    userpos = ["(3*4)-5 1/5*(7-2)",
@@ -2261,10 +2269,10 @@ def dotest():
    for postxt in userpos:
       wp = str2pos(postxt, proj, mixpix=mixpix)
       printpos(postxt, wp)
-   print ''
+   print('')
 
 
-   print "-------------- Examples of 1 spatial axis and a missing spatial--------------\n"
+   print("-------------- Examples of 1 spatial axis and a missing spatial--------------\n")
    proj = origproj.sub((1,2))
    mixpix = 6
    userpos = ["(3*4)",
@@ -2290,10 +2298,10 @@ def dotest():
    for postxt in userpos:
       wp = str2pos(postxt, proj, mixpix=mixpix)
       printpos(postxt, wp)
-   print ''
+   print('')
 
 
-   print "-------------- Examples of units, spectral translations and grouping -----------\n"
+   print("-------------- Examples of units, spectral translations and grouping -----------\n")
    proj = origproj.sub((3,))
    userpos = ["7 0",
               "1.4154482500E+09 hz",
@@ -2316,9 +2324,9 @@ def dotest():
    for postxt in userpos:
       wp = str2pos(postxt, proj)
       printpos(postxt, wp)
-   print ''
+   print('')
 
-   print "--------- Output of previous coordinates in terms of VOPT:----------\n"
+   print("--------- Output of previous coordinates in terms of VOPT:----------\n")
    proj2 = proj.spectra('VOPT-???')
    userpos = ["7",
               "freq 1.4154482500E+09 hz",
@@ -2336,9 +2344,9 @@ def dotest():
    for postxt in userpos:
       wp = str2pos(postxt, proj2)
       printpos(postxt, wp)
-   print ''
+   print('')
 
-   print "--------- Sky systems and AC&PC ----------\n"
+   print("--------- Sky systems and AC&PC ----------\n")
    proj = origproj.sub((1,2))
    userpos = ["0 0",
               "5,6 0 0 3,1",
@@ -2365,21 +2373,21 @@ def dotest():
    for postxt in userpos:
       wp = str2pos(postxt, proj)
       printpos(postxt, wp)
-   print ''
+   print('')
 
-   print "--------- Same as previous but in terms of Galactic coordinates ----------\n"
+   print("--------- Same as previous but in terms of Galactic coordinates ----------\n")
    sky_old = proj.skyout
    proj.skyout = "ga"
    for postxt in userpos:
       wp = str2pos(postxt, proj)
       printpos(postxt, wp)
-   print ''
+   print('')
    proj.skyout = sky_old
 
-   print "--------- XV map: one spatial and one spectral axis ----------\n"
+   print("--------- XV map: one spatial and one spectral axis ----------\n")
    proj = origproj.sub((2,3,1))
    mixpix = 5
-   print "Spectral translations: ", proj.altspec
+   print(("Spectral translations: ", proj.altspec))
    userpos = ["{} 53.655 1.4154482500E+09 hz",
               "{} 53.655 1.4154482500E+03 Mhz",
               "53.655 deg 1.4154482500 Ghz",
@@ -2397,7 +2405,7 @@ def dotest():
    for postxt in userpos:
       wp = str2pos(postxt, proj, mixpix=mixpix)
       printpos(postxt, wp)
-   print ''
+   print('')
 
    # Create an Ascii file with dummy data for testing the READCOL command
    # The data in the Ascii file is composed of a fixed sequence of grids
@@ -2429,7 +2437,7 @@ def dotest():
    s = "11 59 .008 53 39 16.0\n"; f.write(s)
    f.close()
 
-   print "--------- Reading from file ----------\n"
+   print("--------- Reading from file ----------\n")
    proj = origproj.sub((1,2))
    userpos = [ 'readcol("test123.txt") readcol("test123.txt",3)',
                '10*readcol("test123.txt") sin(readcol("test123.txt",3))',
@@ -2456,18 +2464,18 @@ def dotest():
    for postxt in userpos:
       wp = str2pos(postxt, proj)
       printpos(postxt, wp)
-   print ''
+   print('')
 
-   print "--------- Reading from header ----------\n"
+   print("--------- Reading from header ----------\n")
    proj = origproj.sub((1,2))
    userpos = [ '{} header("crval1") {} header("crval2")',
                '3*header("crpix1") sin(header("crpix2"))' ]
    for postxt in userpos:
       wp = str2pos(postxt, proj)
       printpos(postxt, wp)
-   print ''
+   print('')
 
-   print "--------- Problem strings and error messages ----------\n"
+   print("--------- Problem strings and error messages ----------\n")
    proj = origproj.sub((1,2))
    userpos = ["33",
               "1 2 3",
@@ -2492,13 +2500,13 @@ def dotest():
    for postxt in userpos:
       wp = str2pos(postxt, proj)
       printpos(postxt, wp)
-   print ''
+   print('')
 
    import readline
    upos = 'xxx'
    proj = origproj.sub((1,2)); mixpix = None
    while upos != '':
-      upos = raw_input("Enter position(s) ..... [quit loop]: ")
+      upos = eval(input("Enter position(s) ..... [quit loop]: "))
       readline.add_history(upos) 
       if upos != '':
          wp = str2pos(upos, proj, mixpix=mixpix)

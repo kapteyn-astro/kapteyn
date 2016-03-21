@@ -1,4 +1,4 @@
-.. automodule:: tabarray
+.. automodule:: kapteyn.tabarray
 
    Example
    --------

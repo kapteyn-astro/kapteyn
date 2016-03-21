@@ -249,7 +249,7 @@ first :class:`AxesCallback` object `draw` as an attribute.
       self.axref     = weakref.ref(axes)
       self.eventtype = eventtype
       self.canvas    = axes.get_figure().canvas
-      for name in attr.keys():
+      for name in list(attr.keys()):
          self.__dict__[name] = attr[name]
       self.active    = False
       if schedule:
@@ -264,7 +264,7 @@ first :class:`AxesCallback` object `draw` as an attribute.
       """
 
       if self.axref() is None:
-         raise Exception, 'Axes object does not exist anymore'
+         raise Exception('Axes object does not exist anymore')
       if self.active:
          self.__scheduled.remove(self)        # remove from current position ..
          self.__scheduled.insert(0, self)     # .. and move to front of list
@@ -387,7 +387,7 @@ there is no position involved.
       self.proc      = proc
       self.canvas    = canvas
       self.eventtype = eventtype
-      for name in attr.keys():
+      for name in list(attr.keys()):
          self.__dict__[name] = attr[name]
       self.active    = False
       if schedule:
@@ -572,8 +572,8 @@ Values should be between 0.0 and 1.0.
       lut_tail = self.baselut[ncolors:]
       newmap = numpy.zeros((length,3), numpy.float)
       factor = float(ncolors-1)/(length-1)
-      xdest  = numpy.array(range(length), numpy.float)*factor
-      xsrc   = range(ncolors)
+      xdest  = numpy.array(list(range(length)), numpy.float)*factor
+      xsrc   = list(range(ncolors))
       for primary in [0,1,2]:
          primap = numpy.interp(xdest, xsrc, self.baselut[:ncolors,primary])
          newmap[:,primary] = primap
@@ -648,7 +648,7 @@ Values should be between 0.0 and 1.0.
       lut     = self._lut
       worklut = self.worklut
       slope   = slope*self.invrt
-      for i in xrange(ncolors):
+      for i in range(ncolors):
          x = (float(i)/float(ncolors-1))-0.5
          y = slope*(x-shift)+0.5
          if y>1.0:
@@ -680,29 +680,29 @@ Values should be between 0.0 and 1.0.
 
       if scale=='LOG':
          fac = float(ncolors-1)/math.log(ncolors)
-         for i in xrange(ncolors):
+         for i in range(ncolors):
             worklut[i] = baselut[int(fac*math.log(i+1))]
 
       elif scale=='EXP':
          fac = float(ncolors-1)/math.pow(10.0, (ncolors-1)/100.0 -1.0)
-         for i in xrange(ncolors):
+         for i in range(ncolors):
             worklut[i] = baselut[int(fac*math.pow(10.0, i/100.0-1.0))]
 
       elif scale=='SQRT':
          fac = float(ncolors-1)/math.sqrt(ncolors)
-         for i in xrange(ncolors):
+         for i in range(ncolors):
             worklut[i] = baselut[int(fac*math.sqrt(i))]
             
       elif scale=='SQUARE':
          fac = float(ncolors-1)/(ncolors*ncolors)
-         for i in xrange(ncolors):
+         for i in range(ncolors):
             worklut[i] = baselut[int(fac*i*i)]
 
       elif scale=='LINEAR':
          worklut[:] = baselut[:]
 
       else:
-         raise Exception, 'invalid colormap scale'
+         raise Exception('invalid colormap scale')
       
       self.scale = scale
       self.modify(self.slope, self.shift)
@@ -846,12 +846,12 @@ These steps take place at 0.1 second intervals.
       if backend in TimeCallback.supported:
          return object.__new__(TimeCallback.supported[backend])
       else:
-         raise Exception, 'TimeCallback not supported for backend %s' % backend
+         raise Exception('TimeCallback not supported for backend %s' % backend)
 
    def __init__(self, proc, interval, schedule=True, **attr):
       self.proc     = proc
       self.interval = interval
-      for name in attr.keys():
+      for name in list(attr.keys()):
          self.__dict__[name] = attr[name]
       self.id     = 0
       self.active   = False
@@ -927,7 +927,7 @@ try:
       def __init__(self, proc, interval, schedule=True, **attr):
          self.proc     = proc
          self.interval = interval
-         for name in attr.keys():
+         for name in list(attr.keys()):
             self.__dict__[name] = attr[name]
          self.active   = False
          self.timer = QtCore.QTimer()
@@ -1035,12 +1035,12 @@ Here is an example::
    elif backend in ['QT4AGG']:
       gipsy.qtconnect()
    elif backend in ['TKAGG']:
-      import Tkinter
+      import tkinter
       def _tkio(fd, mask):
          gipsy.hersignal()
       window = get_current_fig_manager().window
       fd = gipsy.herconnect()
-      window.tk.createfilehandler(fd, Tkinter.READABLE, _tkio)
+      window.tk.createfilehandler(fd, tkinter.READABLE, _tkio)
    else:
-      raise RuntimeError, 'Unsupported matplotlib backend for GIPSY connect'
+      raise RuntimeError('Unsupported matplotlib backend for GIPSY connect')
 

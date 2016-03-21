@@ -319,9 +319,9 @@ static PyObject *Py_GenericFilter1D(PyObject *obj, PyObject *args)
                                         "extra_keywords must be a dictionary");
         goto exit;
     }
-    if (PyCObject_Check(fnc)) {
-        func = PyCObject_AsVoidPtr(fnc);
-        data = PyCObject_GetDesc(fnc);
+    if (PyCapsule_IsValid(fnc, "")) {
+        func = PyCapsule_GetPointer(fnc, "");
+        data = NULL;//PyCObject_GetDesc(fnc);
     } else if (PyCallable_Check(fnc)) {
         cbdata.function = fnc;
         cbdata.extra_arguments = extra_arguments;
@@ -395,9 +395,9 @@ static PyObject *Py_GenericFilter(PyObject *obj, PyObject *args)
                                         "extra_keywords must be a dictionary");
         goto exit;
     }
-    if (PyCObject_Check(fnc)) {
-        func = PyCObject_AsVoidPtr(fnc);
-        data = PyCObject_GetDesc(fnc);
+    if (PyCapsule_IsValid(fnc, "")) {
+        func = PyCapsule_GetPointer(fnc, "");
+        data = NULL; //PyCObject_GetDesc(fnc);
     } else if (PyCallable_Check(fnc)) {
         cbdata.function = fnc;
         cbdata.extra_arguments = extra_arguments;
@@ -491,7 +491,7 @@ static int Py_Map(maybelong *ocoor, double* icoor, int orank, int irank,
     if (!coors)
         goto exit;
     for(ii = 0; ii < orank; ii++) {
-        PyTuple_SetItem(coors, ii, PyInt_FromLong(ocoor[ii]));
+        PyTuple_SetItem(coors, ii, PyLong_FromLong(ocoor[ii]));
         if (PyErr_Occurred())
             goto exit;
     }
@@ -547,9 +547,9 @@ static PyObject *Py_GeometricTransform(PyObject *obj, PyObject *args)
                                             "extra_keywords must be a dictionary");
             goto exit;
         }
-        if (PyCObject_Check(fnc)) {
-            func = PyCObject_AsVoidPtr(fnc);
-            data = PyCObject_GetDesc(fnc);
+        if (PyCapsule_IsValid(fnc, "")) {
+            func = PyCapsule_GetPointer(fnc, "");
+            data = NULL;//PyCObject_GetDesc(fnc);
         } else if (PyCallable_Check(fnc)) {
             func = Py_Map;
             cbdata.function = fnc;
@@ -666,8 +666,8 @@ static PyObject *Py_FindObjects(PyObject *obj, PyObject *args)
                 goto exit;
             }
             for(jj = 0; jj < input->nd; jj++) {
-                start = PyInt_FromLong(regions[idx + jj]);
-                end = PyInt_FromLong(regions[idx + jj + input->nd]);
+                start = PyLong_FromLong(regions[idx + jj]);
+                end = PyLong_FromLong(regions[idx + jj + input->nd]);
                 if (!start || !end) {
                     PyErr_NoMemory();
                     goto exit;
@@ -888,7 +888,7 @@ PyObject* _NI_BuildMeasurementResultInt(maybelong n_results,
         if (result) {
             maybelong ii;
             for(ii = 0; ii < n_results; ii++) {
-                PyObject* val = PyInt_FromLong(values[ii]);
+                PyObject* val = PyLong_FromLong(values[ii]);
                 if (!val) {
                     Py_XDECREF(result);
                     return NULL;
@@ -1209,7 +1209,7 @@ static PyObject *Py_BinaryErosion(PyObject *obj, PyObject *args)
                                                 return_coordinates ? &coordinate_list : NULL))
         goto exit;
     if (return_coordinates) {
-        cobj = PyCObject_FromVoidPtr(coordinate_list, _FreeCoordinateList);
+        cobj = PyCapsule_New(coordinate_list, "", _FreeCoordinateList);
     }
 exit:
     Py_XDECREF(input);
@@ -1243,8 +1243,8 @@ static PyObject *Py_BinaryErosion2(PyObject *obj, PyObject *args)
                     &cobj))
         goto exit;
 
-    if (PyCObject_Check(cobj)) {
-        NI_CoordinateList *cobj_data = PyCObject_AsVoidPtr(cobj);
+    if (PyCapsule_IsValid(cobj, "")) {
+        NI_CoordinateList *cobj_data = PyCapsule_GetPointer(cobj, "");
         if (!NI_BinaryErosion2(array, strct, mask, niter, origins, invert,
                                                      &cobj_data))
             goto exit;
@@ -1313,8 +1313,80 @@ static PyMethodDef methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC init_nd_image(void)
+/*PyMODINIT_FUNC init_nd_image(void)
 {
     Py_InitModule("_nd_image", methods);
     import_array();
+}*/
+
+
+struct module_state {
+    PyObject *error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct module_state _state;
+#endif
+
+
+#if PY_MAJOR_VERSION >= 3
+
+static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+}
+
+static int myextension_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+
+
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "_nd_image",
+        NULL,
+        sizeof(struct module_state),
+        methods,
+        NULL,
+        myextension_traverse,
+        myextension_clear,
+        NULL
+};
+
+#define INITERROR return NULL
+
+PyObject *
+PyInit__nd_image(void)
+
+#else
+#define INITERROR return
+
+void
+init_nd_image(void)
+#endif
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *module = PyModule_Create(&moduledef);
+#else
+    PyObject *module = Py_InitModule("_nd_image", methods);
+#endif
+
+
+    if (module == NULL)
+        INITERROR;
+    struct module_state *st = GETSTATE(module);
+
+    st->error = PyErr_NewException("_nd_image.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+    import_array();
+#if PY_MAJOR_VERSION >= 3
+    return module;
+#endif
 }

@@ -1,1 +1,1 @@
-.. automodule:: mplutil
+.. automodule:: kapteyn.mplutil

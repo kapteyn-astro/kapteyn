@@ -1,1 +1,1 @@
-.. automodule:: ascarray
+.. automodule:: kapteyn.ascarray

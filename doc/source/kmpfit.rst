@@ -1,1 +1,1 @@
-.. automodule:: kmpfit
+.. automodule:: kapteyn.kmpfit

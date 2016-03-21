@@ -161,6 +161,8 @@ from kapteyn.celestial import skymatrix, skyparser, \
                       sgal, supergalactic, \
                       fk4, fk4_no_e, fk5, icrs, epochs, dynj2000, j2000, \
                       lon2hms, lon2dms, lat2dms
+def issequence(obj):
+   return isinstance(obj, (list, tuple, numpy.ndarray))
 
 cdef extern from "math.h":
    cdef double floor(double x)
@@ -462,7 +464,7 @@ class Coordinate(object):
             self.dyn = False
             raise WCSerror, (-2, "unrecognized coordinate source")
       elif isinstance(source, tuple):
-         if operator.isSequenceType(source[0]):
+         if issequence(source[0]):
             self.__format = SequenceTupleFormat
             self.ndims = len(source)
             self.n     = len(source[0])
@@ -1402,7 +1404,7 @@ Example::
       newpar = <wcsprm*>calloc(1, sizeof(wcsprm))
       c_axes = <int*>malloc(param.naxis*sizeof(int))
       if axes:
-         if not operator.isSequenceType(axes):
+         if not issequence(axes):
             axes = [axes]
          i = 0
          for axis in axes:
