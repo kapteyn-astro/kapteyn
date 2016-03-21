@@ -16,7 +16,7 @@
 # Groningen, The Netherlands
 # E: gipsy@astro.rug.nl
 #----------------------------------------------------------------------
-u"""
+"""
 Module Celestial
 ================
 
@@ -390,7 +390,7 @@ Functions related to E-terms
 import numpy as n
 import types
 from re import split as re_split
-from string import upper
+
 
 
 class skyrefsys(object):
@@ -1339,7 +1339,7 @@ What is the obliquity of the ecliptic at this Julian date?
 
 def IAU2006precangles(epoch):
 #----------------------------------------------------------------------
-   u"""
+   """
 Calculate IAU 2000 precession angles for precession from
 input epoch to J2000.
 
@@ -1397,7 +1397,7 @@ input epoch to J2000.
 
 def Lieskeprecangles(jd1, jd2):
 #----------------------------------------------------------------------
-   u"""
+   """
 Calculate IAU 1976 precession angles for a precession
 of epoch corresponding to Julian date jd1 to epoch corresponds
 to Julian date jd2.
@@ -1482,7 +1482,7 @@ to Julian date jd2.
 
 def Newcombprecangles(epoch1, epoch2):
 #----------------------------------------------------------------------
-   u"""
+   """
 Calculate precession angles for a precession in FK4, using
 Newcomb's method (Woolard and Clemence angles)
 
@@ -1694,7 +1694,7 @@ a suffix '_' which may be follwed by arbitrary characters.
 
    if not spec:
       mes = "No epoch in string"
-      raise Exception, mes
+      raise Exception(mes)
 
    b = j = jd = None
 
@@ -1741,10 +1741,10 @@ a suffix '_' which may be follwed by arbitrary characters.
          b  = JD2epochBessel(jd)
          j  = JD2epochJulian(jd)
       else:
-         raise Exception, "Unknown prefix for epoch"
+         raise Exception("Unknown prefix for epoch")
    except:
       mes = "No prefix or cannot convert epoch to a number"
-      raise Exception, mes
+      raise Exception(mes)
 
    return (b, j, jd)
 
@@ -2847,7 +2847,7 @@ includes also conversions between reference systems.
       return M5*M4*M3*M2*M1
    else:
       mes = "Unknown celestial reference system: %s or %s" % (S1, S2) 
-      raise Exception, mes
+      raise Exception(mes)
 
 
 
@@ -2883,7 +2883,7 @@ Reference:  -
          return M3*M2*M1
       else:
          mes = "Unknown output sky system: %s" % (S2,)
-         raise Exception, mes
+         raise Exception(mes)
 
    elif skyin == ecliptic:
       if skyout == equatorial:
@@ -2909,7 +2909,7 @@ Reference:  -
          return M4*M3*M2*M1
       else:
          mes = "Unknown output sky system: %s" % (S2,)
-         raise Exception, mes
+         raise Exception(mes)
 
    elif skyin == galactic:
       if skyout == equatorial:                              # gal -> eq, epoch2
@@ -2928,7 +2928,7 @@ Reference:  -
          return M1
       else:
          mes = "Unknown output sky system: %s" % (S2,)
-         raise Exception, mes
+         raise Exception(mes)
 
    elif skyin == supergalactic:
       if skyout == equatorial:                              # sgal -> eq(epoch2)
@@ -2949,10 +2949,10 @@ Reference:  -
          return I()
       else:
          mes = "Unknown output sky system: %s" % (S2,)
-         raise Exception, mes
+         raise Exception(mes)
    else:
       mes = "Unknown input sky system: %s" % (S1,)
-      raise Exception, mes
+      raise Exception(mes)
 
 
 
@@ -3072,36 +3072,36 @@ a suffix '_' which may be follwed by arbitrary characters.
    if skyin == None:      # Nothing to parse
       return sysin, refin, epochin, epobs
 
-   if type(skyin) not in [types.TupleType, types.StringType]:
+   if type(skyin) not in [tuple, bytes]:
       try:
          skyin = tuple([skyin])
       except:
-         raise ValueError, "Sky definition is not a string nor a tuple or a scalar!"
-   if type(skyin) == types.StringType:
+         raise ValueError("Sky definition is not a string nor a tuple or a scalar!")
+   if type(skyin) == bytes:
       skyin = parseskydef(skyin)
       if skyin is None:   # e.g. input was '{}' then parseskydef returns None
          return None, None, None, None
    if len(skyin) > 4:
-      raise ValueError, "Too many elements in sky definition (max. 4)!"
+      raise ValueError("Too many elements in sky definition (max. 4)!")
 
    # Parse the tuple into a sky system, a reference system, equinox and obs epoch
    for element in skyin:
-      if type(element) == types.IntType:
+      if type(element) == int:
          s = skyrefsystems.id2skyref(element)
          if s != None:
             if s.refsystem:
                if refin == None:
                   refin = element
                else:
-                  raise ValueError, "Two sky systems given!"
+                  raise ValueError("Two sky systems given!")
             else:
                if sysin == None:
                   sysin = element
                else:
-                  raise ValueError, "Two reference systems given!"
+                  raise ValueError("Two reference systems given!")
          else:
-            raise ValueError, "Invalid number for sky- or reference system!"
-      elif type(element) == types.StringType:
+            raise ValueError("Invalid number for sky- or reference system!")
+      elif type(element) == bytes:
          if first and element.find('_') == -1:   # i.e. it is not an obs epoch
             epochinset = epochs(element)
             first = False
@@ -3109,7 +3109,7 @@ a suffix '_' which may be follwed by arbitrary characters.
             # Could be obs. epoch if underscore in string or it is the second epoch
             epobs = epochs(element)[0]           # Always in Besselian data
       elif element != None:
-         raise ValueError, "Input contains an element that is not an integer or a string!"
+         raise ValueError("Input contains an element that is not an integer or a string!")
    #------------------------------------------------------------
    # At this stage we have
    # sysin (sky system): integer or None
@@ -3135,7 +3135,7 @@ a suffix '_' which may be follwed by arbitrary characters.
          elif epobs != None:
             sysin = eq
          else:
-            raise ValueError, "Cannot determine the sky system!"
+            raise ValueError("Cannot determine the sky system!")
 
    # Now we have a sky system. What if there is no reference system?
    # Standard in FITS: RADESYS defaults to IRCS unless EQUINOX is given alone, 
@@ -3202,14 +3202,14 @@ in {}, then return None
    """
 #----------------------------------------------------------------------
    if skydef_in == '':
-      raise Exception,  'Empty string!'
+      raise Exception('Empty string!')
 
    bs = skydef_in.startswith('{')
    be = skydef_in.endswith('}')
    if bs and not be:
-      raise ValueError,  "Definition starts with '{' but does not end with '}'"
+      raise ValueError("Definition starts with '{' but does not end with '}'")
    if be and not bs:
-      raise ValueError,  "Definition ends with '}' but does not start with '{'"
+      raise ValueError("Definition ends with '}' but does not start with '{'")
    if bs and be:
       skydef = skydef_in[1:-1]     # Remove braces
       if len(skydef.strip()) == 0: # Empty sky def. {}
@@ -3219,7 +3219,7 @@ in {}, then return None
 
    tokens = re_split('[,\s]+', skydef.strip())           # Split on whitespace and comma
    if len(tokens) > 4:                                   # sky, ref, equinox, dateobs
-      raise ValueError,  "Too many items for sky definition!"
+      raise ValueError("Too many items for sky definition!")
 
    sky = []
    for t in tokens:
@@ -3229,7 +3229,7 @@ in {}, then return None
       if s != None:
          if found > 1:
             errmes = "%s is ambiguous sky or reference system!" % t
-            raise ValueError,  errmes
+            raise ValueError(errmes)
          else:
             sky.append(s.idnum)
       else:
@@ -3238,7 +3238,7 @@ in {}, then return None
             sky.append(t)
          except:
             errmes = "%s is not a valid epoch or sky/ref system!" % t
-            raise ValueError,  errmes
+            raise ValueError(errmes)
    return tuple(sky)
 
 
@@ -3250,11 +3250,11 @@ def isparsed(skytuple):
    the others are either a number or are equal to None.
    """
    #----------------------------------------------------------------------
-   if type(skytuple) == types.TupleType and len(skytuple) == 4 and\
-      type(skytuple[0]) == types.IntType and\
-      type(skytuple[1]) != types.StringType and\
-      type(skytuple[2]) != types.StringType and\
-      type(skytuple[3]) != types.StringType:
+   if type(skytuple) == tuple and len(skytuple) == 4 and\
+      type(skytuple[0]) == int and\
+      type(skytuple[1]) != bytes and\
+      type(skytuple[2]) != bytes and\
+      type(skytuple[3]) != bytes:
       return True
    return False
 

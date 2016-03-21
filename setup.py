@@ -7,20 +7,20 @@ import sys, os
 try:
    import numpy
 except:
-   print '''
+   print('''
 -- Error.
 The Kapteyn Package requires NumPy, which seems to be unavailable here.
 Please check your Python installation.
-'''
+''')
    sys.exit(1)
 
 try:
    wcslib_dir = glob('src/wcslib*/C/')[0]
 except:
-   print '''
+   print('''
 -- Error.
 Unable to find WCSLIB source distribution.
-'''
+''')
    sys.exit(1)
 
 include_dirs = []
@@ -90,7 +90,7 @@ download_url = "http://www.astro.rug.nl/software/kapteyn/kapteyn-%s.tar.gz" % ve
 
 wcsmod_src = [
    "eterms.c",
-   "wcs.c",
+   "wcs.pyx",
    "xyz.c"
 ]
 
@@ -150,12 +150,13 @@ if sys.platform=='darwin':
    version = output.split()[0]
    if re.match('i686-apple-darwin[0-9]*-llvm-gcc-4.2', version):
       os.environ['CC'] = 'clang'
+from Cython.Build import cythonize
 
 setup(
-   name="kapteyn",
+   name="kapteyn-sky",
    version=version,
    description=short_descr,
-   author='J.P. Terlouw, M.G.R. Vogelaar',
+   author='J.P. Terlouw, M.G.R. Vogelaar, M.A. Breddels',
    author_email='gipsy@astro.rug.nl',
    url='http://www.astro.rug.nl/software/kapteyn/',
    download_url = download_url,
@@ -164,13 +165,21 @@ setup(
    license = 'BSD',
    classifiers = classifiers,
    ext_package='kapteyn',
-   ext_modules=[
+   ext_modules=cythonize([
       Extension(
          "wcs", wcs_src,
           include_dirs=include_dirs,
           define_macros=define_macros
       ),
-      Extension(
+
+   ]),
+   package_dir={'kapteyn': 'kapteyn'},
+   packages=['kapteyn'],
+   package_data={'kapteyn': ['lut/*.lut']},
+)
+
+
+"""Extension(
          "ascarray",
          ["src/ascarray.c"],
          include_dirs=include_dirs
@@ -188,9 +197,4 @@ setup(
          "kmpfit",
          ["src/kmpfit.c", "src/mpfit.c"],
          include_dirs=include_dirs
-      )
-   ],
-   package_dir={'kapteyn': 'kapteyn'},
-   packages=['kapteyn'],
-   package_data={'kapteyn': ['lut/*.lut']},
-)
+      )"""

@@ -156,7 +156,7 @@ from c_numpy cimport import_array, npy_intp, NPY_DOUBLE, PyArray_DATA, \
 
 import numpy, math, operator, types, os.path
 
-from celestial import skymatrix, skyparser, \
+from kapteyn.celestial import skymatrix, skyparser, \
                       eq, equatorial, ecl, ecliptic, gal, galactic, \
                       sgal, supergalactic, \
                       fk4, fk4_no_e, fk5, icrs, epochs, dynj2000, j2000, \
@@ -1499,7 +1499,7 @@ Example::
       header = self.source             # save attribute
       for i in range(naxis):
          ctypei = newpar.ctype[i]
-         if ctypei=='FREQ':
+         if ctypei==b'FREQ':
             try:
                header = WrappedHeader(self.source, self.alter)
                header.freqvalue()
