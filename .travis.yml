@@ -22,3 +22,4 @@ before_install:
   - source activate test-environment
 install:
   - python setup.py install
+
