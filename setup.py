@@ -1,5 +1,7 @@
 from distutils.core import setup, Extension
 from distutils.sysconfig import get_python_inc, get_python_lib
+import sys
+sys.path.insert(0, ".")
 from kapteyn import __version__ as version
 from glob import glob
 import sys, os
