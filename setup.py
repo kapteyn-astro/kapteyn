@@ -6,6 +6,12 @@ from kapteyn import __version__ as version
 from glob import glob
 import sys, os
 
+
+# from https://github.com/msabramo/cython-test/
+# get cython before running setup(..)
+from setuptools.dist import Distribution
+Distribution(dict(setup_requires='Cython'))
+
 try:
    import numpy
 except:
