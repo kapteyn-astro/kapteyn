@@ -390,7 +390,7 @@ Functions related to E-terms
 import numpy as n
 import types
 from re import split as re_split
-
+import six
 
 
 class skyrefsys(object):
@@ -3101,7 +3101,7 @@ a suffix '_' which may be follwed by arbitrary characters.
                   raise ValueError("Two reference systems given!")
          else:
             raise ValueError("Invalid number for sky- or reference system!")
-      elif type(element) == bytes:
+      elif isinstance(element, six.string_types):
          if first and element.find('_') == -1:   # i.e. it is not an obs epoch
             epochinset = epochs(element)
             first = False

@@ -1837,7 +1837,7 @@ class Coordparser(object):
          if unit != None:
             siunit = unit
          else:
-            siunit = self.siunits[coordindx]
+            siunit = str(self.siunits[coordindx])
          unitfact = None
          unitfact, message = unitfactor(nexttoken, siunit)
          if unitfact is None:
@@ -2041,7 +2041,7 @@ def dotrans(parsedpositions, subproj, subdim, mixpix=None):
       try:
          wor, pix = newproj.mixed(tuple(wcoord), tuple(gcoord))
       except wcs.WCSerror as message:
-         errmes = str(message[1])  # element 0 is error number
+         errmes = str(message.args[1])  # element 0 is error number
          # Restore to the original projection object
          # Note that 'newproj' could be pointer to 'subproj' which shares the same skyout
          # and the skyout could have been changed.
