@@ -165,7 +165,7 @@ setup(
    long_description=description,
    platforms = ['Linux', 'Mac OSX', 'Windows'],
    license = 'BSD',
-   requires=["cython"]
+   requires=["cython"],
    classifiers = classifiers,
    ext_package='kapteyn',
    ext_modules=cythonize([
