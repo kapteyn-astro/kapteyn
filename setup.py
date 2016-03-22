@@ -149,13 +149,13 @@ if sys.platform=='darwin':
    c = ccompiler.new_compiler()
    process = subprocess.Popen(c.compiler+['--version'], stdout=subprocess.PIPE)
    output = process.communicate()[0].strip()
-   version = output.split()[0]
+   version = output.split()[0].decode("ascii")
    if re.match('i686-apple-darwin[0-9]*-llvm-gcc-4.2', version):
       os.environ['CC'] = 'clang'
 from Cython.Build import cythonize
 
 setup(
-   name="kapteyn-sky",
+   name="kapteyn",
    version=version,
    description=short_descr,
    author='J.P. Terlouw, M.G.R. Vogelaar, M.A. Breddels',
