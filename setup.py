@@ -7,16 +7,6 @@ from glob import glob
 import sys, os
 
 try:
-   import numpy
-except:
-   print('''
--- Error.
-The Kapteyn Package requires NumPy, which seems to be unavailable here.
-Please check your Python installation.
-''')
-   sys.exit(1)
-
-try:
    wcslib_dir = glob('src/wcslib*/C/')[0]
 except:
    print('''
@@ -165,7 +155,7 @@ setup(
    long_description=description,
    platforms = ['Linux', 'Mac OSX', 'Windows'],
    license = 'BSD',
-   requires=["cython"],
+   install_requires=["cython", "numpy"],
    classifiers = classifiers,
    ext_package='kapteyn',
    ext_modules=cythonize([
