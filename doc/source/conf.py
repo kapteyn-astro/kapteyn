@@ -19,8 +19,9 @@ import os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 basepath = os.path.dirname(__file__)
-sys.path.insert(0, os.path.join(basepath, os.path.abspath('../..')))
 sys.path.insert(0, os.path.join(basepath, os.path.abspath('.')))
+# on rtd we want to find the installed version
+#sys.path.append(os.path.join(basepath, os.path.abspath('../..'))
 
 # -- General configuration ------------------------------------------------
 
