@@ -18,7 +18,7 @@ before_install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda create -q -n test-environment python=$PYTHON_VERSION numpy cython
+  - conda create -q -n test-environment python=$PYTHON_VERSION numpy cython`
   - source activate test-environment
 install:
   - python setup.py install
