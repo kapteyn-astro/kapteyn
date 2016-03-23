@@ -213,7 +213,7 @@ setup(
    long_description=description,
    platforms = ['Linux', 'Mac OSX', 'Windows'],
    license = 'BSD',
-   install_requires=["cython", "numpy"],
+   setup_requires=["Cython", "numpy"],
    classifiers = classifiers,
    ext_package='kapteyn',
    ext_modules=lazy_cythonize(extensions),
