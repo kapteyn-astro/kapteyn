@@ -27,37 +27,37 @@ fitobj_uw = kmpfit.Fitter(residuals=residuals, data=(x, y, 1.0))
 fitobj_uw.fit(params0=[1,1])
 
 if (fitobj_uw.status <= 0):
-   print 'error message =', fitobj_uw.errmsg
+   print('error message =', fitobj_uw.errmsg)
    raise SystemExit
 
-print "\n\n======== Results kmpfit UNweighted fit ========="
-print "Params:        ", fitobj_uw.params
-print "Errors from covariance matrix         : ", fitobj_uw.xerror
-print "Uncertainties assuming reduced Chi^2=1: ", fitobj_uw.stderr
-print "Chi^2 min:     ", fitobj_uw.chi2_min
-print "Reduced Chi^2: ", fitobj_uw.rchi2_min
-print "Iterations:    ", fitobj_uw.niter
-print "Function ev:   ", fitobj_uw.nfev
-print "Status:        ", fitobj_uw.status
+print("\n\n======== Results kmpfit UNweighted fit =========")
+print("Params:        ", fitobj_uw.params)
+print("Errors from covariance matrix         : ", fitobj_uw.xerror)
+print("Uncertainties assuming reduced Chi^2=1: ", fitobj_uw.stderr)
+print("Chi^2 min:     ", fitobj_uw.chi2_min)
+print("Reduced Chi^2: ", fitobj_uw.rchi2_min)
+print("Iterations:    ", fitobj_uw.niter)
+print("Function ev:   ", fitobj_uw.nfev)
+print("Status:        ", fitobj_uw.status)
 
 
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err))
 fitobj.fit(params0=[1,1])
 
 if (fitobj.status <= 0):
-   print 'error message =', fitobj.errmsg
+   print('error message =', fitobj.errmsg)
    raise SystemExit
 
-print "\n\n======== Results kmpfit weighted fit ========="
-print "Params:        ", fitobj.params
-print "Errors from covariance matrix         : ", fitobj.xerror
-print "Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr
-print "Chi^2 min:     ", fitobj.chi2_min
-print "Reduced Chi^2: ", fitobj.rchi2_min
-print "Iterations:    ", fitobj.niter
-print "Function ev:   ", fitobj.nfev
-print "Status:        ", fitobj.status
-print "Covariance matrix: ", fitobj.covar
+print("\n\n======== Results kmpfit weighted fit =========")
+print("Params:        ", fitobj.params)
+print("Errors from covariance matrix         : ", fitobj.xerror)
+print("Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr)
+print("Chi^2 min:     ", fitobj.chi2_min)
+print("Reduced Chi^2: ", fitobj.rchi2_min)
+print("Iterations:    ", fitobj.niter)
+print("Function ev:   ", fitobj.nfev)
+print("Status:        ", fitobj.status)
+print("Covariance matrix: ", fitobj.covar)
 
 A1, B1 = fitobj.params
 err *= numpy.sqrt(fitobj.rchi2_min)  # Perfect weights -> chi^2_red = 1
@@ -83,18 +83,18 @@ fitobj2 = kmpfit.Fitter(residuals=residuals, data=(xr, yr, scaled_err))
 fitobj2.fit(params0=[1,1])
 
 if (fitobj2.status <= 0):
-   print 'error message =', fitobj2.errmsg
+   print('error message =', fitobj2.errmsg)
    raise SystemExit
 
-print "\n\n===== Results kmpfit weighted fit with reduced chi^2 forced to 1.0 ====="
-print "Params:        ", fitobj2.params
-print "Errors from covariance matrix         : ", fitobj2.xerror
-print "Uncertainties assuming reduced Chi^2=1: ", fitobj2.stderr
-print "Chi^2 min:     ", fitobj2.chi2_min
-print "Reduced Chi^2: ", fitobj2.rchi2_min
-print "Iterations:    ", fitobj2.niter
-print "Function ev:   ", fitobj2.nfev
-print "Status:        ", fitobj2.status
+print("\n\n===== Results kmpfit weighted fit with reduced chi^2 forced to 1.0 =====")
+print("Params:        ", fitobj2.params)
+print("Errors from covariance matrix         : ", fitobj2.xerror)
+print("Uncertainties assuming reduced Chi^2=1: ", fitobj2.stderr)
+print("Chi^2 min:     ", fitobj2.chi2_min)
+print("Reduced Chi^2: ", fitobj2.rchi2_min)
+print("Iterations:    ", fitobj2.niter)
+print("Function ev:   ", fitobj2.nfev)
+print("Status:        ", fitobj2.status)
 
 
 xr2 = numpy.zeros(N-1)
@@ -116,8 +116,8 @@ for k in [0,1]:
 
       ok = True
       if (not ok):
-         print "All elements are the same. Invalid sample."
-         print xr, yr
+         print("All elements are the same. Invalid sample.")
+         print(xr, yr)
       else:
          fitobj2.fit(params0=[1,1])
          offs, slope = fitobj2.params
@@ -138,9 +138,9 @@ for k in [0,1]:
    offdelta = numpy.sqrt(((offsets-offsets.mean())**2).sum() * (N-1)/N)
    slopedelta = numpy.sqrt(((slopes-slopes.mean())**2).sum() * (N-1)/N)
    if k == 0:
-      print "Jackknife errors in A, B for procedure with weighted fits:", offdelta, slopedelta
+      print("Jackknife errors in A, B for procedure with weighted fits:", offdelta, slopedelta)
    else:
-      print "Jackknife errors in A, B for procedure with unweighted fits:", offdelta, slopedelta
+      print("Jackknife errors in A, B for procedure with unweighted fits:", offdelta, slopedelta)
 
 frame.legend(loc='upper left')
 show()

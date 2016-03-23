@@ -26,7 +26,7 @@ grat = annim.Graticule(axnum= (1,2), wylim=(-30,90.0), wxlim=(0,360),
 grat.setp_lineswcs1(-30, linestyle='--', color='g')
 grat.setp_lineswcs0(0, lw=2)
 grat.setp_lineswcs1(0, lw=2)
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lon_world.append(180.0+epsilon)
 lat_world = [-30, 30, 60]
 addangle0 = -90.0

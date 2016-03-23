@@ -117,23 +117,23 @@ x = numpy.linspace(-3, 8.0, N)
 y = model((a0,b0,c0),x) + normal(0.0, 0.5, N)  # Mean 0, sigma 1
 errx = normal(0.3, 0.2, N) 
 erry = normal(0.3, 0.3, N) 
-print "\nTrue model values [a0,b0,c0]:", [a0,b0,c0]
+print("\nTrue model values [a0,b0,c0]:", [a0,b0,c0])
 
 beta0 = [1,-0.2,0.1]
 #beta0 = [1.8,-0.5,0.1]
-print "\nODR:"
-print "=========="
+print("\nODR:")
+print("==========")
 from scipy.odr import Data, Model, ODR, RealData, odr_stop
 linear = Model(model)
 mydata = RealData(x, y, sx=errx, sy=erry)
 myodr = ODR(mydata, linear, beta0=beta0, maxit=5000)
 #myodr.set_job(2)
 myoutput = myodr.run()
-print "Fitted parameters:      ", myoutput.beta
-print "Covariance errors:      ", numpy.sqrt(myoutput.cov_beta.diagonal())
-print "Standard errors:        ", myoutput.sd_beta
-print "Minimum chi^2:          ", myoutput.sum_square
-print "Minimum (reduced)chi^2: ", myoutput.res_var
+print("Fitted parameters:      ", myoutput.beta)
+print("Covariance errors:      ", numpy.sqrt(myoutput.cov_beta.diagonal()))
+print("Standard errors:        ", myoutput.sd_beta)
+print("Minimum chi^2:          ", myoutput.sum_square)
+print("Minimum (reduced)chi^2: ", myoutput.res_var)
 beta = myoutput.beta
 
 
@@ -141,32 +141,32 @@ beta = myoutput.beta
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, errx, erry), 
                        xtol=1e-12, gtol=1e-12)
 fitobj.fit(params0=beta0)
-print "\n\n======== Results kmpfit with effective variance ========="
-print "Fitted parameters:      ", fitobj.params
-print "Covariance errors:      ", fitobj.xerror
-print "Standard errors:        ", fitobj.stderr
-print "Chi^2 min:              ", fitobj.chi2_min
-print "Reduced Chi^2:          ", fitobj.rchi2_min
-print "Status Message:", fitobj.message
+print("\n\n======== Results kmpfit with effective variance =========")
+print("Fitted parameters:      ", fitobj.params)
+print("Covariance errors:      ", fitobj.xerror)
+print("Standard errors:        ", fitobj.stderr)
+print("Chi^2 min:              ", fitobj.chi2_min)
+print("Reduced Chi^2:          ", fitobj.rchi2_min)
+print("Status Message:", fitobj.message)
 
 
 # Prepare fit routine
 fitobj2 = kmpfit.Fitter(residuals=residuals2, data=(x, y, erry))
 fitobj2.fit(params0=beta0)
-print "\n\n======== Results kmpfit errors in y only ========="
-print "Fitted parameters:      ", fitobj2.params
-print "Covariance errors:      ", fitobj2.xerror
-print "Standard errors:        ", fitobj2.stderr
-print "Chi^2 min:              ", fitobj2.chi2_min
-print "Reduced Chi^2:          ", fitobj2.rchi2_min
-print "Status Message:", fitobj2.message
+print("\n\n======== Results kmpfit errors in y only =========")
+print("Fitted parameters:      ", fitobj2.params)
+print("Covariance errors:      ", fitobj2.xerror)
+print("Standard errors:        ", fitobj2.stderr)
+print("Chi^2 min:              ", fitobj2.chi2_min)
+print("Reduced Chi^2:          ", fitobj2.rchi2_min)
+print("Status Message:", fitobj2.message)
 
 
 
 dfdp = [1, x, x**2]
 confprob = 95.0
 ydummy, upperband, lowerband = confidence_band(x, dfdp, confprob, fitobj, model)
-verts = zip(x, lowerband) + zip(x[::-1], upperband[::-1])
+verts = list(zip(x, lowerband)) + list(zip(x[::-1], upperband[::-1]))
 
 
 # Some plotting
@@ -183,7 +183,7 @@ poly = Polygon(verts, closed=True, fc='c', ec='c', alpha=0.3,
                label="CI (95%) relative weighting in X & Y")
 frame.add_patch(poly)
 ydummy, upperband, lowerband = confidence_band(x, dfdp, confprob, fitobj2, model)
-verts = zip(x, lowerband) + zip(x[::-1], upperband[::-1])
+verts = list(zip(x, lowerband)) + list(zip(x[::-1], upperband[::-1]))
 poly = Polygon(verts, closed=True, fc='b', ec='b', alpha=0.3,
                label="CI (95%) relative weighting in Y")
 frame.add_patch(poly)

@@ -42,22 +42,22 @@ fitobj = kmpfit.Fitter(residuals=residuals, data=(x,y))
 
 try:
    fitobj.fit(params0=paramsinitial)
-except Exception, mes:
-   print "Something wrong with fit: ", mes
+except Exception as mes:
+   print("Something wrong with fit: ", mes)
    raise SystemExit
 
-print "Fit status: ", fitobj.message
-print "Best-fit parameters:      ", fitobj.params
-print "Covariance errors:        ", fitobj.xerror
-print "Standard errors           ", fitobj.stderr
-print "Chi^2 min:                ", fitobj.chi2_min
-print "Reduced Chi^2:            ", fitobj.rchi2_min
-print "Iterations:               ", fitobj.niter
-print "Number of function calls: ", fitobj.nfev
-print "Number of free pars.:     ", fitobj.nfree
-print "Degrees of freedom:       ", fitobj.dof
-print "Number of pegged pars.:   ", fitobj.npegged
-print "Covariance matrix:\n", fitobj.covar
+print("Fit status: ", fitobj.message)
+print("Best-fit parameters:      ", fitobj.params)
+print("Covariance errors:        ", fitobj.xerror)
+print("Standard errors           ", fitobj.stderr)
+print("Chi^2 min:                ", fitobj.chi2_min)
+print("Reduced Chi^2:            ", fitobj.rchi2_min)
+print("Iterations:               ", fitobj.niter)
+print("Number of function calls: ", fitobj.nfev)
+print("Number of free pars.:     ", fitobj.nfree)
+print("Degrees of freedom:       ", fitobj.dof)
+print("Number of pegged pars.:   ", fitobj.npegged)
+print("Covariance matrix:\n", fitobj.covar)
 
 
 # Plot the result

@@ -4,7 +4,7 @@ import numpy
 
 # Read first image as base 
 Basefits = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
-print type(Basefits), isinstance(Basefits, maputils.FITSimage)
+print(type(Basefits), isinstance(Basefits, maputils.FITSimage))
 
 # Get data from a second image. This is the data that 
 # should be reprojected to fit the header of Basefits.

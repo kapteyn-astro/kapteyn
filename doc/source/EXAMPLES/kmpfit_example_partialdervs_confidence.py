@@ -216,21 +216,21 @@ err = numpy.random.normal(0.6, rms_err, N)
 fitobj = kmpfit.Fitter(residuals=my_residuals, deriv=my_derivs, data=(x, y, err))
 try:
    fitobj.fit(params0=p0)
-except Exception, mes:
-   print "Something wrong with fit: ", mes
+except Exception as mes:
+   print("Something wrong with fit: ", mes)
    raise SystemExit
 
-print "\n\n======== Results kmpfit with explicit partial derivatives ========="
-print "Params:        ", fitobj.params
-print "Errors from covariance matrix         : ", fitobj.xerror
-print "Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr 
-print "Chi^2 min:     ", fitobj.chi2_min
-print "Reduced Chi^2: ", fitobj.rchi2_min
-print "Iterations:    ", fitobj.niter
-print "Function ev:   ", fitobj.nfev 
-print "Status:        ", fitobj.status
-print "Status Message:", fitobj.message
-print "Covariance:\n", fitobj.covar 
+print("\n\n======== Results kmpfit with explicit partial derivatives =========")
+print("Params:        ", fitobj.params)
+print("Errors from covariance matrix         : ", fitobj.xerror)
+print("Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr) 
+print("Chi^2 min:     ", fitobj.chi2_min)
+print("Reduced Chi^2: ", fitobj.rchi2_min)
+print("Iterations:    ", fitobj.niter)
+print("Function ev:   ", fitobj.nfev) 
+print("Status:        ", fitobj.status)
+print("Status Message:", fitobj.message)
+print("Covariance:\n", fitobj.covar) 
 
 # Re-use my_derivs() but rescale derivatives back again with -err
 dervs = my_derivs(fitobj.params, (x,y,err), (True,True,True,True))*-err
@@ -238,12 +238,12 @@ dervs = my_derivs(fitobj.params, (x,y,err), (True,True,True,True))*-err
 dfdp = [dervs[0], dervs[1], dervs[2], dervs[3]]
 confprob = 0.95
 ydummy, upperband, lowerband = confidence_band(x, dfdp, confprob, fitobj, my_model)
-verts_conf = zip(x, lowerband) + zip(x[::-1], upperband[::-1])
+verts_conf = list(zip(x, lowerband)) + list(zip(x[::-1], upperband[::-1]))
 
 predprob = 0.90
 ydummy, upperband, lowerband = prediction_band(x, dfdp, predprob, fitobj, my_model, 
                                err=err, abswei=False)
-verts_pred = zip(x, lowerband) + zip(x[::-1], upperband[::-1])
+verts_pred = list(zip(x, lowerband)) + list(zip(x[::-1], upperband[::-1]))
 
 
 # Plot the result

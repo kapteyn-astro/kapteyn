@@ -7,7 +7,7 @@ f = maputils.FITSimage("ngc6946.fits")
 annim = f.Annotatedimage()
 x = 200; y = 350
 lon, lat  = annim.toworld(x,y)
-print "lon, lat =", lon, lat
+print("lon, lat =", lon, lat)
 
 x, y = annim.topixel(lon, lat)
-print "x, y = ", x, y
+print("x, y = ", x, y)

@@ -31,11 +31,11 @@ oblique = annim.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                           startx=X, starty=Y)
 oblique.setp_lineswcs0(0.0, color='y')
 oblique.setp_lineswcs1(0.0, color='y')
-oblique.setp_lineswcs0(range(15,360,45), color='b')
+oblique.setp_lineswcs0(list(range(15,360,45)), color='b')
 oblique.setp_lineswcs1([15,-15,60, -60], color='b')
-oblique.setp_lineswcs0(range(30,360,45), color='r')
+oblique.setp_lineswcs0(list(range(30,360,45)), color='r')
 oblique.setp_lineswcs1([30,-30,75, -75], color='r')
-oblique.setp_lineswcs0(range(45,360,45), color='w')
+oblique.setp_lineswcs0(list(range(45,360,45)), color='w')
 oblique.setp_lineswcs1((-45,45), color='w')
 framebgcolor = 'k'
 if not smallversion:

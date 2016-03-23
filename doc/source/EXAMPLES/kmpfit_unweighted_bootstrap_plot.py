@@ -29,20 +29,20 @@ err = numpy.ones(N)                  # All weights equal to 1
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err))
 try:
    fitobj.fit(params0=[1,1])
-except Exception, mes:
-   print "Something wrong with fit: ", mes
+except Exception as mes:
+   print("Something wrong with fit: ", mes)
    raise SystemExit
 
-print "\n\n======== Results kmpfit unweighted fit ========="
-print "Params:        ", fitobj.params
-print "Errors from covariance matrix         : ", fitobj.xerror
-print "Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr
-print "Chi^2 min:     ", fitobj.chi2_min
-print "Reduced Chi^2: ", fitobj.rchi2_min
-print "Iterations:    ", fitobj.niter
-print "Function ev:   ", fitobj.nfev
-print "Status:        ", fitobj.status
-print "Status Message:", fitobj.message
+print("\n\n======== Results kmpfit unweighted fit =========")
+print("Params:        ", fitobj.params)
+print("Errors from covariance matrix         : ", fitobj.xerror)
+print("Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr)
+print("Chi^2 min:     ", fitobj.chi2_min)
+print("Reduced Chi^2: ", fitobj.rchi2_min)
+print("Iterations:    ", fitobj.niter)
+print("Function ev:   ", fitobj.nfev)
+print("Status:        ", fitobj.status)
+print("Status Message:", fitobj.message)
 
 # Bootstrap method to find uncertainties
 A0, B0 = fitobj.params
@@ -64,8 +64,8 @@ for i in range(trials):       # Start loop over pseudo sample
    ok = (xr != xr[0]).any()
 
    if (not ok):
-      print "All elements are the same. Invalid sample."
-      print xr, yr
+      print("All elements are the same. Invalid sample.")
+      print(xr, yr)
    else:
       fitobj.fit(params0=[1,1])
       offs, slope = fitobj.params
@@ -75,7 +75,7 @@ for i in range(trials):       # Start loop over pseudo sample
 slopes = numpy.array(slopes) - B0
 offsets = numpy.array(offsets) - A0
 sigmaA0, sigmaB0 = offsets.std(), slopes.std()
-print "Bootstrap errors in A, B:", sigmaA0, sigmaB0
+print("Bootstrap errors in A, B:", sigmaA0, sigmaB0)
 
 # Plot results
 rc('font', size=7)

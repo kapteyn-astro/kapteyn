@@ -75,46 +75,46 @@ fitter = kmpfit.Fitter(residuals=residualsV, data=(x,y,err))
 fitter.parinfo = [{}, {}, {}, {}, {}, {'fixed':True}]  # Take zero level fixed in fit
 fitter.fit(params0=p0)
 
-print "\n========= Fit results Voigt profile =========="
-print "Initial params:", fitter.params0
-print "Params:        ", fitter.params
-print "Iterations:    ", fitter.niter
-print "Function ev:   ", fitter.nfev 
-print "Uncertainties: ", fitter.xerror
-print "dof:           ", fitter.dof
-print "chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min
-print "stderr:        ", fitter.stderr   
-print "Status:        ", fitter.status
+print("\n========= Fit results Voigt profile ==========")
+print("Initial params:", fitter.params0)
+print("Params:        ", fitter.params)
+print("Iterations:    ", fitter.niter)
+print("Function ev:   ", fitter.nfev) 
+print("Uncertainties: ", fitter.xerror)
+print("dof:           ", fitter.dof)
+print("chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min)
+print("stderr:        ", fitter.stderr)   
+print("Status:        ", fitter.status)
 
 alphaD, alphaL, nu_0, I, a_back, b_back = fitter.params
 c1 = 1.0692
 c2 = 0.86639
 hwhm = 0.5*(c1*alphaL+numpy.sqrt(c2*alphaL**2+4*alphaD**2))
-print "\nFWHM Voigt profile:     ", 2*hwhm
+print("\nFWHM Voigt profile:     ", 2*hwhm)
 f = numpy.sqrt(ln2)
 Y = alphaL/alphaD * f
 amp = I/alphaD*numpy.sqrt(ln2/numpy.pi)*voigt(0,Y)
-print "Amplitude Voigt profile:", amp
-print "Area under profile:     ", I
+print("Amplitude Voigt profile:", amp)
+print("Area under profile:     ", I)
 
 # Fit the Gaussian model
 p0 = [-3, 855, 0.5, 6.3]
 fitterG = kmpfit.Fitter(residuals=residualsG, data=(x,y,err))
 #fitterG.parinfo = [{}, {}, {}, {}, {}]  # Take zero level fixed in fit
 fitterG.fit(params0=p0)
-print "\n========= Fit results Gaussian profile =========="
-print "Initial params:", fitterG.params0
-print "Params:        ", fitterG.params
-print "Iterations:    ", fitterG.niter
-print "Function ev:   ", fitterG.nfev 
-print "Uncertainties: ", fitterG.xerror
-print "dof:           ", fitterG.dof
-print "chi^2, rchi2:  ", fitterG.chi2_min, fitterG.rchi2_min
-print "stderr:        ", fitterG.stderr   
-print "Status:        ", fitterG.status
+print("\n========= Fit results Gaussian profile ==========")
+print("Initial params:", fitterG.params0)
+print("Params:        ", fitterG.params)
+print("Iterations:    ", fitterG.niter)
+print("Function ev:   ", fitterG.nfev) 
+print("Uncertainties: ", fitterG.xerror)
+print("dof:           ", fitterG.dof)
+print("chi^2, rchi2:  ", fitterG.chi2_min, fitterG.rchi2_min)
+print("stderr:        ", fitterG.stderr)   
+print("Status:        ", fitterG.status)
 
 fwhmG = 2*numpy.sqrt(2*numpy.log(2))*fitterG.params[2]
-print "FWHM Gaussian: ", fwhmG
+print("FWHM Gaussian: ", fwhmG)
 
 # Plot the result
 rc('legend', fontsize=6)

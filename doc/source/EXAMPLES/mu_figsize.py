@@ -16,7 +16,7 @@ f = maputils.FITSimage(externalheader=header)
 figsize = f.get_figsize()
 
 fig = plt.figure(figsize=figsize)
-print figsize[0]*2.54, figsize[1]*2.54
+print(figsize[0]*2.54, figsize[1]*2.54)
 frame = fig.add_subplot(1,1,1)
 mplim = f.Annotatedimage(frame)
 gr = mplim.Graticule()

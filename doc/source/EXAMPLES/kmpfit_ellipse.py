@@ -85,16 +85,16 @@ p0 = getestimates(x, y)
 
 fitter = kmpfit.Fitter(residuals=residuals, data=(x,y))
 fitter.fit(params0=p0)
-print "\n========= Fit results ellipse model =========="
-print "Initial params:", fitter.params0
-print "Params:        ", fitter.params
-print "Iterations:    ", fitter.niter
-print "Function ev:   ", fitter.nfev
-print "Uncertainties: ", fitter.xerror
-print "dof:           ", fitter.dof
-print "chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min
-print "stderr:        ", fitter.stderr
-print "Status:        ", fitter.status
+print("\n========= Fit results ellipse model ==========")
+print("Initial params:", fitter.params0)
+print("Params:        ", fitter.params)
+print("Iterations:    ", fitter.niter)
+print("Function ev:   ", fitter.nfev)
+print("Uncertainties: ", fitter.xerror)
+print("dof:           ", fitter.dof)
+print("chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min)
+print("stderr:        ", fitter.stderr)
+print("Status:        ", fitter.status)
 xcf, ycf, majorf, minorf, angf = fitter.params 
 
 # Data for the 3D plot, which shows a projection of the ellipse

@@ -16,14 +16,14 @@ paramsinitial = [0, 70.0]
 fitobj = kmpfit.Fitter(residuals=residuals, data=(d,v))
 fitobj.fit(params0=paramsinitial)
 
-print "\nFit status kmpfit:"
-print "===================="
-print "Best-fit parameters:        ", fitobj.params
-print "Asymptotic error:           ", fitobj.xerror
-print "Error assuming red.chi^2=1: ", fitobj.stderr
-print "Chi^2 min:                  ", fitobj.chi2_min
-print "Reduced Chi^2:              ", fitobj.rchi2_min
-print "Iterations:                 ", fitobj.niter
-print "Number of free pars.:       ", fitobj.nfree
-print "Degrees of freedom:         ", fitobj.dof
+print("\nFit status kmpfit:")
+print("====================")
+print("Best-fit parameters:        ", fitobj.params)
+print("Asymptotic error:           ", fitobj.xerror)
+print("Error assuming red.chi^2=1: ", fitobj.stderr)
+print("Chi^2 min:                  ", fitobj.chi2_min)
+print("Reduced Chi^2:              ", fitobj.rchi2_min)
+print("Iterations:                 ", fitobj.niter)
+print("Number of free pars.:       ", fitobj.nfree)
+print("Degrees of freedom:         ", fitobj.dof)
 

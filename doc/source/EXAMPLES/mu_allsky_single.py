@@ -19,7 +19,7 @@ frame = fig.add_axes((0.1,0.1,0.8,0.8))
 f = maputils.FITSimage(externalheader=header)
 annim = f.Annotatedimage(frame)
 grat = annim.Graticule(wylim=(20.0,90.0), wxlim=(0,360), startx=X, starty=Y)
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [20, 30, 60, dec0]
 grat.setp_gratline(position=20, color='g', linestyle='--')
 

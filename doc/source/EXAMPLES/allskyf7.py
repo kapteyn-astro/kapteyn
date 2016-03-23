@@ -34,7 +34,7 @@ grat.setp_linespecial(g, color='g', lw=1)
 lat_constval = 50
 lon_constval = 180
 lat_world = [0,30,60,dec0]
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 addangle0 = -90
 addangle1 = -180
 doplot(frame, fignum, annim, grat, title, 

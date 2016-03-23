@@ -47,51 +47,51 @@ errx = normal(0.0, 0.4, N)
 erry = normal(0.0, 0.5, N) 
 
 beta0 = [0,0]
-print "\n========== Results SciPy's ODR ============"
+print("\n========== Results SciPy's ODR ============")
 linear = Model(model)
 mydata = RealData(x, y, sx=errx, sy=erry)
 myodr = ODR(mydata, linear, beta0=beta0, maxit=5000)
 myoutput = myodr.run()
-print "Fitted parameters:      ", myoutput.beta
-print "Covariance errors:      ", numpy.sqrt(myoutput.cov_beta.diagonal())
-print "Standard errors:        ", myoutput.sd_beta
-print "Minimum (reduced)chi^2: ", myoutput.res_var
+print("Fitted parameters:      ", myoutput.beta)
+print("Covariance errors:      ", numpy.sqrt(myoutput.cov_beta.diagonal()))
+print("Standard errors:        ", myoutput.sd_beta)
+print("Minimum (reduced)chi^2: ", myoutput.res_var)
 beta = myoutput.beta
 
 # Prepare fit routine
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, errx, erry))
 try:
    fitobj.fit(params0=beta0)
-except Exception, mes:
-   print "Something wrong with fit: ", mes
+except Exception as mes:
+   print("Something wrong with fit: ", mes)
    raise SystemExit
 
-print "\n\n======== Results kmpfit: w1 = ey*ey + b*b*ex*ex ========="
-print "Params:                 ", fitobj.params
-print "Covariance errors:      ", fitobj.xerror
-print "Standard errors         ", fitobj.stderr
-print "Chi^2 min:              ", fitobj.chi2_min
-print "Reduced Chi^2:          ", fitobj.rchi2_min
-print "Message:                ", fitobj.message
+print("\n\n======== Results kmpfit: w1 = ey*ey + b*b*ex*ex =========")
+print("Params:                 ", fitobj.params)
+print("Covariance errors:      ", fitobj.xerror)
+print("Standard errors         ", fitobj.stderr)
+print("Chi^2 min:              ", fitobj.chi2_min)
+print("Reduced Chi^2:          ", fitobj.rchi2_min)
+print("Message:                ", fitobj.message)
 
 fitobj2 = kmpfit.Fitter(residuals=residuals2, data=(x, y, errx, erry))
 try:
    fitobj2.fit(params0=beta0)
-except Exception, mes:
-   print "Something wrong with fit: ", mes
+except Exception as mes:
+   print("Something wrong with fit: ", mes)
    raise SystemExit
 
-print "\n\n======== Results kmpfit: r = ex*ex/(ey*ey), xd = (x-a*r+y*b*r)/(1+r) ========="
-print "Params:                 ", fitobj2.params
-print "Covariance errors:      ", fitobj2.xerror
-print "Standard errors         ", fitobj2.stderr
-print "Chi^2 min:              ", fitobj2.chi2_min
-print "Reduced Chi^2:          ", fitobj2.rchi2_min
-print "Message:                ", fitobj2.message
+print("\n\n======== Results kmpfit: r = ex*ex/(ey*ey), xd = (x-a*r+y*b*r)/(1+r) =========")
+print("Params:                 ", fitobj2.params)
+print("Covariance errors:      ", fitobj2.xerror)
+print("Standard errors         ", fitobj2.stderr)
+print("Chi^2 min:              ", fitobj2.chi2_min)
+print("Reduced Chi^2:          ", fitobj2.rchi2_min)
+print("Message:                ", fitobj2.message)
 
 
 t = "\nTHE WILLAMSON APPROACH"
-print t, "\n", "="*len(t)
+print(t, "\n", "="*len(t))
 # Step 1: Get a and b for a, b with standard weighted least squares calculation
 
 def lingres(xa, ya, w):
@@ -152,8 +152,8 @@ siga2 = 1.0/w_sum + 2*(x_av+2*z_av)*z_av*Q + (x_av+2*z_av)**2*sigb2
 siga = numpy.sqrt(siga2)
 sigb = numpy.sqrt(sigb2)
 
-print "Williamson Fitted A, B: ", a_will, b_will
-print "Parameter errors: ", siga, sigb
+print("Williamson Fitted A, B: ", a_will, b_will)
+print("Parameter errors: ", siga, sigb)
 
 # Some plotting
 rc('font', size=9)

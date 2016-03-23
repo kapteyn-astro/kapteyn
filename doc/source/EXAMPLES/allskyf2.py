@@ -27,8 +27,8 @@ border = annim.Graticule(header, axnum=(1,2),
                          wylim=(-90,90.0), wxlim=(-180,180),
                          startx=(180-epsilon,-180+epsilon, 0), 
                          starty=(-90,0,90))
-lat_world = range(-60, 61, 30)
-lon_world = range(-30,301,30)
+lat_world = list(range(-60, 61, 30))
+lon_world = list(range(-30,301,30))
 labkwargs0 = {'color':'r', 'va':'top', 'ha':'right'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 doplot(frame, fignum, annim, grat, title, 

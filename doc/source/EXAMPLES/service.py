@@ -159,7 +159,7 @@ def doplot(frame, fignum, annim, grat, title,
    if perimeter != None:
       p = plt.Polygon(perimeter, facecolor='#d6eaef', lw=2)
       frame.add_patch(p)     # Must be in frame specified by user
-      Xp, Yp = zip(*perimeter)
+      Xp, Yp = list(zip(*perimeter))
       grat.frame.plot(Xp, Yp, color='r')
 
    annim.interact_toolbarinfo()

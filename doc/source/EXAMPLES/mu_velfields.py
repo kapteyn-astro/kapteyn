@@ -19,10 +19,10 @@ annim = fitsobject.Annotatedimage(frame, clipmin=clipmin, clipmax=clipmax)
 annim.Image()
 annim.Colorbar()
 levs = numpy.arange(clipmin, clipmax, 20)
-print levs
+print(levs)
 levs = [6,   26,   46,   66,   86,  106,  126,
   146,  166,  186,  206,  226,  246]
-levs = range(-154, 265, 20)
+levs = list(range(-154, 265, 20))
 annim.Contours(levels=levs)
 #annim.Graticule()
 annim.plot()

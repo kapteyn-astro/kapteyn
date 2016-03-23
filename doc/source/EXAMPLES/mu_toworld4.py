@@ -10,8 +10,8 @@ y = [1, 44, 88, 401]
 
 # Convert these to world coordinates
 lon, velo = annim.toworld(x, y)
-print "lon, velo =", lon, velo
+print("lon, velo =", lon, velo)
 
 x, y = annim.topixel(lon, velo)
-print "Back to pixel coordinates: x, y =", x, y
+print("Back to pixel coordinates: x, y =", x, y)
 

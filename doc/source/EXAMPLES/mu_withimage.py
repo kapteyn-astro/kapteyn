@@ -9,7 +9,7 @@ frame = fig.add_axes([0,0,1,1])
 
 annim = fitsobj.Annotatedimage(frame, cmap="spectral", clipmin=10000, clipmax=15500)
 annim.Image(interpolation='spline36')
-print "clip min, max:", annim.clipmin, annim.clipmax
+print("clip min, max:", annim.clipmin, annim.clipmax)
 annim.plot()
 
 plt.show()

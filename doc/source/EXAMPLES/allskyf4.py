@@ -46,7 +46,7 @@ g2 = grat.scanborder(68.26,13,3,3)
 g3 = grat.scanborder(30,66.3,3,3)
 grat.setp_linespecial(g2, color='r', lw=1)
 grat.setp_linespecial(g3, color='r', lw=1)
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [-60, -30, 30, 60, 90]
 #labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
 #labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}

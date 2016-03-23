@@ -21,7 +21,7 @@ grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                        startx=X, starty=Y)
 grat.setp_lineswcs0(0, lw=2)
 grat.setp_lineswcs1(0, lw=2)
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [-60, -30, 30, 60]
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
 labkwargs1 = {'color':'b', 'va':'center', 'ha':'right'}

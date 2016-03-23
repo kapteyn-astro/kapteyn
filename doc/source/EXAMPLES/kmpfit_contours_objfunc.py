@@ -35,9 +35,9 @@ def chi2robust(pars, x, ydata):
 
 
 # Create 'real' data. i.e. use known parameters for straight line and add noise
-sc1, sc2 = input('Enter scaling factors random noise as s1,s2: ')
-no = input('Number of real data points: ')
-A,B = input('Enter offset a and slope b as a,b: ')
+sc1, sc2 = eval(input('Enter scaling factors random noise as s1,s2: '))
+no = eval(input('Number of real data points: '))
+A,B = eval(input('Enter offset a and slope b as a,b: '))
 
 x = numpy.linspace(0.0, 10.0, no)
 nsey = sc1 * numpy.random.randn(len(x))
@@ -45,7 +45,7 @@ ydata = A + B*x + nsey
 nsex = sc2 * numpy.random.randn(len(x))
 x += nsex
 
-s = raw_input("Add outlier x, y or press return to skip: ")
+s = input("Add outlier x, y or press return to skip: ")
 if s:
   ox, oy = eval(s)
   x[-1] = ox
@@ -74,28 +74,28 @@ for a in aa:
       Z3[j,i] = chi2robust( [a,b], x, ydata ) / (no-2)
 
 
-print "Minimum in reduced chi^2 landscape for standard merit function:",Z.min(), Z.max()
-print "Minimum in reduced chi^2 landscape for perpendicular merit function:",Z2.min(), Z2.flatten().max()
-print "Minimum in reduced chi^2 landscape for robust merit function:",Z3.min(), Z3.max()
+print("Minimum in reduced chi^2 landscape for standard merit function:",Z.min(), Z.max())
+print("Minimum in reduced chi^2 landscape for perpendicular merit function:",Z2.min(), Z2.flatten().max())
+print("Minimum in reduced chi^2 landscape for robust merit function:",Z3.min(), Z3.max())
 
 XY = numpy.meshgrid( aa, bb )
 
 XY0 = [0,0]
 (m1,fmi,p2,p3,p4) = fmin( chi2, XY0, args=(x,ydata), full_output=1, retall=0 )
-print "\nFit deviations in Y:", m1
+print("\nFit deviations in Y:", m1)
 
 XY0 = [0,0]
 m2 = fmin( chi2pp, XY0, args=(x,ydata) )
-print "\nFit orthogonal deviations:", m2
+print("\nFit orthogonal deviations:", m2)
 
 XY0 = [0,0]
 m3 = fmin( chi2X, XY0, args=(x,ydata) )
 bm4 = 1/m3[1]; am4 = -m3[0]/m3[1]
-print "\nFit deviations in X: ", am4, bm4
+print("\nFit deviations in X: ", am4, bm4)
 
 XY0 = [0,0]
 m_rob = fmin(chi2robust, XY0, args=(x,ydata) )
-print "\nFit absolute deviations in Y:", m_rob
+print("\nFit absolute deviations in Y:", m_rob)
 
 # Plotting
 fig1 = figure(1)
@@ -178,8 +178,8 @@ N = no
 M = 2
 degfreedom = N - M
 Q = gammainc( 0.5*degfreedom, 0.5*fmi )
-print "deg of freedom: ", degfreedom
-print "Chi2 min: ", fmi
-print "Goodness of fit: gammainc(%f,%f) = %f" % (0.5*degfreedom, 0.5*fmi, Q)
+print("deg of freedom: ", degfreedom)
+print("Chi2 min: ", fmi)
+print("Goodness of fit: gammainc(%f,%f) = %f" % (0.5*degfreedom, 0.5*fmi, Q))
 
 show()

@@ -101,14 +101,14 @@ H0_last = 74.2
 # deviations. These offsets are distributed normally and we can
 # apply Chauvenet's criterion to filter outliers. 
 
-print "\nPre filtering:"
-print "================="
+print("\nPre filtering:")
+print("=================")
 paramsinitial = [70.0]
 fitobj = kmpfit.Fitter(residuals=residuals, data=(d0,v0,err0))
 fitobj.fit(params0=paramsinitial)
 H0_fit0 = fitobj.params[0]
 H0_fit0_delta = fitobj.stderr
-print "H0 with unfiltered data: ", H0_fit0
+print("H0 with unfiltered data: ", H0_fit0)
 
 # If you want to know which data would have been excluded if
 # you had a perfect fit with H0 = Ho_last, then use: mean = H0_last*d
@@ -118,52 +118,52 @@ mean = H0_fit0*d0
 # stdv = numpy.sqrt(((v0-mean)**2).sum()/(N0))
 stdv = err0
 filter = chauvenet(d0, v0, mean=mean, stdv=stdv)
-print "Excluded data based on Chauvenet's criterion:", zip(d0[~filter], v0[~filter])
+print("Excluded data based on Chauvenet's criterion:", list(zip(d0[~filter], v0[~filter])))
 d = d0[filter]; v = v0[filter]; err = err0[filter]
 N = len(d)   # Length could have been changed
 
 H0_fit, err_fit, err_fit_scaled = lingres_origin(d, v, err)
-print "\nResults analytical method:"
-print "============================"
-print "Best fit H0:                           ", H0_fit
-print "Asymptotic error:                      ", err_fit
-print "Standard error assuming red.chi^2=1:   ", err_fit_scaled
+print("\nResults analytical method:")
+print("============================")
+print("Best fit H0:                           ", H0_fit)
+print("Asymptotic error:                      ", err_fit)
+print("Standard error assuming red.chi^2=1:   ", err_fit_scaled)
 
-print "\nModel parameters straight line analytical method: "
-print "V = %f(+-%f)*D" % (H0_fit, err_fit_scaled)
+print("\nModel parameters straight line analytical method: ")
+print("V = %f(+-%f)*D" % (H0_fit, err_fit_scaled))
 
 x1 = h02age(H0_fit)
 x2 = h02age(H0_fit+err_fit)
-print "Age from fitted H0=%.1f (+- %.1f): %.1f (+- %.1f billion year)" %\
-      (H0_fit, err_fit, x1, abs(x2-x1))
-print "Age from literature H0=%.1f: %.1f (billion year)" %\
-      (H0_last, h02age(H0_last))
+print("Age from fitted H0=%.1f (+- %.1f): %.1f (+- %.1f billion year)" %\
+      (H0_fit, err_fit, x1, abs(x2-x1)))
+print("Age from literature H0=%.1f: %.1f (billion year)" %\
+      (H0_last, h02age(H0_last)))
  
 
 paramsinitial = [70.0]
 fitobj = kmpfit.Fitter(residuals=residuals, data=(d,v,err))
 fitobj.fit(params0=paramsinitial)
 
-print "\nFit results filtered data:"
-print "============================"
-print "Best-fit parameters:        ", fitobj.params
-print "Asymptotic error:           ", fitobj.xerror
-print "Error assuming red.chi^2=1: ", fitobj.stderr
-print "Chi^2 min:                  ", fitobj.chi2_min
-print "Reduced Chi^2:              ", fitobj.rchi2_min
-print "Iterations:                 ", fitobj.niter
-print "Number of function calls:   ", fitobj.nfev
-print "Number of free pars.:       ", fitobj.nfree
-print "Degrees of freedom:         ", fitobj.dof
-print "Number of data points:      ", len(d)
-print "Covariance matrix:\n", fitobj.covar
+print("\nFit results filtered data:")
+print("============================")
+print("Best-fit parameters:        ", fitobj.params)
+print("Asymptotic error:           ", fitobj.xerror)
+print("Error assuming red.chi^2=1: ", fitobj.stderr)
+print("Chi^2 min:                  ", fitobj.chi2_min)
+print("Reduced Chi^2:              ", fitobj.rchi2_min)
+print("Iterations:                 ", fitobj.niter)
+print("Number of function calls:   ", fitobj.nfev)
+print("Number of free pars.:       ", fitobj.nfree)
+print("Degrees of freedom:         ", fitobj.dof)
+print("Number of data points:      ", len(d))
+print("Covariance matrix:\n", fitobj.covar)
 
 
 varmod = (v0-model(H0_fit0,d0))**2.0
 v0_av = v0.sum()/N0
 vardat = (v0-v0_av)**2.0
 vr0 = 100.0*(1-(varmod.sum()/vardat.sum()))
-print "\nVariance reduction unfiltered data: %.2f%%"%vr0
+print("\nVariance reduction unfiltered data: %.2f%%"%vr0)
 
 xf = numpy.zeros(N0-1)
 yf = numpy.zeros(N0-1)
@@ -171,7 +171,7 @@ errf = numpy.zeros(N0-1)
 vrs = []
 fitter = kmpfit.Fitter(residuals=residuals, data=(xf,yf,errf))
 header = "%20s %10s %10s %10s"%('Excluded data', 'chi^2', 'red.chi^2', 'VR')
-print "\n", header, "\n", "="*len(header)
+print("\n", header, "\n", "="*len(header))
 for i in range(N0):
    xf[:] = numpy.delete(d0,i)      # Delete one point
    yf[:] = numpy.delete(v0,i)
@@ -184,10 +184,10 @@ for i in range(N0):
    # A vr of 100% implies that the model is perfect
    # A bad model gives much lower values (sometimes negative)
    t = (d0[i], v0[i], fitter.chi2_min, fitter.rchi2_min, vr1)
-   print "(%8.2f, %8.2f) %10.2f %10.2f %10.2f"%t
+   print("(%8.2f, %8.2f) %10.2f %10.2f %10.2f"%t)
    vrs.append([vr1,i])
 
-print "="*len(header)+"\n"
+print("="*len(header)+"\n")
 vrs.sort()
 i = vrs[-1][1]
 xf[:] = numpy.delete(d0,i)      # Delete one point
@@ -196,7 +196,7 @@ errf[:] = numpy.delete(err0,i)
 fitter.fit(params0=paramsinitial)
 H0_vr = fitter.params[0]
 H0_vr_delta = fitter.stderr
-print "H0 based on VR filter:", H0_vr
+print("H0 based on VR filter:", H0_vr)
 
 # Plot results
 fig = figure()

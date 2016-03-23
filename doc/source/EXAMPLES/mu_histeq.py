@@ -5,7 +5,7 @@ from matplotlib.colors import LogNorm
 tpos = 1.02
 f = maputils.FITSimage("m101.fits")
 f.set_limits(pxlim=(200,300), pylim=(200,300))
-print f.pxlim, f.pylim
+print(f.pxlim, f.pylim)
 
 fig = plt.figure()
 frame = fig.add_subplot(1,1,1)

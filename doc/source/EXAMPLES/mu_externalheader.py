@@ -15,7 +15,7 @@ fitsobj = maputils.FITSimage(externalheader=header)
 figsize = fitsobj.get_figsize(ysize=7, cm=True)
 
 fig = plt.figure(figsize=figsize)
-print "Figure size x, y in cm:", figsize[0]*2.54, figsize[1]*2.54
+print("Figure size x, y in cm:", figsize[0]*2.54, figsize[1]*2.54)
 frame = fig.add_subplot(1,1,1)
 mplim = fitsobj.Annotatedimage(frame)
 gr = mplim.Graticule()

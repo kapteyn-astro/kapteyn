@@ -26,7 +26,7 @@ overlayim = Basefits.Annotatedimage(frame,
                                     overlay_dict=pars)
 
 mi, ma = overlayim.clipmin, overlayim.clipmax
-levels = input("Enter contour levels between %g and %g: " % (mi, ma)) 
+levels = eval(input("Enter contour levels between %g and %g: " % (mi, ma))) 
 if not maputils.issequence(levels):
    levels = [levels]
 overlayim.Contours(levels=levels, colors='r')

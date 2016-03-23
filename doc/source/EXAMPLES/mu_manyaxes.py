@@ -15,11 +15,11 @@ mplim = fitsobj.Annotatedimage(frame)
 grat = mplim.Graticule(starty=1000, deltay=10)
 
 # 4. Show the calculated world coordinates along y-axis
-print "The world coordinates along the y-axis:", grat.ystarts
+print("The world coordinates along the y-axis:", grat.ystarts)
 
 # 5. Show header information in attributes of the Projection object
 #    The projection object of a graticule is attribute 'gmap'
-print "CRVAL, CDELT from header:", grat.gmap.crval, grat.gmap.cdelt
+print("CRVAL, CDELT from header:", grat.gmap.crval, grat.gmap.cdelt)
 
 # 6. Set a number of properties of the graticules and plot axes
 grat.setp_tick(plotaxis="bottom", 
