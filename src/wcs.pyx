@@ -1080,6 +1080,7 @@ Example::
          # ------------------------------------------
          #   CRVAL, CTYPE, CDELT, CRPIX, CROTA, NAXIS
          # ------------------------------------------
+         encoding = "ascii"
          for i in range(naxis):
             iax = i+1
             try:
@@ -1087,7 +1088,7 @@ Example::
             except:
                param.crval[i] = 0.0
             try:
-               strncpy(param.ctype[i], header['CTYPE%d'%iax + alter], 9)
+               strncpy(param.ctype[i], header['CTYPE%d'%iax + alter].encode(encoding), 9)
             except:
                strncpy(param.ctype[i], ' ', 9)
             try:
@@ -1104,10 +1105,10 @@ Example::
             except:
                param.crota[i] = 0.0
             try:
-               strncpy(param.cunit[i], header['CUNIT%d'%iax + alter], 9)
+               strncpy(param.cunit[i], header['CUNIT%d'%iax + alter].encode(encoding), 9)
                wcsutrn(7, param.cunit[i])        # fix non-standard units
             except:
-               strncpy(param.cunit[i], '', 9)
+               strncpy(param.cunit[i], b'', 9)
             try:
                self.naxis += (header['NAXIS%d'%iax],)
             except:
@@ -2012,9 +2013,10 @@ Example::
       self.crota = ()
       naxis = param.naxis
       types = []
+      encoding = "ascii"
       for i in range(naxis):
-         self.units += (param.cunit[i],)
-         self.ctype += (param.ctype[i],)
+         self.units += (param.cunit[i].decode(encoding),)
+         self.ctype += (param.ctype[i].decode(encoding),)
          self.crpix += (param.crpix[i],)
          self.crval += (param.crval[i],)
          self.cdelt += (param.cdelt[i],)
