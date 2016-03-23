@@ -1,4 +1,4 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 from distutils.sysconfig import get_python_inc, get_python_lib
 import sys
 sys.path.insert(0, ".")
@@ -9,8 +9,8 @@ import sys, os
 
 # from https://github.com/msabramo/cython-test/
 # get cython before running setup(..)
-from setuptools.dist import Distribution
-Distribution(dict(setup_requires='Cython'))
+#from setuptools.dist import Distribution
+#Distribution(dict(setup_requires='Cython'))
 
 try:
    import numpy
@@ -158,23 +158,22 @@ if sys.platform=='darwin':
    version = output.split()[0].decode("ascii")
    if re.match('i686-apple-darwin[0-9]*-llvm-gcc-4.2', version):
       os.environ['CC'] = 'clang'
-from Cython.Build import cythonize
+#from Cython.Build import cythonize
 
-setup(
-   name="kapteyn",
-   version=version,
-   description=short_descr,
-   author='J.P. Terlouw, M.G.R. Vogelaar, M.A. Breddels',
-   author_email='gipsy@astro.rug.nl',
-   url='http://www.astro.rug.nl/software/kapteyn/',
-   download_url = download_url,
-   long_description=description,
-   platforms = ['Linux', 'Mac OSX', 'Windows'],
-   license = 'BSD',
-   install_requires=["cython", "numpy"],
-   classifiers = classifiers,
-   ext_package='kapteyn',
-   ext_modules=cythonize([
+class lazy_cythonize(list):
+    def __init__(self, callback):
+        self._list, self.callback = None, callback
+    def c_list(self):
+        if self._list is None: self._list = self.callback()
+        return self._list
+    def __iter__(self):
+        for e in self.c_list(): yield e
+    def __getitem__(self, ii): return self.c_list()[ii]
+    def __len__(self): return len(self.c_list())
+
+def extensions():
+    from Cython.Build import cythonize
+    extensions = [
       Extension(
          "wcs", wcs_src,
           include_dirs=include_dirs,
@@ -200,7 +199,24 @@ setup(
          include_dirs=include_dirs
       ),
 
-   ]),
+      ]
+    return cythonize(extensions)
+
+setup(
+   name="kapteyn",
+   version=version,
+   description=short_descr,
+   author='J.P. Terlouw, M.G.R. Vogelaar, M.A. Breddels',
+   author_email='gipsy@astro.rug.nl',
+   url='http://www.astro.rug.nl/software/kapteyn/',
+   download_url = download_url,
+   long_description=description,
+   platforms = ['Linux', 'Mac OSX', 'Windows'],
+   license = 'BSD',
+   install_requires=["cython", "numpy"],
+   classifiers = classifiers,
+   ext_package='kapteyn',
+   ext_modules=lazy_cythonize(extensions),
    package_dir={'kapteyn': 'kapteyn'},
    packages=['kapteyn'],
    package_data={'kapteyn': ['lut/*.lut']},
