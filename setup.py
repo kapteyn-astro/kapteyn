@@ -1,5 +1,5 @@
-from distutils.core import setup, Extension
-from distutils.sysconfig import get_python_inc, get_python_lib
+from setuptools import setup, Extension
+#from setuptools import get_python_inc, get_python_lib
 import sys
 sys.path.insert(0, ".")
 from kapteyn import __version__ as version
@@ -171,6 +171,7 @@ setup(
    long_description=description,
    platforms = ['Linux', 'Mac OSX', 'Windows'],
    license = 'BSD',
+   setup_requires=["cython", "numpy"],
    install_requires=["cython", "numpy"],
    classifiers = classifiers,
    ext_package='kapteyn',
