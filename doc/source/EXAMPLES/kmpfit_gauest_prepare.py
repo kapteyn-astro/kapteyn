@@ -39,7 +39,7 @@ y = my_model(truepars1, x, 2) + 0.3*numpy.random.randn(len(x)) + estimate_zerole
 # These flags needs to set each time a new array 'x' is detected.
 
 sorted = numpy.all(numpy.diff(x) > 0)
-print "Is x sorted?", sorted
+print("Is x sorted?", sorted)
 if sorted:
    xs = x
    ys = y
@@ -50,7 +50,7 @@ else:
 
 stap = xs[1] - xs[0]
 equidis = numpy.all((numpy.diff(xs)-stap)< 0.01*stap)
-print "Are x values (almost) on regular grid? ", equidis
+print("Are x values (almost) on regular grid? ", equidis)
 
 if not equidis:
   sizex = len(xs)
@@ -87,12 +87,12 @@ if ncomps == 2:
       p0.append(xse[0] + comp[1]*d), 
       p0.append(comp[2]*d)
 
-   print "Gauest with cutamp, cutsig, rms", cutamp, cutsig, rms
-   print "Number of components found:", ncomps
-   print "Value of Q for which 2 comps. were found:", Q-1
-   print "Found ampl, center, dispersion:", p0
+   print("Gauest with cutamp, cutsig, rms", cutamp, cutsig, rms)
+   print("Number of components found:", ncomps)
+   print("Value of Q for which 2 comps. were found:", Q-1)
+   print("Found ampl, center, dispersion:", p0)
 else:
-   print "Could not find any components!"
+   print("Could not find any components!")
 
 # Add estimate for base level of profile
 p0.append(estimate_zerolev)   # Zero level

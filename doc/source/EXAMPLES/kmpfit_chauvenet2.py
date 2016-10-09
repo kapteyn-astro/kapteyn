@@ -81,21 +81,21 @@ params0 = (1,1)
 fitter = kmpfit.Fitter(residuals=residuals, data=(x,y,err))
 fitter.fit(params0=params0)
 
-print "======== Fit results all data included =========="
-print "Params:                      ", fitter.params
-print "Uncertainties:               ", fitter.xerror
-print "Errors assuming red.chi^2=1: ", fitter.stderr
-print "Iterations:                  ", fitter.niter 
-print "Function ev:                 ", fitter.nfev
-print "dof:                         ", fitter.dof
-print "chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min
-print "Status:                      ", fitter.status
+print("======== Fit results all data included ==========")
+print("Params:                      ", fitter.params)
+print("Uncertainties:               ", fitter.xerror)
+print("Errors assuming red.chi^2=1: ", fitter.stderr)
+print("Iterations:                  ", fitter.niter) 
+print("Function ev:                 ", fitter.nfev)
+print("dof:                         ", fitter.dof)
+print("chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min)
+print("Status:                      ", fitter.status)
 
 from scipy.stats import chi2
 rv = chi2(fitter.dof)
-print "If H0 was correct, then" 
-print "the probability to find a chi-squared higher than this:  ", 1-rv.cdf(fitter.chi2_min)
-print "If we set the threshold to alpha=0.05, we REJECT H0."
+print("If H0 was correct, then") 
+print("the probability to find a chi-squared higher than this:  ", 1-rv.cdf(fitter.chi2_min))
+print("If we set the threshold to alpha=0.05, we REJECT H0.")
    
 
 a, b = fitter.params
@@ -103,39 +103,39 @@ N = len(y)
 mean = a + b*x
 stdv = err
 criterion = 1.0/(2*N)
-print "\nExclude loop:"
+print("\nExclude loop:")
 for xf, yf, m, std in zip(x, y, mean, stdv):
    d = abs(yf-m)/std
    P = prob(-d, d)
    if P < criterion:
-      print "Data y=%f has distance %fsigma to mean (%f), prob.=%f" %(yf,d,m,P)
-      print "Based on Chauvenet's criterion (prob=%g), we reject data point y=%g"\
-      %(criterion,yf)
+      print("Data y=%f has distance %fsigma to mean (%f), prob.=%f" %(yf,d,m,P))
+      print("Based on Chauvenet's criterion (prob=%g), we reject data point y=%g"\
+      %(criterion,yf))
       frame.plot((xf,), (yf,), 'rx', ms=20)
 
 # The function chauvenet() does it the NumPy way
 filter = chauvenet(x, y, mean, stdv)
 xf = x[filter]; yf = y[filter]; errf = err[filter]
 xe = x[~filter]; ye = y[~filter]; erre = err[~filter]
-print "Excluded by function chauvenet() are:"
-print zip(xe, ye)
+print("Excluded by function chauvenet() are:")
+print(list(zip(xe, ye)))
 fitter = kmpfit.Fitter(residuals=residuals, data=(xf,yf,errf))
 fitter.fit(params0=params0)
 
-print "\n======== Fit results with filtered data =========="
-print "Params:                      ", fitter.params
-print "Uncertainties:               ", fitter.xerror
-print "Errors assuming red.chi^2=1: ", fitter.stderr
-print "Iterations:                  ", fitter.niter 
-print "Function ev:                 ", fitter.nfev
-print "dof:                         ", fitter.dof
-print "chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min
-print "Status:                      ", fitter.status
+print("\n======== Fit results with filtered data ==========")
+print("Params:                      ", fitter.params)
+print("Uncertainties:               ", fitter.xerror)
+print("Errors assuming red.chi^2=1: ", fitter.stderr)
+print("Iterations:                  ", fitter.niter) 
+print("Function ev:                 ", fitter.nfev)
+print("dof:                         ", fitter.dof)
+print("chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min)
+print("Status:                      ", fitter.status)
 
 rv = chi2(fitter.dof)
-print "If H0 was correct, then"
-print "the probability to find a chi-squared higher than this:  ", 1-rv.cdf(fitter.chi2_min)
-print "If we set the threshold to alpha=0.05, we ACCEPT H0."
+print("If H0 was correct, then")
+print("the probability to find a chi-squared higher than this:  ", 1-rv.cdf(fitter.chi2_min))
+print("If we set the threshold to alpha=0.05, we ACCEPT H0.")
 
 frame.set_ylim(0, 1.1*y.max())
 frame.errorbar(xf, yf, errf, fmt='go')

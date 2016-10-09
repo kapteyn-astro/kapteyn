@@ -50,22 +50,22 @@ rchi2 = chi2/(N-2)
 da = sigA0*numpy.sqrt(rchi2)
 db = sigB0*numpy.sqrt(rchi2)
 
-print "\n-- Results analytical solution:"
-print "Best fit parameters:                        ", [A0, B0]
-print "Parameter errors weighted fit:              ", [sigA0, sigB0]
-print "Parameter errors un-/relative weighted fit: ", [da, db]
-print "Minimum chi^2:                              ", chi2
-print "Covariance matrix:"
-print Sxx/delta, -Sx/delta
-print -Sx/delta, S/delta
+print("\n-- Results analytical solution:")
+print("Best fit parameters:                        ", [A0, B0])
+print("Parameter errors weighted fit:              ", [sigA0, sigB0])
+print("Parameter errors un-/relative weighted fit: ", [da, db])
+print("Minimum chi^2:                              ", chi2)
+print("Covariance matrix:")
+print(Sxx/delta, -Sx/delta)
+print(-Sx/delta, S/delta)
  
 
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err))
 fitobj.fit(params0=[1,1])
-print "\n-- Results kmpfit:"
-print "Best-fit parameters:                        ", fitobj.params
-print "Parameter errors weighted fit:              ", fitobj.xerror
-print "Parameter errors un-/relative weighted fit: ", fitobj.stderr
-print "Minimum chi^2:                              ", fitobj.chi2_min
-print "Covariance matrix:"
-print fitobj.covar
+print("\n-- Results kmpfit:")
+print("Best-fit parameters:                        ", fitobj.params)
+print("Parameter errors weighted fit:              ", fitobj.xerror)
+print("Parameter errors un-/relative weighted fit: ", fitobj.stderr)
+print("Minimum chi^2:                              ", fitobj.chi2_min)
+print("Covariance matrix:")
+print(fitobj.covar)

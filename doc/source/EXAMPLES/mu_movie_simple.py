@@ -10,7 +10,7 @@ myCubes = maputils.Cubes(fig, toolbarinfo=True, printload=False,
 fitsobject = maputils.FITSimage('ngc6946.fits')
 naxis3 = fitsobject.hdr['NAXIS3']
 # Note that slice positions follow FITS syntax, i.e. start at 1
-slicepos = range(1,naxis3+1)
+slicepos = list(range(1,naxis3+1))
 
 frame = fig.add_subplot(1,1,1)
 vmin, vmax = fitsobject.get_dataminmax()

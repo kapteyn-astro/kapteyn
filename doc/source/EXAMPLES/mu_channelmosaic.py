@@ -13,21 +13,21 @@ lataxnum = fitsobj.proj.lataxnum
 spec = fitsobj.proj.sub(specaxnum).spectra("VRAD-???")
 
 start = 5; end = fitsobj.proj.naxis[specaxnum-1]; step = 4
-channels = range(start,end,step)
+channels = list(range(start,end,step))
 nchannels = len(channels)
 
 fig = plt.figure(figsize=(7,8))
 fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
 vmin, vmax = fitsobj.get_dataminmax()
-print "Vmin, Vmax of data in cube:", vmin, vmax
+print("Vmin, Vmax of data in cube:", vmin, vmax)
 cmap = 'spectral'             # Colormap
 cols = 5
 rows = nchannels / cols
 if rows*cols < nchannels: rows += 1
 for i, ch in enumerate(channels):
    fitsobj.set_imageaxes(lonaxnum, lataxnum, slicepos=ch)
-   print "Min, max in this channel: ", fitsobj.get_dataminmax(box=True)
+   print("Min, max in this channel: ", fitsobj.get_dataminmax(box=True))
    frame = fig.add_subplot(rows, cols, i+1)
    mplim = fitsobj.Annotatedimage(frame, 
                                   clipmin=vmin, clipmax=vmax, 

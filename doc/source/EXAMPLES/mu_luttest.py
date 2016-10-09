@@ -9,14 +9,14 @@ fig = plt.figure(figsize=(9,7))
 frame = fig.add_axes([0.1,0.2,0.85, 0.75])
 
 extralist = mplutil.VariableColormap.luts()
-print "Extra luts from Kapteyn Package", extralist
+print("Extra luts from Kapteyn Package", extralist)
 maputils.cmlist.add(extralist)
 
 mycmlist = glob.glob("*.lut")
-print "\nFound private color maps:", mycmlist
+print("\nFound private color maps:", mycmlist)
 maputils.cmlist.add(mycmlist)
 
-print "\nAll color maps now available: ", maputils.cmlist.colormaps
+print("\nAll color maps now available: ", maputils.cmlist.colormaps)
 
 annim = f.Annotatedimage(frame) #,cmap="mousse.lut")
 annim.set_colormap("mousse.lut")

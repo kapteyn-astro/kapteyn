@@ -68,7 +68,7 @@ addangle0 = addangle1=0.0
 deltapx0 = deltapx1 = 1.0
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
 labkwargs1 = {'color':'r', 'va':'center', 'ha':'center'}
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [-60, -30, 30, 60]
 
 ilabs1 = grat.Insidelabels(wcsaxis=0,
@@ -86,7 +86,7 @@ for line in reader:
     if line:
        hms, dms = line
        postxt = "{eq fk4-no-e} "+hms+" {} "+dms   # Define the sky system of the source
-       print postxt
+       print(postxt)
        annim.Marker(pos=postxt, marker='*', color='yellow', ms=20)
 
 

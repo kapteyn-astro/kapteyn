@@ -55,8 +55,8 @@ overlayim2.Contours(levels=levels, colors='r')
 frame3.set_title("Image WCS1 + \ncontours reprojected WCS2", fontsize=fs)
 # Plot 4: Plot the difference between base and reprojection
 x = Basefits.boxdat - overlayim2.data
-print "Residual min, max, mean, std, sum:", x.flatten().min(), x.flatten().max(),\
-      x.flatten().mean(), x.flatten().std(), x.flatten().sum()
+print("Residual min, max, mean, std, sum:", x.flatten().min(), x.flatten().max(),\
+      x.flatten().mean(), x.flatten().std(), x.flatten().sum())
 diff = Basefits.Annotatedimage(frame4, boxdat=x)
 diff.Image()
 diff.set_histogrameq()

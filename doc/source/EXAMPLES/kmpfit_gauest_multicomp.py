@@ -56,36 +56,36 @@ while ncomps != 2 and Q < 8:
    Q += 1
 
 if ncomps != 2:
-   raise Exception, "Cannot estimate two components"
+   raise Exception("Cannot estimate two components")
 
-print "Gauest with cutamp, cutsig, rms", cutamp, cutsig, rms
-print "Number of components found:", ncomps
-print "Value of Q for which 2 comps. were found:", Q-1
+print("Gauest with cutamp, cutsig, rms", cutamp, cutsig, rms)
+print("Number of components found:", ncomps)
+print("Value of Q for which 2 comps. were found:", Q-1)
 
 p0 = []
 for c in comps:
    p0 += c
 p0.append(0.0)   # Zero level
-print "Initial estimates p0=", p0
+print("Initial estimates p0=", p0)
 
 # The fit
 fitobj = kmpfit.Fitter(residuals=my_residuals, data=(x, y, err, ncomps))
 try:
    fitobj.fit(params0=p0)
-except Exception, mes:
-   print "Something wrong with fit: ", mes
+except Exception as mes:
+   print("Something wrong with fit: ", mes)
    raise SystemExit
 
-print "\n\n======== Results kmpfit with explicit partial derivatives ========="
-print "Params:\n", fitobj.params
-print "Errors from covariance matrix:\n ", fitobj.xerror
-print "Uncertainties assuming reduced Chi^2=1:\n", fitobj.stderr 
-print "Chi^2 min:     ", fitobj.chi2_min
-print "Reduced Chi^2: ", fitobj.rchi2_min
-print "Iterations:    ", fitobj.niter
-print "Function ev:   ", fitobj.nfev 
-print "Status:        ", fitobj.status
-print "Status Message:", fitobj.message
+print("\n\n======== Results kmpfit with explicit partial derivatives =========")
+print("Params:\n", fitobj.params)
+print("Errors from covariance matrix:\n ", fitobj.xerror)
+print("Uncertainties assuming reduced Chi^2=1:\n", fitobj.stderr) 
+print("Chi^2 min:     ", fitobj.chi2_min)
+print("Reduced Chi^2: ", fitobj.rchi2_min)
+print("Iterations:    ", fitobj.niter)
+print("Function ev:   ", fitobj.nfev) 
+print("Status:        ", fitobj.status)
+print("Status Message:", fitobj.message)
 
 # Plot the result
 rc('font', size=9)

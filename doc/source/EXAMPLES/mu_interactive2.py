@@ -14,7 +14,7 @@ frame = fig.add_subplot(1, 1, 1)
 
 mycmlist = ["mousse.lut", "ronekers.lut"]
 maputils.cmlist.add(mycmlist)
-print "Colormaps: ", maputils.cmlist.colormaps
+print("Colormaps: ", maputils.cmlist.colormaps)
 
 mplim = f.Annotatedimage(frame, cmap="mousse.lut")
 mplim.cmap.set_bad('w')

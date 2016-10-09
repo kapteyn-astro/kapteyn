@@ -28,7 +28,7 @@ grat.setp_lineswcs0((0,90,180,270), lw=2)
 grat.setp_lineswcs1(0, lw=2)
 grat.setp_lineswcs1(lowval, lw=2, color='g')
 lat_world = [0, 30, 60, 90]
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}
 addangle0 = -90

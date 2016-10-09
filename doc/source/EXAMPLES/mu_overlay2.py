@@ -10,8 +10,8 @@ Basefits.set_limits(promptfie=maputils.prompt_box)
 # Get data from a second image. This sets the spatial output
 Contourfits = maputils.FITSimage(promptfie=maputils.prompt_fitsfile)
 Contourfits.set_imageaxes(promptfie=maputils.prompt_imageaxes)
-print "boxdat contour 0,0", Contourfits.boxdat[0,0]
-print "Contourfits slicepos", Contourfits.slicepos
+print("boxdat contour 0,0", Contourfits.boxdat[0,0])
+print("Contourfits slicepos", Contourfits.slicepos)
 
 fig = plt.figure()
 frame = fig.add_subplot(1,1,1)
@@ -23,9 +23,9 @@ baseim.Graticule()
 # Set parameters for the interpolation routine
 pars = dict(cval=numpy.nan, order=1)
 Reprojfits = Contourfits.reproject_to(Basefits, interpol_dict=pars)
-print Reprojfits.boxdat
+print(Reprojfits.boxdat)
 overlayim = Basefits.Annotatedimage(frame, boxdat=Reprojfits.boxdat)
-print overlayim.data
+print(overlayim.data)
 
 mi, ma = overlayim.clipmin, overlayim.clipmax
 prompt = "Enter contour levels between %g and %g: " % (mi, ma)

@@ -174,46 +174,46 @@ fitter = kmpfit.Fitter(residuals=residualsV, data=(x,y,err))
 fitter.parinfo = [{'limits':(0,None)}, {'limits':(0,None)}, {}, {}, {}]
 fitter.fit(params0=p0)
 
-print "\n========= Fit results Voigt profile =========="
-print "Initial params:", fitter.params0
-print "Params:        ", fitter.params
-print "Iterations:    ", fitter.niter
-print "Function ev:   ", fitter.nfev 
-print "Uncertainties: ", fitter.xerror
-print "dof:           ", fitter.dof
-print "chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min
-print "stderr:        ", fitter.stderr   
-print "Status:        ", fitter.status
+print("\n========= Fit results Voigt profile ==========")
+print("Initial params:", fitter.params0)
+print("Params:        ", fitter.params)
+print("Iterations:    ", fitter.niter)
+print("Function ev:   ", fitter.nfev) 
+print("Uncertainties: ", fitter.xerror)
+print("dof:           ", fitter.dof)
+print("chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min)
+print("stderr:        ", fitter.stderr)   
+print("Status:        ", fitter.status)
 
 alphaD, alphaL, nu_0, I, z0V = fitter.params
 c1 = 1.0692
 c2 = 0.86639
 hwhm = 0.5*(c1*alphaL+numpy.sqrt(c2*alphaL**2+4*alphaD**2))
-print "\nFWHM Voigt profile:     ", 2*hwhm
+print("\nFWHM Voigt profile:     ", 2*hwhm)
 f = numpy.sqrt(ln2)
 Y = alphaL/alphaD * f
 amp = I/alphaD*numpy.sqrt(ln2/numpy.pi)*voigt(0,Y)
-print "Amplitude Voigt profile:", amp
-print "Area under profile:     ", I
+print("Amplitude Voigt profile:", amp)
+print("Area under profile:     ", I)
 
 # Fit the Gaussian model
 p0 = [-3, 855, 0.5, 6.3]
 fitterG = kmpfit.Fitter(residuals=residualsG, data=(x,y,err))
 #fitterG.parinfo = [{}, {}, {}, {}, {}]  # Take zero level fixed in fit
 fitterG.fit(params0=p0)
-print "\n========= Fit results Gaussian profile =========="
-print "Initial params:", fitterG.params0
-print "Params:        ", fitterG.params
-print "Iterations:    ", fitterG.niter
-print "Function ev:   ", fitterG.nfev 
-print "Uncertainties: ", fitterG.xerror
-print "dof:           ", fitterG.dof
-print "chi^2, rchi2:  ", fitterG.chi2_min, fitterG.rchi2_min
-print "stderr:        ", fitterG.stderr   
-print "Status:        ", fitterG.status
+print("\n========= Fit results Gaussian profile ==========")
+print("Initial params:", fitterG.params0)
+print("Params:        ", fitterG.params)
+print("Iterations:    ", fitterG.niter)
+print("Function ev:   ", fitterG.nfev) 
+print("Uncertainties: ", fitterG.xerror)
+print("dof:           ", fitterG.dof)
+print("chi^2, rchi2:  ", fitterG.chi2_min, fitterG.rchi2_min)
+print("stderr:        ", fitterG.stderr)   
+print("Status:        ", fitterG.status)
 
 fwhmG = 2*numpy.sqrt(2*numpy.log(2))*fitterG.params[2]
-print "FWHM Gaussian: ", fwhmG
+print("FWHM Gaussian: ", fwhmG)
 z0G = fitterG.params0[-1]          # Store background
 
 # Fit the Gauss-Hermite model
@@ -222,26 +222,26 @@ p0 = [-3, 855, 0.5, 0, 0, 6.3]
 fitterGH = kmpfit.Fitter(residuals=residualsGH, data=(x,y,err))
 #fitterGH.parinfo = [{}, {}, {}, {}, {}]  # Take zero level fixed in fit
 fitterGH.fit(params0=p0)
-print "\n========= Fit results Gaussian profile =========="
-print "Initial params:", fitterGH.params0
-print "Params:        ", fitterGH.params
-print "Iterations:    ", fitterGH.niter
-print "Function ev:   ", fitterGH.nfev 
-print "Uncertainties: ", fitterGH.xerror
-print "dof:           ", fitterGH.dof
-print "chi^2, rchi2:  ", fitterGH.chi2_min, fitterGH.rchi2_min
-print "stderr:        ", fitterGH.stderr   
-print "Status:        ", fitterGH.status
+print("\n========= Fit results Gaussian profile ==========")
+print("Initial params:", fitterGH.params0)
+print("Params:        ", fitterGH.params)
+print("Iterations:    ", fitterGH.niter)
+print("Function ev:   ", fitterGH.nfev) 
+print("Uncertainties: ", fitterGH.xerror)
+print("dof:           ", fitterGH.dof)
+print("chi^2, rchi2:  ", fitterGH.chi2_min, fitterGH.rchi2_min)
+print("stderr:        ", fitterGH.stderr)   
+print("Status:        ", fitterGH.status)
 
 A, x0, s, h3, h4, z0GH = fitterGH.params
 #xm, ampmax, area, mean, dispersion, skewness, kurtosis 
 res = hermite2gauss(fitterGH.params[:-1], fitterGH.stderr[:-1])
-print "Gauss-Hermite max=%g at x=%g"%(res['amplitude'], res['xmax'])
-print "Area      :", res['area'], '+-', res['d_area']
-print "Mean (X0) :", res['mean'], '+-', res['d_mean']
-print "Dispersion:", res['dispersion'], '+-', res['d_dispersion']
-print "Skewness  :", res['skewness'], '+-', res['d_skewness']
-print "Kurtosis  :", res['kurtosis'], '+-', res['d_kurtosis']
+print("Gauss-Hermite max=%g at x=%g"%(res['amplitude'], res['xmax']))
+print("Area      :", res['area'], '+-', res['d_area'])
+print("Mean (X0) :", res['mean'], '+-', res['d_mean'])
+print("Dispersion:", res['dispersion'], '+-', res['d_dispersion'])
+print("Skewness  :", res['skewness'], '+-', res['d_skewness'])
+print("Kurtosis  :", res['kurtosis'], '+-', res['d_kurtosis'])
 
 # Plot the result
 rc('legend', fontsize=6)

@@ -20,7 +20,7 @@ grat = annim.Graticule(axnum= (1,2),
                        wylim=(20.0,90.0), wxlim=(0,360),
                        startx=X, starty=Y)
 lat_constval = 18
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [20, 30, 60, dec0]
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right', 'fontsize':16}

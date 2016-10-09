@@ -15,7 +15,7 @@ cont = mplim.Contours()
 mplim.Colorbar(clines=True, fontsize=8, linewidths=5) # show only cont. lines
 mplim.plot()
 # Levels only known after plotted
-print "Proposed levels:", cont.clevels
+print("Proposed levels:", cont.clevels)
 
 frame = fig.add_subplot(rows,cols,2)
 mplim = f.Annotatedimage(frame, cmap="spectral")

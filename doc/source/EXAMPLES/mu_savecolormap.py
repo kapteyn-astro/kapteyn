@@ -10,7 +10,7 @@ frame = fig.add_subplot(1, 1, 1)
 
 mycmlist = ["mousse.lut", "ronekers.lut"]
 maputils.cmlist.add(mycmlist)
-print "Colormaps: ", maputils.cmlist.colormaps
+print("Colormaps: ", maputils.cmlist.colormaps)
 
 annim = f.Annotatedimage(frame, cmap="m101.lut")
 annim.cmap.set_bad('w')

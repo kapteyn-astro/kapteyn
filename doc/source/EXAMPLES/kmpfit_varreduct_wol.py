@@ -35,43 +35,43 @@ params0 = (1.6,0.5)
 fitter = kmpfit.Fitter(residuals=residuals, data=(x,y,err,1))
 fitter.fit(params0=params0)
 
-print "======== Fit straight line =========="
-print "Params:                      ", fitter.params
-print "Uncertainties:               ", fitter.xerror
-print "Errors assuming red.chi^2=1: ", fitter.stderr
-print "Iterations:                  ", fitter.niter 
-print "Function ev:                 ", fitter.nfev
-print "dof:                         ", fitter.dof
-print "chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min
-print "Status:                      ", fitter.status
+print("======== Fit straight line ==========")
+print("Params:                      ", fitter.params)
+print("Uncertainties:               ", fitter.xerror)
+print("Errors assuming red.chi^2=1: ", fitter.stderr)
+print("Iterations:                  ", fitter.niter) 
+print("Function ev:                 ", fitter.nfev)
+print("dof:                         ", fitter.dof)
+print("chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min)
+print("Status:                      ", fitter.status)
 
 N = len(y)
 varmod = (y-model_lin(fitter.params,x))**2.0
 y_av = y.sum()/N
 vardat = (y-y_av)**2.0
 vr0 = 100.0*(1-(varmod.sum()/vardat.sum()))
-print "Variance reduction (%):", vr0
+print("Variance reduction (%):", vr0)
 
 params0 = (1,1, 0)
 fitter2 = kmpfit.Fitter(residuals=residuals, data=(x,y,err,2))
 fitter2.fit(params0=params0)
 
-print "\n======== Fit results Parabola =========="
-print "Params:                      ", fitter2.params
-print "Uncertainties:               ", fitter2.xerror
-print "Errors assuming red.chi^2=1: ", fitter2.stderr
-print "Iterations:                  ", fitter2.niter 
-print "Function ev:                 ", fitter2.nfev
-print "dof:                         ", fitter2.dof
-print "chi^2, rchi2:                ", fitter2.chi2_min, fitter2.rchi2_min
-print "Status:                      ", fitter2.status
+print("\n======== Fit results Parabola ==========")
+print("Params:                      ", fitter2.params)
+print("Uncertainties:               ", fitter2.xerror)
+print("Errors assuming red.chi^2=1: ", fitter2.stderr)
+print("Iterations:                  ", fitter2.niter) 
+print("Function ev:                 ", fitter2.nfev)
+print("dof:                         ", fitter2.dof)
+print("chi^2, rchi2:                ", fitter2.chi2_min, fitter2.rchi2_min)
+print("Status:                      ", fitter2.status)
 
 N = len(y)
 varmod = (y-model_par(fitter2.params,x))**2.0
 y_av = y.sum()/N
 vardat = (y-y_av)**2.0
 vr1 = 100.0*(1-(varmod.sum()/vardat.sum()))
-print "variance reduction (%):", vr1
+print("variance reduction (%):", vr1)
 
 # Prepare plot
 fig = figure()

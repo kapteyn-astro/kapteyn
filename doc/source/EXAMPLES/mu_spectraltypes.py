@@ -25,11 +25,11 @@ f.set_limits(pxlim=xlim)
 mplim = f.Annotatedimage(frame)
 mplim.set_aspectratio(0.002)
 
-print "Native system", f.proj.ctype[f.proj.specaxnum-1], f.proj.cunit[f.proj.specaxnum-1], 
+print("Native system", f.proj.ctype[f.proj.specaxnum-1], f.proj.cunit[f.proj.specaxnum-1], end=' ') 
 
-print "Spectral translations"
+print("Spectral translations")
 for i, ast in enumerate(altspec):
-   print i, ast
+   print(i, ast)
    frame = fig.add_subplot(k,1,i+1)
    mplim = f.Annotatedimage(frame)
    mplim.set_aspectratio(0.002)

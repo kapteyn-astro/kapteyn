@@ -36,7 +36,7 @@ border = annim.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180
                          startx=(180-epsilon, -180+epsilon), skipy=True)
 border.setp_lineswcs0(color='g')   # Show borders in different color
 border.setp_lineswcs1(color='g')
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [-60, -30, 30, 60]
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'center'}
 labkwargs1 = {'color':'b', 'va':'center', 'ha':'center'}

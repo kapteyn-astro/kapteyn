@@ -44,20 +44,20 @@ fitter = kmpfit.Fitter(residuals=residuals, data=(x,y,err))
 fitter.fit(params0=p0)
 
 if (fitter.status <= 0): 
-   print "Status:  ", fitter.status
-   print 'error message = ', fitter.errmsg
+   print("Status:  ", fitter.status)
+   print('error message = ', fitter.errmsg)
    raise SystemExit 
 
-print "\n========= Fit results =========="
-print "Initial params:", fitter.params0
-print "Params:        ", fitter.params
-print "Iterations:    ", fitter.niter
-print "Function ev:   ", fitter.nfev 
-print "Uncertainties: ", fitter.xerror
-print "dof:           ", fitter.dof
-print "chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min
-print "stderr:        ", fitter.stderr   
-print "Status:        ", fitter.status
+print("\n========= Fit results ==========")
+print("Initial params:", fitter.params0)
+print("Params:        ", fitter.params)
+print("Iterations:    ", fitter.niter)
+print("Function ev:   ", fitter.nfev) 
+print("Uncertainties: ", fitter.xerror)
+print("dof:           ", fitter.dof)
+print("chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min)
+print("stderr:        ", fitter.stderr)   
+print("Status:        ", fitter.status)
 
 # Create the ECDF and the model CDF
 data1 = numpy.asarray(y)
@@ -84,7 +84,7 @@ else:
 Dmax = max(Dplus, Dmin)
 
 header = "\n============= Kolmogorov-Smirnov statistics ============="
-print header
+print(header)
 from scipy.stats import kstwobign
 # Routine based on NR. It's a good approximation for N>4
 dist = kstwobign()
@@ -93,28 +93,28 @@ alphas = [0.2, 0.1, 0.05, 0.025, 0.01]
 alpha = 0.05 # 10%
 for a in alphas:
    Dn_crit = dist.ppf(1-a)/numpy.sqrt(N)
-   print "Critical value of D at alpha=%.3f(two sided):  %g"%(a, Dn_crit)
-print "Selected alpha:               :", alpha
-print "This implies that in %d%% of the time we reject H0 while it is true."%(alpha*100)
+   print("Critical value of D at alpha=%.3f(two sided):  %g"%(a, Dn_crit))
+print("Selected alpha:               :", alpha)
+print("This implies that in %d%% of the time we reject H0 while it is true."%(alpha*100))
 Dn_crit = dist.ppf(1-alpha)/numpy.sqrt(N)
-print "\nCritical value of D from kstwobign() at alpha=%g(two sided):  %g"%(alpha, Dn_crit)
-print "Dplus, Dmin                   :", Dplus, Dmin
-print "Dmax                          :", Dmax
-print "Confidence level kstwobign()  :", dist.sf(Dmax*numpy.sqrt(N))
+print("\nCritical value of D from kstwobign() at alpha=%g(two sided):  %g"%(alpha, Dn_crit))
+print("Dplus, Dmin                   :", Dplus, Dmin)
+print("Dmax                          :", Dmax)
+print("Confidence level kstwobign()  :", dist.sf(Dmax*numpy.sqrt(N)))
 if Dmax > Dn_crit:
-   print "We REJECT the hypothesis that the data is consistent with the model"
+   print("We REJECT the hypothesis that the data is consistent with the model")
 else:
-   print "We ACCEPT the hypothesis that the data is consistent with the model"
+   print("We ACCEPT the hypothesis that the data is consistent with the model")
 
 # Compare to SciPy's kstest()
 from scipy.stats import kstest
 d, prob = kstest(data1, cdf, args=(data_hypo,))
-print "\nCompare to SciPy's kstest():"
-print "Dmax             :", d
-print "Confidence level :", prob
-print "This probability from SciPy's kstest() is equal"
-print "or close to the value from kstwobign()"
-print "="*len(header)+"\n\n"
+print("\nCompare to SciPy's kstest():")
+print("Dmax             :", d)
+print("Confidence level :", prob)
+print("This probability from SciPy's kstest() is equal")
+print("or close to the value from kstwobign()")
+print("="*len(header)+"\n\n")
 
 # Plot the result
 rc('legend', fontsize=8)

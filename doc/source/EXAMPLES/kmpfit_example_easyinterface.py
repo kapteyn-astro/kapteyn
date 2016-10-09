@@ -27,16 +27,16 @@ err = numpy.random.normal(mean, sigma, N)
 
 # Simple interface
 p0 = (0,0)
-xl = range(10)
+xl = list(range(10))
 yl = [k*0.5 for k in xl]
 fitobj = kmpfit.simplefit(model, p0, xl, yl)
-print "Best fit parameters:", fitobj.params
-print "Parameter errors:  :", fitobj.stderr
+print("Best fit parameters:", fitobj.params)
+print("Parameter errors:  :", fitobj.stderr)
 
 fitobj = kmpfit.simplefit(model, p0, x, y, err=err, xtol=1e-8)
-print "Best fit parameters:", fitobj.params
-print "Parameter errors:  :", fitobj.xerror
+print("Best fit parameters:", fitobj.params)
+print("Parameter errors:  :", fitobj.xerror)
 
 fitobj = kmpfit.simplefit(model, p0, x, y, maxiter=100)
-print "Best fit parameters:", fitobj.params
-print "Parameter errors:  :", fitobj.stderr
+print("Best fit parameters:", fitobj.params)
+print("Parameter errors:  :", fitobj.stderr)

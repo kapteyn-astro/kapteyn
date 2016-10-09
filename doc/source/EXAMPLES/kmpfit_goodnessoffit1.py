@@ -25,7 +25,7 @@ x = numpy.linspace(-5,10,N)
 truepars = [10.0, 5.0, 1.0, 0.0]
 p0 = [10, 4.5, 0.8, 0]
 y = func(truepars, x) + numpy.random.normal(0, 0.3, N)
-print "A max=", y.max()
+print("A max=", y.max())
 N = len(x)
 err = numpy.random.normal(0.0, 0.8, N)
 
@@ -34,55 +34,55 @@ fitter.parinfo = [{}, {}, {}, {'fixed':True}]  # Take zero level fixed in fit
 fitter.fit(params0=p0)
 
 if (fitter.status <= 0): 
-   print "Status:  ", fitter.status
-   print 'error message = ', fitter.errmsg
+   print("Status:  ", fitter.status)
+   print('error message = ', fitter.errmsg)
    raise SystemExit 
 
 # Rescale the errors to force a reasonable result:
 err[:] *= numpy.sqrt(0.9123*fitter.rchi2_min)
 fitter.fit()
 
-print "======== Fit results =========="
-print "Initial params:", fitter.params0
-print "Params:        ", fitter.params
-print "Iterations:    ", fitter.niter
-print "Function ev:   ", fitter.nfev 
-print "Uncertainties: ", fitter.xerror
-print "dof:           ", fitter.dof
-print "chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min
-print "stderr:        ", fitter.stderr   
-print "Status:        ", fitter.status
+print("======== Fit results ==========")
+print("Initial params:", fitter.params0)
+print("Params:        ", fitter.params)
+print("Iterations:    ", fitter.niter)
+print("Function ev:   ", fitter.nfev) 
+print("Uncertainties: ", fitter.xerror)
+print("dof:           ", fitter.dof)
+print("chi^2, rchi2:  ", fitter.chi2_min, fitter.rchi2_min)
+print("stderr:        ", fitter.stderr)   
+print("Status:        ", fitter.status)
 
-print "\n======== Statistics ========"
+print("\n======== Statistics ========")
 
 from scipy.stats import chi2
 rv = chi2(fitter.dof)
-print "Three methods to calculate the right tail cumulative probability:"
-print "1. with gammainc(dof/2,chi2/2):  ", 1-gammainc(0.5*fitter.dof, 0.5*fitter.chi2_min)
-print "2. with scipy's chdtrc(dof,chi2):", chdtrc(fitter.dof,fitter.chi2_min)
-print "3. with scipy's chi2.cdf(chi2):  ", 1-rv.cdf(fitter.chi2_min)
-print ""
+print("Three methods to calculate the right tail cumulative probability:")
+print("1. with gammainc(dof/2,chi2/2):  ", 1-gammainc(0.5*fitter.dof, 0.5*fitter.chi2_min))
+print("2. with scipy's chdtrc(dof,chi2):", chdtrc(fitter.dof,fitter.chi2_min))
+print("3. with scipy's chi2.cdf(chi2):  ", 1-rv.cdf(fitter.chi2_min))
+print("")
 
 
 xc = fitter.chi2_min
-print "Threshold chi-squared at alpha=0.05: ", rv.ppf(1-0.05)
-print "Threshold chi-squared at alpha=0.01: ", rv.ppf(1-0.01)
+print("Threshold chi-squared at alpha=0.05: ", rv.ppf(1-0.05))
+print("Threshold chi-squared at alpha=0.01: ", rv.ppf(1-0.01))
 
 f = lambda x: -rv.pdf(x)
 x_max = fminbound(f,1,200)
-print """For %d degrees of freedom, the maximum probability in the distribution is
-at chi-squared=%g """%(fitter.dof, x_max)
+print("""For %d degrees of freedom, the maximum probability in the distribution is
+at chi-squared=%g """%(fitter.dof, x_max))
 
 alpha = 0.05           # Select a p-value
 chi2max = max(3*x_max, fitter.chi2_min)
 chi2_threshold = rv.ppf(1-alpha)
 
-print "For a p-value alpha=%g, we found a threshold chi-squared of %g"%(alpha, chi2_threshold)
-print "The chi-squared of the fit was %g. Therefore: "%fitter.chi2_min 
+print("For a p-value alpha=%g, we found a threshold chi-squared of %g"%(alpha, chi2_threshold))
+print("The chi-squared of the fit was %g. Therefore: "%fitter.chi2_min) 
 if fitter.chi2_min <= chi2_threshold:
-   print "we do NOT reject the hypothesis that the data is consistent with the model"
+   print("we do NOT reject the hypothesis that the data is consistent with the model")
 else:
-   print "we REJECT the hypothesis that the data is consistent with the model"
+   print("we REJECT the hypothesis that the data is consistent with the model")
 
 
 # Plot the result

@@ -8,7 +8,7 @@ annim = fitsobj.Annotatedimage()
 cont = annim.Contours()
 annim.plot()
 
-print "Levels=", cont.clevels
+print("Levels=", cont.clevels)
 
 plt.show()
 

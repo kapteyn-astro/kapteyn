@@ -8,7 +8,7 @@ fig = plt.figure()
 frame = fig.add_subplot(1,1,1)
 
 mplim = f.Annotatedimage(frame)
-cont = mplim.Contours(levels=range(10000,16000,1000))
+cont = mplim.Contours(levels=list(range(10000,16000,1000)))
 cont.setp_contour(linewidth=1)
 cont.setp_contour(levels=11000, color='g', linewidth=3)
 

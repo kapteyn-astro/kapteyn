@@ -10,7 +10,7 @@ cont = annim.Contours(linestyles=('solid', 'dashed', 'dashdot', 'dotted'),
                       linewidths=(2,3,4), colors=('r','g','b','m'))
 annim.plot()
 
-print "Levels=", cont.clevels
+print("Levels=", cont.clevels)
 
 plt.show()
 

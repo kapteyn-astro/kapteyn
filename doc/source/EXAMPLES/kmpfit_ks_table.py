@@ -9,9 +9,9 @@ for alpha in alphas:
    header += " %12s"%s
    s = "a2=%.3f"%(2*alpha)
    header1 += " %12s"%s
-print header
-print header1
-print "="*len(header)
+print(header)
+print(header1)
+print("="*len(header))
 
 for n in range(3,21):
    s = "%5d"%n
@@ -19,4 +19,4 @@ for n in range(3,21):
    for alpha in alphas:
       Dcrit = rv.ppf(1-alpha)   # Lower tail probability
       s += " %12.5f"%(Dcrit)
-   print s
+   print(s)

@@ -36,7 +36,7 @@ border = annim.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180
                          startx=(180-epsilon, -180+epsilon), starty=(-89.5,))
 border.setp_gratline((0,1), color='g', lw=2)
 border.setp_plotaxis((0,1,2,3), mode='no_ticks', visible=False)
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [-dec0, -60, -30, 30, 60, dec0]
 labkwargs0 = {'color':'r', 'va':'bottom', 'ha':'right'}
 labkwargs1 = {'color':'b', 'va':'bottom', 'ha':'right'}

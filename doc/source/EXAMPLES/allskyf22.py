@@ -25,7 +25,7 @@ grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                        startx=X, starty=Y)
 grat.setp_lineswcs0(0, lw=2)
 grat.setp_lineswcs1(0, lw=2)
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lon_world.append(180.0+epsilon)
 addangle0 = -90.0
 lat_constval = -86

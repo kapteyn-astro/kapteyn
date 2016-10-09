@@ -22,7 +22,7 @@ baseim.Graticule()
 
 overlayim = Basefits.Annotatedimage(frame, cmap='OrRd', 
                                     boxdat=Reprojfits.boxdat)
-levels = range(50,200,20)
+levels = list(range(50,200,20))
 #overlayim.Contours(levels=levels, colors='w')
 overlayim.Image(alpha=0.8)
 baseim.set_histogrameq()

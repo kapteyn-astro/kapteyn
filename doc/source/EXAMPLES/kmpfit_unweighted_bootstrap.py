@@ -27,18 +27,18 @@ fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err))
 fitobj.fit(params0=[1,1])
 
 if (fitobj.status <= 0):
-   print 'error message =', fitobj.errmsg
+   print('error message =', fitobj.errmsg)
    raise SystemExit
 
-print "\n\n======== Results kmpfit with explicit partial derivatives ========="
-print "Params:        ", fitobj.params
-print "Errors from covariance matrix         : ", fitobj.xerror
-print "Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr
-print "Chi^2 min:     ", fitobj.chi2_min
-print "Reduced Chi^2: ", fitobj.rchi2_min
-print "Iterations:    ", fitobj.niter
-print "Function ev:   ", fitobj.nfev
-print "Status:        ", fitobj.status
+print("\n\n======== Results kmpfit with explicit partial derivatives =========")
+print("Params:        ", fitobj.params)
+print("Errors from covariance matrix         : ", fitobj.xerror)
+print("Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr)
+print("Chi^2 min:     ", fitobj.chi2_min)
+print("Reduced Chi^2: ", fitobj.rchi2_min)
+print("Iterations:    ", fitobj.niter)
+print("Function ev:   ", fitobj.nfev)
+print("Status:        ", fitobj.status)
 
 
 A1, B1 = fitobj.params
@@ -61,8 +61,8 @@ for i in range(trials):       # Start loop over pseudo sample
    ok = (xr != xr[0]).any()
 
    if (not ok):
-      print "All elements are the same. Invalid sample."
-      print xr, yr
+      print("All elements are the same. Invalid sample.")
+      print(xr, yr)
    else:
       fitobj.fit(params0=[1,1])
       offs, slope = fitobj.params
@@ -71,7 +71,7 @@ for i in range(trials):       # Start loop over pseudo sample
 
 slopes = numpy.array(slopes) - B1
 offsets = numpy.array(offsets) - A1
-print "Bootstrap errors in A, B:", offsets.std(), slopes.std()
+print("Bootstrap errors in A, B:", offsets.std(), slopes.std())
 
 
 # Plot results

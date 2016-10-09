@@ -65,34 +65,34 @@ N = len(x)
 beta0 = [5.0, 1.0]         # Initial estimates
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, errx, erry))
 fitobj.fit(params0=beta0)
-print "\n\n======== Results kmpfit: weights for both coordinates ========="
-print "Fitted parameters:      ", fitobj.params
-print "Covariance errors:      ", fitobj.xerror
-print "Standard errors         ", fitobj.stderr
-print "Chi^2 min:              ", fitobj.chi2_min
-print "Reduced Chi^2:          ", fitobj.rchi2_min
-print "Iterations:             ", fitobj.niter
+print("\n\n======== Results kmpfit: weights for both coordinates =========")
+print("Fitted parameters:      ", fitobj.params)
+print("Covariance errors:      ", fitobj.xerror)
+print("Standard errors         ", fitobj.stderr)
+print("Chi^2 min:              ", fitobj.chi2_min)
+print("Reduced Chi^2:          ", fitobj.rchi2_min)
+print("Iterations:             ", fitobj.niter)
 
 # Prepare fit routine
 fitobj2 = kmpfit.Fitter(residuals=residuals2, data=(x, y, erry))
 fitobj2.fit(params0=beta0)
-print "\n\n======== Results kmpfit errors in Y only ========="
-print "Fitted parameters:      ", fitobj2.params
-print "Covariance errors:      ", fitobj2.xerror
-print "Standard errors         ", fitobj2.stderr
-print "Chi^2 min:              ", fitobj2.chi2_min
-print "Reduced Chi^2:          ", fitobj2.rchi2_min
+print("\n\n======== Results kmpfit errors in Y only =========")
+print("Fitted parameters:      ", fitobj2.params)
+print("Covariance errors:      ", fitobj2.xerror)
+print("Standard errors         ", fitobj2.stderr)
+print("Chi^2 min:              ", fitobj2.chi2_min)
+print("Reduced Chi^2:          ", fitobj2.rchi2_min)
 
 
 # Unweighted (unit weighting)
 fitobj3 = kmpfit.Fitter(residuals=residuals2, data=(x, y, numpy.ones(N)))
 fitobj3.fit(params0=beta0)
-print "\n\n======== Results kmpfit unit weighting ========="
-print "Fitted parameters:      ", fitobj3.params
-print "Covariance errors:      ", fitobj3.xerror
-print "Standard errors         ", fitobj3.stderr
-print "Chi^2 min:              ", fitobj3.chi2_min
-print "Reduced Chi^2:          ", fitobj3.rchi2_min
+print("\n\n======== Results kmpfit unit weighting =========")
+print("Fitted parameters:      ", fitobj3.params)
+print("Covariance errors:      ", fitobj3.xerror)
+print("Standard errors         ", fitobj3.stderr)
+print("Chi^2 min:              ", fitobj3.chi2_min)
+print("Reduced Chi^2:          ", fitobj3.rchi2_min)
 
 
 from scipy.odr import Data, Model, ODR, RealData, odr_stop
@@ -101,12 +101,12 @@ linear = Model(model)
 mydata = RealData(x, y, sx=errx, sy=erry)
 myodr = ODR(mydata, linear, beta0=beta0, maxit=5000, sstol=1e-14)
 myoutput = myodr.run()
-print "\n\n======== Results ODR ========="
-print "Fitted parameters:      ", myoutput.beta
-print "Covariance errors:      ", numpy.sqrt(myoutput.cov_beta.diagonal())
-print "Standard errors:        ", myoutput.sd_beta
-print "Minimum chi^2:          ", myoutput.sum_square
-print "Minimum (reduced)chi^2: ", myoutput.res_var
+print("\n\n======== Results ODR =========")
+print("Fitted parameters:      ", myoutput.beta)
+print("Covariance errors:      ", numpy.sqrt(myoutput.cov_beta.diagonal()))
+print("Standard errors:        ", myoutput.sd_beta)
+print("Minimum chi^2:          ", myoutput.sum_square)
+print("Minimum (reduced)chi^2: ", myoutput.res_var)
 beta = myoutput.beta
 
 
@@ -135,7 +135,7 @@ while cont:
    n += 1
    b = b_will
 
-print "average x weighted, unweighted:", x_av, x.mean()
+print("average x weighted, unweighted:", x_av, x.mean())
 # Step 5: Repeat steps 2-4 until convergence
 
 # Step 6: Calculate 'a' using the averages of a and y
@@ -152,27 +152,27 @@ siga2 = 1.0/w_sum + 2*(x_av+2*z_av)*z_av*Q + (x_av+2*z_av)**2*sigb2
 siga = numpy.sqrt(siga2)
 sigb = numpy.sqrt(sigb2)
 chi2 = (residuals(fitobj.params,(x,y,errx,erry))**2).sum()
-print "\n\n======== Results Williamson ========="
-print "Fitted parameters:      ", [a_will, b_will]
-print "Covariance errors:      ", [siga, sigb]
-print "Minimum chi^2:          ", chi2
+print("\n\n======== Results Williamson =========")
+print("Fitted parameters:      ", [a_will, b_will])
+print("Covariance errors:      ", [siga, sigb])
+print("Minimum chi^2:          ", chi2)
 
 
-print "\n\nReference                    a                b"
-print "-----------------------------------------------------------"
-print "Literature results:"
-print "Pearson unweighted           5.7857           -0.546"
-print "Williamson                   5.47991022403    -0.48053340745"
-print "Reed                         5.47991022723    -0.48053340810"
-print "Lybanon                      5.47991025       -0.480533415"
-print 
-print "Practical results:"
-print "kmpfit unweighted            %13.11f    %13.11f"%(fitobj3.params[0],fitobj3.params[1])
-print "kmpfit weights in Y only     %13.11f    %13.11f"%(fitobj2.params[0],fitobj2.params[1])
-print "kmpfit effective variance    %13.11f    %13.11f"%(fitobj.params[0],fitobj.params[1])
-print "ODR                          %13.11f    %13.11f"%(beta[0],beta[1])
-print "Williamson                   %13.11f    %13.11f"%(a_will,b_will)
-print 
+print("\n\nReference                    a                b")
+print("-----------------------------------------------------------")
+print("Literature results:")
+print("Pearson unweighted           5.7857           -0.546")
+print("Williamson                   5.47991022403    -0.48053340745")
+print("Reed                         5.47991022723    -0.48053340810")
+print("Lybanon                      5.47991025       -0.480533415")
+print() 
+print("Practical results:")
+print("kmpfit unweighted            %13.11f    %13.11f"%(fitobj3.params[0],fitobj3.params[1]))
+print("kmpfit weights in Y only     %13.11f    %13.11f"%(fitobj2.params[0],fitobj2.params[1]))
+print("kmpfit effective variance    %13.11f    %13.11f"%(fitobj.params[0],fitobj.params[1]))
+print("ODR                          %13.11f    %13.11f"%(beta[0],beta[1]))
+print("Williamson                   %13.11f    %13.11f"%(a_will,b_will))
+print() 
 
 
 

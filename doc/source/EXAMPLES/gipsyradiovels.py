@@ -26,8 +26,8 @@ p = pixrange = arange(crpix-2, crpix+3)     # Range of pixels for which we
 fb = f0*(1.0-Vr/c)
 Vtopo = c * ((fb*fb-fr*fr)/(fb*fb+fr*fr))
 dfb = df*(c-Vtopo)/sqrt(c*c-Vtopo*Vtopo)
-print "Topocentric correction (km/s):", Vtopo/1000
-print "Barycentric frequency and increment (Hz):", fb, dfb
+print("Topocentric correction (km/s):", Vtopo/1000)
+print("Barycentric frequency and increment (Hz):", fb, dfb)
 
 # VRAD from spectral translation, assumed to give the correct velocities
 proj = wcs.Projection(header_gds)
@@ -50,8 +50,8 @@ V4 = Vr - c*(p-crpix)*df/f0
 # d = -c*(p-crpix)*(df-dfb)/f0
 # print (V4-V1)/1000, d/1000
 
-print "\n%10s %14s %14s %14s %14s" % ('pix', 'WCSLIB',
-'GIP+bary', 'GIP+bary-f0', 'GIP+topo')
+print("\n%10s %14s %14s %14s %14s" % ('pix', 'WCSLIB',
+'GIP+bary', 'GIP+bary-f0', 'GIP+topo'))
 for pixel, v1,v2,v3,v4 in zip(pixrange, V1, V2, V3, V4):
-   print "%10.4f %14f %14f %14f %14f" % (pixel, v1/1000, v2/1000, 
-         v3/1000, v4/1000) 
+   print("%10.4f %14f %14f %14f %14f" % (pixel, v1/1000, v2/1000, 
+         v3/1000, v4/1000)) 

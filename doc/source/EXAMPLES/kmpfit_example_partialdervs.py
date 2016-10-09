@@ -70,21 +70,21 @@ err = 0.3*numpy.random.randn(N)
 fitobj = kmpfit.Fitter(residuals=my_residuals, deriv=my_derivs, data=(x, y, err))
 try:
    fitobj.fit(params0=p0)
-except Exception, mes:
-   print "Something wrong with fit: ", mes
+except Exception as mes:
+   print("Something wrong with fit: ", mes)
    raise SystemExit
 
-print "\n\n======== Results kmpfit with explicit partial derivatives ========="
-print "Params:        ", fitobj.params
-print "Errors from covariance matrix         : ", fitobj.xerror
-print "Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr 
-print "Chi^2 min:     ", fitobj.chi2_min
-print "Reduced Chi^2: ", fitobj.rchi2_min
-print "Iterations:    ", fitobj.niter
-print "Function ev:   ", fitobj.nfev 
-print "Status:        ", fitobj.status
-print "Status Message:", fitobj.message
-print "Covariance:\n", fitobj.covar 
+print("\n\n======== Results kmpfit with explicit partial derivatives =========")
+print("Params:        ", fitobj.params)
+print("Errors from covariance matrix         : ", fitobj.xerror)
+print("Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr) 
+print("Chi^2 min:     ", fitobj.chi2_min)
+print("Reduced Chi^2: ", fitobj.rchi2_min)
+print("Iterations:    ", fitobj.niter)
+print("Function ev:   ", fitobj.nfev) 
+print("Status:        ", fitobj.status)
+print("Status Message:", fitobj.message)
+print("Covariance:\n", fitobj.covar) 
 
 # Plot the result
 rc('font', size=9)

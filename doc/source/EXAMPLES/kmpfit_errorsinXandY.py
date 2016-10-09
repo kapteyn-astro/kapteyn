@@ -35,15 +35,15 @@ errx = normal(0.0, 0.3, N)
 erry = normal(0.0, 0.4, N) 
 
 beta0 = [0,0]
-print "\n========== Results SciPy's ODR ============"
+print("\n========== Results SciPy's ODR ============")
 linear = Model(model)
 mydata = RealData(x, y, sx=errx, sy=erry)
 myodr = ODR(mydata, linear, beta0=beta0, maxit=5000)
 myoutput = myodr.run()
-print "Fitted parameters:      ", myoutput.beta
-print "Covariance errors:      ", numpy.sqrt(myoutput.cov_beta.diagonal())
-print "Standard errors:        ", myoutput.sd_beta
-print "Minimum (reduced)chi^2: ", myoutput.res_var
+print("Fitted parameters:      ", myoutput.beta)
+print("Covariance errors:      ", numpy.sqrt(myoutput.cov_beta.diagonal()))
+print("Standard errors:        ", myoutput.sd_beta)
+print("Minimum (reduced)chi^2: ", myoutput.res_var)
 
 beta = myoutput.beta
 
@@ -51,17 +51,17 @@ beta = myoutput.beta
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, errx, erry))
 try:
    fitobj.fit(params0=beta0)
-except Exception, mes:
-   print "Something wrong with fit: ", mes
+except Exception as mes:
+   print("Something wrong with fit: ", mes)
    raise SystemExit
 
-print "\n\n======== Results kmpfit errors in both variables ========="
-print "Params:                 ", fitobj.params
-print "Covariance errors:      ", fitobj.xerror
-print "Standard errors         ", fitobj.stderr
-print "Chi^2 min:              ", fitobj.chi2_min
-print "Reduced Chi^2:          ", fitobj.rchi2_min
-print "Status Message:         ", fitobj.message
+print("\n\n======== Results kmpfit errors in both variables =========")
+print("Params:                 ", fitobj.params)
+print("Covariance errors:      ", fitobj.xerror)
+print("Standard errors         ", fitobj.stderr)
+print("Chi^2 min:              ", fitobj.chi2_min)
+print("Reduced Chi^2:          ", fitobj.rchi2_min)
+print("Status Message:         ", fitobj.message)
 
 # Some plotting
 rc('font', size=9)

@@ -42,34 +42,34 @@ params0 = (1,1)
 fitter = kmpfit.Fitter(residuals=residuals, data=(x,y,err))
 fitter.fit(params0=params0)
 
-print "======== Fit results all data included =========="
-print "Params:                      ", fitter.params
-print "Uncertainties:               ", fitter.xerror
-print "Errors assuming red.chi^2=1: ", fitter.stderr
-print "Iterations:                  ", fitter.niter 
-print "Function ev:                 ", fitter.nfev
-print "dof:                         ", fitter.dof
-print "chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min
-print "Status:                      ", fitter.status
+print("======== Fit results all data included ==========")
+print("Params:                      ", fitter.params)
+print("Uncertainties:               ", fitter.xerror)
+print("Errors assuming red.chi^2=1: ", fitter.stderr)
+print("Iterations:                  ", fitter.niter) 
+print("Function ev:                 ", fitter.nfev)
+print("dof:                         ", fitter.dof)
+print("chi^2, rchi2:                ", fitter.chi2_min, fitter.rchi2_min)
+print("Status:                      ", fitter.status)
 a, b = fitter.params
 
 alpha = 0.01
 from scipy.stats import chi2
 rv = chi2(fitter.dof)
 pval = 1-rv.cdf(fitter.chi2_min)
-print "If H0 was correct, then" 
-print "the probability to find a chi-squared higher than this:  ", pval
+print("If H0 was correct, then") 
+print("the probability to find a chi-squared higher than this:  ", pval)
 if pval < alpha:
-   print "pval=%g. If we set the threshold to alpha=%f, we REJECT H0."%(pval, alpha)
+   print("pval=%g. If we set the threshold to alpha=%f, we REJECT H0."%(pval, alpha))
 else:
-   print "pval=%g. If we set the threshold to alpha=%f, we ACCEPT H0."%(pval, alpha)
+   print("pval=%g. If we set the threshold to alpha=%f, we ACCEPT H0."%(pval, alpha))
 
 N = len(y)
 varmod = (y-model(fitter.params,x))**2.0
 y_av = y.sum()/N
 vardat = (y-y_av)**2.0
 vr0 = 100.0*(1-(varmod.sum()/vardat.sum()))
-print "Unfiltered sample: variance reduction(%):", vr0
+print("Unfiltered sample: variance reduction(%):", vr0)
 
 # Prepare loop where we exclude one point in each run
 xf = numpy.zeros(N-1)
@@ -83,34 +83,34 @@ for i in range(N):
    xf[:] = numpy.delete(x,i)      # Delete one point
    yf[:] = numpy.delete(y,i)
    errf[:] = numpy.delete(err,i)
-   print "\nWe deleted from the sample: (%g,%g)"%(x[i],y[i])
+   print("\nWe deleted from the sample: (%g,%g)"%(x[i],y[i]))
    fitter.fit(params0=params0)
-   print "chi^2, rchi2: ", fitter.chi2_min, fitter.rchi2_min
+   print("chi^2, rchi2: ", fitter.chi2_min, fitter.rchi2_min)
    varmod = (yf-model(fitter.params,xf))**2.0
    yf_av = yf.sum()/N
    vardat = (yf-yf_av)**2.0
    vr1 = 100.0*(1-(varmod.sum()/vardat.sum()))
    # A vr of 100% implies that the model is perfect
    # A bad model gives much lower values (sometimes negative)
-   print "Variance reduction%:", vr1
-   print "Improvement: %g%%"%(vr1-vr0)
+   print("Variance reduction%:", vr1)
+   print("Improvement: %g%%"%(vr1-vr0))
    vr.append([vr1,i])
 
 vr.sort()
-print vr
+print(vr)
 i = vr[-1][1]
 xf[:] = numpy.delete(x,i)      # Delete one point
 yf[:] = numpy.delete(y,i)
 errf[:] = numpy.delete(err,i)
 fitter.fit(params0=params0)
-print "Filtered sample: chi^2, rchi2: ", fitter.chi2_min, fitter.rchi2_min
+print("Filtered sample: chi^2, rchi2: ", fitter.chi2_min, fitter.rchi2_min)
 pval = 1-rv.cdf(fitter.chi2_min)
-print "If H0 was correct, then"
-print "the probability to find a chi-squared higher than this:  ", pval
+print("If H0 was correct, then")
+print("the probability to find a chi-squared higher than this:  ", pval)
 if pval < alpha:
-   print "pval=%g. If we set the threshold to alpha=%f, we REJECT H0."%(pval, alpha)
+   print("pval=%g. If we set the threshold to alpha=%f, we REJECT H0."%(pval, alpha))
 else:
-   print "pval=%g. If we set the threshold to alpha=%f, we ACCEPT H0."%(pval, alpha)
+   print("pval=%g. If we set the threshold to alpha=%f, we ACCEPT H0."%(pval, alpha))
 
 frame.set_ylim(0, 1.1*y.max())
 frame.set_xlim(0, 1.1*x.max())

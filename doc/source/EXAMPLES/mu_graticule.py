@@ -11,7 +11,7 @@ fig.text(0.5, 0.96, "Combination of plot objects",
          fontsize=14, color='r')
 
 annim = f.Annotatedimage(frame, clipmin=3000, clipmax=15000)
-cont = annim.Contours(levels=range(8000,14000,1000))
+cont = annim.Contours(levels=list(range(8000,14000,1000)))
 cont.setp_contour(linewidth=1)
 cont.setp_contour(levels=11000, color='g', linewidth=2)
 cb = annim.Colorbar(clines=True, orientation='vertical', fontsize=8, linewidths=5)

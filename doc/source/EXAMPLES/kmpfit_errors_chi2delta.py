@@ -31,14 +31,14 @@ fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, err))
 fitobj.fit(params0=[1,1])
 
 if (fitobj.status <= 0):
-   print 'error message =', fitobj.errmsg
+   print('error message =', fitobj.errmsg)
    raise SystemExit
 
-print "\n\n======== Results kmpfit for Y = A + B*X ========="
-print "Params:        ", fitobj.params
-print "Errors from covariance matrix         : ", fitobj.xerror
-print "Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr
-print "Chi^2 min:     ", fitobj.chi2_min
+print("\n\n======== Results kmpfit for Y = A + B*X =========")
+print("Params:        ", fitobj.params)
+print("Errors from covariance matrix         : ", fitobj.xerror)
+print("Uncertainties assuming reduced Chi^2=1: ", fitobj.stderr)
+print("Chi^2 min:     ", fitobj.chi2_min)
 
 p1, p2 = fitobj.params
 e1, e2 = fitobj.xerror
@@ -50,14 +50,14 @@ e1, e2 = fitobj.xerror
 
 fitobj.parinfo[0] = dict(fixed=True)
 fitobj.fit(params0=[p1+e1,1])
-print "\nFix first parameter and set its value to fitted value+error"
-print "Params:        ", fitobj.params
-print "Chi^2 min:     ", fitobj.chi2_min
-print "Errors from covariance matrix         : ", fitobj.xerror
+print("\nFix first parameter and set its value to fitted value+error")
+print("Params:        ", fitobj.params)
+print("Chi^2 min:     ", fitobj.chi2_min)
+print("Errors from covariance matrix         : ", fitobj.xerror)
 
 fitobj.parinfo = [{'fixed':False}, {'fixed':True}]
 fitobj.fit(params0=[1, p2+e2])
-print "\nFix second parameter and set its value to fitted value+error"
-print "Params:        ", fitobj.params
-print "Chi^2 min:     ", fitobj.chi2_min
-print "Errors from covariance matrix         : ", fitobj.xerror
+print("\nFix second parameter and set its value to fitted value+error")
+print("Params:        ", fitobj.params)
+print("Chi^2 min:     ", fitobj.chi2_min)
+print("Errors from covariance matrix         : ", fitobj.xerror)

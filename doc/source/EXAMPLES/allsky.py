@@ -88,7 +88,7 @@ def plotfig(fignum, smallversion=False):
    lat_constval = None
    lon_constval = None
    perimeter = None
-   lon_world = range(0,360,30)
+   lon_world = list(range(0,360,30))
    lat_world = [-dec0, -60, -30, 30, 60, dec0]
    deltapx = deltapy = 0.0
    annotatekwargs0 = {'color':'r'}
@@ -256,7 +256,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(axnum= (1,2), wylim=(-60,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_constval = -62
-      lat_world = range(-50, 10, 10)
+      lat_world = list(range(-50, 10, 10))
    elif fignum == 7:
       title = r"Slant orthograpic projection (SIN) with: $\xi=\frac{-1}{\sqrt{6}}$ and $\eta=\frac{1}{\sqrt{6}}$ (Cal. fig.10b)"
       xi =  -1/numpy.sqrt(6); eta = 1/numpy.sqrt(6)
@@ -372,7 +372,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_world = [-90, -60,-30, 30, 60, dec0]
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lon_world.append(180+epsilon)
       annotatekwargs0.update({'va':'bottom', 'ha':'right'})
    elif fignum == 13:
@@ -391,7 +391,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_world = [-60,-30, 30, 60]
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lon_world.append(180.00000001)
    elif fignum == 14:
       title = "Plate Carree projection (CAR). (Cal. fig.18)"
@@ -408,7 +408,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_world = [-90, -60,-30, 30, 60, dec0]
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lon_world.append(180.00000001)
    elif fignum == 15:
       title =  "Mercator's projection (MER). (Cal. fig.19)"
@@ -426,7 +426,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(header, axnum= (1,2), wylim=(-80,80.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_world = [-90, -60,-30, 30, 60, dec0]
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lon_world.append(180+epsilon)
       grat.setp_lineswcs1((-80,80), linestyle='--', color='g')
    elif fignum == 16:
@@ -444,7 +444,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_world = [-dec0, -60,-30, 30, 60, dec0]
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lon_world.append(180+epsilon)
    elif fignum == 17:
       title = "Parabolic projection (PAR). (Cal. fig.21)"
@@ -461,7 +461,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_world = [-dec0, -60,-30, 30, 60, dec0]
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lon_world.append(180+epsilon)
    elif fignum == 18:
       title=  "Mollweide's projection (MOL). (Cal. fig.22)"
@@ -478,7 +478,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_world = [-60,-30, 30, 60]
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lon_world.append(180+epsilon)
    elif fignum == 19:
       title = "Hammer Aitoff projection (AIT). (Cal. fig.23)"
@@ -495,7 +495,7 @@ $\gamma=30$ and $\mu=2$ (Cal. fig.6)"""
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
       lat_world = [-dec0, -60,-30, 30, 60, dec0]
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lon_world.append(180+epsilon)
    # CONIC PROJECTIONS
    elif fignum == 20:
@@ -687,7 +687,7 @@ $\theta_a=45$, $\theta_1=20$ and $\theta2=70$. (Cal. fig.27)"""
       annim = f.Annotatedimage(frame)
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(0,360),
                              startx=X, starty=Y)
-      lon_world = range(0,360,30)
+      lon_world = list(range(0,360,30))
       lat_world = [-90, -60, -30, 30, 60, dec0]
       perimeter = getperimeter(grat)
       deltapx = 1
@@ -708,7 +708,7 @@ $\theta_a=45$, $\theta_1=20$ and $\theta2=70$. (Cal. fig.27)"""
       annim = f.Annotatedimage(frame)
       grat = annim.Graticule(axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                              startx=X, starty=Y)
-      lon_world = range(-180,180,30)
+      lon_world = list(range(-180,180,30))
       lat_world = [-90, -60, -30, 30, 60, dec0]
       perimeter = getperimeter(grat)
    elif fignum == 29:
@@ -908,7 +908,7 @@ $(\phi_0,\theta_0) = (0^\circ,90^\circ)$. (Cal. fig.34d)"""
       plotdata = True
       datasign = +1
       # Proof that WCSlib thinks TLON, TLAT are valid longitudes & latitudes
-      print "TLON and TLAT are recognized as:", grat.gmap.types
+      print("TLON and TLAT are recognized as:", grat.gmap.types)
    elif fignum == 37: 
       title = 'WCS polyconic (PGSBOX fig.1)'
       rot = 30.0 *numpy.pi/180.0
@@ -999,11 +999,11 @@ $\alpha_p=0^\circ$, $\theta_p=+45^\circ$ and N.C.P. at $(45^\circ,0^\circ)$. (Ca
                                 startx=X, starty=Y)
       oblique.setp_lineswcs0(0.0, color='y')
       oblique.setp_lineswcs1(0.0, color='y')
-      oblique.setp_lineswcs0(range(15,360,45), color='b')
+      oblique.setp_lineswcs0(list(range(15,360,45)), color='b')
       oblique.setp_lineswcs1([15,-15,60, -60], color='b')
-      oblique.setp_lineswcs0(range(30,360,45), color='r')
+      oblique.setp_lineswcs0(list(range(30,360,45)), color='r')
       oblique.setp_lineswcs1([30,-30,75, -75], color='r')
-      oblique.setp_lineswcs0(range(45,360,45), color='w')
+      oblique.setp_lineswcs0(list(range(45,360,45)), color='w')
       oblique.setp_lineswcs1((-45,45), color='w')
       framebackgroundcolor = 'k'
       if not smallversion:
@@ -1028,7 +1028,7 @@ Others: Colour coded oblique graticule"""
    if perimeter != None:
       p = plt.Polygon(perimeter, facecolor='#d6eaef', lw=2)
       frame.add_patch(p)
-      Xp, Yp = zip(*perimeter)
+      Xp, Yp = list(zip(*perimeter))
       frame.plot(Xp, Yp, color='r')
 
    # Plot labels inside graticule if required
@@ -1086,6 +1086,7 @@ if __name__ == "__main__":
       fsize = 8
    
    if fignum == None:
-      fignum = input("Enter number of figure: ")
+      print("enter number of figures", file=sys.stderr)
+      #fignum = eval(input("Enter number of figure: "))
    
    plotfig(fignum, smallversion)

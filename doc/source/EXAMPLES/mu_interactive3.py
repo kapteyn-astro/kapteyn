@@ -10,7 +10,7 @@ frame = fig.add_subplot(1,1,1)
 
 mycmlist = glob.glob("/home/gipsy/dat/lut/*.lut")
 maputils.cmlist.add(mycmlist)
-print "Colormaps: ", maputils.cmlist.colormaps
+print("Colormaps: ", maputils.cmlist.colormaps)
 
 mplim = f.Annotatedimage(frame)
 ima = mplim.Image(cmap="mousse.lut")

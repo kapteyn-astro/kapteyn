@@ -65,44 +65,44 @@ N = len(y)
 errx = numpy.array([440.0, 470, 500, 530, 540])
 erry = numpy.array([0.5, 0.25, 0.08, 0.09, 1.90])
 
-print "\Literature values:"
-print "===================" 
-print "Orear's iteration method: a, b, min chi^2:", 1.0163e-3, 5.937e5, 2.187
-print "Orear's exact method:     a, b, min chi^2:", 1.0731e-3, 6.250e5, 2.134
+print("\Literature values:")
+print("===================") 
+print("Orear's iteration method: a, b, min chi^2:", 1.0163e-3, 5.937e5, 2.187)
+print("Orear's exact method:     a, b, min chi^2:", 1.0731e-3, 6.250e5, 2.134)
 
 # Prepare fit routine
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, errx, erry))
 fitobj.fit(params0=beta0)
-print "\n\n======== Results kmpfit: weights for both coordinates ========="
-print "Params:                 ", fitobj.params
-print "Covariance errors:      ", fitobj.xerror
-print "Standard errors         ", fitobj.stderr
-print "Chi^2 min:              ", fitobj.chi2_min
-print "Reduced Chi^2:          ", fitobj.rchi2_min
-print "Iterations:             ", fitobj.niter
-print "Status:                 ", fitobj.message
+print("\n\n======== Results kmpfit: weights for both coordinates =========")
+print("Params:                 ", fitobj.params)
+print("Covariance errors:      ", fitobj.xerror)
+print("Standard errors         ", fitobj.stderr)
+print("Chi^2 min:              ", fitobj.chi2_min)
+print("Reduced Chi^2:          ", fitobj.rchi2_min)
+print("Iterations:             ", fitobj.niter)
+print("Status:                 ", fitobj.message)
 
 # Prepare fit routine
 fitobj2 = kmpfit.Fitter(residuals=residuals2, data=(x, y, erry))
 fitobj2.fit(params0=beta0)
-print "\n\n======== Results kmpfit errors in Y only ========="
-print "Params:                 ", fitobj2.params
-print "Covariance errors:      ", fitobj2.xerror
-print "Standard errors         ", fitobj2.stderr
-print "Chi^2 min:              ", fitobj2.chi2_min
-print "Reduced Chi^2:          ", fitobj2.rchi2_min
+print("\n\n======== Results kmpfit errors in Y only =========")
+print("Params:                 ", fitobj2.params)
+print("Covariance errors:      ", fitobj2.xerror)
+print("Standard errors         ", fitobj2.stderr)
+print("Chi^2 min:              ", fitobj2.chi2_min)
+print("Reduced Chi^2:          ", fitobj2.rchi2_min)
 
 # Prepare fit routine
 fitobj3 = kmpfit.Fitter(residuals=residuals3, data=(x, y, errx, erry))
 fitobj3.fit(params0=beta0)
-print "\n\n======== Results kmpfit with distance formula ========="
-print "Params:                 ", fitobj3.params
-print "Covariance errors:      ", fitobj3.xerror
-print "Standard errors         ", fitobj3.stderr
-print "Chi^2 min:              ", fitobj3.chi2_min
-print "Reduced Chi^2:          ", fitobj3.rchi2_min
-print "Iterations:             ", fitobj3.niter
-print "Status:                 ", fitobj3.message
+print("\n\n======== Results kmpfit with distance formula =========")
+print("Params:                 ", fitobj3.params)
+print("Covariance errors:      ", fitobj3.xerror)
+print("Standard errors         ", fitobj3.stderr)
+print("Chi^2 min:              ", fitobj3.chi2_min)
+print("Reduced Chi^2:          ", fitobj3.rchi2_min)
+print("Iterations:             ", fitobj3.niter)
+print("Status:                 ", fitobj3.message)
 
 # Some plotting
 rc('font', size=9)

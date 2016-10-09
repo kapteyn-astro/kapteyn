@@ -40,9 +40,9 @@ fitobj = kmpfit.Fitter(residuals, data=arrays)
 paramsinitial = (0.0, 0.0)
 fitobj.fit(params0=paramsinitial)
 if (fitobj.status <= 0):
-   print 'Error message = ', fitobj.errmsg
+   print('Error message = ', fitobj.errmsg)
 else:
-   print "Optimal parameters: ", fitobj.params
+   print("Optimal parameters: ", fitobj.params)
 
 
 # Plot the result

@@ -46,8 +46,8 @@ N = len(x)
 beta0 = [5.0, 0.0]         # Initial estimates
 
 # Analytical solutions following Pearson's formulas
-print "\nAnalytical solution"
-print "==================="
+print("\nAnalytical solution")
+print("===================")
 x_av = x.mean()
 y_av = y.mean()
 sx = (x-x_av)
@@ -61,66 +61,66 @@ tan2theta = 2*Sxy/(Sxx-Syy)
 twotheta = numpy.arctan(tan2theta)
 b_pearson = numpy.tan(twotheta/2)
 a_pearson = y_av - b_pearson*x_av
-print "Best fit parameters: a=%.10f  b=%.10f"%(a_pearson,b_pearson)
+print("Best fit parameters: a=%.10f  b=%.10f"%(a_pearson,b_pearson))
 rxy = Sxy/numpy.sqrt(Sxx*Syy)
-print "Pearson's Corr. coef: ", rxy
+print("Pearson's Corr. coef: ", rxy)
 tan2theta = 2*rxy*numpy.sqrt(Sxx*Syy)/(Sxx-Syy)
 twotheta = numpy.arctan(tan2theta)
-print "Pearson's best tan2theta, theta, slope: ", \
-      tan2theta, 0.5*twotheta, numpy.tan(0.5*twotheta)
+print("Pearson's best tan2theta, theta, slope: ", \
+      tan2theta, 0.5*twotheta, numpy.tan(0.5*twotheta))
 b1 = rxy*numpy.sqrt(Syy)/numpy.sqrt(Sxx)
-print "b1 (Y on X), slope: ", b1, b1
+print("b1 (Y on X), slope: ", b1, b1)
 b2 = rxy*numpy.sqrt(Sxx)/numpy.sqrt(Syy)
-print "b2 (X on Y), slope", b2, 1/b2
+print("b2 (X on Y), slope", b2, 1/b2)
 
 
 # Prepare fit routine
 fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y))
 fitobj.fit(params0=beta0)
-print "\n======== Results kmpfit: effective variance ========="
-print "Params:                 ", fitobj.params[0], numpy.tan(fitobj.params[1])
-print "Covariance errors:      ", fitobj.xerror
-print "Standard errors         ", fitobj.stderr
-print "Chi^2 min:              ", fitobj.chi2_min
-print "Reduced Chi^2:          ", fitobj.rchi2_min
+print("\n======== Results kmpfit: effective variance =========")
+print("Params:                 ", fitobj.params[0], numpy.tan(fitobj.params[1]))
+print("Covariance errors:      ", fitobj.xerror)
+print("Standard errors         ", fitobj.stderr)
+print("Chi^2 min:              ", fitobj.chi2_min)
+print("Reduced Chi^2:          ", fitobj.rchi2_min)
 
 # Prepare fit routine
 fitobj2 = kmpfit.Fitter(residuals=residuals2, data=(x, y))
 fitobj2.fit(params0=beta0)
-print "\n======== Results kmpfit Y on X ========="
-print "Params:                 ", fitobj2.params
-print "Covariance errors:      ", fitobj2.xerror
-print "Standard errors         ", fitobj2.stderr
-print "Chi^2 min:              ", fitobj2.chi2_min
-print "Reduced Chi^2:          ", fitobj2.rchi2_min
+print("\n======== Results kmpfit Y on X =========")
+print("Params:                 ", fitobj2.params)
+print("Covariance errors:      ", fitobj2.xerror)
+print("Standard errors         ", fitobj2.stderr)
+print("Chi^2 min:              ", fitobj2.chi2_min)
+print("Reduced Chi^2:          ", fitobj2.rchi2_min)
 a1, b1 = fitobj2.params[0], numpy.tan(fitobj2.params[1])
 
 fitobj3 = kmpfit.Fitter(residuals=residuals2, data=(y, x))
 fitobj3.fit(params0=(0,5))
-print "\n======== Results kmpfit X on Y ========="
-print "Params:                 ", fitobj3.params
-print "Covariance errors:      ", fitobj3.xerror
-print "Standard errors         ", fitobj3.stderr
-print "Chi^2 min:              ", fitobj3.chi2_min
-print "Reduced Chi^2:          ", fitobj3.rchi2_min
+print("\n======== Results kmpfit X on Y =========")
+print("Params:                 ", fitobj3.params)
+print("Covariance errors:      ", fitobj3.xerror)
+print("Standard errors         ", fitobj3.stderr)
+print("Chi^2 min:              ", fitobj3.chi2_min)
+print("Reduced Chi^2:          ", fitobj3.rchi2_min)
 a2, b2  = fitobj3.params[0], numpy.tan(fitobj3.params[1])
 A2 = -a2/b2; B2 = 1/b2   # Get values for XY plane 
 
-print "\nLeast squares solution"
-print "======================"
-print "a1, b1 (Y on X)", a1, b1
-print "a2, b2 (X on Y)", A2, B2
+print("\nLeast squares solution")
+print("======================")
+print("a1, b1 (Y on X)", a1, b1)
+print("a2, b2 (X on Y)", A2, B2)
 tan2theta = 2*b1*b2/(b2-b1)
 twotheta = numpy.arctan(tan2theta)
 best_slope = numpy.tan(0.5*twotheta)
-print "Best fit tan2theta, Theta, slope: ", tan2theta, \
-       0.5*twotheta, best_slope
+print("Best fit tan2theta, Theta, slope: ", tan2theta, \
+       0.5*twotheta, best_slope)
 best_offs = y_av - best_slope*x_av
-print "Best fit parameters: a=%.10f  b=%.10f"%(best_offs,best_slope)
+print("Best fit parameters: a=%.10f  b=%.10f"%(best_offs,best_slope))
 
 bislope = (b1*B2-1+numpy.sqrt((1+b1*b1)*(1+B2*B2)))/(b1+B2)
 abi = y_av - bislope*x_av
-print "Bisector through centroid a, b: ",abi, bislope 
+print("Bisector through centroid a, b: ",abi, bislope) 
 bbi = numpy.arctan(bislope)  # Back to angle again
 B2_angle = numpy.arctan(B2)  # Back to angle again
 

@@ -14,9 +14,9 @@ fitsobject = maputils.FITSimage('ngc6946.fits')
 
 # Get a the range of channels in the data cube
 n3 = fitsobject.hdr['NAXIS3']
-ch = range(1,n3)
+ch = list(range(1,n3))
 vmin, vmax = fitsobject.get_dataminmax()
-print "Vmin, Vmax of data in cube:", vmin, vmax
+print("Vmin, Vmax of data in cube:", vmin, vmax)
 cmap = None
 
 # Start to build and store the annotated images

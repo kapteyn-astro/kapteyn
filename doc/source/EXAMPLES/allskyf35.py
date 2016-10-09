@@ -32,7 +32,7 @@ del header['LONPOLE']
 border = annim.Graticule(header, axnum= (1,2), wylim=(-90,90.0), wxlim=(-180,180),
                          skipx=True, skipy=True)
 perimeter = getperimeter(border)
-lon_world = range(0,360,30)
+lon_world = list(range(0,360,30))
 lat_world = [-60, -30, 30, 60]
 labkwargs0 = {'color':'r', 'va':'center', 'ha':'left'}
 labkwargs1 = {'color':'b', 'va':'top', 'ha':'center'}
