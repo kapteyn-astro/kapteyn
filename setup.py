@@ -1,5 +1,4 @@
 from setuptools import setup, Extension
-from distutils.sysconfig import get_python_inc, get_python_lib
 import sys
 sys.path.insert(0, ".")
 from kapteyn import __version__ as version
@@ -158,7 +157,6 @@ if sys.platform=='darwin':
    version = output.split()[0].decode("ascii")
    if re.match('i686-apple-darwin[0-9]*-llvm-gcc-4.2', version):
       os.environ['CC'] = 'clang'
-#from Cython.Build import cythonize
 
 class lazy_cythonize(list):
     def __init__(self, callback):
@@ -214,7 +212,7 @@ setup(
    platforms = ['Linux', 'Mac OSX', 'Windows'],
    license = 'BSD',
    setup_requires=["Cython", "numpy"],
-   install_requires=["six"],
+   install_requires=["Cython", "numpy", "six"],
    classifiers = classifiers,
    ext_package='kapteyn',
    ext_modules=lazy_cythonize(extensions),

@@ -1304,7 +1304,7 @@ static PyMethodDef methods[] = {
     {"distance_transform_op", (PyCFunction)Py_DistanceTransformOnePass,
      METH_VARARGS, NULL},
     {"euclidean_feature_transform",
-     (PyCFunction)Py_EuclideanFeatureTransform, 
+     (PyCFunction)Py_EuclideanFeatureTransform,
      METH_VARARGS, NULL},
     {"binary_erosion",        (PyCFunction)Py_BinaryErosion,
      METH_VARARGS, NULL},
@@ -1369,6 +1369,7 @@ void
 init_nd_image(void)
 #endif
 {
+    struct module_state *st;
 #if PY_MAJOR_VERSION >= 3
     PyObject *module = PyModule_Create(&moduledef);
 #else
@@ -1378,7 +1379,7 @@ init_nd_image(void)
 
     if (module == NULL)
         INITERROR;
-    struct module_state *st = GETSTATE(module);
+    st = GETSTATE(module);
 
     st->error = PyErr_NewException("_nd_image.Error", NULL, NULL);
     if (st->error == NULL) {
