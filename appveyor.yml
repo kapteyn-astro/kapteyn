@@ -1,0 +1,34 @@
+environment:
+  matrix:
+    - PYTHON_VERSION: 2.7
+      MINICONDA: C:\Miniconda-x64
+    - PYTHON_VERSION: 2.7
+      MINICONDA: C:\Miniconda
+    - PYTHON_VERSION: 3.5
+      MINICONDA: C:\Miniconda35
+    - PYTHON_VERSION: 3.5
+      MINICONDA: C:\Miniconda35-x64
+
+init:
+  - "ECHO %PYTHON_VERSION% %MINICONDA%"
+
+
+build: false
+
+
+install:
+  - "set PATH=%MINICONDA%;%MINICONDA%\\Scripts;%PATH%"
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda info -a
+  - "conda create -q -n test-environment python=%PYTHON_VERSION% numpy cython"
+  - activate test-environment
+  - pip install -e .
+
+test_script:
+ - python -c "import kapteyn"
+ - python -c "import kapteyn.wcs"
+ - python -c "import kapteyn.ascarray"
+ - python -c "import kapteyn.profiles"
+ - python -c "import kapteyn._nd_image"
+ - python -c "import kapteyn.kmpfit"
