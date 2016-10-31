@@ -23,7 +23,7 @@ coordinates from image pixel coordinates, and vice versa." The celestial
 transformations have been implemented in Python, using NumPy, and
 support equatorial and ecliptic coordinates of any epoch and reference
 systems FK4, FK4-NO-E, FK5, ICRS and dynamic J2000, and galactic and
-supergalactic coordinates. 
+supergalactic coordinates.
 
 .. index:: coordinate representation
 
@@ -79,7 +79,7 @@ For detailed information, refer to celestial's documentation.
 
    Convert an angle in degrees into the degrees, minutes, seconds format
    assuming it was a latitude of which the value should be in the range
-   -90 to 90 degrees. 
+   -90 to 90 degrees.
 
 .. function:: lon2dms(a[, prec=1])
 
@@ -135,7 +135,7 @@ Error handling
 
 Errors are reported through the exception mechanism.  Two exception
 classes have been defined: WCSerror for unrecoverable errors and
-WCSinvalid for situations where a partial result may be available. 
+WCSinvalid for situations where a partial result may be available.
 
 .. rubric:: Footnotes
 
@@ -143,7 +143,7 @@ WCSinvalid for situations where a partial result may be available.
    module is also available in the Kapteyn Package as
    :mod:`kapteyn.interpolation`.  The modification replaces NaN values in
    the array to a finite value in case order>1, preventing the result
-   becoming all NaN. 
+   becoming all NaN.
 
 """
 
@@ -181,8 +181,8 @@ cdef extern from "eterms.h":
 
 import_array()
 
-if sizeof(long)<sizeof(long*):
-   raise Exception, "cannot run on this architecture: pointer longer than long"
+if sizeof(long long)<sizeof(long*):
+   raise Exception, "cannot run on this architecture: pointer longer than long long"
 
 lontype  = 'longitude'
 lattype  = 'latitude'
@@ -213,7 +213,7 @@ debug = False
 # ==========================================================================
 #                             Declarations
 # --------------------------------------------------------------------------
-      
+
 cdef extern from "stdlib.h":
    ctypedef int size_t
    void* malloc(size_t size)
@@ -233,7 +233,7 @@ cdef extern from "string.h":
 #   conversion from Python integer to pointer
 #
 cdef void *void_ptr(data):
-   cdef long cdata
+   cdef long long cdata
    cdata = data
    return <void*>cdata
 
@@ -283,7 +283,7 @@ cdef pix2grd(double *pixin, double *pixout, int n, wcsprm *param, int dir):
    cdef double *crpix = param.crpix
    cdef int naxis = param.naxis
    cdef int i
-   
+
    for i in range(n*naxis):
       pixout[i] = pixin[i]+dir*floor(crpix[i%naxis]+0.5)
 
@@ -324,25 +324,25 @@ Example::
    from kapteyn import wcs
    import numpy, pyfits
    from kapteyn.interpolation import map_coordinates
-   
+
    hdulist = pyfits.open('ngc6946.fits')
    header = hdulist[0].header
-   
+
    proj1 = wcs.Projection(header)                       # source projection
    trans = wcs.Transformation(proj1.skysys, skyout=wcs.galactic)
-   
+
    header['CTYPE1'], header['CTYPE2'] = 'GLON-TAN', 'GLAT-TAN'
                                                         # new axis types
    header['CRVAL1'], header['CRVAL2'] = trans((header['CRVAL1'],header['CRVAL2']))
                                                         # new reference point
-   
+
    proj2 = wcs.Projection(header)                       # destination projection
-   
+
    coords = wcs.coordmap(proj1, proj2)
-   
+
    image_in = hdulist[0].data
    image_out = map_coordinates(image_in, coords, order=1, cval=numpy.NaN)
-   
+
    hdulist[0].data = image_out
    hdulist.writeto('ngc6946-gal.fits')
 
@@ -386,7 +386,7 @@ The image can have two or more dimensions.
    if proj_dst.skyout != proj_src.skyout:
       proj_dst.skyout = proj_src.skyout
    proj_dst.allow_invalid = True
-   
+
    src_types = list(proj_src.types)
    src_perm = []                    # axis permutation relative to destination
    for axtype in proj_dst.types:
@@ -453,7 +453,7 @@ class Coordinate(object):
             self.n = len(source)
             self.ndims = len(source[0])
             data = <double*>malloc(self.n*self.ndims*sizeof(double))
-            self.data = <long>data
+            self.data = <long long>data
             self.dyn = True
             i = 0
             for elem in source:
@@ -471,14 +471,14 @@ class Coordinate(object):
             self.__array = isinstance(source[0], numpy.ndarray)
             source = numpy.matrix(source, dtype='d').T.copy()
             data = <double*>PyArray_DATA(source)
-            self.data = <long>data
+            self.data = <long long>data
             self.dyn = False
          else:
             self.__format = ScalarTupleFormat
             self.n = 1
             self.ndims = len(source)
             data = <double*>malloc(self.ndims*sizeof(double))
-            self.data = <long>data
+            self.data = <long long>data
             self.dyn = True
             i = 0
             for coord in source:
@@ -505,21 +505,21 @@ class Coordinate(object):
          if not source.flags.contiguous and source.flags.aligned:
             source = source.copy()
          data = <double*>PyArray_DATA(source)
-         self.data = <long>data
+         self.data = <long long>data
       else:
          self.dyn = False
          raise WCSerror, (-2, "unrecognized coordinate source")
       self.source = source                  # prevent premature deallocation
 
    def __del__(self):
-      cdef long data
+      cdef long long data
       if self.dyn:
          data = self.data
          free(<void*>data)
 
    def result(self, pydata):
       cdef double *data
-      cdef long   ldata
+      cdef long long  ldata
       cdef npy_intp c_nelem
       cdef ndarray result_c
       ldata = pydata
@@ -565,7 +565,7 @@ class Coordinate(object):
                lists.append(list(x))
             result = tuple(lists)
       return result
-            
+
 # ==========================================================================
 #                             Class WrappedHeader
 # --------------------------------------------------------------------------
@@ -630,7 +630,7 @@ class WrappedHeader(dict):
                   break
             else:
                raise WCSerror, (-13, 'invalid frequency unit: %s' % cunit)
-            
+
             for key in ['RESTFRQ' + self.alter, 'RESTFREQ', 'FREQ0', 'FREQR']:
                try:
                   f0 = self.header[key]
@@ -684,7 +684,7 @@ class WrappedHeader(dict):
       except:
          return self.header[key]
 
-# ========================================================================== 
+# ==========================================================================
 #                             Function MinimalHeader
 # --------------------------------------------------------------------------
 #
@@ -780,12 +780,12 @@ in the source object. These attributes should not be modified.
 .. attribute:: cdelt
 
    A tuple with the axes' coordinate increments in the axis order of the
-   object. 
+   object.
 
 .. attribute:: crpix
 
    A tuple with the axes' reference points in the axis order of the
-   object. 
+   object.
 
 .. attribute:: crota
 
@@ -801,7 +801,7 @@ in the source object. These attributes should not be modified.
 
    A NumPy matrix for the linear transformation (with scale) between pixel axes
    and intermediate coordinate axes, or None if not specified.
-   
+
 .. attribute:: pv
 
    A list with numeric coordinate parameters. Each list element is a tuple
@@ -860,7 +860,7 @@ The others are read-only.
 .. attribute:: skysys
 
    The projection's 'native' sky system.  E.g., ``(equatorial, fk5,
-   'J2000.0')``. 
+   'J2000.0')``.
 
 .. attribute:: skyout
 
@@ -871,7 +871,7 @@ The others are read-only.
    transformations, the result in the projection's 'native' system is
    transformed to the specified one and for world-to-pixel transformations,
    the given coordinates are first transformed to the native system, then
-   to pixels. 
+   to pixels.
 
 .. attribute:: radesys
 
@@ -887,12 +887,12 @@ The others are read-only.
 .. attribute:: dateobs
 
    The date of observation (string) as specified by the 'DATE-OBS' key
-   in the source object or None if not present. 
+   in the source object or None if not present.
 
 .. attribute:: mjdobs
 
    The date of observation (floating point number) as specified by the
-   'MJD-OBS' key in the source object or None if not present. 
+   'MJD-OBS' key in the source object or None if not present.
 
 .. attribute:: epobs
 
@@ -901,7 +901,7 @@ The others are read-only.
    attribute is a string with the prefix 'MJD' or 'F' which can be parsed
    by the function epochs() in the module 'celestial' and consequently be
    part of the arguments *sky_in* and *sky_out* when creating a
-   Transformation object. 
+   Transformation object.
 
 .. attribute:: gridmode
 
@@ -921,26 +921,26 @@ The others are read-only.
 
    True or False, indicating whether invalid coordinates were detected
    in the last transformation.  In the output, invalid coordinates are
-   indicated by ``numpy.NaN`` ('not a number') values. 
+   indicated by ``numpy.NaN`` ('not a number') values.
 
 .. attribute:: rowvec
 
    If set to True, input and output coordinates, when given as NumPy
-   matrices, will be row vectors instead of the standard column vectors. 
+   matrices, will be row vectors instead of the standard column vectors.
 
 .. attribute:: usedate
 
    Indicates whether the date of observation is to be used for the
-   appropriate celestial transformations.  True or False. 
+   appropriate celestial transformations.  True or False.
 
 .. attribute:: types
 
    A tuple with the axes' coordinate types ('longitude', 'latitude',
-   'spectral' or None) in the axis order of the object. 
+   'spectral' or None) in the axis order of the object.
 
 .. attribute:: naxis
 
-   A tuple with the axes' lengths in the axis order of the object. 
+   A tuple with the axes' lengths in the axis order of the object.
    (Convenience attribute not directly related to WCS.)
 
 .. attribute:: lonaxnum
@@ -986,25 +986,25 @@ Example::
    #!/bin/env python
    from kapteyn import wcs
    import pyfits
-   
+
    hdulist = pyfits.open('aurora.fits')      # open 3-dimensional FITS file
-   
+
    proj3 = wcs.Projection(hdulist[0].header) # create Projection object
-   
+
    pixel = ([51, 32], [17, 60], [11, 12])    # two 3-dimensional pixel coordinates
    world = proj3.toworld(pixel)              # transform pixel to world coordinates
    print world
    print proj3.topixel(world)                # back from world to pixel coordinates
-   
+
    proj2 = proj3.sub([2,1])                  # subimage projection, axes 2 and 1
-   
+
    pixel = ([1, 2, 4, 3], [7, 6, 8, 2])      # four 2-dimensional pixel coordinates
    world = proj2.toworld(pixel)              # transform pixel to world coordinates
    print world
-   
+
    proj2.skyout = (wcs.equatorial, wcs.fk5,
                    'J2008')                  # specify alternative sky system
-   
+
    world = proj2.toworld(pixel)              # transform to that sky system
    print world
    print proj2.topixel(world)                # back to pixel coordinates
@@ -1046,7 +1046,7 @@ Example::
       cdef wcsprm *param
       param = <wcsprm*>calloc(1, sizeof(wcsprm))
       param.flag = -1
-      self.wcsprm = <long>param
+      self.wcsprm = <long long>param
 
       if source_type==dict_type:
          self.source = source
@@ -1061,7 +1061,7 @@ Example::
             raise WCSerror, (-1, "Error allocating wcsprm struct")
          param.naxis = naxis
          param.altlin = 0
-      
+
          # -------------------------
          #   RESTFRQ and/or RESTWAV
          # -------------------------
@@ -1113,7 +1113,7 @@ Example::
                self.naxis += (header['NAXIS%d'%iax],)
             except:
                pass
-      
+
          # --------------
          #    PC matrix
          # --------------
@@ -1145,7 +1145,7 @@ Example::
                      param.altlin = param.altlin | 2
                   except:
                      param.cd[k] = 0.0                             # absent
-      
+
          #------------------
          #   EQUINOX, EPOCH
          #------------------
@@ -1153,7 +1153,7 @@ Example::
          # seem to exist FITS files which represent EQUINOX as a string.
          # (From the Sloan Digital Sky Survey?)
          try:
-            self.equinox = float(header['EQUINOX' + alter]) 
+            self.equinox = float(header['EQUINOX' + alter])
          except:
             try:
                self.equinox = float(header['EPOCH'])
@@ -1166,12 +1166,12 @@ Example::
                      self.equinox = 2000.0
                except:
                   self.equinox = 2000.0
-      
+
          #------------------
          #   RADESYS
          #------------------
          try:
-            self.radesys = reftab[header['RADESYS' + alter].upper()] 
+            self.radesys = reftab[header['RADESYS' + alter].upper()]
          except:
             if self.equinox<1984.0:
                self.radesys = fk4
@@ -1187,7 +1187,7 @@ Example::
          self.epoch = '%s%.1f' % (['J','B'][self.radesys==fk4 or
                                             self.radesys==fk4_no_e],
                                   self.equinox)
-            
+
          #--------------
          #    PV array
          #--------------
@@ -1203,7 +1203,7 @@ Example::
          if npv>param.npvmax:
             raise WCSerror, (-6, "too many PV cards (%d) - increase npvmax"%npv)
          for ipv in range(npv):
-            param.pv[ipv].i     = pvlist[ipv][0] 
+            param.pv[ipv].i     = pvlist[ipv][0]
             param.pv[ipv].m     = pvlist[ipv][1]
             param.pv[ipv].value = pvlist[ipv][2]
          param.npv = npv
@@ -1239,7 +1239,7 @@ Example::
             param.latpole = header['LATPOLE' + alter]
          except:
             pass
-            
+
          #----------------------
          #    DATE-OBS
          #----------------------
@@ -1280,7 +1280,7 @@ Example::
             raise WCSerror, (status, fmt_errmsg(param))
          if self.debug:
             wcsprt(param)
-            
+
 
          #---------------------------------
          #    Euler angles
@@ -1379,7 +1379,7 @@ Example::
                pass
          self.altspec = altspec
          return self.altspec
-            
+
       raise AttributeError, "'Projection' object has no attribute %s" % name
 
    def sub(self, axes=None, nsub=None):
@@ -1390,7 +1390,7 @@ Example::
       - *axes* is a sequence of image axis numbers to extract.  Order is
         significant; *axes[0]* is the axis number of the input image that
         corresponds to the first axis in the subimage, etc.  If not specified,
-        the first *nsub* axes are extracted. 
+        the first *nsub* axes are extracted.
       - *nsub* is the number of axes to extract when *axes* is not specified.
 
       :returns: a new Projection object."""
@@ -1439,7 +1439,7 @@ Example::
       projection = Projection()
       for key in self.__dict__.keys():
          projection.__dict__[key] = self.__dict__[key]
-      projection.wcsprm = <long>newpar
+      projection.wcsprm = <long long>newpar
       if self.debug:
          wcsprt(newpar)
 
@@ -1463,7 +1463,7 @@ Example::
       """
       Create a new Projection object in which the spectral axis is
       translated.  For example, a 'FREQ' axis may be translated into
-      'ZOPT-F2W' and vice versa.  For non-standard frequency types, e.g. 
+      'ZOPT-F2W' and vice versa.  For non-standard frequency types, e.g.
       FREQ-OHEL as used by GIPSY, corrections are applied first to obtain
       barycentric frequencies.  For more information, see chapter
       :doc:`spectralbackground`.
@@ -1477,7 +1477,7 @@ Example::
         :attr:`altspecarg` of the new Projection object.
       - *axindex* -- Index of the spectral axis (0-relative).  If not
         specified, the first spectral axis identified by the CTYPE values of the
-        object is assumed. 
+        object is assumed.
 
       :returns: a new Projection object."""
 
@@ -1535,7 +1535,7 @@ Example::
       for key in self.__dict__.keys():
          projection.__dict__[key] = self.__dict__[key]
       projection.source = header       # restore possibly changed attribute
-      projection.wcsprm = <long>newpar
+      projection.wcsprm = <long long>newpar
       projection.altspecarg = ctype
       projection.__setaxtypes()
       if self.debug:
@@ -1592,7 +1592,7 @@ Example::
       if status==8:
          flag_invalid(world, coord.n, coord.ndims, stat, numpy.NaN)
          self.invalid = True
-      result = coord.result(<long>world)
+      result = coord.result(<long long>world)
       if coord.dyn:
          free(world)
       free(imgcrd)
@@ -1611,7 +1611,7 @@ Example::
    def topixel(self, source=None):
       """
       World-to-pixel transformation.  Similar to :meth:`toworld`, this method
-      can also be called without arguments. 
+      can also be called without arguments.
 """
       cdef wcsprm *param
       cdef double *imgcrd, *phi, *theta, *pixel
@@ -1619,7 +1619,7 @@ Example::
       if source is None:
          if self.pixel is not None:
             result = self.pixel
-            self.pixel = None            
+            self.pixel = None
             return result
          else:
             raise WCSerror, (-4, "no pixel coordinates available")
@@ -1650,10 +1650,10 @@ Example::
          self.invalid = True
       if self.gridmode:
          pix2grd(pixel, pixel, coord.n, param, -1)
-      result = coord.result(<long>pixel)
+      result = coord.result(<long long>pixel)
       if coord.dyn:
          free(pixel)
-      free(imgcrd)   
+      free(imgcrd)
       free(phi)
       free(theta)
       free(stat)
@@ -1676,7 +1676,7 @@ Example::
          return tuple(self.topixel((list(source),))[0])
       else:
          return self.topixel((source,))[0]
-         
+
    def toworld1d(self, source):
       """
       Simplified method for one-dimensional projection objects.  Its
@@ -1701,23 +1701,23 @@ Example::
       "native" sky system.  When a different sky system has been specified, an
       exception will be raised.  When either both celestial coordinates or
       both pixel coordinates are given, an operation equivalent to
-      :meth:`topixel` or :meth:`toworld` is performed. 
+      :meth:`topixel` or :meth:`toworld` is performed.
       For non-celestial coordinate elements any
       NaN value will be replaced by a value derived from the corresponding
-      element in the other coordinate. 
+      element in the other coordinate.
 
       - *span* -- a sequence containing the solution interval for the
         celestial coordinate, in degrees.  The ordering of the two limits is
         irrelevant.  Longitude ranges may be specified with any convenient
         normalization, for example [-120,+120] is the same as [240,480], except
-        that the solution will be returned with the same normalization, i.e. 
+        that the solution will be returned with the same normalization, i.e.
         lie within the interval specified.  The default is the appropriate CRVAL
-        value \u00B115\u00B0. 
+        value \u00B115\u00B0.
       - *step* -- step size for solution search, in degrees.
         If zero, a sensible, although perhaps non-optimal default will be used.
       - *iter* -- if a solution is not found then the step size will be
         halved and the search recommenced. iter controls how many times
-        the step size is halved. The allowed range is 5 - 10. 
+        the step size is halved. The allowed range is 5 - 10.
 
       :returns: a tuple (*world*, *pixel*) containing the resulting
                 coordinates."""
@@ -1805,11 +1805,11 @@ Example::
             pixout[i_c] = param.crpix[i_c%param.naxis] # temporary dummy value
          else:
             pixout[i_c] = pixin[i_c]
-            
+
       # replace NaN in independent world coordinates by correct value
       status = wcsp2s(param, world.n, world.ndims,
                       pixout, imgcrd, phi, theta, wldout, stat)
- 
+
       for i_c from 0 <= i_c < n_c:               # restore overwritten values
          axno = i_c%param.naxis
          if pixnan[axno] or (nwnan==1 and (axno==param.lat or axno==param.lng)):
@@ -1855,7 +1855,7 @@ Example::
                      world.n, world.ndims, param.lng, param.lat)
 
       free(imgcrd)
-      free(phi)  
+      free(phi)
       free(theta)
       free(stat)
       if first_err:
@@ -1871,7 +1871,7 @@ Example::
       if self.gridmode:
          pix2grd(pixout, pixout, pixel.n, param, -1)
          free(pixin)
-      result = (world.result(<long>wldout), pixel.result(<long>pixout))
+      result = (world.result(<long long>wldout), pixel.result(<long long>pixout))
       if world.dyn:
          free(wldout)
       if pixel.dyn:
@@ -1915,7 +1915,7 @@ Example::
       data = <double*>void_ptr(coord.data)
 
       for i in range(coord.n):
-         elem = i*ndim         
+         elem = i*ndim
          is_in = True
          for idim in self.naxis:
             data_el = data[elem]
@@ -1944,13 +1944,13 @@ Example::
       coord = Coordinate(source, self.rowvec)
       grid = <double*>malloc(coord.n*coord.ndims*sizeof(double))
       pix2grd(<double*>void_ptr(coord.data), grid, coord.n, param, dir)
-      result = coord.result(<long>grid)
+      result = coord.result(<long long>grid)
       if coord.dyn:
          free(grid)
       return result
-      
+
    def grid2pixel(self, source):
-      """ 
+      """
       Grid-to-pixel conversion.
       *grid* is an object containing one or more grid coordinates and
       a similar object with the corresponding pixel coordinates will be
@@ -1967,7 +1967,7 @@ Example::
       projection object's coordinate system.  If the string contains a
       valid position, the method returns the arrays with the corresponding
       world- and pixel coordinates. If a
-      position could not be converted, then an error message is returned. 
+      position could not be converted, then an error message is returned.
 
       :param postxt:   one or more positions to be parsed.
       :type postxt:    string
@@ -1981,8 +1981,8 @@ Example::
 
       This method returns a tuple with four elements:
 
-      * a NumPy array with the parsed positions in world coordinates 
-      * a NumPy array with the parsed positions in pixel coordinates  
+      * a NumPy array with the parsed positions in world coordinates
+      * a NumPy array with the parsed positions in pixel coordinates
       * A tuple with the units that correspond to the axes
         in your world coordinate system.
       * An error message when a position could not be parsed
@@ -1996,7 +1996,7 @@ Example::
       :func:`positions.str2pos` from module :mod:`positions`.
       Please refer to that module's documentation for a detailed explanation.
       """
-      
+
       import positions
       return positions.str2pos(postxt, self, mixpix)
 
@@ -2082,7 +2082,7 @@ class Transformation(object):
    """
 :param sky_in, sky_out:
    the input- and output sky system.  Can be
-   specified as e.g., "(equatorial, fk4, 'B1950.0')" or "galactic". 
+   specified as e.g., "(equatorial, fk4, 'B1950.0')" or "galactic".
 :param rowvec:
    if set to True, input and output coordinates, when given
    as NumPy matrices, will be row vectors instead of the standard column
@@ -2095,13 +2095,13 @@ class Transformation(object):
 **Attribute:**
 
 .. attribute:: rowvec
-   
+
    If set to True, input and output coordinates, when given as
    NumPy matrices, will be row vectors instead of the standard column
    vectors.
 
 Example::
-      
+
    #!/bin/env python
    from kapteyn import wcs
    import numpy
@@ -2110,21 +2110,21 @@ Example::
 
    radec = numpy.matrix(([33.3, 177.2, 230.1],
                          [66.2, -11.5,  13.0]))
-          
+
    lbgal = tran(radec)
    print lbgal
    print tran(lbgal, reverse=True)
 
 """
-   
+
    def __init__(self, skyin, skyout, rowvec=False):
       self.rowvec = rowvec
       self.forward = skymatrix(skyin, skyout)
       self.reverse = skymatrix(skyout, skyin)
-      
+
    def __call__(self, source, reverse=False):
       return self.transform(source, reverse)
-         
+
    def transform(self, source, reverse=False):
       """
 :param in:
@@ -2158,7 +2158,7 @@ in the same way.
       if e_post:
          eterms(c_xyz, coord.n, +1, e_post[0], e_post[1], e_post[2])
       from_xyz(world, c_xyz, coord.n, 2, 0, 1)
-      result = coord.result(<long>world)
+      result = coord.result(<long long>world)
       if coord.dyn:
          free(world)
       return result
@@ -2171,4 +2171,3 @@ __all__ = ['equatorial', 'ecliptic', 'galactic', 'supergalactic',
            'WCSinvalid', 'Projection', 'Transformation',
            'lontype', 'lattype', 'spectype', 'coordmap']
 __version__ = '1.3'
-
