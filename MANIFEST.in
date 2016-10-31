@@ -8,5 +8,4 @@ graft   kapteyn
 graft   src
 graft   src/wcslib*
 graft   src/scipy
-graft   doc
 graft   kapteyn/lut
