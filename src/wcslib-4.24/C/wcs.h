@@ -1,3 +1,6 @@
+#if  defined(_MSC_VER)
+#define wcsset wcsset_
+#endif
 /*============================================================================
 
   WCSLIB 4.24 - an implementation of the FITS WCS standard.
