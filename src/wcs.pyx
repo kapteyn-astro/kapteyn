@@ -1297,7 +1297,7 @@ Example::
          #---------------------------------
          #    Sky system
          #---------------------------------
-         lngtyp = param.lngtyp
+         lngtyp = param.lngtyp.decode("ascii")
          if lngtyp not in skytab and param.lng>=0:
             lngtyp = param.ctype[param.lng] # shouldn't wcslib have done this?
          try:
