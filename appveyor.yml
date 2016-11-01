@@ -32,3 +32,4 @@ test_script:
  - python -c "import kapteyn.profiles"
  - python -c "import kapteyn._nd_image"
  - python -c "import kapteyn.kmpfit"
+
