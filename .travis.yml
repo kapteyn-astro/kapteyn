@@ -24,7 +24,14 @@ before_install:
   - source activate test-environment
 install:
   - python setup.py install
+  - pip install -e .
 script:
  - echo "ok"
+ - python -c "import kapteyn"
+ - python -c "import kapteyn.wcs"
+ - python -c "import kapteyn.ascarray"
+ - python -c "import kapteyn.profiles"
+ - python -c "import kapteyn._nd_image"
+ - python -c "import kapteyn.kmpfit"
 
 
