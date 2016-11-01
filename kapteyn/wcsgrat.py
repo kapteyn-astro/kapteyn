@@ -178,7 +178,7 @@ def parseplotaxes(plotaxes):
       if pa < 0 or pa > 3:
          raise ValueError("Cannot identify this plot axis!")
    aset = {}
-   list(map(aset.__setitem__, plotaxes, []))
+   list(map(aset.__setitem__, plotaxes, [None] * len(plotaxes)))
    return list(aset.keys())
 
 
@@ -2319,7 +2319,7 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
 
 
       # wcs.debug=True
-      # Create the wcs projection object      
+      # Create the wcs projection object
       proj = wcs.Projection(header, skyout=skyout, alter=alter)
       if spectrans:
          # Spectral transformations must be applied to the Projection object
@@ -2942,7 +2942,6 @@ a general grid so we can cover every type of map (e.g. position velocity maps).
                else:
                   fr = frame2
                fr.xaxis.set_label_coords(xpos, ypos)
-
       frame.set_ylabel( graticule.axes[left].label,   **graticule.axes[left].kwargs)
       frame.set_xlabel( graticule.axes[bottom].label, **graticule.axes[bottom].kwargs)
       frame2.set_ylabel(graticule.axes[right].label,  **graticule.axes[right].kwargs)
