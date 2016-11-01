@@ -3069,15 +3069,16 @@ a suffix '_' which may be follwed by arbitrary characters.
    epobs = None
    sysin = None
    first = True
+
    if skyin == None:      # Nothing to parse
       return sysin, refin, epochin, epobs
 
-   if type(skyin) not in [tuple, bytes]:
+   if not isinstance(skyin, six.string_types + (tuple,)):
       try:
          skyin = tuple([skyin])
       except:
          raise ValueError("Sky definition is not a string nor a tuple or a scalar!")
-   if type(skyin) == bytes:
+   if isinstance(skyin, six.string_types):
       skyin = parseskydef(skyin)
       if skyin is None:   # e.g. input was '{}' then parseskydef returns None
          return None, None, None, None
